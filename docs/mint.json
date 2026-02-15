@@ -1,0 +1,60 @@
+{
+  "$schema": "https://mintlify.com/schema.json",
+  "name": "Aris Labs",
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg"
+  },
+  "favicon": "/favicon.png",
+  "colors": {
+    "primary": "#3B82F6",
+    "light": "#FFFFFF",
+    "dark": "#030303"
+  },
+  "topbarLinks": [
+    {
+      "name": "Registry (App)",
+      "url": "https://aris-registry.onrender.com"
+    },
+    {
+      "name": "GitHub",
+      "url": "https://github.com/sid-stack/aris-registry"
+    }
+  ],
+  "navigation": [
+    {
+      "group": "Introduction",
+      "pages": [
+        "index",
+        "quickstart",
+        "concepts"
+      ]
+    },
+    {
+      "group": "Node Management",
+      "pages": [
+        "run-node",
+        "monitoring",
+        "scaling"
+      ]
+    },
+    {
+      "group": "Python SDK",
+      "pages": [
+        "python-sdk",
+        "advanced-usage",
+        "errors"
+      ]
+    },
+    {
+      "group": "API Reference",
+      "pages": [
+        "api-reference/handshake",
+        "api-reference/generate"
+      ]
+    }
+  ],
+  "footerSocials": {
+    "github": "https://github.com/sid-stack/aris-registry"
+  }
+}

@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aris Labs | Decentralized Intelligence Infrastructure</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Space Grotesk', 'sans-serif'],
+                    },
+                    colors: {
+                        aris: {
+                            base: '#030303',
+                            surface: '#0A0A0A',
+                            accent: '#3B82F6',
+                            glow: '#60A5FA',
+                            text: '#E5E5E5',
+                            dim: '#737373'
+                        }
+                    },
+                    backgroundImage: {
+                        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+                        'grid-pattern': "url('data:image/svg+xml,%3Csvg width=\"40\" height=\"40\" viewBox=\"0 0 40 40\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"%23333\" fill-opacity=\"0.1\" fill-rule=\"evenodd\"%3E%3Cpath d=\"M0 40L40 0H20L0 20M40 40V20L20 40\"/%3E%3C/g%3E%3C/svg%3E')",
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --glass-bg: rgba(10, 10, 10, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glow-color: rgba(59, 130, 246, 0.15);
+        }
+
+        body {
+            background-color: #030303;
+            color: #E5E5E5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+        }
+
+        .hero-glow {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, var(--glow-color) 0%, rgba(0, 0, 0, 0) 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: -1;
+            filter: blur(80px);
+            opacity: 0.6;
+            animation: pulse-glow 8s infinite alternate;
+        }
+
+        @keyframes pulse-glow {
+            0% {
+                transform: scale(1) translate(-20%, -20%);
+                opacity: 0.4;
+            }
+
+            100% {
+                transform: scale(1.2) translate(10%, 10%);
+                opacity: 0.7;
+            }
+        }
+
+        .text-gradient {
+            background: linear-gradient(135deg, #FFF 0%, #94A3B8 100%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .card-hover {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .card-hover:hover {
+            transform: translateY(-4px);
+            border-color: rgba(59, 130, 246, 0.4);
+            box-shadow: 0 20px 40px -10px rgba(59, 130, 246, 0.1);
+        }
+
+        /* Subtle scanline effect */
+        .scanlines::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 2;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+            opacity: 0.05;
+        }
+    </style>
+</head>
+
+<body class="relative overflow-x-hidden min-h-screen flex flex-col">
+
+    <!-- Ambient Background -->
+    <div
+        class="fixed inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] pointer-events-none z-0">
+    </div>
+    <div class="fixed top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-7xl pointer-events-none z-0">
+        <div class="hero-glow top-0 left-0"></div>
+        <div class="hero-glow bottom-0 right-0 bg-blue-900/20" style="animation-delay: -4s;"></div>
+    </div>
+
+    <!-- Navigation -->
+    <header class="fixed top-0 w-full z-50 border-b border-white/5 bg-aris-base/80 backdrop-blur-md">
+        <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+            <a href="/" class="flex items-center gap-3 group">
+                <div
+                    class="w-8 h-8 rounded bg-gradient-to-tr from-blue-600 to-blue-400 flex items-center justify-center group-hover:shadow-[0_0_15px_rgba(59,130,246,0.5)] transition-shadow duration-300">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="text-white">
+                        <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round" />
+                        <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                        <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                    </svg>
+                </div>
+                <span class="font-display font-medium text-lg tracking-tight text-white">Aris Labs</span>
+            </a>
+
+            <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-aris-dim">
+                <a href="#features" class="hover:text-white transition-colors">Platform</a>
+                <a href="https://arislabs.mintlify.app/" class="hover:text-white transition-colors">Documentation</a>
+                <a href="#pricing" class="hover:text-white transition-colors">Pricing</a>
+            </nav>
+
+            <div class="flex items-center gap-4">
+                <a href="https://github.com/sid-stack/aris-registry" target="_blank"
+                    class="hidden md:block text-aris-dim hover:text-white transition-colors">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path fill-rule="evenodd"
+                            d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
+                            clip-rule="evenodd"></path>
+                    </svg>
+                </a>
+                <a href="https://arislabs.mintlify.app/quickstart"
+                    class="bg-white text-black px-4 py-2 rounded-full text-sm font-semibold hover:bg-gray-200 transition-colors">Start
+                    Building</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow z-10 pt-32 pb-20">
+
+        <!-- Hero Section -->
+        <section class="max-w-6xl mx-auto px-6 mb-32 relative">
+            <div class="max-w-3xl">
+                <div
+                    class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-blue-500/30 bg-blue-500/10 text-xs font-medium text-blue-400 mb-8 backdrop-blur-sm animate-fade-in-up">
+                    <span class="relative flex h-2 w-2">
+                        <span
+                            class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                    </span>
+                    Aris Registry v1.0.4 Online
+                </div>
+
+                <h1 class="font-display text-5xl md:text-7xl font-bold tracking-tight mb-8 leading-[1.1]">
+                    The Semantic Layer for <br>
+                    <span class="text-gradient">Decentralized Intelligence</span>
+                </h1>
+
+                <p class="text-lg md:text-xl text-aris-dim max-w-2xl mb-12 leading-relaxed">
+                    Aris provides the verifiable handshake protocol for autonomous agents.
+                    Route identity, validate capabilities, and settle micro-transactions zero-trust networks.
+                </p>
+
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <a href="https://arislabs.mintlify.app/quickstart"
+                        class="px-8 py-4 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-500 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(37,99,235,0.3)] hover:shadow-[0_0_30px_rgba(37,99,235,0.5)]">
+                        Get Started <span aria-hidden="true">&rarr;</span>
+                    </a>
+                    <div
+                        class="flex items-center gap-0 bg-[#0A0A0A] border border-white/10 rounded-lg px-4 py-4 font-mono text-sm text-gray-400 w-fit">
+                        <span class="text-blue-500 mr-2">$</span> pip install aris-router
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Grid -->
+        <section id="features" class="max-w-6xl mx-auto px-6 mb-32">
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="glass p-8 rounded-2xl card-hover">
+                    <div
+                        class="w-12 h-12 bg-blue-500/10 rounded-lg flex items-center justify-center mb-6 text-blue-500">
+                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                    </div>
+                    <h3 class="font-display text-xl font-bold mb-3">Verifiable Identity</h3>
+                    <p class="text-aris-dim text-sm leading-relaxed">Cryptographic proofs for every agent interaction.
+                        Ensure you're talking to who you think you are with zero-knowledge capability checks.</p>
+                </div>
+
+                <div class="glass p-8 rounded-2xl card-hover">
+                    <div
+                        class="w-12 h-12 bg-purple-500/10 rounded-lg flex items-center justify-center mb-6 text-purple-500">
+                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                    </div>
+                    <h3 class="font-display text-xl font-bold mb-3">High-Frequency Routing</h3>
+                    <p class="text-aris-dim text-sm leading-relaxed">Built for improved latency. The Aris Router handles
+                        thousands of agent handshakes per second with minimal overhead.</p>
+                </div>
+
+                <div class="glass p-8 rounded-2xl card-hover">
+                    <div
+                        class="w-12 h-12 bg-green-500/10 rounded-lg flex items-center justify-center mb-6 text-green-500">
+                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <h3 class="font-display text-xl font-bold mb-3">Micro-Settlements</h3>
+                    <p class="text-aris-dim text-sm leading-relaxed">Native integration with Stripe and crypto-rails for
+                        per-token or per-request monetization between agents.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pricing Section -->
+        <section id="pricing" class="max-w-6xl mx-auto px-6 mb-20">
+            <h2 class="font-display text-3xl font-bold mb-12 text-center">Transparent Infrastructure Pricing</h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Starter -->
+                <div
+                    class="glass p-8 rounded-2xl border border-white/5 flex flex-col relative group hover:border-white/10 transition-colors">
+                    <div class="mb-6">
+                        <span class="text-xs font-semibold tracking-wider uppercase text-aris-dim">Starter</span>
+                        <div class="mt-2 flex items-baseline gap-1">
+                            <span class="text-4xl font-bold text-white">$10</span>
+                            <span class="text-sm text-aris-dim">/mo</span>
+                        </div>
+                    </div>
+                    <ul class="space-y-4 mb-8 text-sm text-gray-400 flex-grow">
+                        <li class="flex items-center gap-3"><span class="text-blue-500">✓</span> 100 Handshakes</li>
+                        <li class="flex items-center gap-3"><span class="text-blue-500">✓</span> Standard Registry
+                            Access</li>
+                        <li class="flex items-center gap-3"><span class="text-blue-500">✓</span> JSON Metadata Support
+                        </li>
+                    </ul>
+                    <!-- TODO: Insert real Stripe Payment Link from Dashboard -->
+                    <a href="https://buy.stripe.com/test_..."
+                        class="w-full py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm font-medium text-center transition-colors">Get
+                        Started</a>
+                </div>
+
+                <!-- Builder (Highlighted) -->
+                <div
+                    class="glass p-8 rounded-2xl border border-blue-500/30 bg-gradient-to-b from-blue-900/10 to-transparent flex flex-col relative transform md:-translate-y-4">
+                    <div
+                        class="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide shadow-lg">
+                        Most Popular</div>
+                    <div class="mb-6">
+                        <span class="text-xs font-semibold tracking-wider uppercase text-blue-400">Builder</span>
+                        <div class="mt-2 flex items-baseline gap-1">
+                            <span class="text-4xl font-bold text-white">$50</span>
+                            <span class="text-sm text-aris-dim">/mo</span>
+                        </div>
+                    </div>
+                    <ul class="space-y-4 mb-8 text-sm text-gray-300 flex-grow">
+                        <li class="flex items-center gap-3"><span class="text-blue-400">✓</span> 600 Handshakes</li>
+                        <li class="flex items-center gap-3"><span class="text-blue-400">✓</span> Priority Discovery</li>
+                        <li class="flex items-center gap-3"><span class="text-blue-400">✓</span> Dedicated Support</li>
+                        <li class="flex items-center gap-3"><span class="text-green-400 text-xs font-bold">Includes $10
+                                Credit</span></li>
+                    </ul>
+                    <!-- TODO: Insert real Stripe Payment Link from Dashboard -->
+                    <a href="https://buy.stripe.com/test_..."
+                        class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium text-center shadow-lg shadow-blue-900/20 transition-all">Provision
+                        Sandbox</a>
+                </div>
+
+                <!-- Pro -->
+                <div
+                    class="glass p-8 rounded-2xl border border-white/5 flex flex-col relative hover:border-white/10 transition-colors">
+                    <div class="mb-6">
+                        <span class="text-xs font-semibold tracking-wider uppercase text-aris-dim">Pro</span>
+                        <div class="mt-2 flex items-baseline gap-1">
+                            <span class="text-4xl font-bold text-white">$200</span>
+                            <span class="text-sm text-aris-dim">/mo</span>
+                        </div>
+                    </div>
+                    <ul class="space-y-4 mb-8 text-sm text-gray-400 flex-grow">
+                        <li class="flex items-center gap-3"><span class="text-blue-500">✓</span> 2,500 Handshakes</li>
+                        <li class="flex items-center gap-3"><span class="text-blue-500">✓</span> Custom ZK-Claims</li>
+                        <li class="flex items-center gap-3"><span class="text-blue-500">✓</span> High-Latency SLA</li>
+                    </ul>
+                    <!-- TODO: Insert real Stripe Payment Link from Dashboard -->
+                    <a href="https://buy.stripe.com/test_..."
+                        class="w-full py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm font-medium text-center transition-colors">Deploy
+                        Production</a>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="border-t border-white/5 bg-black py-12 z-10 relative">
+        <div class="max-w-6xl mx-auto px-6 flex flex-col md:flex-row justify-between gap-12">
+            <div class="max-w-xs">
+                <div class="flex items-center gap-2 mb-4">
+                    <div class="w-4 h-4 bg-blue-600 rounded-sm"></div>
+                    <span class="font-bold text-white">Aris Labs Inc.</span>
+                </div>
+                <p class="text-xs text-aris-dim leading-relaxed">
+                    Building the <i>Decentralized Trust layer </i> for the next generation of <b>Autonomous</b> AI agents.
+                </p>
+            </div>
+            <div class="grid grid-cols-2 gap-12 text-sm">
+                <div>
+                    <h4 class="font-bold text-white mb-4">Product</h4>
+                    <ul class="space-y-2 text-aris-dim">
+                        <li><a href="https://arislabs.mintlify.app/"
+                                class="hover:text-blue-400 transition-colors">Documentation</a></li>
+                        <li><a href="https://github.com/sid-stack/aris-registry"
+                                class="hover:text-blue-400 transition-colors">GitHub</a></li>
+                        <li><a href="#pricing" class="hover:text-blue-400 transition-colors">Pricing</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold text-white mb-4">Legal</h4>
+                    <ul class="space-y-2 text-aris-dim">
+                        <li><a href="https://arislabs.mintlify.app/"
+                                class="hover:text-blue-400 transition-colors">Privacy</a></li>
+                        <li><a href="https://arislabs.mintlify.app/"
+                                class="hover:text-blue-400 transition-colors">Terms</a></li>
+                        <li><a href="mailto:support@aris.ai" class="hover:text-blue-400 transition-colors">Contact</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div
+            class="max-w-6xl mx-auto px-6 mt-12 pt-8 border-t border-white/5 text-[10px] text-aris-dim text-center md:text-left">
+            &copy; 2026 Aris Labs Inc. All rights reserved.
+        </div>
+    </footer>
+
+</body>
+
+</html>

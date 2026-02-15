@@ -1,0 +1,8 @@
+/* Navigation bar links styling */
+.navbar-link {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+}
+
+/* Sidebar toggle button (if supported by theme, this might help visibility) */
+/* Mintlify usually handles this, but custom CSS can sometimes force display */

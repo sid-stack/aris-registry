@@ -1,0 +1,71 @@
+---
+title: "Python SDK"
+description: "The official Python client for the ARIS network."
+icon: "python"
+---
+
+## Installation
+
+Install the package from PyPI:
+
+```bash
+pip install aris-sdk
+```
+
+## Initialization
+
+The `Aris` client is your main entry point. It handles:
+- **Node Discovery**: Finding active compute nodes.
+- **Handshake**: Negotiating payment and session tokens.
+- **Execution**: Sending prompts to the node.
+
+```python
+from aris.client import Aris
+
+client = Aris(
+    api_key="your-api-key",       # Defaults to ARIS_API_KEY env var
+    registry_url="http://..."     # Optional: For private networks
+)
+```
+
+## Usage
+
+### `client.generate()`
+
+The core method to run inference.
+
+```python
+response = client.generate(
+    prompt="Explain quantum computing in one sentence.",
+    model="tinyllama"  # Default model
+)
+
+print(response)
+```
+
+<Note>
+The client automatically handles the connection handshake. If a session token expires, it will attempt to refresh it automatically.
+</Note>
+
+### Helper Function
+
+For quick, one-off scripts, you can use the top-level `generate` helper:
+
+```python
+from aris.client import generate
+
+print(generate("Hello world"))
+```
+
+## Configuration
+
+You can configure the client using environment variables to avoid hardcoding secrets.
+
+| Variable | Description |
+| -------- | ----------- |
+| `ARIS_API_KEY` | Your unique API key (starts with `sk-`). |
+| `ARIS_REGISTRY_URL` | URL of the registry (default: `http://localhost:8000`). |
+
+## Error Handling
+
+See the [Error Handling](/errors) page for details on `ArisPaymentError` and `ArisNodeError`.

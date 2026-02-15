@@ -1,0 +1,65 @@
+---
+title: "Error Handling"
+description: "Reference for ARIS SDK exceptions and error codes."
+icon: "triangle-exclamation"
+---
+
+# Exception Hierarchy
+
+The ARIS SDK uses a structured exception hierarchy to help you handle errors gracefully.
+
+All exceptions inherit from the base `ArisError`.
+
+```python
+class ArisError(Exception):
+    """Base exception for all Aris SDK errors."""
+```
+
+## Common Errors
+
+### `ArisAuthenticationError`
+Raised when the API key is missing, invalid, or expired.
+
+```python
+try:
+    client = Aris(api_key="invalid-key")
+    client.generate("fail")
+except ArisAuthenticationError:
+    print("Please check your API key.")
+```
+
+### `ArisPaymentError`
+Raised during the **Handshake** phase if the account has insufficient credits.
+
+```python
+class ArisPaymentError(ArisError):
+    """Raised when payment fails or balance is insufficient."""
+```
+
+### `ArisNodeError`
+Raised when a worker node fails to respond or returns an error during inference. This can happen if a node goes offline mid-request.
+
+```python
+class ArisNodeError(ArisError):
+    """Raised when the worker node fails to respond."""
+```
+
+## Handling Strategy
+
+We recommend wrapping your generation calls in a try/except block to handle network and payment issues distinctively.
+
+```python
+from aris.client import Aris, ArisPaymentError, ArisNodeError
+
+client = Aris()
+
+try:
+    response = client.generate("Hello world")
+except ArisPaymentError:
+    print("Billing issue - check balance.")
+except ArisNodeError:
+    print("Node failure - retrying automatically...")
+    # Add your retry logic here
+except Exception as e:
+    print(f"Unexpected error: {e}")
+```

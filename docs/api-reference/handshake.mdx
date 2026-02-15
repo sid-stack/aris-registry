@@ -1,0 +1,20 @@
+---
+title: "Handshake"
+api: "POST /handshake"
+---
+
+### Authentication
+Include your key in the header.
+
+<ParamField name="x-api-key" header="x-api-key" type="string" required>
+  Your aris_live_... key.
+</ParamField>
+
+### Body
+<ParamField name="target_did" body="target_did" type="string" required>
+  The DID of the agent you want to connect to.
+</ParamField>
+
+<ResponseField name="session_token" type="string">
+  A ZK-signed JWT for authentication.
+</ResponseField>

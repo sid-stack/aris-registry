@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Developer Dashboard | Aris Labs</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Space Grotesk', 'sans-serif'],
+                    },
+                    colors: { aris: { base: '#030303', surface: '#0A0A0A', accent: '#3B82F6', dim: '#737373' } }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --glass-bg: rgba(10, 10, 10, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glow-color: rgba(59, 130, 246, 0.15);
+        }
+
+        body {
+            background-color: #030303;
+            color: #E5E5E5;
+        }
+
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+        }
+
+        .hero-glow {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, var(--glow-color) 0%, rgba(0, 0, 0, 0) 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: -1;
+            filter: blur(80px);
+            opacity: 0.6;
+            animation: pulse-glow 8s infinite alternate;
+        }
+
+        @keyframes pulse-glow {
+            0% {
+                transform: scale(1) translate(-20%, -20%);
+                opacity: 0.4;
+            }
+
+            100% {
+                transform: scale(1.2) translate(10%, 10%);
+                opacity: 0.7;
+            }
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex flex-col relative overflow-hidden">
+    <div class="fixed top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-7xl pointer-events-none z-0">
+        <div class="hero-glow top-0 left-0"></div>
+        <div class="hero-glow bottom-0 right-0 bg-blue-900/20" style="animation-delay: -4s;"></div>
+    </div>
+
+    <div id="login-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm">
+        <div class="glass p-8 rounded-2xl w-full max-w-md mx-4">
+            <h2 class="font-display text-2xl font-bold mb-2">Developer Login</h2>
+            <p class="text-aris-dim mb-6 text-sm">Enter your registered email to access your API keys.</p>
+            <form id="login-form" class="space-y-4">
+                <div>
+                    <input type="email" id="email-input" placeholder="developer@example.com" required
+                        class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors">
+                </div>
+                <button type="submit"
+                    class="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-3 rounded-lg transition-colors">Access
+                    Dashboard</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="dashboard-content" class="hidden relative z-10 max-w-5xl mx-auto w-full px-6 py-12">
+        <header class="flex items-center justify-between mb-12">
+            <div>
+                <h1 class="font-display text-3xl font-bold">API Management</h1>
+                <p class="text-aris-dim mt-2" id="user-email-display">Connecting...</p>
+            </div>
+            <button onclick="logout()" class="text-sm text-red-400 hover:text-red-300 transition-colors">Sign
+                Out</button>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+            <div class="glass p-6 rounded-xl">
+                <p class="text-xs text-aris-dim uppercase tracking-wider mb-2">API Status</p>
+                <div class="flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                    <span class="font-bold text-lg">Secure & Active</span>
+                </div>
+            </div>
+
+            <div class="glass p-6 rounded-xl flex items-center justify-between border-blue-500/30">
+                <div>
+                    <p class="text-xs text-blue-400 uppercase tracking-wider mb-2">API Credits</p>
+                    <div class="flex items-center gap-2">
+                        <span class="font-bold text-2xl" id="balance-display">...</span>
+                    </div>
+                </div>
+                <button onclick="buyCredits()" id="buy-credits-btn"
+                    class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 shadow-[0_0_15px_rgba(59,130,246,0.3)]">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    </svg>
+                    Add $10
+                </button>
+            </div>
+        </div>
+
+        <section>
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="font-display text-xl font-bold">Active API Keys</h2>
+                <button onclick="generateKey()"
+                    class="bg-white/10 hover:bg-white/20 border border-white/10 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+                    <span>+</span> Generate New Key
+                </button>
+            </div>
+
+            <div class="glass rounded-xl overflow-hidden border border-white/5">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-white/5 text-aris-dim uppercase font-semibold text-xs border-b border-white/5">
+                            <tr>
+                                <th class="px-6 py-4">Key Prefix</th>
+                                <th class="px-6 py-4">Note</th>
+                                <th class="px-6 py-4">Created</th>
+                                <th class="px-6 py-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="keys-table-body" class="divide-y divide-white/5">
+                            <tr class="text-center text-aris-dim">
+                                <td colspan="4" class="py-8">Loading keys...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div id="key-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+        <div class="glass p-8 rounded-2xl w-full max-w-lg mx-4 border border-blue-500/30">
+            <h3 class="font-display text-xl font-bold text-white mb-2">New API Key Generated</h3>
+            <p class="text-red-400 text-sm mb-6">Copy your token now. You won't be able to see it again!</p>
+            <div class="bg-black/50 border border-white/10 rounded-lg p-4 mb-6"><code id="new-key-display"
+                    class="font-mono text-green-400 break-all"></code></div>
+            <button onclick="document.getElementById('key-modal').classList.add('hidden')"
+                class="w-full bg-white text-black font-semibold py-3 rounded-lg hover:bg-gray-200">Close</button>
+        </div>
+    </div>
+
+    <script>
+        let currentUserEmail = localStorage.getItem('aris_email');
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (currentUserEmail) showDashboard(currentUserEmail);
+            else document.getElementById('login-modal').classList.remove('hidden');
+        });
+
+        document.getElementById('login-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email-input').value;
+            if (email) {
+                localStorage.setItem('aris_email', email);
+                currentUserEmail = email;
+                showDashboard(email);
+            }
+        });
+
+        function showDashboard(email) {
+            document.getElementById('login-modal').classList.add('hidden');
+            document.getElementById('dashboard-content').classList.remove('hidden');
+            document.getElementById('user-email-display').textContent = email;
+            loadData();
+        }
+
+        function logout() {
+            localStorage.removeItem('aris_email');
+            window.location.reload();
+        }
+
+        async function loadData() {
+            try {
+                // 1. Fetch Keys
+                const res = await fetch(`/api/keys?email=${encodeURIComponent(currentUserEmail)}`);
+                const data = await res.json();
+                const tbody = document.getElementById('keys-table-body');
+
+                if (!data.keys || data.keys.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-8 text-center text-aris-dim">No active keys found.</td></tr>`;
+                } else {
+                    tbody.innerHTML = data.keys.map(k => `
+                        <tr class="hover:bg-white/5">
+                            <td class="px-6 py-4 font-mono text-blue-400">${k.key_prefix}</td>
+                            <td class="px-6 py-4 text-gray-400">${k.note || '-'}</td>
+                            <td class="px-6 py-4 text-gray-500 text-xs">${new Date(k.created_at).toLocaleDateString()}</td>
+                            <td class="px-6 py-4 text-right"><button onclick="revokeKey('${k.key_prefix}')" class="text-red-500 hover:bg-red-500/10 px-3 py-1 rounded">Revoke</button></td>
+                        </tr>`).join('');
+                }
+
+                // 2. Optional: Fetch Balance (if you have an endpoint for it, otherwise it stays '...')
+                // const balRes = await fetch(`/api/balance?email=${encodeURIComponent(currentUserEmail)}`);
+                // const balData = await balRes.json();
+                // document.getElementById('balance-display').textContent = `$${balData.balance.toFixed(2)}`;
+
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function generateKey() {
+            const res = await fetch('/api/keys/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: currentUserEmail, note: "Dashboard Generated" })
+            });
+            const data = await res.json();
+            document.getElementById('new-key-display').textContent = data.api_key;
+            document.getElementById('key-modal').classList.remove('hidden');
+            loadData();
+        }
+
+        async function revokeKey(prefix) {
+            if (!confirm(`Revoke key ${prefix}?`)) return;
+            await fetch('/api/keys/revoke', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: currentUserEmail, key_prefix: prefix })
+            });
+            loadData();
+        }
+
+        // --- NEW STRIPE INTEGRATION LOGIC ---
+        async function buyCredits() {
+            const btn = document.getElementById('buy-credits-btn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = 'Loading...';
+            btn.disabled = true;
+
+            try {
+                // IMPORTANT: Ensure this matches the exact route in your FastAPI main.py!
+                // It might be /api/billing/checkout, /checkout, or /api/billing/create-checkout-session
+                const res = await fetch('/api/billing/checkout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: currentUserEmail })
+                });
+
+                if (!res.ok) throw new Error('Could not initialize Stripe session');
+
+                const data = await res.json();
+
+                // Redirect user to Stripe's secure hosted checkout page
+                if (data.url) {
+                    window.location.href = data.url;
+                } else {
+                    throw new Error('No checkout URL returned from server');
+                }
+            } catch (err) {
+                alert("Payment Error: " + err.message);
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+
+</html>
