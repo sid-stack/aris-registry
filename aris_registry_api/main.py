@@ -143,6 +143,101 @@ async def verify_security_context(
     return user
 
 # ─────────────────────────────────────────────
+#  SEED DATA & UTILS
+# ─────────────────────────────────────────────
+AGENTS_DATA = [
+    {
+        "name": "GitHub Repo Master",
+        "capabilities": ["dev.git.manage", "dev.code.review"],
+        "endpoint": "http://localhost:8001/manage",
+        "status": "live"
+    },
+    {
+        "name": "Gov RFP Bidder",
+        "capabilities": ["gov.rfp.bidder", "gov.compliance.check"],
+        "endpoint": "http://localhost:8002/bid",
+        "status": "live"
+    },
+    {
+        "name": "DeFi Arbitrage Node",
+        "capabilities": ["fin.defi.trade", "fin.market.analyze"],
+        "endpoint": "http://localhost:8003/trade",
+        "status": "live"
+    },
+    {
+        "name": "Linear Task Automator",
+        "capabilities": ["prod.linear.manage", "prod.scrum.master"],
+        "endpoint": "http://localhost:8004/tasks",
+        "status": "live"
+    },
+    {
+        "name": "AWS Infra Scout",
+        "capabilities": ["cloud.aws.monitor", "cloud.cost.optimize"],
+        "endpoint": "http://localhost:8005/scout",
+        "status": "live"
+    },
+    {
+        "name": "Discord Comm Manager",
+        "capabilities": ["social.discord.moderate", "social.community.response"],
+        "endpoint": "http://localhost:8006/chat",
+        "status": "live"
+    },
+    {
+        "name": "Solana Validator Proxy",
+        "capabilities": ["chain.solana.validate", "chain.tx.sign"],
+        "endpoint": "http://localhost:8007/sign",
+        "status": "live"
+    },
+    {
+        "name": "Design System Guard",
+        "capabilities": ["design.figma.audit", "dev.css.lint"],
+        "endpoint": "http://localhost:8008/audit",
+        "status": "live"
+    },
+    {
+        "name": "Notion Knowledge Base",
+        "capabilities": ["knowledge.notion.sync", "knowledge.search"],
+        "endpoint": "http://localhost:8009/sync",
+        "status": "live"
+    },
+    {
+        "name": "Vercel Deployment Bot",
+        "capabilities": ["devops.vercel.deploy", "devops.ci.monitor"],
+        "endpoint": "http://localhost:8010/deploy",
+        "status": "live"
+    }
+]
+
+@app.get("/seed_db")
+async def seed_database(secret: str = ""):
+    """
+    Emergency endpoint to seed the database if shell access is unavailable.
+    Protected by simple secret check.
+    """
+    if secret != "aris_admin_seed":
+        raise HTTPException(status_code=403, detail="Invalid seed secret")
+    
+    # Clear existing
+    await agents_collection.delete_many({})
+    
+    # Insert new
+    agent_docs = []
+    for agent in AGENTS_DATA:
+        did = f"did:aris:agent:{secrets.token_hex(4)}"
+        agent_docs.append({
+            "did": did,
+            "name": agent["name"],
+            "capabilities": agent["capabilities"],
+            "endpoint": agent["endpoint"],
+            "status": agent["status"]
+        })
+    
+    if agent_docs:
+        await agents_collection.insert_many(agent_docs)
+        
+    return {"status": "seeded", "count": len(agent_docs), "message": "Database successfully populated with default agents."}
+
+# ─────────────────────────────────────────────
 #  ROUTES
 # ─────────────────────────────────────────────
 

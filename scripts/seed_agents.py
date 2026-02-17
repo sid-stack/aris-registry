@@ -9,7 +9,8 @@ from dotenv import load_dotenv
 
 # specific logic to find the root folder
 BASE_DIR = Path(__file__).resolve().parent
-load_dotenv(dotenv_path=BASE_DIR / ".env")
+env_path = BASE_DIR.parent / ".env"
+load_dotenv(dotenv_path=env_path)
 
 MONGO_URI = os.getenv("MONGODB_URI")
 
