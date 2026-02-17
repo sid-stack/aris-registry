@@ -336,8 +336,23 @@ async def seed_database(secret: str = ""):
     
     if agent_docs:
         await agents_collection.insert_many(agent_docs)
+    
+    # Seed Demo User for Dashboard
+    demo_key = "aris_demo_key_2025"
+    await accounts_collection.update_one(
+        {"email": "demo@arislabs.ai"},
+        {
+            "$set": {
+                "api_key": demo_key,
+                "hashed_key": hash_api_key(demo_key),
+                "credits_balance": 100.00,
+                "status": "active"
+            }
+        },
+        upsert=True
+    )
         
-    return {"status": "seeded", "count": len(agent_docs), "message": "Database successfully populated with default agents."}
+    return {"status": "seeded", "count": len(agent_docs), "message": "Database populated with agents and demo user."}
 
 # ─────────────────────────────────────────────
 #  ROUTES

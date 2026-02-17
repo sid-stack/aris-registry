@@ -99,7 +99,13 @@ export default function Dashboard() {
         formData.append('file', file);
 
         const minWait = new Promise(resolve => setTimeout(resolve, 8800));
-        const apiCall = apiFetch('/analyze', { method: 'POST', body: formData })
+        const apiCall = apiFetch('/analyze', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-API-Key': 'aris_demo_key_2025' // Demo Key
+            }
+        })
             .then(async res => {
                 if (!res.ok) throw new Error('Analysis failed');
                 return res.json() as Promise<AnalysisResult>;
@@ -272,8 +278,8 @@ export default function Dashboard() {
                                     <div
                                         key={label}
                                         className={`p-4 rounded-lg border ${analysisResult.is_valid_rfp
-                                                ? 'bg-zinc-900 border-zinc-800'
-                                                : 'bg-zinc-950 border-zinc-900'
+                                            ? 'bg-zinc-900 border-zinc-800'
+                                            : 'bg-zinc-950 border-zinc-900'
                                             }`}
                                     >
                                         <div className="text-zinc-500 text-xs uppercase tracking-wider mb-1">{label}</div>
