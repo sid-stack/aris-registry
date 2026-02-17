@@ -17,6 +17,8 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from fastapi.security import APIKeyHeader
 from .search import SearchEngine
 from .models import Transaction
+import base64
+import hmac
 import pypdf
 import io
 import google.generativeai as genai
@@ -141,6 +143,106 @@ async def verify_security_context(
     if not user:
         raise HTTPException(status_code=403, detail="Invalid or revoked API Key")
     return user
+
+# ─────────────────────────────────────────────
+#  BIDSMITH HELPERS
+# ─────────────────────────────────────────────
+def get_mock_analysis() -> dict:
+    return {
+        "project_title":   "Autonomous Logistics Coordination Systems",
+        "agency":          "Department of Defense (DARPA)",
+        "est_value":       "$4.5M – $6.0M",
+        "deadline":        "2026-10-14",
+        "exec_summary":    (
+            "The solicitation seeks autonomous coordination modules for distributed "
+            "logistics in contested environments. Aris Protocol's decentralized agent "
+            "orchestration capabilities align precisely with the technical requirements."
+        ),
+        "win_probability": "87%",
+        "match_score":     "9.2/10",
+    }
+
+def analyze_text_with_gemini(text: str) -> dict:
+    if not GEMINI_API_KEY:
+        print("⚠️  No GEMINI_API_KEY — returning mock.")
+        return get_mock_analysis()
+    try:
+        genai.configure(api_key=GEMINI_API_KEY)
+        model = genai.GenerativeModel(GEMINI_MODEL)
+        prompt = f"""
+You are an elite Government Contracts Analyst (GovCon specialist) and a strict document gatekeeper.
+
+First, determine if the uploaded document is a legitimate government contracting document.
+Legitimate documents include: RFPs, RFQs, IFBs, Sources Sought, AoIs, CSOs, BAAs, or any
+official government procurement solicitation.
+
+NOT legitimate: tutorials, guides, blog posts, internal memos, marketing materials,
+personal documents, or anything not related to government procurement.
+
+Return a strict JSON object — no markdown, no code fences, raw JSON only.
+
+If it IS a valid government procurement document, return:
+{{
+  "is_valid_rfp": true,
+  "rejection_reason": "",
+  "project_title": "string",
+  "agency": "string",
+  "est_value": "string (e.g. $1M-$2M or TBD)",
+  "deadline": "string (YYYY-MM-DD or TBD)",
+  "exec_summary": "string (2 concise sentences)",
+  "win_probability": "string (e.g. 85%)",
+  "match_score": "string (e.g. 8.5/10)"
+}}
+
+If it is NOT a valid government procurement document, return:
+{{
+  "is_valid_rfp": false,
+  "rejection_reason": "string (one sentence explaining why this was rejected)",
+  "project_title": "N/A",
+  "agency": "N/A",
+  "est_value": "N/A",
+  "deadline": "N/A",
+  "exec_summary": "N/A",
+  "win_probability": "N/A",
+  "match_score": "N/A"
+}}
+
+Return ONLY raw JSON. No preamble, no explanation.
+
+DOCUMENT TEXT:
+{{text[:30000]}}
+""".replace("{{text[:30000]}}", text[:30000])
+        response = model.generate_content(prompt)
+        raw = response.text.strip()
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.lower().startswith("json"):
+                raw = raw[4:]
+            raw = raw.strip()
+        parsed = json.loads(raw)
+        parsed.setdefault("is_valid_rfp", True)
+        parsed.setdefault("rejection_reason", "")
+        required = {"project_title", "agency", "est_value", "deadline", "exec_summary", "win_probability", "match_score"}
+        if not required.issubset(parsed.keys()):
+            mock = get_mock_analysis()
+            mock.update(parsed)
+            return mock
+        return parsed
+    except Exception as e:
+        print(f"❌ Gemini error: {e}")
+        return get_mock_analysis()
+
+def extract_pdf_text(content: bytes) -> str:
+    if not content.startswith(b'%PDF-'):
+        return ""
+    try:
+        reader = pypdf.PdfReader(io.BytesIO(content), strict=False)
+        text = ""
+        for page in reader.pages:
+            text += (page.extract_text() or "") + "\n"
+        return text.strip()
+    except:
+        return ""
 
 # ─────────────────────────────────────────────
 #  SEED DATA & UTILS
@@ -354,33 +456,29 @@ async def stripe_webhook(request: Request):
 
     return {"status": "success"}
 
-@app.post("/api/internal/charge")
-async def internal_charge(req: ChargeRequest):
+async def deduct_credits(api_key: str, amount: float) -> dict:
     """
-    Atomic credit deduction endpoint for internal services.
-    Returns 200 if successful, 402 if insufficient funds.
+    Shared logic to atomically deduct credits.
+    Returns dict with {charged, remaining} or raises HTTPException.
     """
-    # 1. Verify API Key
-    hashed_input = hash_api_key(req.api_key)
+    hashed_input = hash_api_key(api_key)
     # Check if key exists (either direct api_key field or hashed_key)
-    # For now, let's assume hashed_key logic from verify_security_context
     key_record = await api_keys_collection.find_one({"hashed_key": hashed_input})
     
     user_filter = {}
     if key_record:
         user_filter = {"email": key_record["user_email"]}
     else:
-         # Fallback for unhashed legacy keys or direct check
-        user_filter = {"api_key": req.api_key}
+        # Fallback for unhashed legacy keys or direct check
+        user_filter = {"api_key": api_key}
     
-    # 2. Atomic Find and Update
-    # Condition: credits_balance >= amount
+    # Atomic Find and Update
     updated_user = await accounts_collection.find_one_and_update(
         {
             **user_filter,
-            "credits_balance": {"$gte": req.amount} # ATOMIC CONDITION
+            "credits_balance": {"$gte": amount} # ATOMIC CONDITION
         },
-        {"$inc": {"credits_balance": -req.amount}},
+        {"$inc": {"credits_balance": -amount}},
         projection={"credits_balance": 1, "email": 1}
     )
 
@@ -396,9 +494,75 @@ async def internal_charge(req: ChargeRequest):
         )
 
     return {
-        "status": "success", 
-        "charged": req.amount, 
+        "charged": amount,
         "remaining": updated_user["credits_balance"]
+    }
+
+@app.post("/api/internal/charge")
+async def internal_charge(req: ChargeRequest):
+    """
+    Atomic credit deduction endpoint for internal services.
+    Returns 200 if successful, 402 if insufficient funds.
+    """
+    result = await deduct_credits(req.api_key, req.amount)
+    return {"status": "success", **result}
+
+@app.post("/analyze", response_model=AnalysisResponse)
+async def analyze_rfp(
+    file: UploadFile = File(...),
+    x_api_key: Optional[str] = Header(None, alias="X-API-Key")
+):
+    if not x_api_key:
+        # Allow query param fallback for direct browser testing if needed, 
+        # but header is standard.
+        raise HTTPException(status_code=401, detail="Missing X-API-Key header")
+
+    # 1. Atomic Credit Deduction via Registry Logic (Direct Call)
+    # We call the internal logic directly since we are IN the registry now.
+    await deduct_credits(x_api_key, ANALYZE_COST_USD)
+    
+    # 2. Process File
+    analysis = get_mock_analysis()
+    try:
+        content = await file.read()
+        if len(content) > MAX_FILE_SIZE_BYTES:
+             raise HTTPException(status_code=413, detail="File too large")
+        
+        extracted = extract_pdf_text(content)
+        if extracted:
+            analysis = analyze_text_with_gemini(extracted)
+            
+    except HTTPException:
+        raise 
+    except Exception as e:
+        print(f"Analysis failed: {e}")
+        # Return mock on failure to avoid breaking flow? 
+        return AnalysisResponse(**analysis)
+
+    return AnalysisResponse(
+        project_title    = str(analysis.get("project_title",    "Unknown Project")),
+        agency           = str(analysis.get("agency",           "Unknown Agency")),
+        est_value        = str(analysis.get("est_value",        "TBD")),
+        deadline         = str(analysis.get("deadline",         "TBD")),
+        exec_summary     = str(analysis.get("exec_summary",     "Analysis unavailable.")),
+        win_probability  = str(analysis.get("win_probability",  "N/A")),
+        match_score      = str(analysis.get("match_score",      "N/A")),
+        is_valid_rfp     = bool(analysis.get("is_valid_rfp",    True)),
+        rejection_reason = str(analysis.get("rejection_reason", "")),
+    )
+
+class BidRequest(BaseModel):
+    requirements: str
+
+@app.post("/bid")
+async def create_bid(req: BidRequest):
+    """
+    Returns a bid/quote for the given requirements.
+    No payment required for this specific endpoint (Free Tier / Pre-Sales).
+    """
+    return {
+        "bid": "I can build this in Python. Here is my approach...",
+        "price": 5.00
     }
 
 @app.post("/handshake")
