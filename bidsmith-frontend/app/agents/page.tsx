@@ -10,14 +10,14 @@ interface Agent {
 }
 
 const CAPABILITY_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
-    'dev.git.manage':       { bg: 'bg-purple-500/10',  text: 'text-purple-400',  dot: 'bg-purple-400' },
-    'gov.rfp.bidder':       { bg: 'bg-blue-500/10',    text: 'text-blue-400',    dot: 'bg-blue-400'   },
-    'fin.defi.trade':       { bg: 'bg-green-500/10',   text: 'text-green-400',   dot: 'bg-green-400'  },
-    'cloud.aws.monitor':    { bg: 'bg-orange-500/10',  text: 'text-orange-400',  dot: 'bg-orange-400' },
-    'chain.solana.validate':{ bg: 'bg-yellow-500/10',  text: 'text-yellow-400',  dot: 'bg-yellow-400' },
-    'devops.vercel.deploy': { bg: 'bg-pink-500/10',    text: 'text-pink-400',    dot: 'bg-pink-400'   },
-    'design.figma.audit':   { bg: 'bg-cyan-500/10',    text: 'text-cyan-400',    dot: 'bg-cyan-400'   },
-    'social.discord.moderate':{ bg: 'bg-indigo-500/10',text: 'text-indigo-400',  dot: 'bg-indigo-400' },
+    'dev.git.manage': { bg: 'bg-purple-500/10', text: 'text-purple-400', dot: 'bg-purple-400' },
+    'gov.rfp.bidder': { bg: 'bg-blue-500/10', text: 'text-blue-400', dot: 'bg-blue-400' },
+    'fin.defi.trade': { bg: 'bg-green-500/10', text: 'text-green-400', dot: 'bg-green-400' },
+    'cloud.aws.monitor': { bg: 'bg-orange-500/10', text: 'text-orange-400', dot: 'bg-orange-400' },
+    'chain.solana.validate': { bg: 'bg-yellow-500/10', text: 'text-yellow-400', dot: 'bg-yellow-400' },
+    'devops.vercel.deploy': { bg: 'bg-pink-500/10', text: 'text-pink-400', dot: 'bg-pink-400' },
+    'design.figma.audit': { bg: 'bg-cyan-500/10', text: 'text-cyan-400', dot: 'bg-cyan-400' },
+    'social.discord.moderate': { bg: 'bg-indigo-500/10', text: 'text-indigo-400', dot: 'bg-indigo-400' },
 };
 
 function getCapabilityStyle(cap: string) {
@@ -56,17 +56,17 @@ function CopyButton({ text }: { text: string }) {
 }
 
 export default function AgentsPage() {
-    const [agents, setAgents]     = useState<Agent[]>([]);
+    const [agents, setAgents] = useState<Agent[]>([]);
     const [filtered, setFiltered] = useState<Agent[]>([]);
-    const [loading, setLoading]   = useState(true);
-    const [error, setError]       = useState('');
-    const [search, setSearch]     = useState('');
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const [search, setSearch] = useState('');
     const [activeCap, setActiveCap] = useState('All');
 
     // Fetch agents
     useEffect(() => {
         const load = async () => {
-            const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+            const API_BASE = 'https://aris-registry-api.onrender.com';
             try {
                 const res = await fetch(`${API_BASE}/api/agents`);
                 if (!res.ok) throw new Error('Failed to fetch');
@@ -160,11 +160,10 @@ export default function AgentsPage() {
                         <button
                             key={cap}
                             onClick={() => setActiveCap(cap)}
-                            className={`px-3 py-1.5 rounded-full text-xs font-mono transition-all border ${
-                                activeCap === cap
+                            className={`px-3 py-1.5 rounded-full text-xs font-mono transition-all border ${activeCap === cap
                                     ? 'bg-white text-black border-white'
                                     : 'bg-transparent text-zinc-500 border-zinc-800 hover:border-zinc-600 hover:text-zinc-300'
-                            }`}
+                                }`}
                         >
                             {cap === 'All' ? `All (${agents.length})` : cap}
                         </button>
