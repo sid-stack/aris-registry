@@ -14,8 +14,13 @@ from typing import List, Optional, Dict
 from pydantic import BaseModel
 from motor.motor_asyncio import AsyncIOMotorClient
 from fastapi.security import APIKeyHeader
+from registry.search import SearchEngine
+from registry.models import Transaction
 
-load_dotenv()
+# Load .env from project root explicitly
+BASE_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = BASE_DIR.parent
+load_dotenv(PROJECT_ROOT / ".env")
 
 # --- CONFIG & SECRETS ---
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
@@ -37,8 +42,20 @@ db = client.aris_registry
 accounts_collection = db.accounts
 agents_collection = db.agents 
 api_keys_collection = db.api_keys
+transactions_collection = db.transactions
 
 app = FastAPI(title="Aris Registry", version="1.0")
+
+# --- CORS MIDDLEWARE ---
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"], 
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # --- MODELS ---
 class BillingRequest(BaseModel):
@@ -128,6 +145,36 @@ async def landing():
 async def docs():
     return RedirectResponse(url=DOCS_URL)
 
+@app.get("/api/discover")
+async def discover(capability: str):
+    """
+    Finds agents that match the capability.
+    """
+    agents = await SearchEngine.search(capability)
+    return {"agents": agents}
+
+@app.get("/api/agents")
+async def get_live_agents():
+    # 1. Fetch all active agents from your MongoDB collection
+    cursor = agents_collection.find({})
+    agents_list = await cursor.to_list(length=100)
+    
+    # 2. Format them for your Next.js frontend
+    formatted_agents = []
+    for a in agents_list:
+        formatted_agents.append({
+            "did": a.get("did", "Unknown DID"),
+            "name": a.get("name", "Unnamed Agent"),
+            "capability": a.get("capabilities", ["unknown"])[0] if a.get("capabilities") else "unknown",
+            "status": "live"
+        })
+        
+    return {
+        "status": "success",
+        "count": len(formatted_agents),
+        "agents": formatted_agents
+    }
+
 @app.post("/api/billing/checkout")
 async def create_checkout(req: BillingRequest):
     try:
@@ -145,21 +192,46 @@ async def create_checkout(req: BillingRequest):
 
 @app.post("/handshake")
 async def handshake(req: SessionRequest, user: dict = Depends(verify_security_context)):
-    if user.get("credits_balance", 0) < HANDSHAKE_COST_USD:
-        raise HTTPException(status_code=402, detail="Insufficient Balance")
+    # 1. Start a Client Session for Atomicity
+    async with await client.start_session() as session:
+        async with session.start_transaction():
+            # Refetch user within transaction to ensure balance is up-to-date
+            # (In high concurrency, this locks the document or fails on write conflict)
+            current_user = await accounts_collection.find_one({"_id": user["_id"]}, session=session)
+            
+            if not current_user:
+                 raise HTTPException(status_code=404, detail="User not found")
 
-    await accounts_collection.update_one(
-        {"_id": user["_id"]},
-        {"$inc": {"credits_balance": -HANDSHAKE_COST_USD}}
-    )
-    
+            if current_user.get("credits_balance", 0) < HANDSHAKE_COST_USD:
+                raise HTTPException(status_code=402, detail="Insufficient Balance")
+
+            # 2. Deduct Balance
+            await accounts_collection.update_one(
+                {"_id": user["_id"]},
+                {"$inc": {"credits_balance": -HANDSHAKE_COST_USD}},
+                session=session
+            )
+            
+            # 3. Log Transaction
+            tx = Transaction(
+                _id=f"tx_{secrets.token_urlsafe(16)}",
+                user_id=str(user["_id"]),
+                provider_did=req.target_did,
+                amount=HANDSHAKE_COST_USD,
+                capability=req.capability
+            )
+            await transactions_collection.insert_one(tx.model_dump(by_alias=True), session=session)
+
+    # 4. Generate Token (Outside Transaction, as it's stateless)
     token = jwt.encode({
         "sub": req.payer_did,
         "aud": req.target_did,
         "exp": time.time() + 300 
     }, ARIS_PRIVATE_KEY, algorithm="HS256")
 
-    return {"session_token": token, "remaining_balance": user.get("credits_balance", 0) - HANDSHAKE_COST_USD}
+    # Return remaining balance (approximate, or from the transaction snapshot)
+    new_balance = current_user.get("credits_balance", 0) - HANDSHAKE_COST_USD
+    return {"session_token": token, "remaining_balance": new_balance}
 
 if __name__ == "__main__":
     import uvicorn

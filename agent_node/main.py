@@ -25,6 +25,21 @@ class JobRequest(BaseModel):
     prompt: str
     session_token: str
 
+class BidRequest(BaseModel):
+    requirements: str
+
+@app.post("/bid")
+async def create_bid(req: BidRequest):
+    """
+    Returns a bid/quote for the given requirements.
+    No payment required for this specific endpoint (Free Tier / Pre-Sales).
+    """
+    # Mock response as requested
+    return {
+        "bid": "I can build this in Python. Here is my approach...",
+        "price": 5.00
+    }
+
 @app.post("/process_job")
 async def process_job(job: JobRequest):
     # AUTH (Same as before)

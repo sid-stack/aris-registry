@@ -1,49 +1,39 @@
-# Environment & Local Settings
-.env
-.env.*
-env/
-venv/
-.venv/
+# --- System & IDE ---
+.DS_Store
+.vscode/
+.idea/
 
-# Python
+# --- Python (Backend) ---
 __pycache__/
 *.py[cod]
 *$py.class
-.pytest_cache/
-.coverage
-htmlcov/
-dist/
+.venv/
+venv/
+env/
+*.env
+.env.local
+DBstore/
+
+# --- Next.js (Frontend) ---
+node_modules/
+.next/
 build/
-*.egg-info/
-
-# Mac & OS
-.DS_Store
-.AppleDouble
-.LSOverride
-._*
-Desktop.ini
-Thumbs.db
-
-# Logs & monitoring
+dist/
+out/
+.vercel/
 *.log
-registry.log
-celerybeat-schedule
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
-# IDEs
-.vscode/
-.idea/
-*.swp
-*.swo
+# --- Security (CRITICAL) ---
+.env
+.env.production
+.env.development
+secrets.json
 
-# Docker
-docker-compose.override.yml
-check_db.py
-test_aris.py
-verify_token.py
-
-# Added by ggshield
+.antigravityrules
 .cache_ggshield
-tests/
-test_*.py
-*_test.py
-test.py
+aris_sdk.egg-info/
+temp_check/

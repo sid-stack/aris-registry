@@ -29,3 +29,26 @@ class User(BaseModel):
                 "stripe_customer_id": "cus_12345"
             }
         }
+
+class Transaction(BaseModel):
+    id: str = Field(..., alias="_id")
+    user_id: str
+    provider_did: str
+    capability: str
+    amount: float
+    status: str = "success"
+    timestamp: float = Field(default_factory=time.time)
+
+    class Config:
+        populate_by_name = True
+        json_schema_extra = {
+            "example": {
+                "_id": "tx_1234567890",
+                "user_id": "user_123",
+                "provider_did": "did:aris:agent:123",
+                "capability": "ai.generate",
+                "amount": 0.10,
+                "status": "success",
+                "timestamp": 1700000000.0
+            }
+        }

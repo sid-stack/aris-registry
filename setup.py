@@ -7,7 +7,7 @@ README = (HERE / "README.md").read_text()
 
 setup(
     name="aris-sdk",
-    version="0.1.2",  # 🚨 Bumped version for the update
+    version="0.1.3",  # 🚨 Bumped version for the update
     description="Decentralized AI Network SDK and Node Infrastructure",
     long_description=README,
     long_description_content_type="text/markdown",
