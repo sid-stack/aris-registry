@@ -9,12 +9,12 @@ export default function LandingPage() {
                 <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
 
                     {/* Logo */}
-                    <div className="flex items-center gap-2">
+                    <Link href="/" className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center shadow-[0_0_15px_rgba(37,99,235,0.5)]">
                             <span className="font-bold text-white text-lg">B</span>
                         </div>
                         <span className="font-bold text-xl tracking-tight text-white">BidSmith</span>
-                    </div>
+                    </Link>
 
                     {/* Nav Links */}
                     <div className="hidden md:flex items-center gap-8 text-sm text-gray-400">
@@ -96,9 +96,9 @@ export default function LandingPage() {
                     <div className="mt-24 pt-10 border-t border-white/5 grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-16 opacity-60 w-full">
                         {[
                             { value: '$400B+', label: 'Annual Market' },
-                            { value: '10x',    label: 'Faster Analysis' },
-                            { value: '24/7',   label: 'Agent Monitoring' },
-                            { value: '< 30s',  label: 'Time to Insight' },
+                            { value: '10x', label: 'Faster Analysis' },
+                            { value: '24/7', label: 'Agent Monitoring' },
+                            { value: '< 30s', label: 'Time to Insight' },
                         ].map(({ value, label }) => (
                             <div key={label}>
                                 <div className="text-2xl font-bold text-white">{value}</div>
@@ -188,9 +188,9 @@ export default function LandingPage() {
                                 </li>
                             ))}
                         </ul>
-                        <Link href="/dashboard" className="block text-center py-3 rounded-full bg-blue-600 hover:bg-blue-500 text-white transition-colors font-medium shadow-[0_0_20px_rgba(37,99,235,0.4)]">
-                            Start Free Trial
-                        </Link>
+                        <a href="https://buy.stripe.com/3cIaEX66197ad9H9na2Fa00" target="_blank" rel="noopener noreferrer" className="block text-center py-3 rounded-full bg-blue-600 hover:bg-blue-500 text-white transition-colors font-medium shadow-[0_0_20px_rgba(37,99,235,0.4)]">
+                            Subscribe Now
+                        </a>
                     </div>
                 </div>
             </section>
