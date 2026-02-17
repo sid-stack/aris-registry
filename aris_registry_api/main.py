@@ -8,6 +8,12 @@ import hashlib
 import datetime
 from pathlib import Path
 from dotenv import load_dotenv
+
+# ── ENV LOADING FIRST ──
+BASE_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = BASE_DIR.parent
+load_dotenv(PROJECT_ROOT / ".env")
+
 from fastapi import FastAPI, HTTPException, Header, Request, Security, Depends, status, UploadFile, File
 from fastapi.responses import RedirectResponse, FileResponse, HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -22,13 +28,8 @@ import hmac
 import pypdf
 import io
 import google.generativeai as genai
-
-# ─────────────────────────────────────────────
-#  ENV & CONFIG
-# ─────────────────────────────────────────────
-BASE_DIR = Path(__file__).resolve().parent
-PROJECT_ROOT = BASE_DIR.parent
-load_dotenv(PROJECT_ROOT / ".env")
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from . import auth
 
 STRIPE_SECRET_KEY       = os.getenv("STRIPE_SECRET_KEY")
 STRIPE_WEBHOOK_SECRET   = os.getenv("STRIPE_WEBHOOK_SECRET")
@@ -80,7 +81,13 @@ app = FastAPI(title="Aris Registry — BidSmith Backend", version="1.1.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "https://bidsmith-web.onrender.com",
+        "https://bidsmith-frontend.onrender.com",
+        "https://bidsmith-frontend.vercel.app",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -143,6 +150,162 @@ async def verify_security_context(
     if not user:
         raise HTTPException(status_code=403, detail="Invalid or revoked API Key")
     return user
+
+# ─────────────────────────────────────────────
+#  AUTH DEPENDENCIES & ROUTES
+# ─────────────────────────────────────────────
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login", auto_error=False)
+
+async def get_current_user_from_cookie(request: Request):
+    token = request.cookies.get("access_token")
+    if not token:
+        # Also check Authorization header for flexibility
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            token = auth_header.split(" ")[1]
+    
+    if not token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    try:
+        payload = jwt.decode(token, auth.SECRET_KEY, algorithms=[auth.ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            raise HTTPException(status_code=401, detail="Invalid token")
+    except jwt.PyJWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+        
+    user = await accounts_collection.find_one({"email": email})
+    if user is None:
+        raise HTTPException(status_code=401, detail="User not found")
+        
+    return user
+
+class UserCreate(BaseModel):
+    email: str
+    password: str
+
+class UserLogin(BaseModel):
+    email: str
+    password: str
+
+@app.post("/auth/signup")
+async def signup(user_data: UserCreate, request: Request):
+    existing = await accounts_collection.find_one({"email": user_data.email})
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    
+    # Create new API Key
+    new_api_key = f"aris_live_{secrets.token_urlsafe(32)}"
+    hashed_key = hash_api_key(new_api_key)
+    password_hash = auth.get_password_hash(user_data.password)
+    
+    new_user = {
+        "email": user_data.email,
+        "password_hash": password_hash,
+        "api_key": new_api_key,
+        "hashed_key": hashed_key,
+        "credits_balance": 0.0,
+        "free_reports_remaining": 5,
+        "is_paid_user": False,
+        "total_reports_generated": 0,
+        "created_at": time.time(),
+        "updated_at": time.time(),
+        "status": "active"
+    }
+    
+    await accounts_collection.insert_one(new_user)
+    
+    # Create JWT
+    access_token = auth.create_access_token(data={"sub": user_data.email})
+    
+    # Store key separately in api_keys collection for fast lookup (hashed)
+    await api_keys_collection.insert_one({
+        "hashed_key": hashed_key,
+        "user_email": user_data.email,
+        "status": "active"
+    })
+    
+    resp = JSONResponse(content={"status": "success", "message": "User created"})
+    # Match secure status to request scheme for local dev support
+    is_secure = request.url.scheme == "https" or "localhost" in request.url.hostname or "127.0.0.1" in request.url.hostname
+    
+    resp.set_cookie(
+        key="access_token", 
+        value=access_token, 
+        httponly=True, 
+        secure=is_secure, 
+        samesite="lax" if not is_secure else "none"
+    )
+    return resp
+
+@app.post("/auth/login")
+async def login(user_data: UserLogin, request: Request):
+    user = await accounts_collection.find_one({"email": user_data.email})
+    if not user or not user.get("password_hash"):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+        
+    if not auth.verify_password(user_data.password, user["password_hash"]):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+        
+    access_token = auth.create_access_token(data={"sub": user.get("email")})
+    
+    # Set cookie for browser flow
+    is_secure = request.url.scheme == "https" or "localhost" in request.url.hostname or "127.0.0.1" in request.url.hostname
+    
+    resp = JSONResponse(content={"status": "success", "access_token": access_token})
+    resp.set_cookie(
+        key="access_token", 
+        value=access_token, 
+        httponly=True, 
+        secure=is_secure, 
+        samesite="lax" if not is_secure else "none"
+    )
+    return resp
+
+@app.post("/auth/logout")
+async def logout():
+    resp = JSONResponse(content={"status": "success"})
+    resp.delete_cookie("access_token")
+    return resp
+
+@app.get("/auth/me")
+async def read_users_me(current_user: dict = Depends(get_current_user_from_cookie)):
+    return {
+        "email": current_user["email"],
+        "credits_balance": current_user.get("credits_balance", 0.0),
+        "api_key": current_user.get("api_key"),
+        "is_paid_user": current_user.get("is_paid_user", False),
+        "free_reports_remaining": current_user.get("free_reports_remaining", 0),
+        "total_reports_generated": current_user.get("total_reports_generated", 0),
+        "stripe_customer_id": current_user.get("stripe_customer_id")
+    }
+
+@app.post("/api/keys/regenerate")
+async def regenerate_api_key(current_user: dict = Depends(get_current_user_from_cookie)):
+    new_key = f"aris_live_{secrets.token_urlsafe(32)}"
+    new_hash = hash_api_key(new_key)
+    
+    # Invalidate old keys in api_keys_collection?
+    # Ideally yes, or just update the one entry if 1:1.
+    # We'll just update the user's entry in api_keys_collection
+    await api_keys_collection.update_many(
+        {"user_email": current_user["email"]},
+        {"$set": {"status": "revoked"}}
+    )
+    
+    await api_keys_collection.insert_one({
+        "hashed_key": new_hash,
+        "user_email": current_user["email"],
+        "status": "active"
+    })
+    
+    await accounts_collection.update_one(
+        {"email": current_user["email"]},
+        {"$set": {"api_key": new_key, "hashed_key": new_hash}}
+    )
+    
+    return {"api_key": new_key}
 
 # ─────────────────────────────────────────────
 #  BIDSMITH HELPERS
@@ -451,23 +614,41 @@ async def stripe_webhook(request: Request):
              filter_query = {"email": customer_email}
 
         if filter_query:
+            event_id = event["id"]
             new_api_key = f"aris_live_{secrets.token_urlsafe(32)}"
-            await accounts_collection.update_one(
-                filter_query,
+            
+            # Atomic idempotent update: only if event_id not already processed
+            result = await accounts_collection.update_one(
                 {
-                    "$inc":         {"credits_balance": amount_paid},
+                    **filter_query,
+                    "processed_stripe_events": {"$ne": event_id}
+                },
+                {
+                    "$inc": {"credits_balance": amount_paid},
+                    "$push": {"processed_stripe_events": event_id},
+                    "$set": {
+                        "is_paid_user": True,
+                        "upgraded_at": time.time(),
+                        "updated_at": time.time()
+                    },
                     "$setOnInsert": {
                         "api_key":                 new_api_key,
                         "hashed_key":              hash_api_key(new_api_key),
                         "created_at":              time.time(),
-                        "processed_stripe_events": [],
-                        "email": customer_email # ensure email is set if using ID
-                    },
-                    "$set": {"updated_at": time.time()},
+                        "status":                  "active",
+                        "free_reports_remaining":  0,
+                        "total_reports_generated": 0,
+                        "processed_stripe_events": [event_id], # Init with the current event
+                        "email": customer_email
+                    }
                 },
                 upsert=True,
             )
-            print(f"✅ Webhook: {customer_email} +${amount_paid}")
+            
+            if result.modified_count > 0 or result.upserted_id:
+                print(f"✅ Webhook processed: {customer_email} +${amount_paid}")
+            else:
+                print(f"⚠️ Webhook skipped (already processed): {event_id}")
 
     return {"status": "success"}
 
@@ -527,16 +708,37 @@ async def analyze_rfp(
     file: UploadFile = File(...),
     x_api_key: Optional[str] = Header(None, alias="X-API-Key")
 ):
-    if not x_api_key:
-        # Allow query param fallback for direct browser testing if needed, 
-        # but header is standard.
-        raise HTTPException(status_code=401, detail="Missing X-API-Key header")
-
-    # 1. Atomic Credit Deduction via Registry Logic (Direct Call)
-    # We call the internal logic directly since we are IN the registry now.
-    await deduct_credits(x_api_key, ANALYZE_COST_USD)
+    # 1. Resolve User from API Key
+    hashed_input = hash_api_key(x_api_key)
+    key_record = await api_keys_collection.find_one({"hashed_key": hashed_input})
+    user_filter = {"email": key_record["user_email"]} if key_record else {"api_key": x_api_key}
     
-    # 2. Process File
+    user_doc = await accounts_collection.find_one(user_filter)
+    if not user_doc:
+         raise HTTPException(status_code=403, detail="Invalid API Key")
+
+    # 2. Tier-based Deduction
+    is_paid = user_doc.get("is_paid_user", False)
+    if is_paid:
+        # Atomic credit deduction
+        await deduct_credits(x_api_key, ANALYZE_COST_USD)
+        await accounts_collection.update_one({"_id": user_doc["_id"]}, {"$inc": {"total_reports_generated": 1}})
+    else:
+        # ATOMIC FREE REPORT CONSUMPTION
+        res = await accounts_collection.find_one_and_update(
+            {
+                "_id": user_doc["_id"],
+                "free_reports_remaining": {"$gt": 0}
+            },
+            {"$inc": {"free_reports_remaining": -1, "total_reports_generated": 1}}
+        )
+        if not res:
+            raise HTTPException(
+                status_code=402, 
+                detail="Free trial exhausted. Upgrade to Pro to continue RFP analysis."
+            )
+    
+    # 3. Process File
     analysis = get_mock_analysis()
     try:
         content = await file.read()
@@ -551,8 +753,12 @@ async def analyze_rfp(
         raise 
     except Exception as e:
         print(f"Analysis failed: {e}")
-        # Return mock on failure to avoid breaking flow? 
         return AnalysisResponse(**analysis)
+
+    # 4. Mask results for free users
+    if not is_paid:
+        analysis["exec_summary"] = "🔒 Upgrade to Pro to unlock the full executive summary and bid strategy."
+        analysis["win_probability"] = "🔒 Locked"
 
     return AnalysisResponse(
         project_title    = str(analysis.get("project_title",    "Unknown Project")),

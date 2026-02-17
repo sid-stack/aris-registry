@@ -8,9 +8,15 @@ class User(BaseModel):
     email: EmailStr
     api_key: Optional[str] = None
     hashed_api_key: Optional[str] = None
+    password_hash: Optional[str] = None  # New field for auth
     credits_balance: float = 0.0
     stripe_customer_id: Optional[str] = None
     role: str = "customer"  # 'customer', 'admin'
+    
+    # Freemium Tier Fields
+    free_reports_remaining: int = 5
+    is_paid_user: bool = False
+    total_reports_generated: int = 0
     
     # Security Context
     allowed_origins: List[str] = []

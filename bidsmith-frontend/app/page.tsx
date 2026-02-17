@@ -66,7 +66,8 @@ export default function LandingPage() {
                     </h1>
 
                     <p className="text-lg md:text-xl text-gray-400 max-w-2xl mb-12 leading-relaxed">
-                        Upload any RFP. BidSmith's autonomous agents analyze requirements,
+                        Try 5 RFP analyses free — No credit card required.
+                        BidSmith's autonomous agents analyze requirements,
                         score your fit, and draft winning proposals — in seconds.
                     </p>
 
@@ -160,7 +161,7 @@ export default function LandingPage() {
                     <div className="p-8 rounded-2xl border border-white/10 bg-white/[0.02]">
                         <div className="text-xs uppercase tracking-widest text-gray-500 mb-4">Starter</div>
                         <div className="text-4xl font-bold text-white mb-1">Free</div>
-                        <div className="text-gray-500 text-sm mb-8">5 analyses / month</div>
+                        <div className="text-gray-500 text-sm mb-8">5 trial analyses</div>
                         <ul className="space-y-3 text-sm text-gray-400 mb-10">
                             {['RFP upload & scoring', 'Executive summary draft', 'Win probability score', 'Email support'].map(f => (
                                 <li key={f} className="flex items-center gap-2">
@@ -175,10 +176,10 @@ export default function LandingPage() {
 
                     {/* Pro */}
                     <div className="p-8 rounded-2xl border border-blue-500/30 bg-blue-500/5 relative">
-                        <div className="absolute top-4 right-4 px-2 py-0.5 rounded-full bg-blue-600 text-xs font-medium text-white">Popular</div>
+                        <div className="absolute top-4 right-4 px-2 py-0.5 rounded-full bg-blue-600 text-xs font-medium text-white">Scale</div>
                         <div className="text-xs uppercase tracking-widest text-blue-400 mb-4">Pro</div>
-                        <div className="text-4xl font-bold text-white mb-1">$99<span className="text-lg text-gray-400 font-normal">/mo</span></div>
-                        <div className="text-gray-500 text-sm mb-8">Unlimited analyses</div>
+                        <div className="text-4xl font-bold text-white mb-1">$0.99<span className="text-lg text-gray-400 font-normal">/analysis</span></div>
+                        <div className="text-gray-500 text-sm mb-8">Full access, pay as you go</div>
                         <ul className="space-y-3 text-sm text-gray-400 mb-10">
                             {['Everything in Starter', 'Full proposal generation', 'Compliance matrix export', 'Priority agent routing', 'Dedicated Slack support'].map(f => (
                                 <li key={f} className="flex items-center gap-2">

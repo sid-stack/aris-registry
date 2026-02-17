@@ -18,10 +18,10 @@ interface AnalysisResult {
 // ── Constants ──────────────────────────────────────────────────────────────
 // In production, NEXT_PUBLIC_API_URL is injected by Render from the backend service.
 // In local dev, falls back to localhost:8000.
-const API_BASE = 'https://aris-registry-api.onrender.com';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 async function apiFetch(path: string, opts?: RequestInit): Promise<Response> {
-    return fetch(`${API_BASE}${path}`, opts);
+    return fetch(`${API_BASE}${path}`, { ...opts, credentials: 'include' });
 }
 
 // ── Component ──────────────────────────────────────────────────────────────
@@ -33,6 +33,13 @@ export default function Dashboard() {
     const [uploadState, setUploadState] = useState<'IDLE' | 'ANALYZING' | 'RESULTS'>('IDLE');
     const [logs, setLogs] = useState<string[]>([]);
     const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+    const [user, setUser] = useState<{
+        email: string;
+        credits_balance: number;
+        api_key: string;
+        is_paid_user: boolean;
+        free_reports_remaining: number;
+    } | null>(null);
     const [proposalOpen, setProposalOpen] = useState(false);
 
     const logsEndRef = useRef<HTMLDivElement>(null);
@@ -41,10 +48,19 @@ export default function Dashboard() {
     useEffect(() => {
         const init = async () => {
             try {
-                const [healthRes, agentsRes] = await Promise.all([
+                const [healthRes, agentsRes, meRes] = await Promise.all([
                     apiFetch('/health'),
                     apiFetch('/api/agents'),
+                    apiFetch('/auth/me'),
                 ]);
+
+                if (meRes.ok) {
+                    const userData = await meRes.json();
+                    setUser(userData);
+                } else {
+                    // Start redirect if 401? Middleware handles this, but good to be safe
+                }
+
                 if (!healthRes.ok) throw new Error('Backend Error');
                 const health = await healthRes.json();
                 setNetworkStatus(health.status || 'Active');
@@ -103,11 +119,23 @@ export default function Dashboard() {
             method: 'POST',
             body: formData,
             headers: {
-                'X-API-Key': 'aris_demo_key_2025' // Demo Key
+                'X-API-Key': user?.api_key || ''
             }
         })
             .then(async res => {
+                if (res.status === 402) throw new Error('Trial Expired');
                 if (!res.ok) throw new Error('Analysis failed');
+
+                // Update local state based on tier
+                setUser(prev => {
+                    if (!prev) return null;
+                    if (prev.is_paid_user) {
+                        return { ...prev, credits_balance: prev.credits_balance - 0.99 };
+                    } else {
+                        return { ...prev, free_reports_remaining: Math.max(0, prev.free_reports_remaining - 1) };
+                    }
+                });
+
                 return res.json() as Promise<AnalysisResult>;
             });
 
@@ -138,8 +166,40 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between mb-8 border-b border-zinc-800 pb-4">
                     <h1 className="text-2xl tracking-tight">SYSTEM://BIDSMITH_DASHBOARD</h1>
                     <div className="flex items-center gap-4">
+                        {user && (
+                            <div className="flex items-center gap-3 bg-zinc-900 border border-zinc-700 px-3 py-1.5 rounded-full">
+                                {user.is_paid_user ? (
+                                    <span className={`text-xs font-bold ${user.credits_balance < 1 ? 'text-red-400' : 'text-green-400'}`}>
+                                        ${user.credits_balance.toFixed(2)}
+                                    </span>
+                                ) : (
+                                    <span className="text-xs font-bold text-blue-400">
+                                        {user.free_reports_remaining} Free Reports
+                                    </span>
+                                )}
+                                {(user.credits_balance < 1 || !user.is_paid_user) && (
+                                    <button
+                                        onClick={async () => {
+                                            const res = await apiFetch('/api/billing/checkout', {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({ email: user.email })
+                                            });
+                                            const data = await res.json();
+                                            if (data.url) window.location.href = data.url;
+                                        }}
+                                        className="text-[10px] bg-blue-600 px-2 py-0.5 rounded text-white hover:bg-blue-500"
+                                    >
+                                        {user.is_paid_user ? 'REFILL' : 'UPGRADE'}
+                                    </button>
+                                )}
+                            </div>
+                        )}
                         <a href="/agents" className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors">
                             Agent Registry
+                        </a>
+                        <a href="/dashboard/settings" className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors">
+                            Settings
                         </a>
                         <a href="/" className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors">
                             ← Home
@@ -305,9 +365,13 @@ export default function Dashboard() {
                                 {analysisResult.is_valid_rfp ? (
                                     <button
                                         onClick={() => setProposalOpen(true)}
-                                        className="flex-1 py-3 bg-white text-black font-bold rounded-lg hover:bg-zinc-100 transition-colors"
+                                        disabled={!user?.is_paid_user}
+                                        className={`flex-1 py-3 font-bold rounded-lg transition-colors ${user?.is_paid_user
+                                            ? 'bg-white text-black hover:bg-zinc-100'
+                                            : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
+                                            }`}
                                     >
-                                        Generate Proposal →
+                                        {user?.is_paid_user ? 'Generate Proposal →' : '🔒 Proposal Locked'}
                                     </button>
                                 ) : (
                                     <div className="flex-1 py-3 bg-red-950/50 border border-red-500/50 text-red-400 font-bold rounded-lg text-center text-sm flex items-center justify-center gap-2">
@@ -321,6 +385,35 @@ export default function Dashboard() {
                                     Reset
                                 </button>
                             </div>
+
+                            {/* Free User CTA */}
+                            {!user?.is_paid_user && analysisResult.is_valid_rfp && (
+                                <div className="mt-6 p-4 border border-yellow-500/30 bg-yellow-500/5 rounded-lg">
+                                    <p className="text-yellow-400 text-sm mb-2">
+                                        🔒 <strong>Upgrade to Pro</strong> to unlock:
+                                    </p>
+                                    <ul className="text-yellow-300/70 text-xs space-y-1 mb-3">
+                                        <li>• Full executive summaries</li>
+                                        <li>• Win probability scoring</li>
+                                        <li>• Proposal draft generation</li>
+                                        <li>• Unlimited analyses</li>
+                                    </ul>
+                                    <button
+                                        onClick={async () => {
+                                            const res = await apiFetch('/api/billing/checkout', {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({ email: user?.email })
+                                            });
+                                            const data = await res.json();
+                                            if (data.url) window.location.href = data.url;
+                                        }}
+                                        className="w-full bg-yellow-500 text-black font-bold py-2 rounded hover:bg-yellow-400 transition-colors"
+                                    >
+                                        Upgrade Now — $0.99/refill
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     )}
 
