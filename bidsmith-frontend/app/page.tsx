@@ -19,7 +19,7 @@ export default function LandingPage() {
                         <a href="#how-it-works" className="hover:text-white transition-colors">How it Works</a>
                         <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
                         <a
-                            href="https://arislabs.ai"
+                            href="https://aris-registry-api.onrender.com"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="hover:text-white transition-colors"
@@ -81,7 +81,7 @@ export default function LandingPage() {
                         </Link>
 
                         <a
-                            href="https://arislabs.ai"
+                            href="https://aris-registry-api.onrender.com"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="px-8 py-4 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white transition-all backdrop-blur-sm"
@@ -205,7 +205,7 @@ export default function LandingPage() {
                     </div>
                     <div className="flex items-center gap-6 text-sm text-gray-600">
                         <a href="mailto:sporwal@usc.edu" className="hover:text-white transition-colors">Contact</a>
-                        <a href="https://arislabs.ai" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Docs</a>
+                        <a href="https://aris-registry-api.onrender.com" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Docs</a>
                         <span className="text-gray-800">Privacy · Terms</span>
                     </div>
                 </div>
