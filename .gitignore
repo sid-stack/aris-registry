@@ -29,9 +29,22 @@ pnpm-debug.log*
 
 # --- Security (CRITICAL) ---
 .env
+.env.local
 .env.production
 .env.development
-secrets.json
+*.key
+*.pem
+secrets/
+credentials/
+
+# Test files with hardcoded data
+scripts/manual_*.py
+scripts/test_*.py
+scripts/verify_*.py
+
+# Database exports
+*.sql
+*.dump
 
 .antigravityrules
 .cache_ggshield

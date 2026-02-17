@@ -9,7 +9,7 @@ import datetime
 from pathlib import Path
 from dotenv import load_dotenv
 
-# ── ENV LOADING FIRST ──
+# ── ENV LOADING ──
 BASE_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = BASE_DIR.parent
 load_dotenv(PROJECT_ROOT / ".env")
