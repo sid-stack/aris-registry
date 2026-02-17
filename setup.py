@@ -37,8 +37,8 @@ setup(
 
     entry_points={
         "console_scripts": [
-            "aris-registry=registry.main:start",
-            "aris-node=agent_node.llm_agent:start",
+            "aris-registry=aris_registry_api.main:start",
+            "aris-node=bidsmith_api.llm_agent:start",
         ]
     },
 )

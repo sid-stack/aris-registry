@@ -4,7 +4,7 @@ import os
 import argparse
 from datetime import datetime
 
-ACCOUNTS_FILE = "registry/accounts.json"
+ACCOUNTS_FILE = "aris_registry_api/accounts.json"
 
 def mint_key(email: str, balance: float = 100.0):
     """Business logic to create the key and update the ledger."""

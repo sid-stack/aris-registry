@@ -24,8 +24,8 @@ if not stripe_key:
 try:
     from main import app
 except ImportError:
-    # Try importing from registry provided we are running from root
-    from registry.main import app
+    # Try importing from aris_registry_api provided we are running from root
+    from aris_registry_api.main import app
 
 client = TestClient(app)
 

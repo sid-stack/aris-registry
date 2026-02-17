@@ -15,8 +15,8 @@ from typing import List, Optional, Dict
 from pydantic import BaseModel
 from motor.motor_asyncio import AsyncIOMotorClient
 from fastapi.security import APIKeyHeader
-from registry.search import SearchEngine
-from registry.models import Transaction
+from .search import SearchEngine
+from .models import Transaction
 import pypdf
 import io
 import google.generativeai as genai
@@ -37,7 +37,20 @@ DOCS_URL                = os.getenv("DOCS_URL", "https://docs.arislabs.ai")
 HANDSHAKE_COST_USD      = 0.10
 GEMINI_MODEL            = "gemini-2.5-flash"
 
+ANALYZE_COST_USD = float(os.getenv("ANALYZE_COST_USD", "0.99"))
+MAX_FILE_SIZE_MB = int(os.getenv("MAX_FILE_SIZE_MB", "10"))
+MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
+
 stripe.api_key = STRIPE_SECRET_KEY
+
+# ... (rest of config)
+
+# ─────────────────────────────────────────────
+#  APP
+# ─────────────────────────────────────────────
+
+# ... (app setup)
+
 
 if not ARIS_PRIVATE_KEY:
     raise ValueError("ARIS_PRIVATE_KEY is not set in environment variables")
@@ -45,7 +58,9 @@ if not ARIS_PRIVATE_KEY:
 # ─────────────────────────────────────────────
 #  DATABASE
 # ─────────────────────────────────────────────
-mongo_client            = AsyncIOMotorClient(MONGO_URI, serverSelectionTimeoutMS=5000, tls=True)
+# Auto-detect if we need TLS (Atlas uses srv, local doesn't usually)
+use_tls = "mongodb+srv://" in (MONGO_URI or "")
+mongo_client = AsyncIOMotorClient(MONGO_URI, serverSelectionTimeoutMS=5000, tls=use_tls)
 db                      = mongo_client.aris_registry
 accounts_collection     = db.accounts
 agents_collection       = db.agents
@@ -55,6 +70,10 @@ transactions_collection = db.transactions
 # ─────────────────────────────────────────────
 #  APP
 # ─────────────────────────────────────────────
+# ─────────────────────────────────────────────
+#  APP
+# ─────────────────────────────────────────────
+# ... (app setup)
 app = FastAPI(title="Aris Registry — BidSmith Backend", version="1.1.0")
 
 app.add_middleware(
@@ -92,6 +111,11 @@ class SessionRequest(BaseModel):
 class BillingRequest(BaseModel):
     email: str
 
+class ChargeRequest(BaseModel):
+    api_key: str
+    amount: float
+    description: str = "Service Charge"
+
 # ─────────────────────────────────────────────
 #  SECURITY
 # ─────────────────────────────────────────────
@@ -119,172 +143,12 @@ async def verify_security_context(
     return user
 
 # ─────────────────────────────────────────────
-#  GEMINI — LLM ANALYSIS CORE
-# ─────────────────────────────────────────────
-def get_mock_analysis() -> dict:
-    return {
-        "project_title":   "Autonomous Logistics Coordination Systems",
-        "agency":          "Department of Defense (DARPA)",
-        "est_value":       "$4.5M – $6.0M",
-        "deadline":        "2026-10-14",
-        "exec_summary":    (
-            "The solicitation seeks autonomous coordination modules for distributed "
-            "logistics in contested environments. Aris Protocol's decentralized agent "
-            "orchestration capabilities align precisely with the technical requirements."
-        ),
-        "win_probability": "87%",
-        "match_score":     "9.2/10",
-    }
-
-def analyze_text_with_gemini(text: str) -> dict:
-    if not GEMINI_API_KEY:
-        print("⚠️  No GEMINI_API_KEY — returning mock.")
-        return get_mock_analysis()
-    try:
-        genai.configure(api_key=GEMINI_API_KEY)
-        model = genai.GenerativeModel(GEMINI_MODEL)
-        prompt = f"""
-You are an elite Government Contracts Analyst (GovCon specialist) and a strict document gatekeeper.
-
-First, determine if the uploaded document is a legitimate government contracting document.
-Legitimate documents include: RFPs, RFQs, IFBs, Sources Sought, AoIs, CSOs, BAAs, or any
-official government procurement solicitation.
-
-NOT legitimate: tutorials, guides, blog posts, internal memos, marketing materials,
-personal documents, or anything not related to government procurement.
-
-Return a strict JSON object — no markdown, no code fences, raw JSON only.
-
-If it IS a valid government procurement document, return:
-{{
-  "is_valid_rfp": true,
-  "rejection_reason": "",
-  "project_title": "string",
-  "agency": "string",
-  "est_value": "string (e.g. $1M-$2M or TBD)",
-  "deadline": "string (YYYY-MM-DD or TBD)",
-  "exec_summary": "string (2 concise sentences)",
-  "win_probability": "string (e.g. 85%)",
-  "match_score": "string (e.g. 8.5/10)"
-}}
-
-If it is NOT a valid government procurement document, return:
-{{
-  "is_valid_rfp": false,
-  "rejection_reason": "string (one sentence explaining why this was rejected)",
-  "project_title": "N/A",
-  "agency": "N/A",
-  "est_value": "N/A",
-  "deadline": "N/A",
-  "exec_summary": "N/A",
-  "win_probability": "N/A",
-  "match_score": "N/A"
-}}
-
-Return ONLY raw JSON. No preamble, no explanation.
-
-DOCUMENT TEXT:
-{{text[:30000]}}
-""".replace("{{text[:30000]}}", text[:30000])
-        response = model.generate_content(prompt)
-        raw = response.text.strip()
-        if raw.startswith("```"):
-            raw = raw.split("```")[1]
-            if raw.lower().startswith("json"):
-                raw = raw[4:]
-            raw = raw.strip()
-        parsed = json.loads(raw)
-        # Ensure required keys exist
-        parsed.setdefault("is_valid_rfp", True)
-        parsed.setdefault("rejection_reason", "")
-        required = {"project_title", "agency", "est_value", "deadline",
-                    "exec_summary", "win_probability", "match_score"}
-        if not required.issubset(parsed.keys()):
-            mock = get_mock_analysis()
-            mock.update(parsed)
-            return mock
-        return parsed
-    except json.JSONDecodeError as e:
-        print(f"❌ Gemini non-JSON response: {e} — returning mock.")
-        return get_mock_analysis()
-    except Exception as e:
-        print(f"❌ Gemini call failed: {e} — returning mock.")
-        return get_mock_analysis()
-
-# ─────────────────────────────────────────────
-#  PDF EXTRACTION
-# ─────────────────────────────────────────────
-def extract_pdf_text(content: bytes) -> str:
-    """
-    Robustly extract text from PDF bytes.
-    Returns empty string if the PDF is unreadable or image-only.
-    """
-    # Verify PDF magic bytes
-    if not content.startswith(b'%PDF-'):
-        print(f"⚠️  Not a valid PDF (header: {content[:8]})")
-        return ""
-
-    reader = pypdf.PdfReader(io.BytesIO(content), strict=False)
-    print(f"📑 PDF pages: {len(reader.pages)}")
-
-    text = ""
-    for i, page in enumerate(reader.pages):
-        try:
-            page_text = page.extract_text() or ""
-            text += page_text + "\n"
-            print(f"   Page {i+1}: {len(page_text)} chars")
-        except Exception as e:
-            print(f"   Page {i+1}: skipped ({e})")
-            continue
-
-    return text.strip()
-
-# ─────────────────────────────────────────────
 #  ROUTES
 # ─────────────────────────────────────────────
 
 @app.get("/health")
 async def health_check():
     return {"status": "Active", "version": "1.1.0", "model": GEMINI_MODEL}
-
-
-@app.post("/analyze", response_model=AnalysisResponse)
-async def analyze_rfp(file: UploadFile = File(...)):
-    print(f"\n📄 /analyze — file: '{file.filename}' | type: {file.content_type}")
-
-    analysis = get_mock_analysis()  # default — always overwritten if PDF is good
-
-    try:
-        content = await file.read()
-        print(f"📦 Received {len(content):,} bytes")
-
-        if len(content) == 0:
-            print("⚠️  Empty file — returning mock.")
-            return AnalysisResponse(**analysis)
-
-        extracted = extract_pdf_text(content)
-
-        if not extracted:
-            print("⚠️  No extractable text (scanned/image PDF) — returning mock.")
-        else:
-            print(f"✅ {len(extracted):,} chars extracted — calling Gemini...")
-            analysis = analyze_text_with_gemini(extracted)
-
-    except Exception as e:
-        print(f"❌ Unhandled error in /analyze: {type(e).__name__}: {e}")
-
-    return AnalysisResponse(
-        project_title    = str(analysis.get("project_title",    "Unknown Project")),
-        agency           = str(analysis.get("agency",           "Unknown Agency")),
-        est_value        = str(analysis.get("est_value",        "TBD")),
-        deadline         = str(analysis.get("deadline",         "TBD")),
-        exec_summary     = str(analysis.get("exec_summary",     "Analysis unavailable.")),
-        win_probability  = str(analysis.get("win_probability",  "N/A")),
-        match_score      = str(analysis.get("match_score",      "N/A")),
-        is_valid_rfp     = bool(analysis.get("is_valid_rfp",    True)),
-        rejection_reason = str(analysis.get("rejection_reason", "")),
-    )
-
 
 @app.post("/register")
 async def register_agent(agent: AgentRegistration):
@@ -303,12 +167,10 @@ async def register_agent(agent: AgentRegistration):
     )
     return {"status": "registered", "did": agent.did}
 
-
 @app.get("/api/discover")
 async def discover(capability: str):
     agents = await SearchEngine.search(capability)
     return {"agents": agents}
-
 
 @app.get("/api/agents")
 async def get_live_agents():
@@ -325,22 +187,26 @@ async def get_live_agents():
     ]
     return {"status": "success", "count": len(formatted), "agents": formatted}
 
-
 @app.post("/api/billing/checkout")
 async def create_checkout(req: BillingRequest):
+    # In a real app, authenticated user should be passed here contextually
+    # For now, we trust the email or look it up. Better to require auth.
+    user = await accounts_collection.find_one({"email": req.email})
+    client_ref_id = str(user["_id"]) if user else None
+    
     try:
         session = stripe.checkout.Session.create(
             payment_method_types=["card"],
             line_items=[{"price": os.getenv("STRIPE_PRICE_ID", "price_1T0KV1GYLlqVJEwwk2cYSGv0"), "quantity": 1}],
             mode="payment",
             customer_email=req.email,
+            client_reference_id=client_ref_id, # Link Stripe Session to MongoDB User ID
             success_url="https://aris-registry.onrender.com/success?session_id={CHECKOUT_SESSION_ID}",
             cancel_url="https://aris-registry.onrender.com/dashboard",
         )
         return {"url": session.url}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
-
 
 @app.post("/webhook")
 async def stripe_webhook(request: Request):
@@ -355,15 +221,27 @@ async def stripe_webhook(request: Request):
 
     if event["type"] == "checkout.session.completed":
         session        = event["data"]["object"]
-        customer_email = (
-            session.get("customer_details", {}).get("email")
-            or session.get("metadata", {}).get("customer_email")
-        )
-        amount_paid = session.get("amount_total", 0) / 100
-        if customer_email:
+        customer_email = session.get("customer_details", {}).get("email")
+        # primary key to link user
+        client_ref_id  = session.get("client_reference_id") 
+        amount_paid    = session.get("amount_total", 0) / 100
+        
+        # If we have client_ref_id (MongoDB _id), use it. Fallback to email.
+        filter_query = {}
+        if client_ref_id:
+             try:
+                 from bson import ObjectId
+                 filter_query = {"_id": ObjectId(client_ref_id)}
+             except:
+                 pass
+        
+        if not filter_query and customer_email:
+             filter_query = {"email": customer_email}
+
+        if filter_query:
             new_api_key = f"aris_live_{secrets.token_urlsafe(32)}"
             await accounts_collection.update_one(
-                {"email": customer_email},
+                filter_query,
                 {
                     "$inc":         {"credits_balance": amount_paid},
                     "$setOnInsert": {
@@ -371,6 +249,7 @@ async def stripe_webhook(request: Request):
                         "hashed_key":              hash_api_key(new_api_key),
                         "created_at":              time.time(),
                         "processed_stripe_events": [],
+                        "email": customer_email # ensure email is set if using ID
                     },
                     "$set": {"updated_at": time.time()},
                 },
@@ -380,6 +259,52 @@ async def stripe_webhook(request: Request):
 
     return {"status": "success"}
 
+@app.post("/api/internal/charge")
+async def internal_charge(req: ChargeRequest):
+    """
+    Atomic credit deduction endpoint for internal services.
+    Returns 200 if successful, 402 if insufficient funds.
+    """
+    # 1. Verify API Key
+    hashed_input = hash_api_key(req.api_key)
+    # Check if key exists (either direct api_key field or hashed_key)
+    # For now, let's assume hashed_key logic from verify_security_context
+    key_record = await api_keys_collection.find_one({"hashed_key": hashed_input})
+    
+    user_filter = {}
+    if key_record:
+        user_filter = {"email": key_record["user_email"]}
+    else:
+         # Fallback for unhashed legacy keys or direct check
+        user_filter = {"api_key": req.api_key}
+    
+    # 2. Atomic Find and Update
+    # Condition: credits_balance >= amount
+    updated_user = await accounts_collection.find_one_and_update(
+        {
+            **user_filter,
+            "credits_balance": {"$gte": req.amount} # ATOMIC CONDITION
+        },
+        {"$inc": {"credits_balance": -req.amount}},
+        projection={"credits_balance": 1, "email": 1}
+    )
+
+    if not updated_user:
+        # Check if user exists but just low balance, or invalid key
+        user_exists = await accounts_collection.find_one(user_filter)
+        if not user_exists:
+             raise HTTPException(status_code=403, detail="Invalid API Key")
+        
+        raise HTTPException(
+            status_code=402,
+            detail=f"Insufficient funds. Balance: ${user_exists.get('credits_balance', 0):.2f}"
+        )
+
+    return {
+        "status": "success", 
+        "charged": req.amount, 
+        "remaining": updated_user["credits_balance"]
+    }
 
 @app.post("/handshake")
 async def handshake(req: SessionRequest, user: dict = Depends(verify_security_context)):
@@ -414,7 +339,6 @@ async def handshake(req: SessionRequest, user: dict = Depends(verify_security_co
     new_balance = current_user.get("credits_balance", 0) - HANDSHAKE_COST_USD
     return {"session_token": token, "remaining_balance": new_balance}
 
-
 @app.get("/")
 async def landing():
     index_path = BASE_DIR / "index.html"
@@ -422,11 +346,9 @@ async def landing():
         return FileResponse(index_path)
     return {"status": "Aris Registry is live"}
 
-
 @app.get("/docs-redirect")
 async def docs_redirect():
     return RedirectResponse(url=DOCS_URL)
-
 
 if __name__ == "__main__":
     import uvicorn
