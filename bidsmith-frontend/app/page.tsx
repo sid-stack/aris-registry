@@ -10,9 +10,7 @@ export default function LandingPage() {
 
                     {/* Logo */}
                     <Link href="/" className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center shadow-[0_0_15px_rgba(37,99,235,0.5)]">
-                            <span className="font-bold text-white text-lg">B</span>
-                        </div>
+                        <img src="/logo.png" alt="BidSmith Logo" className="w-8 h-8 object-contain" />
                         <span className="font-bold text-xl tracking-tight text-white">BidSmith</span>
                     </Link>
 
@@ -199,16 +197,14 @@ export default function LandingPage() {
             <footer className="border-t border-white/5 py-12 px-6">
                 <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
                     <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center">
-                            <span className="font-bold text-white text-xs">B</span>
-                        </div>
+                        <img src="/logo.png" alt="BidSmith Logo" className="w-5 h-5 object-contain opacity-80" />
                         BidSmith © 2026 · Built on{' '}
-                        <a href="https://arislabs.ai" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-400 transition-colors">
+                        <a href="https://aris-registry-api.onrender.com" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-400 transition-colors">
                             Aris Protocol
                         </a>
                     </div>
                     <div className="flex items-center gap-6 text-sm text-gray-600">
-                        <a href="mailto:sid@aris.ai" className="hover:text-white transition-colors">Contact</a>
+                        <a href="mailto:sporwal@usc.edu" className="hover:text-white transition-colors">Contact</a>
                         <a href="https://arislabs.ai" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Docs</a>
                         <span className="text-gray-800">Privacy · Terms</span>
                     </div>

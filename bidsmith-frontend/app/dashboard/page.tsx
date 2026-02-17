@@ -4,21 +4,21 @@ import { useEffect, useState, useRef } from 'react';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface AnalysisResult {
-    project_title:    string;
-    agency:           string;
-    est_value:        string;
-    deadline:         string;
-    exec_summary:     string;
-    win_probability:  string;
-    match_score:      string;
-    is_valid_rfp:     boolean;
+    project_title: string;
+    agency: string;
+    est_value: string;
+    deadline: string;
+    exec_summary: string;
+    win_probability: string;
+    match_score: string;
+    is_valid_rfp: boolean;
     rejection_reason: string;
 }
 
 // ── Constants ──────────────────────────────────────────────────────────────
 // In production, NEXT_PUBLIC_API_URL is injected by Render from the backend service.
 // In local dev, falls back to localhost:8000.
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE = 'https://aris-registry-api.onrender.com';
 
 async function apiFetch(path: string, opts?: RequestInit): Promise<Response> {
     return fetch(`${API_BASE}${path}`, opts);
@@ -26,14 +26,14 @@ async function apiFetch(path: string, opts?: RequestInit): Promise<Response> {
 
 // ── Component ──────────────────────────────────────────────────────────────
 export default function Dashboard() {
-    const [networkStatus, setNetworkStatus]   = useState('Connecting to Aris Protocol...');
-    const [agentCount, setAgentCount]         = useState<number | null>(null);
-    const [loading, setLoading]               = useState(true);
+    const [networkStatus, setNetworkStatus] = useState('Connecting to Aris Protocol...');
+    const [agentCount, setAgentCount] = useState<number | null>(null);
+    const [loading, setLoading] = useState(true);
 
-    const [uploadState, setUploadState]       = useState<'IDLE' | 'ANALYZING' | 'RESULTS'>('IDLE');
-    const [logs, setLogs]                     = useState<string[]>([]);
+    const [uploadState, setUploadState] = useState<'IDLE' | 'ANALYZING' | 'RESULTS'>('IDLE');
+    const [logs, setLogs] = useState<string[]>([]);
     const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
-    const [proposalOpen, setProposalOpen]     = useState(false);
+    const [proposalOpen, setProposalOpen] = useState(false);
 
     const logsEndRef = useRef<HTMLDivElement>(null);
 
@@ -84,11 +84,11 @@ export default function Dashboard() {
         setProposalOpen(false);
 
         const sequence = [
-            { text: `SYSTEM: Ingesting "${file.name}"...`,             delay: 600  },
-            { text: 'AGENT_01: Validating document type...',           delay: 1800 },
-            { text: 'AGENT_02: Parsing solicitation requirements...',  delay: 3200 },
-            { text: 'AGENT_03: Scoring historical win-rates...',       delay: 4800 },
-            { text: 'AGENT_01: Drafting executive summary...',         delay: 6200 },
+            { text: `SYSTEM: Ingesting "${file.name}"...`, delay: 600 },
+            { text: 'AGENT_01: Validating document type...', delay: 1800 },
+            { text: 'AGENT_02: Parsing solicitation requirements...', delay: 3200 },
+            { text: 'AGENT_03: Scoring historical win-rates...', delay: 4800 },
+            { text: 'AGENT_01: Drafting executive summary...', delay: 6200 },
             { text: 'SYSTEM: Analysis complete. Generating report...', delay: 7800 },
         ];
         sequence.forEach(({ text, delay }) => {
@@ -265,17 +265,16 @@ export default function Dashboard() {
                             {/* Stats row */}
                             <div className="grid grid-cols-3 gap-3 mb-6">
                                 {[
-                                    { label: 'Est. Value',  value: analysisResult.est_value  },
-                                    { label: 'Deadline',    value: analysisResult.deadline    },
+                                    { label: 'Est. Value', value: analysisResult.est_value },
+                                    { label: 'Deadline', value: analysisResult.deadline },
                                     { label: 'Match Score', value: analysisResult.match_score },
                                 ].map(({ label, value }) => (
                                     <div
                                         key={label}
-                                        className={`p-4 rounded-lg border ${
-                                            analysisResult.is_valid_rfp
+                                        className={`p-4 rounded-lg border ${analysisResult.is_valid_rfp
                                                 ? 'bg-zinc-900 border-zinc-800'
                                                 : 'bg-zinc-950 border-zinc-900'
-                                        }`}
+                                            }`}
                                     >
                                         <div className="text-zinc-500 text-xs uppercase tracking-wider mb-1">{label}</div>
                                         <div className={`font-semibold text-sm ${analysisResult.is_valid_rfp ? 'text-white' : 'text-zinc-600'}`}>
