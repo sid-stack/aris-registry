@@ -22,8 +22,6 @@ services:
         sync: false
       - key: STRIPE_PRICE_ID
         value: price_1T0KV1GYLlqVJEwwk2cYSGv0
-      - key: REDIS_URL
-        sync: false
 
   # ─────────────────────────────────────────────
   # 2. Next.js Frontend — BidSmith Web
