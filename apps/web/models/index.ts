@@ -93,3 +93,26 @@ export const User: Model<IUser> =
 
 export const Analysis: Model<IAnalysis> =
     mongoose.models.Analysis ?? mongoose.model<IAnalysis>('Analysis', AnalysisSchema);
+
+// ─── Agent ───────────────────────────────────────────────────────────────────
+export interface IAgent extends Document {
+    name: string;
+    description: string;
+    price: number;
+    category: string;
+    status: 'active' | 'inactive';
+}
+
+const AgentSchema = new Schema<IAgent>(
+    {
+        name: { type: String, required: true },
+        description: { type: String, required: true },
+        price: { type: Number, required: true },
+        category: { type: String, required: true },
+        status: { type: String, default: 'active' },
+    },
+    { timestamps: true }
+);
+
+export const Agent: Model<IAgent> =
+    mongoose.models.Agent ?? mongoose.model<IAgent>('Agent', AgentSchema);

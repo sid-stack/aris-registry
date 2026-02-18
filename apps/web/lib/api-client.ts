@@ -1,6 +1,6 @@
 import { useAuth } from "@clerk/nextjs";
 
-const API_Base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_Base = process.env.NEXT_PUBLIC_API_URL || "";
 
 export const useApiClient = () => {
     const { getToken, orgId } = useAuth();

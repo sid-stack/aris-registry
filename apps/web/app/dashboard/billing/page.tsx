@@ -63,7 +63,7 @@ export default function BillingPage() {
                     <button
                         onClick={async () => {
                             try {
-                                const response = await fetchWithAuth("/api/checkout/create-session", {
+                                const response = await fetchWithAuth("/api/checkout", {
                                     method: "POST",
                                 });
                                 if (response.url) {
