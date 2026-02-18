@@ -32,7 +32,9 @@ export default function AnalyzePage() {
         formData.append("constraints", constraints);
 
         try {
-            const response = await fetchWithAuth("/api/analyze/", {
+            // Use the Render API URL for analysis, falling back to empty string (relative) if not set
+            const renderApiUrl = process.env.NEXT_PUBLIC_RENDER_API_URL || "";
+            const response = await fetchWithAuth(`${renderApiUrl}/api/analyze/`, {
                 method: "POST",
                 body: formData
             });
