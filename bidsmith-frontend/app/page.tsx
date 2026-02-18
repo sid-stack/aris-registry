@@ -1,86 +1,72 @@
 import Link from 'next/link';
+import { auth } from '@clerk/nextjs/server';
 
-export default function LandingPage() {
+export default async function Home() {
+    const { userId } = await auth();
+
     return (
-        <div className="min-h-screen bg-black text-white selection:bg-blue-500/30 font-sans">
-
+        <div className="min-h-screen bg-black text-white font-sans selection:bg-blue-500/30">
             {/* ── NAVBAR ── */}
-            <nav className="fixed top-0 w-full z-50 border-b border-white/10 bg-black/50 backdrop-blur-xl">
-                <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-
-                    {/* Logo */}
-                    <Link href="/" className="flex items-center gap-2">
-                        <img src="/logo.png" alt="BidSmith Logo" className="w-8 h-8 object-contain" />
-                        <span className="font-bold text-xl tracking-tight text-white">BidSmith</span>
-                    </Link>
-
-                    {/* Nav Links */}
-                    <div className="hidden md:flex items-center gap-8 text-sm text-gray-400">
+            <nav className="border-b border-white/5 bg-black/50 backdrop-blur-md sticky top-0 z-50">
+                <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center shadow-[0_0_15px_rgba(37,99,235,0.5)]">
+                            <span className="font-bold text-white text-xs">B</span>
+                        </div>
+                        <span className="font-bold text-xl tracking-tight">BidSmith</span>
+                    </div>
+                    <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-400">
                         <a href="#how-it-works" className="hover:text-white transition-colors">How it Works</a>
                         <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
-                        <a
-                            href="https://aris-registry-api.onrender.com"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="hover:text-white transition-colors"
-                        >
-                            Aris Protocol
-                        </a>
+                        <a href="https://aris-registry-api.onrender.com" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">API Docs</a>
                     </div>
-
-                    {/* CTA */}
-                    <Link
-                        href="/dashboard"
-                        className="px-5 py-2 text-sm font-medium bg-blue-600 text-white rounded-full hover:bg-blue-500 transition-all shadow-[0_0_20px_rgba(37,99,235,0.4)] hover:shadow-[0_0_30px_rgba(37,99,235,0.6)] border border-blue-400/20"
-                    >
-                        Launch App →
-                    </Link>
+                    <div className="flex items-center gap-4">
+                        {userId ? (
+                            <Link
+                                href="/dashboard"
+                                className="px-5 py-2.5 rounded-full bg-blue-600 hover:bg-blue-500 text-white font-medium transition-all shadow-[0_0_20px_rgba(37,99,235,0.4)] hover:shadow-[0_0_30px_rgba(37,99,235,0.6)]"
+                            >
+                                Go to Dashboard
+                            </Link>
+                        ) : (
+                            <>
+                                <Link href="/sign-in" className="text-sm font-medium text-gray-400 hover:text-white transition-colors">
+                                    Sign In
+                                </Link>
+                                <Link
+                                    href="/sign-up"
+                                    className="px-5 py-2.5 rounded-full bg-white text-black font-medium hover:bg-gray-200 transition-colors"
+                                >
+                                    Get Started
+                                </Link>
+                            </>
+                        )}
+                    </div>
                 </div>
             </nav>
 
             {/* ── HERO ── */}
-            <main className="relative flex flex-col items-center justify-center min-h-screen px-4 text-center overflow-hidden">
+            <main className="relative pt-32 pb-20 px-6 overflow-hidden">
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-blue-600/20 blur-[120px] rounded-full pointer-events-none"></div>
 
-                {/* Background glow */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-blue-600/15 rounded-full blur-[140px] pointer-events-none" />
-                {/* Grid overlay */}
-                <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808010_1px,transparent_1px),linear-gradient(to_bottom,#80808010_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
-
-                <div className="relative z-10 flex flex-col items-center max-w-4xl mx-auto mt-20">
-
-                    {/* Live badge */}
-                    <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 text-xs font-medium text-blue-400 mb-8 backdrop-blur-md">
-                        <span className="relative flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500" />
-                        </span>
-                        Powered by the Aris Protocol — Live
+                <div className="max-w-4xl mx-auto text-center relative z-10">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-400 text-xs font-bold uppercase tracking-widest mb-8">
+                        <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                        Powered by Aris Protocol
                     </div>
-
-                    {/* Headline */}
-                    <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-8 leading-[1.1] text-transparent bg-clip-text bg-gradient-to-b from-white via-white to-white/50">
-                        The AI that wins{' '}
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">
-                            government contracts.
-                        </span>
+                    <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-b from-white via-white to-gray-400">
+                        Win government contracts <br /> without the paperwork.
                     </h1>
-
-                    <p className="text-lg md:text-xl text-gray-400 max-w-2xl mb-12 leading-relaxed">
-                        Try 5 RFP analyses free — No credit card required.
-                        BidSmith's autonomous agents analyze requirements,
-                        score your fit, and draft winning proposals — in seconds.
+                    <p className="text-xl text-gray-400 mb-10 max-w-2xl mx-auto leading-relaxed">
+                        Automate RFP discovery, requirements analysis, and proposal writing with a decentralized network of AI agents.
                     </p>
-
-                    {/* CTAs */}
-                    <div className="flex flex-col sm:flex-row gap-5 items-center">
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                         <Link
                             href="/dashboard"
-                            className="group relative px-8 py-4 rounded-full bg-white text-black font-bold text-lg hover:bg-gray-100 transition-all shadow-[0_0_40px_rgba(255,255,255,0.2)] hover:shadow-[0_0_60px_rgba(255,255,255,0.4)] overflow-hidden"
+                            className="px-8 py-4 rounded-full bg-white text-black font-bold text-lg hover:bg-gray-200 transition-colors shadow-[0_0_30px_rgba(255,255,255,0.1)]"
                         >
-                            <span className="relative z-10">Try It Free →</span>
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+                            Launch App
                         </Link>
-
                         <a
                             href="https://aris-registry-api.onrender.com"
                             target="_blank"
@@ -187,9 +173,9 @@ export default function LandingPage() {
                                 </li>
                             ))}
                         </ul>
-                        <a href="https://buy.stripe.com/3cIaEX66197ad9H9na2Fa00" target="_blank" rel="noopener noreferrer" className="block text-center py-3 rounded-full bg-blue-600 hover:bg-blue-500 text-white transition-colors font-medium shadow-[0_0_20px_rgba(37,99,235,0.4)]">
+                        <Link href="/dashboard" className="block text-center py-3 rounded-full bg-blue-600 hover:bg-blue-500 text-white transition-colors font-medium shadow-[0_0_20px_rgba(37,99,235,0.4)]">
                             Subscribe Now
-                        </a>
+                        </Link>
                     </div>
                 </div>
             </section>
@@ -198,7 +184,9 @@ export default function LandingPage() {
             <footer className="border-t border-white/5 py-12 px-6">
                 <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
                     <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <img src="/logo.png" alt="BidSmith Logo" className="w-5 h-5 object-contain opacity-80" />
+                        <div className="w-5 h-5 rounded-full bg-zinc-800 flex items-center justify-center">
+                            <span className="text-[10px] text-white font-bold">B</span>
+                        </div>
                         BidSmith © 2026 · Built on{' '}
                         <a href="https://aris-registry-api.onrender.com" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-400 transition-colors">
                             Aris Protocol

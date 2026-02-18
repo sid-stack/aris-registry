@@ -1,429 +1,383 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import { useUser, useClerk } from '@clerk/nextjs';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
-// ── Types ──────────────────────────────────────────────────────────────────
+// ─── NEW: Type definitions matching our new Next.js API ───
 interface AnalysisResult {
-    project_title: string;
+    id: string;
+    projectTitle: string;
     agency: string;
-    est_value: string;
+    estValue: string;
     deadline: string;
-    exec_summary: string;
-    win_probability: string;
-    match_score: string;
-    is_valid_rfp: boolean;
-    rejection_reason: string;
+    winScore: number;
+    matchScore: string;
+    execBriefing: string;
+    winThemes: string[];
+    keyRisks: string[];
+    complianceItems: string[];
+    proposalDraft: string | null;
+    isValidRfp: boolean;
+    rejectionReason?: string;
 }
 
-// ── Constants ──────────────────────────────────────────────────────────────
-// In production, NEXT_PUBLIC_API_URL is injected by Render from the backend service.
-// In local dev, falls back to localhost:8000.
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-
-async function apiFetch(path: string, opts?: RequestInit): Promise<Response> {
-    return fetch(`${API_BASE}${path}`, { ...opts, credentials: 'include' });
-}
-
-// ── Component ──────────────────────────────────────────────────────────────
 export default function Dashboard() {
-    const [networkStatus, setNetworkStatus] = useState('Connecting to Aris Protocol...');
-    const [agentCount, setAgentCount] = useState<number | null>(null);
-    const [loading, setLoading] = useState(true);
+    const { user, isLoaded } = useUser();
+    const { signOut } = useClerk();
+    const router = useRouter();
 
-    const [uploadState, setUploadState] = useState<'IDLE' | 'ANALYZING' | 'RESULTS'>('IDLE');
-    const [logs, setLogs] = useState<string[]>([]);
+    // Stats
+    const [stats, setStats] = useState({
+        credits: 5, // Default for free tier
+        analyzed: 0,
+        won: 0
+    });
+
+    // UI State
+    const [uploadState, setUploadState] = useState<'IDLE' | 'UPLOADING' | 'PROCESSING' | 'RESULTS'>('IDLE');
+    const [file, setFile] = useState<File | null>(null);
+    const [progress, setProgress] = useState(0);
     const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
-    const [user, setUser] = useState<{
-        email: string;
-        credits_balance: number;
-        api_key: string;
-        is_paid_user: boolean;
-        free_reports_remaining: number;
-    } | null>(null);
     const [proposalOpen, setProposalOpen] = useState(false);
+    const [error, setError] = useState('');
 
-    const logsEndRef = useRef<HTMLDivElement>(null);
-
-    // ── Startup: health + agent count ─────────────────────────────────────
+    // Load user stats
     useEffect(() => {
-        const init = async () => {
-            try {
-                const [healthRes, agentsRes, meRes] = await Promise.all([
-                    apiFetch('/health'),
-                    apiFetch('/api/agents'),
-                    apiFetch('/auth/me'),
-                ]);
+        if (isLoaded && user) {
+            fetch('/api/user/credits')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.credits !== undefined) {
+                        setStats(prev => ({ ...prev, credits: data.credits }));
+                    }
+                })
+                .catch(err => console.error('Failed to load credits:', err));
+        }
+    }, [isLoaded, user]);
 
-                if (meRes.ok) {
-                    const userData = await meRes.json();
-                    setUser(userData);
-                } else {
-                    // Start redirect if 401? Middleware handles this, but good to be safe
-                }
-
-                if (!healthRes.ok) throw new Error('Backend Error');
-                const health = await healthRes.json();
-                setNetworkStatus(health.status || 'Active');
-                if (agentsRes.ok) {
-                    const agentData = await agentsRes.json();
-                    setAgentCount(agentData.count ?? 0);
-                }
-            } catch {
-                setNetworkStatus('Protocol Offline — Check Backend Logs');
-            } finally {
-                setLoading(false);
-            }
-        };
-        init();
+    // Drag & Drop
+    const onDrop = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        const droppedFile = e.dataTransfer.files[0];
+        if (droppedFile?.type === 'application/pdf') {
+            setFile(droppedFile);
+            setError('');
+        } else {
+            setError('Please upload a valid PDF.');
+        }
     }, []);
 
-    // ── Auto-scroll logs ───────────────────────────────────────────────────
-    useEffect(() => {
-        logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [logs]);
-
-    // ── File handlers ──────────────────────────────────────────────────────
-    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files?.[0]) startAnalysis(e.target.files[0]);
-    };
-
-    const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-        e.preventDefault();
-        const file = e.dataTransfer.files?.[0];
-        if (file?.type === 'application/pdf') startAnalysis(file);
-    };
-
-    // ── Core analysis flow ─────────────────────────────────────────────────
-    const startAnalysis = async (file: File) => {
-        setUploadState('ANALYZING');
-        setLogs([]);
-        setProposalOpen(false);
-
-        const sequence = [
-            { text: `SYSTEM: Ingesting "${file.name}"...`, delay: 600 },
-            { text: 'AGENT_01: Validating document type...', delay: 1800 },
-            { text: 'AGENT_02: Parsing solicitation requirements...', delay: 3200 },
-            { text: 'AGENT_03: Scoring historical win-rates...', delay: 4800 },
-            { text: 'AGENT_01: Drafting executive summary...', delay: 6200 },
-            { text: 'SYSTEM: Analysis complete. Generating report...', delay: 7800 },
-        ];
-        sequence.forEach(({ text, delay }) => {
-            setTimeout(() => setLogs(prev => [...prev, text]), delay);
-        });
-
-        const formData = new FormData();
-        formData.append('file', file);
-
-        const minWait = new Promise(resolve => setTimeout(resolve, 8800));
-        const apiCall = apiFetch('/analyze', {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-API-Key': user?.api_key || ''
-            }
-        })
-            .then(async res => {
-                if (res.status === 402) throw new Error('Trial Expired');
-                if (!res.ok) throw new Error('Analysis failed');
-
-                // Update local state based on tier
-                setUser(prev => {
-                    if (!prev) return null;
-                    if (prev.is_paid_user) {
-                        return { ...prev, credits_balance: prev.credits_balance - 0.99 };
-                    } else {
-                        return { ...prev, free_reports_remaining: Math.max(0, prev.free_reports_remaining - 1) };
-                    }
-                });
-
-                return res.json() as Promise<AnalysisResult>;
-            });
+    // ─── ACTION: Upload & Analyze ───
+    const handleAnalyze = async () => {
+        if (!file) return;
+        setUploadState('UPLOADING');
+        setProgress(10);
 
         try {
-            const [, result] = await Promise.all([minWait, apiCall]);
-            setAnalysisResult(result);
-            setUploadState('RESULTS');
-        } catch (err) {
-            console.error('Analysis error:', err);
-            setLogs(prev => [...prev, 'SYSTEM_ERROR: Analysis failed. Please retry.']);
-            setTimeout(() => setUploadState('IDLE'), 3000);
+            // Fake progress for UX
+            const interval = setInterval(() => {
+                setProgress(prev => Math.min(prev + 5, 90));
+            }, 500);
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const res = await fetch('/api/generate-analysis', {
+                method: 'POST',
+                body: formData,
+            });
+
+            clearInterval(interval);
+
+            if (!res.ok) {
+                const errData = await res.json();
+                throw new Error(errData.error || 'Analysis failed');
+            }
+
+            const data = await res.json();
+            setAnalysisResult(data); // data includes _id, projectTitle, etc.
+            setProgress(100);
+            setTimeout(() => setUploadState('RESULTS'), 500);
+
+        } catch (err: any) {
+            setError(err.message);
+            setUploadState('IDLE');
+        }
+    };
+
+    // ─── ACTION: Generate Proposal (Paid) ───
+    const handleGenerateProposal = async () => {
+        if (!analysisResult) return;
+        try {
+            const res = await fetch('/api/generate-proposal', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ analysisId: analysisResult.id }),
+            });
+            const data = await res.json();
+            if (data.url) window.location.href = data.url;
+            else if (data.error) alert(data.error);
+        } catch (e) {
+            alert('Failed to initiate proposal generation.');
         }
     };
 
     const reset = () => {
+        setFile(null);
         setUploadState('IDLE');
-        setLogs([]);
+        setProgress(0);
         setAnalysisResult(null);
         setProposalOpen(false);
     };
 
-    // ── Render ─────────────────────────────────────────────────────────────
+    if (!isLoaded) return <div className="min-h-screen bg-black text-white flex items-center justify-center">Loading...</div>;
+    if (!user) {
+        router.push('/sign-in');
+        return null; // Redirecting
+    }
+
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white p-4 font-mono">
-            <div className="w-full max-w-4xl">
+        <div className="min-h-screen bg-black text-white font-sans selection:bg-blue-500/30">
+            {/* ── NAVBAR ── */}
+            <nav className="border-b border-zinc-800 bg-black/50 backdrop-blur-md sticky top-0 z-50">
+                <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-cyan-400 flex items-center justify-center shadow-[0_0_15px_rgba(37,99,235,0.5)]">
+                            <span className="font-bold text-white text-xs">B</span>
+                        </div>
+                        <span className="font-bold text-lg tracking-tight">BidSmith</span>
+                    </div>
 
-                {/* Header */}
-                <div className="flex items-center justify-between mb-8 border-b border-zinc-800 pb-4">
-                    <h1 className="text-2xl tracking-tight">SYSTEM://BIDSMITH_DASHBOARD</h1>
-                    <div className="flex items-center gap-4">
-                        {user && (
-                            <div className="flex items-center gap-3 bg-zinc-900 border border-zinc-700 px-3 py-1.5 rounded-full">
-                                {user.is_paid_user ? (
-                                    <span className={`text-xs font-bold ${user.credits_balance < 1 ? 'text-red-400' : 'text-green-400'}`}>
-                                        ${user.credits_balance.toFixed(2)}
-                                    </span>
-                                ) : (
-                                    <span className="text-xs font-bold text-blue-400">
-                                        {user.free_reports_remaining} Free Reports
-                                    </span>
-                                )}
-                                {(user.credits_balance < 1 || !user.is_paid_user) && (
-                                    <button
-                                        onClick={async () => {
-                                            const res = await apiFetch('/api/billing/checkout', {
-                                                method: 'POST',
-                                                headers: { 'Content-Type': 'application/json' },
-                                                body: JSON.stringify({ email: user.email })
-                                            });
-                                            const data = await res.json();
-                                            if (data.url) window.location.href = data.url;
-                                        }}
-                                        className="text-[10px] bg-blue-600 px-2 py-0.5 rounded text-white hover:bg-blue-500"
-                                    >
-                                        {user.is_paid_user ? 'REFILL' : 'UPGRADE'}
-                                    </button>
-                                )}
+                    <div className="flex items-center gap-6">
+                        <div className="hidden md:flex items-center gap-4 text-sm text-zinc-400">
+                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900 border border-zinc-800">
+                                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                                <span>{5 - (stats.credits || 0)} Free Analyses Left</span> {/* Approximate logic */}
                             </div>
-                        )}
-                        <a href="/agents" className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors">
-                            Agent Registry
-                        </a>
-                        <a href="/dashboard/settings" className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors">
-                            Settings
-                        </a>
-                        <a href="/" className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors">
-                            ← Home
-                        </a>
-                    </div>
-                </div>
-
-                {/* Status grid */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                    <div className="p-5 border border-zinc-800 rounded-lg bg-zinc-900/50">
-                        <div className="text-xs uppercase tracking-widest text-zinc-500 mb-2">Network Status</div>
-                        <div className={`text-lg font-semibold ${loading ? 'animate-pulse text-zinc-400' : 'text-green-400'}`}>
-                            {networkStatus}
+                        </div>
+                        <div className="h-6 w-px bg-zinc-800"></div>
+                        <div className="flex items-center gap-3">
+                            <span className="text-sm font-medium">{user.fullName || user.emailAddresses[0].emailAddress}</span>
+                            <button
+                                onClick={() => signOut(() => router.push('/'))}
+                                className="text-xs text-zinc-500 hover:text-white transition-colors"
+                            >
+                                Sign Out
+                            </button>
                         </div>
                     </div>
-                    <div className="p-5 border border-zinc-800 rounded-lg bg-zinc-900/50">
-                        <div className="text-xs uppercase tracking-widest text-zinc-500 mb-2">Active Agents</div>
-                        <div className="text-lg font-semibold">
-                            {agentCount === null
-                                ? <span className="animate-pulse text-zinc-400">—</span>
-                                : <span className="text-white">{String(agentCount).padStart(2, '0')}</span>
-                            }
-                        </div>
-                    </div>
-                    <div className="p-5 border border-zinc-800 rounded-lg bg-zinc-900/50">
-                        <div className="text-xs uppercase tracking-widest text-zinc-500 mb-2">Model</div>
-                        <div className="text-lg font-semibold text-blue-400">gemini-2.5-flash</div>
-                    </div>
+                </div>
+            </nav>
+
+            <div className="max-w-6xl mx-auto p-6 md:p-12">
+                {/* ── HEADER ── */}
+                <div className="mb-12">
+                    <h1 className="text-3xl md:text-4xl font-bold mb-3">
+                        Welcome back, <span className="text-blue-500">{user.firstName || 'Hunter'}</span>.
+                    </h1>
+                    <p className="text-zinc-500">Ready to secure your next government contract?</p>
                 </div>
 
-                {/* Dynamic content area */}
-                <div
-                    className="min-h-[460px] border-2 border-dashed border-zinc-800 rounded-xl bg-zinc-950/50 flex flex-col relative overflow-hidden transition-all duration-300"
-                    onDragOver={e => e.preventDefault()}
-                    onDrop={handleDrop}
-                >
+                {/* ── MAIN CARD ── */}
+                <div className="bg-zinc-900/40 border border-zinc-800 rounded-2xl min-h-[500px] relative overflow-hidden backdrop-blur-sm">
 
-                    {/* ── IDLE ── */}
+                    {/* ── UPLOAD VIEW ── */}
                     {uploadState === 'IDLE' && (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center p-12 text-center">
-                            <div className="w-16 h-16 mb-6 rounded-full bg-zinc-900 flex items-center justify-center border border-zinc-800">
-                                <svg className="w-8 h-8 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                                </svg>
+                        <div
+                            onDragOver={(e) => e.preventDefault()}
+                            onDrop={onDrop}
+                            className="absolute inset-0 flex flex-col items-center justify-center p-8 transition-all"
+                        >
+                            <div className="w-24 h-24 rounded-full bg-zinc-800/50 flex items-center justify-center mb-6 border border-zinc-700 shadow-inner">
+                                <span className="text-4xl">📄</span>
                             </div>
-                            <h3 className="text-xl font-bold text-white mb-2">Upload RFP Document</h3>
-                            <p className="text-zinc-500 mb-8 max-w-sm text-sm leading-relaxed">
-                                Drop a government solicitation PDF here or click to browse.
-                                Agents are standing by to analyze.
+                            <h2 className="text-2xl font-bold mb-2">Upload Solicitation</h2>
+                            <p className="text-zinc-500 mb-8 max-w-md text-center">
+                                Drag & drop your PDF here, or click to browse. We'll extract intelligence, identify win themes, and score your fit.
                             </p>
-                            <label className="cursor-pointer px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-full font-medium transition-all shadow-[0_0_20px_rgba(37,99,235,0.3)] hover:shadow-[0_0_30px_rgba(37,99,235,0.5)]">
+
+                            <input
+                                type="file"
+                                accept=".pdf"
+                                className="hidden"
+                                id="file-upload"
+                                onChange={(e) => {
+                                    if (e.target.files?.[0]) {
+                                        setFile(e.target.files[0]);
+                                        setError('');
+                                    }
+                                }}
+                            />
+                            <label
+                                htmlFor="file-upload"
+                                className="px-8 py-3 bg-white text-black font-bold rounded-lg hover:bg-zinc-200 transition-all cursor-pointer shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+                            >
                                 Select PDF
-                                <input
-                                    type="file"
-                                    className="hidden"
-                                    accept=".pdf,application/pdf"
-                                    onChange={handleFileUpload}
-                                />
                             </label>
-                            <p className="text-zinc-700 text-xs mt-4">Or drag and drop anywhere in this box</p>
-                        </div>
-                    )}
-
-                    {/* ── ANALYZING ── */}
-                    {uploadState === 'ANALYZING' && (
-                        <div className="absolute inset-0 bg-black flex flex-col p-8 text-sm">
-                            <div className="flex items-center gap-2 mb-4 border-b border-zinc-800 pb-3">
-                                <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
-                                <span className="text-zinc-400 text-xs uppercase tracking-wider">
-                                    Aris Protocol // Agents Active
-                                </span>
-                            </div>
-                            <div className="flex-1 overflow-y-auto space-y-2 pr-2">
-                                {logs.map((log, i) => (
-                                    <div key={i} className="text-green-400/90">
-                                        <span className="text-zinc-600 mr-2 text-xs">
-                                            [{new Date().toLocaleTimeString()}]
-                                        </span>
-                                        {log}
-                                    </div>
-                                ))}
-                                <div className="text-green-400 animate-pulse">▋</div>
-                                <div ref={logsEndRef} />
-                            </div>
-                        </div>
-                    )}
-
-                    {/* ── RESULTS ── */}
-                    {uploadState === 'RESULTS' && analysisResult && !proposalOpen && (
-                        <div className="absolute inset-0 p-8 flex flex-col">
-
-                            {/* Rejection banner — only shown when NOT a valid RFP */}
-                            {!analysisResult.is_valid_rfp && (
-                                <div className="flex items-start gap-3 mb-5 p-4 rounded-lg bg-red-950/40 border border-red-500/50">
-                                    <span className="text-red-400 text-lg shrink-0">🚨</span>
-                                    <div>
-                                        <div className="text-red-400 font-bold text-sm mb-0.5">
-                                            Document Rejected — Not a Government RFP
-                                        </div>
-                                        <div className="text-red-300/70 text-xs">
-                                            {analysisResult.rejection_reason || 'This document does not appear to be a government procurement solicitation.'}
-                                        </div>
-                                    </div>
+                            {file && (
+                                <div className="mt-6 flex items-center gap-3 px-4 py-2 bg-zinc-800 rounded-lg border border-zinc-700 animate-in fade-in slide-in-from-bottom-2">
+                                    <span className="text-sm text-zinc-300">{file.name}</span>
+                                    <button
+                                        onClick={handleAnalyze}
+                                        className="text-blue-400 hover:text-blue-300 text-sm font-bold ml-2"
+                                    >
+                                        Analyze →
+                                    </button>
                                 </div>
                             )}
+                            {error && <p className="mt-4 text-red-400 text-sm bg-red-950/30 px-3 py-1 rounded border border-red-900/50">{error}</p>}
+                        </div>
+                    )}
 
-                            {/* Result header */}
-                            <div className="flex items-start justify-between mb-6">
-                                <div className="flex-1 pr-4">
-                                    <h3
-                                        className={`text-xl font-bold leading-tight mb-1 ${analysisResult.is_valid_rfp ? 'text-white' : 'text-zinc-500'}`}
-                                        title={analysisResult.project_title}
-                                    >
-                                        {analysisResult.project_title}
-                                    </h3>
-                                    <p className={`text-sm ${analysisResult.is_valid_rfp ? 'text-blue-400' : 'text-zinc-600'}`}>
-                                        {analysisResult.agency}
-                                    </p>
+                    {/* ── PROCESSING VIEW ── */}
+                    {(uploadState === 'UPLOADING' || uploadState === 'PROCESSING') && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center p-8">
+                            <div className="w-full max-w-md space-y-4">
+                                <div className="flex justify-between text-xs uppercase tracking-widest text-zinc-500">
+                                    <span>Analyzing RFP...</span>
+                                    <span>{progress}%</span>
                                 </div>
-                                <div className="text-right shrink-0">
-                                    <div className="text-xs text-zinc-500 uppercase tracking-widest mb-1">Win Probability</div>
-                                    <div className={`text-4xl font-bold ${analysisResult.is_valid_rfp ? 'text-green-400' : 'text-zinc-600'}`}>
-                                        {analysisResult.win_probability}
-                                    </div>
+                                <div className="h-1 bg-zinc-800 rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-blue-500 transition-all duration-500 ease-out shadow-[0_0_10px_rgba(59,130,246,0.5)]"
+                                        style={{ width: `${progress}%` }}
+                                    ></div>
+                                </div>
+                                <div className="text-center text-zinc-600 text-sm pt-2">
+                                    identifying win themes · checking compliance · calculating score
                                 </div>
                             </div>
+                        </div>
+                    )}
 
-                            {/* Stats row */}
-                            <div className="grid grid-cols-3 gap-3 mb-6">
-                                {[
-                                    { label: 'Est. Value', value: analysisResult.est_value },
-                                    { label: 'Deadline', value: analysisResult.deadline },
-                                    { label: 'Match Score', value: analysisResult.match_score },
-                                ].map(({ label, value }) => (
-                                    <div
-                                        key={label}
-                                        className={`p-4 rounded-lg border ${analysisResult.is_valid_rfp
-                                            ? 'bg-zinc-900 border-zinc-800'
-                                            : 'bg-zinc-950 border-zinc-900'
-                                            }`}
-                                    >
-                                        <div className="text-zinc-500 text-xs uppercase tracking-wider mb-1">{label}</div>
-                                        <div className={`font-semibold text-sm ${analysisResult.is_valid_rfp ? 'text-white' : 'text-zinc-600'}`}>
-                                            {value}
+                    {/* ── RESULTS VIEW ── */}
+                    {uploadState === 'RESULTS' && analysisResult && !proposalOpen && (
+                        <div className="absolute inset-0 p-0 md:flex">
+                            {/* Left Panel: Score & Metadata */}
+                            <div className="w-full md:w-1/3 border-b md:border-b-0 md:border-r border-zinc-800 p-8 flex flex-col bg-zinc-900/20">
+                                <div className="mb-6">
+                                    <div className="text-xs text-zinc-500 uppercase tracking-widest mb-1">{analysisResult.agency}</div>
+                                    <h2 className="text-xl font-bold leading-snug">{analysisResult.projectTitle}</h2>
+                                </div>
+
+                                {/* Score Ring */}
+                                <div className="flex-1 flex flex-col items-center justify-center py-6">
+                                    <div className="relative w-32 h-32 flex items-center justify-center">
+                                        <svg className="w-full h-full -rotate-90">
+                                            <circle cx="64" cy="64" r="56" fill="none" stroke="#27272a" strokeWidth="8" />
+                                            <circle
+                                                cx="64" cy="64" r="56" fill="none"
+                                                stroke={analysisResult.winScore >= 70 ? '#4ade80' : '#facc15'}
+                                                strokeWidth="8"
+                                                strokeDasharray="351.86"
+                                                strokeDashoffset={351.86 - (351.86 * analysisResult.winScore) / 100}
+                                                strokeLinecap="round"
+                                            />
+                                        </svg>
+                                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                            <span className="text-3xl font-bold">{analysisResult.winScore}</span>
+                                            <span className="text-[10px] text-zinc-500">WIN PROBABILITY</span>
                                         </div>
                                     </div>
-                                ))}
-                            </div>
-
-                            {/* Exec summary */}
-                            <div className="bg-zinc-900/50 rounded-lg p-5 border border-zinc-800 flex-1 overflow-y-auto mb-6">
-                                <div className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
-                                    {analysisResult.is_valid_rfp ? 'Executive Summary Draft' : 'Analysis'}
                                 </div>
-                                <p className={`leading-relaxed text-sm ${analysisResult.is_valid_rfp ? 'text-zinc-300' : 'text-zinc-600'}`}>
-                                    {analysisResult.exec_summary}
-                                </p>
+
+                                <div className="space-y-4 text-sm">
+                                    <div className="flex justify-between py-2 border-b border-zinc-800">
+                                        <span className="text-zinc-500">Est. Value</span>
+                                        <span className="font-mono text-white">{analysisResult.estValue}</span>
+                                    </div>
+                                    <div className="flex justify-between py-2 border-b border-zinc-800">
+                                        <span className="text-zinc-500">Deadline</span>
+                                        <span className="text-white">{analysisResult.deadline}</span>
+                                    </div>
+                                    <button onClick={reset} className="w-full mt-4 text-zinc-500 hover:text-white text-xs transition-colors">
+                                        ← Upload Another RFP
+                                    </button>
+                                </div>
                             </div>
 
-                            {/* Actions — Generate Proposal ONLY shown for valid RFPs */}
-                            <div className="flex gap-3">
-                                {analysisResult.is_valid_rfp ? (
-                                    <button
-                                        onClick={() => setProposalOpen(true)}
-                                        disabled={!user?.is_paid_user}
-                                        className={`flex-1 py-3 font-bold rounded-lg transition-colors ${user?.is_paid_user
-                                            ? 'bg-white text-black hover:bg-zinc-100'
-                                            : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
-                                            }`}
-                                    >
-                                        {user?.is_paid_user ? 'Generate Proposal →' : '🔒 Proposal Locked'}
-                                    </button>
-                                ) : (
-                                    <div className="flex-1 py-3 bg-red-950/50 border border-red-500/50 text-red-400 font-bold rounded-lg text-center text-sm flex items-center justify-center gap-2">
-                                        <span>🚫</span> Upload a valid government RFP to generate a proposal
+                            {/* Right Panel: Content */}
+                            <div className="flex-1 p-8 overflow-y-auto">
+                                {/* Invalid RFP Warning */}
+                                {!analysisResult.isValidRfp && (
+                                    <div className="mb-6 p-4 bg-red-900/20 border border-red-800/50 rounded-lg text-red-200 text-sm">
+                                        ⚠️ <strong>Attention:</strong> {analysisResult.rejectionReason}
                                     </div>
                                 )}
-                                <button
-                                    onClick={reset}
-                                    className="px-6 py-3 border border-zinc-700 text-zinc-400 hover:text-white rounded-lg hover:border-zinc-500 transition-colors"
-                                >
-                                    Reset
-                                </button>
-                            </div>
 
-                            {/* Free User CTA */}
-                            {!user?.is_paid_user && analysisResult.is_valid_rfp && (
-                                <div className="mt-6 p-4 border border-yellow-500/30 bg-yellow-500/5 rounded-lg">
-                                    <p className="text-yellow-400 text-sm mb-2">
-                                        🔒 <strong>Upgrade to Pro</strong> to unlock:
-                                    </p>
-                                    <ul className="text-yellow-300/70 text-xs space-y-1 mb-3">
-                                        <li>• Full executive summaries</li>
-                                        <li>• Win probability scoring</li>
-                                        <li>• Proposal draft generation</li>
-                                        <li>• Unlimited analyses</li>
-                                    </ul>
-                                    <button
-                                        onClick={async () => {
-                                            const res = await apiFetch('/api/billing/checkout', {
-                                                method: 'POST',
-                                                headers: { 'Content-Type': 'application/json' },
-                                                body: JSON.stringify({ email: user?.email })
-                                            });
-                                            const data = await res.json();
-                                            if (data.url) window.location.href = data.url;
-                                        }}
-                                        className="w-full bg-yellow-500 text-black font-bold py-2 rounded hover:bg-yellow-400 transition-colors"
-                                    >
-                                        Upgrade Now — $0.99/refill
-                                    </button>
+                                <div className="mb-8">
+                                    <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-widest mb-3">Executive Briefing</h3>
+                                    <p className="text-zinc-300 leading-relaxed text-sm">{analysisResult.execBriefing}</p>
                                 </div>
-                            )}
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                                    <div>
+                                        <h3 className="text-sm font-bold text-green-500 uppercase tracking-widest mb-3">Win Themes</h3>
+                                        <ul className="space-y-2">
+                                            {analysisResult.winThemes.map((theme, i) => (
+                                                <li key={i} className="flex items-start gap-2 text-sm text-zinc-400">
+                                                    <span className="text-green-500 mt-1">✓</span> {theme}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-bold text-yellow-500 uppercase tracking-widest mb-3">Key Risks</h3>
+                                        <ul className="space-y-2">
+                                            {analysisResult.keyRisks.map((risk, i) => (
+                                                <li key={i} className="flex items-start gap-2 text-sm text-zinc-400">
+                                                    <span className="text-yellow-500 mt-1">!</span> {risk}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                {/* ── PROPOSAL ACTION ── */}
+                                {analysisResult.proposalDraft ? (
+                                    <div className="p-6 bg-green-900/10 border border-green-800/30 rounded-xl">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <h3 className="text-green-400 font-bold">Proposal Draft Ready</h3>
+                                            <span className="text-xs bg-green-900/40 text-green-300 px-2 py-0.5 rounded">Pro Unlocked</span>
+                                        </div>
+                                        <p className="text-zinc-400 text-sm mb-4">You have already generated a proposal for this RFP.</p>
+                                        <button
+                                            onClick={() => setProposalOpen(true)}
+                                            className="w-full py-3 bg-white text-black font-bold rounded-lg hover:bg-zinc-200 transition-colors"
+                                        >
+                                            View & Download Proposal
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="p-6 bg-blue-900/10 border border-blue-800/30 rounded-xl">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <h3 className="text-blue-400 font-bold">Generate Winning Proposal</h3>
+                                            <span className="text-xs bg-blue-900/40 text-blue-300 px-2 py-0.5 rounded">Pro Feature</span>
+                                        </div>
+                                        <p className="text-zinc-400 text-sm mb-4">
+                                            Use ARIS-4 to write a compliant, 5-section proposal draft tailored to this solicitation.
+                                        </p>
+                                        <button
+                                            onClick={handleGenerateProposal}
+                                            className="w-full py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-500 transition-colors shadow-lg shadow-blue-900/20"
+                                        >
+                                            Generate Draft — $0.99
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
 
-                    {/* ── PROPOSAL VIEW ── */}
+                    {/* ── PROPOSAL VIEW OVERLAY ── */}
                     {uploadState === 'RESULTS' && analysisResult && proposalOpen && (
-                        <div className="absolute inset-0 p-8 flex flex-col">
-                            <div className="flex items-center justify-between mb-6 border-b border-zinc-800 pb-4">
+                        <div className="absolute inset-0 p-8 flex flex-col bg-zinc-900 z-20 overflow-hidden">
+                            <div className="flex items-center justify-between mb-6 border-b border-zinc-800 pb-4 shrink-0">
                                 <div>
                                     <div className="text-xs text-zinc-500 uppercase tracking-widest mb-1">Proposal Draft</div>
-                                    <h3 className="text-lg font-bold text-white">{analysisResult.project_title}</h3>
+                                    <h3 className="text-lg font-bold text-white max-w-xl truncate">{analysisResult.projectTitle}</h3>
                                 </div>
                                 <button
                                     onClick={() => setProposalOpen(false)}
@@ -433,61 +387,25 @@ export default function Dashboard() {
                                 </button>
                             </div>
 
-                            <div className="flex-1 overflow-y-auto space-y-5 text-sm text-zinc-300 leading-relaxed pr-1">
-                                <section>
-                                    <h4 className="text-blue-400 font-bold uppercase tracking-wider text-xs mb-2">1. Executive Summary</h4>
-                                    <p>{analysisResult.exec_summary}</p>
-                                </section>
-                                <section>
-                                    <h4 className="text-blue-400 font-bold uppercase tracking-wider text-xs mb-2">2. Understanding of Requirements</h4>
-                                    <p>
-                                        Our team has thoroughly reviewed the solicitation issued by{' '}
-                                        <strong className="text-white">{analysisResult.agency}</strong> and
-                                        fully understands the scope, objectives, and technical requirements outlined therein.
-                                        We are prepared to meet all deliverables within the specified timeline.
-                                    </p>
-                                </section>
-                                <section>
-                                    <h4 className="text-blue-400 font-bold uppercase tracking-wider text-xs mb-2">3. Technical Approach</h4>
-                                    <p className="text-zinc-500 italic">[Describe your methodology, tools, and how you will meet each requirement.]</p>
-                                </section>
-                                <section>
-                                    <h4 className="text-blue-400 font-bold uppercase tracking-wider text-xs mb-2">4. Pricing Summary</h4>
-                                    <p>
-                                        Estimated contract value range:{' '}
-                                        <strong className="text-white">{analysisResult.est_value}</strong>.
-                                        Final pricing will be provided in the attached cost volume.
-                                    </p>
-                                </section>
-                                <section>
-                                    <h4 className="text-blue-400 font-bold uppercase tracking-wider text-xs mb-2">5. Compliance Matrix</h4>
-                                    <p className="text-zinc-500 italic">[Auto-generated compliance matrix available on Pro plan.]</p>
-                                </section>
+                            <div className="flex-1 overflow-y-auto space-y-6 text-sm text-zinc-300 leading-relaxed pr-2 pb-20">
+                                <div className="prose prose-invert max-w-none whitespace-pre-wrap">
+                                    {analysisResult.proposalDraft}
+                                </div>
                             </div>
 
-                            <div className="mt-6 flex gap-3 border-t border-zinc-800 pt-4">
+                            <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-zinc-900 via-zinc-900 to-transparent flex gap-3">
                                 <button
                                     onClick={() => {
-                                        const content = [
-                                            `BIDSMITH PROPOSAL DRAFT`,
-                                            `Project: ${analysisResult.project_title}`,
-                                            `Agency: ${analysisResult.agency}`,
-                                            `Est. Value: ${analysisResult.est_value}`,
-                                            `Deadline: ${analysisResult.deadline}`,
-                                            `\n1. EXECUTIVE SUMMARY\n${analysisResult.exec_summary}`,
-                                            `\n2. UNDERSTANDING OF REQUIREMENTS\n[Complete this section with your approach.]`,
-                                            `\n3. TECHNICAL APPROACH\n[Describe your methodology.]`,
-                                            `\n4. PRICING SUMMARY\nEstimated value: ${analysisResult.est_value}`,
-                                        ].join('\n');
-                                        const blob = new Blob([content], { type: 'text/plain' });
+                                        if (!analysisResult.proposalDraft) return;
+                                        const blob = new Blob([analysisResult.proposalDraft], { type: 'text/plain' });
                                         const a = document.createElement('a');
                                         a.href = URL.createObjectURL(blob);
-                                        a.download = `BidSmith_Proposal_${analysisResult.project_title.replace(/\s+/g, '_').slice(0, 40)}.txt`;
+                                        a.download = `BidSmith_Proposal_${analysisResult.projectTitle.substring(0, 20)}.md`;
                                         a.click();
                                     }}
-                                    className="flex-1 py-3 bg-white text-black font-bold rounded-lg hover:bg-zinc-100 transition-colors"
+                                    className="flex-1 py-3 bg-white text-black font-bold rounded-lg hover:bg-zinc-200 transition-colors shadow-lg"
                                 >
-                                    ↓ Download Draft
+                                    ↓ Download Markdown
                                 </button>
                                 <button
                                     onClick={reset}
@@ -501,7 +419,7 @@ export default function Dashboard() {
                 </div>
 
                 <p className="text-center text-zinc-700 text-xs mt-6">
-                    BidSmith · Powered by Aris Protocol · <a href="/" className="hover:text-zinc-500 transition-colors">← Back to home</a>
+                    BidSmith · Powered by Aris Protocol · <Link href="/" className="hover:text-zinc-500 transition-colors">← Back to home</Link>
                 </p>
             </div>
         </div>
