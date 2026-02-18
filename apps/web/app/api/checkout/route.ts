@@ -3,24 +3,65 @@ import Stripe from 'stripe';
 import { auth, currentUser } from '@clerk/nextjs/server';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: '2024-04-10', // Updated to a recent version
+    apiVersion: '2024-06-20',
     typescript: true,
 });
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
+const PLANS: Record<string, { name: string; description: string; unit_amount: number; credits: number }> = {
+    // Monthly plans
+    starter: {
+        name: 'Starter Plan (Monthly)',
+        description: '25 RFP Analysis Credits / month',
+        unit_amount: 1900,   // $19.00
+        credits: 25,
+    },
+    pro: {
+        name: 'Professional Plan (Monthly)',
+        description: '150 RFP Analysis Credits / month',
+        unit_amount: 9900,   // $99.00
+        credits: 150,
+    },
+    // Yearly plans
+    starter_yearly: {
+        name: 'Starter Plan (Yearly)',
+        description: '25 RFP Analysis Credits / month — billed annually',
+        unit_amount: 19000,  // $190.00
+        credits: 300,        // 25 * 12
+    },
+    pro_yearly: {
+        name: 'Professional Plan (Yearly)',
+        description: '150 RFP Analysis Credits / month — billed annually',
+        unit_amount: 99000,  // $990.00
+        credits: 1800,       // 150 * 12
+    },
+    // Legacy credits top-up
+    credits: {
+        name: '25 Analysis Credits',
+        description: 'Top-up pack — 25 analyses',
+        unit_amount: 2000,   // $20.00
+        credits: 25,
+    },
+};
+
 export async function POST(req: Request) {
     try {
-        const { userId } = auth();
+        const { userId } = await auth();
         const user = await currentUser();
 
         if (!userId || !user) {
-            return new NextResponse("Unauthorized", { status: 401 });
+            return new NextResponse('Unauthorized', { status: 401 });
         }
 
-        // You can also create or retrieve a Stripe Customer here based on user.email
-
-        const settings = {
-            url: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
-        }
+        const body = await req.json().catch(() => ({}));
+        const basePlanId = (body.plan_id as string) || 'credits';
+        const frequency = (body.frequency as string) === 'yearly' ? 'yearly' : 'monthly';
+        // Build the lookup key: e.g. 'pro' + yearly => 'pro_yearly'
+        const planKey = frequency === 'yearly' && basePlanId !== 'credits'
+            ? `${basePlanId}_yearly`
+            : basePlanId;
+        const plan = PLANS[planKey] ?? PLANS[basePlanId] ?? PLANS['credits'];
 
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ['card'],
@@ -29,29 +70,28 @@ export async function POST(req: Request) {
                     price_data: {
                         currency: 'usd',
                         product_data: {
-                            name: 'BidSmith Pro Subscription',
-                            description: 'Unlimited high-volume analysis'
+                            name: plan.name,
+                            description: plan.description,
                         },
-                        unit_amount: 9900, // $99.00
-                        recurring: {
-                            interval: 'month',
-                        },
+                        unit_amount: plan.unit_amount,
                     },
                     quantity: 1,
                 },
             ],
-            mode: 'subscription',
-            success_url: `${settings.url}/dashboard/billing?success=true`,
-            cancel_url: `${settings.url}/dashboard/billing?canceled=true`,
-            customer_email: user.emailAddresses[0].emailAddress,
+            mode: 'payment',
+            success_url: `${APP_URL}/dashboard?success=true`,
+            cancel_url: `${APP_URL}/dashboard/billing?canceled=true`,
+            customer_email: user.emailAddresses[0]?.emailAddress,
             metadata: {
-                userId,
+                clerk_user_id: userId,
+                plan_id: planKey,
+                credits_to_add: String(plan.credits),
             },
         });
 
         return NextResponse.json({ url: session.url });
     } catch (error) {
-        console.error("[STRIPE_ERROR]", error);
-        return new NextResponse("Internal Error", { status: 500 });
+        console.error('[STRIPE_ERROR]', error);
+        return new NextResponse('Internal Error', { status: 500 });
     }
 }

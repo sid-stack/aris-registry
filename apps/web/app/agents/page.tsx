@@ -107,11 +107,9 @@ export default function AgentsPage() {
             <header className="sticky top-0 z-50 border-b border-zinc-900 bg-black/80 backdrop-blur-xl">
                 <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <a href="/" className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center shadow-[0_0_10px_rgba(37,99,235,0.5)]">
-                                <span className="font-bold text-white text-xs">B</span>
-                            </div>
-                            <span className="font-bold text-sm text-white">BidSmith</span>
+                        <a href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                            <img src="/logo.png" alt="BidSmith Logo" className="h-8 w-8 object-contain" />
+                            <span className="font-bold text-lg text-white">BidSmith</span>
                         </a>
                         <span className="text-zinc-700">/</span>
                         <span className="text-zinc-400 text-sm">Agent Registry</span>
@@ -161,8 +159,8 @@ export default function AgentsPage() {
                             key={cap}
                             onClick={() => setActiveCap(cap)}
                             className={`px-3 py-1.5 rounded-full text-xs font-mono transition-all border ${activeCap === cap
-                                    ? 'bg-white text-black border-white'
-                                    : 'bg-transparent text-zinc-500 border-zinc-800 hover:border-zinc-600 hover:text-zinc-300'
+                                ? 'bg-white text-black border-white'
+                                : 'bg-transparent text-zinc-500 border-zinc-800 hover:border-zinc-600 hover:text-zinc-300'
                                 }`}
                         >
                             {cap === 'All' ? `All (${agents.length})` : cap}

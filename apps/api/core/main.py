@@ -79,13 +79,13 @@ def get_mock_analysis() -> dict:
         "match_score":     "9.2/10",
     }
 
-def analyze_text_with_gemini(text: str) -> dict:
+from apps.api.core.llm_utils import call_gemini_with_fallback
+
+async def analyze_text_with_gemini(text: str) -> dict:
     if not GEMINI_API_KEY:
         print("⚠️  No GEMINI_API_KEY — returning mock.")
         return get_mock_analysis()
     try:
-        genai.configure(api_key=GEMINI_API_KEY)
-        model = genai.GenerativeModel(GEMINI_MODEL)
         prompt = f"""
 You are an elite Government Contracts Analyst (GovCon specialist) and a strict document gatekeeper.
 
@@ -127,10 +127,10 @@ If it is NOT a valid government procurement document, return:
 Return ONLY raw JSON. No preamble, no explanation.
 
 DOCUMENT TEXT:
-{{text[:30000]}}
-""".replace("{{text[:30000]}}", text[:30000])
-        response = model.generate_content(prompt)
-        raw = response.text.strip()
+{text[:30000]}
+"""
+        raw = await call_gemini_with_fallback(prompt)
+        raw = raw.strip()
         if raw.startswith("```"):
             raw = raw.split("```")[1]
             if raw.lower().startswith("json"):
@@ -199,7 +199,7 @@ async def analyze_rfp(
         
         extracted = extract_pdf_text(content)
         if extracted:
-            analysis = analyze_text_with_gemini(extracted)
+            analysis = await analyze_text_with_gemini(extracted)
             
     except HTTPException:
         raise 

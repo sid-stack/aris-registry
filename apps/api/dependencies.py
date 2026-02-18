@@ -8,6 +8,8 @@ from apps.api.models import User
 security = HTTPBearer()
 
 CLERK_PEM_PUBLIC_KEY = os.getenv("CLERK_PEM_PUBLIC_KEY")
+if CLERK_PEM_PUBLIC_KEY:
+    CLERK_PEM_PUBLIC_KEY = CLERK_PEM_PUBLIC_KEY.replace("\\n", "\n")
 # If PEM is not provided, we should likely fetch JWKS, but for now we enforce PEM for performance/security in MVP
 # or allow checking env.
 
@@ -21,25 +23,37 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
         # "Production-Ready Security" -> MUST Verify.
         
         if CLERK_PEM_PUBLIC_KEY:
-            payload = jwt.decode(token, CLERK_PEM_PUBLIC_KEY, algorithms=["RS256"])
-        else:
-            # Fallback for dev if strictly needed, but better to fail.
-            # We will raise error to enforce configuration.
-            # If user has CLERK_SECRET_KEY but not PEM, they might be confused.
-            # But the token is signed by Clerk's private key.
-            # We'll try to use the token headers to be smarter? 
-            # No, just require the key.
-            # Wait, user might not have it. I'll output a warning log or error.
-            # Check if we can use unverified in WORST case? No.
-            # I will assume CLERK_ISSUER is used for JWKS if I implement that.
-            # Let's keep it simple: Require PEM.
-            if not CLERK_PEM_PUBLIC_KEY:
-                 # Attempt to decode without signature to get user ID for logic, BUT WARN.
-                 # THIS IS NOT PRODUCTION READY. 
-                 # I will throw error.
-                 raise HTTPException(status_code=500, detail="Server config error: CLERK_PEM_PUBLIC_KEY missing")
+            # Hardened JWT Validation
+            # 1. Verify Signature, Audience (aud), and Issuer if possible.
+            # 2. Check Authorized Party (azp) to ensure the token came from our approved frontend.
+            options = {
+                "verify_aud": True,
+                "verify_sub": True,
+                "verify_iat": True,
+                "verify_exp": True,
+                "require": ["exp", "iat", "sub"]
+            }
             
-            payload = jwt.decode(token, CLERK_PEM_PUBLIC_KEY, algorithms=["RS256"])
+            # For Clerk, audience is usually the Frontend API URL or the app's domain.
+            # We'll allow configuring it via env.
+            CLERK_AUDIENCE = os.getenv("CLERK_AUDIENCE")
+            
+            payload = jwt.decode(
+                token, 
+                CLERK_PEM_PUBLIC_KEY, 
+                algorithms=["RS256"], 
+                audience=CLERK_AUDIENCE, 
+                options=options
+            )
+            
+            # Verify AZP (Authorized Party)
+            # This ensures only our Vercel frontend or localhost can hit this API.
+            azp = payload.get("azp")
+            allowed_azps = os.getenv("ALLOWED_AZPS", "").split(",")
+            if azp and allowed_azps and azp not in allowed_azps:
+                 raise HTTPException(status_code=403, detail="Unauthorized client application (azp mismatch)")
+        else:
+            raise HTTPException(status_code=500, detail="Server config error: CLERK_PEM_PUBLIC_KEY missing")
 
         user_id = payload.get("sub")
         email = payload.get("email") # specific claim might vary, usually in 'email' or 'email_address'

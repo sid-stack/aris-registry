@@ -1,3 +1,4 @@
+"use client";
 import { useEffect, useState } from "react";
 import { useApiClient } from "@/lib/api-client";
 import { CreditCard, Loader2 } from "lucide-react";
@@ -23,9 +24,12 @@ export default function BillingPage() {
 
     return (
         <div className="space-y-8 max-w-4xl mx-auto">
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight">Subscription & Credits</h1>
-                <p className="text-zinc-400">Manage your billing and top-up analysis credits.</p>
+            <div className="flex items-center gap-4">
+                <img src="/logo.png" alt="BidSmith Logo" className="h-12 w-12 object-contain" />
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight">Subscription & Credits</h1>
+                    <p className="text-zinc-400">Manage your billing and top-up analysis credits.</p>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -46,19 +50,37 @@ export default function BillingPage() {
                     </div>
                     <p className="mt-4 text-xs text-zinc-500 flex items-center gap-2">
                         <CreditCard className="h-3 w-3" />
-                        Each analysis costs $0.99
+                        Each analysis costs 1 Credit
                     </p>
                 </div>
 
-                {/* Top Up Card (Placeholder for Stripe Integration) */}
+                {/* Top Up Card (Stripe Integration) */}
                 <div className="p-6 bg-gradient-to-br from-purple-900/50 to-blue-900/50 border border-white/10 rounded-2xl flex flex-col justify-between">
                     <div>
-                        <h2 className="text-xl font-bold text-white mb-2">Need more credits?</h2>
-                        <p className="text-zinc-300 text-sm mb-6">Top up your account to continue analyzing RFPs without interruption.</p>
+                        <h2 className="text-xl font-bold text-white mb-2">Get More Analyses</h2>
+                        <p className="text-zinc-300 text-sm mb-6">Instantly add 25 credits to your account for just $20.</p>
                     </div>
-                    <button className="w-full py-2 bg-white text-black font-semibold rounded-lg hover:bg-zinc-100 transition-colors">
-                        Add $10.00 Credits
+                    <button
+                        onClick={async () => {
+                            try {
+                                const response = await fetchWithAuth("/api/checkout/create-session", {
+                                    method: "POST",
+                                });
+                                if (response.url) {
+                                    window.location.href = response.url;
+                                } else {
+                                    alert("Failed to start checkout");
+                                }
+                            } catch (err) {
+                                alert("Payment system is currently busy. Please try again.");
+                                console.error(err);
+                            }
+                        }}
+                        className="w-full py-2 bg-white text-black font-semibold rounded-lg hover:bg-zinc-100 transition-colors"
+                    >
+                        Buy 25 Credits — $20.00
                     </button>
+                    <p className="mt-2 text-xs text-zinc-400 text-center">Secure payment via Stripe</p>
                 </div>
             </div>
         </div>

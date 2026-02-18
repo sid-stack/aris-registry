@@ -1,30 +1,35 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from typing import List
-
-# Mock data or integration with aris-sdk if available
-# For MVP, we can return static list or call aris-sdk if installed
+from apps.api.database import db
+from apps.api.models import Agent
 
 router = APIRouter()
 
 @router.get("/", response_model=List[dict])
 async def get_registry():
-    # Placeholder for aris-sdk integration
-    # from aris_sdk import Registry
-    # return Registry.list_agents()
+    database = db.get_db()
+    cursor = database.agents.find({"status": "active"})
+    agents = []
+    async for doc in cursor:
+        agents.append(doc)
     
-    return [
-        {
-            "id": "agent_1",
-            "name": "Legal Review Bot",
-            "description": "Analyzes contracts for risks.",
-            "price": 0.99,
-            "category": "legal"
-        },
-        {
-            "id": "agent_2",
-            "name": "RFP Analyzer",
-            "description": "Extracts requirements from RFPs.",
-            "price": 1.50,
-            "category": "procurement"
-        }
-    ]
+    # If DB is empty, return a fallback mock (though we just seeded)
+    if not agents:
+        return [
+            {
+                "id": "agent_1",
+                "name": "Legal Review Bot",
+                "description": "Analyzes contracts for risks.",
+                "price": 1.00,
+                "category": "legal"
+            },
+            {
+                "id": "agent_2",
+                "name": "RFP Analyzer",
+                "description": "Extracts requirements from RFPs.",
+                "price": 1.50,
+                "category": "procurement"
+            }
+        ]
+        
+    return agents

@@ -1,45 +1,196 @@
-// Button import removed as not used
+"use client";
+import React, { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, FileText, Settings, ShieldCheck, Zap } from "lucide-react";
-import { SignInButton, SignedIn, SignedOut } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
+import { ArrowRight, FileText, Menu, Settings, ShieldCheck, X, Zap } from "lucide-react";
+import { SignInButton, SignedIn, SignedOut, useUser } from "@clerk/nextjs";
+import { PricingSection } from "@/components/ui/pricing";
+import { ShimmerButton } from "@/components/ui/shimmer-button";
 
 export default function Home() {
+    const { isLoaded, isSignedIn } = useUser();
+    const router = useRouter();
+
+    const handleCheckout = async (planId: string, frequency: 'monthly' | 'yearly' = 'monthly') => {
+        if (!isSignedIn) {
+            router.push('/sign-up');
+            return;
+        }
+        try {
+            const res = await fetch('/api/checkout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ plan_id: planId, frequency }),
+            });
+            if (!res.ok) throw new Error('Checkout failed');
+            const { url } = await res.json();
+            if (url) window.location.href = url;
+        } catch (err) {
+            console.error('[Checkout Error]', err);
+            alert('Unable to start checkout. Please try again.');
+        }
+    };
+
+    const PLANS = [
+        {
+            id: 'basic',
+            name: 'Starter',
+            info: 'For individual consultants',
+            price: {
+                monthly: 19,
+                yearly: 190,
+            },
+            features: [
+                { text: '5 RFP Analyses / month' },
+                { text: 'Basic Compliance Matrix' },
+                { text: 'Standard Win Themes' },
+                {
+                    text: 'Email support',
+                    tooltip: 'Response within 48 hours',
+                },
+            ],
+            plan_id: 'starter',
+            btn: {
+                text: 'Get Started',
+                href: '/sign-up',
+            },
+        },
+        {
+            highlighted: true,
+            id: 'pro',
+            name: 'Professional',
+            info: 'For growing bid teams',
+            price: {
+                monthly: 99,
+                yearly: 990,
+            },
+            features: [
+                { text: 'Unlimited RFP Analyses' },
+                { text: 'Advanced Compliance Matrix' },
+                { text: 'AI-Generated Win Themes' },
+                { text: 'Risk Assessment Module' },
+                { text: 'Priority support', tooltip: 'Get 24/7 chat support' },
+                {
+                    text: 'Agent Personalization',
+                    tooltip: 'Fine-tune agents on your past performance',
+                },
+            ],
+            plan_id: 'pro',
+            btn: {
+                text: 'Go Pro',
+                href: '/sign-up',
+            },
+        },
+        {
+            name: 'Enterprise',
+            info: 'For large organizations',
+            price: {
+                monthly: 499,
+                yearly: 4990,
+            },
+            features: [
+                { text: 'SSO & Custom Integration' },
+                { text: 'Dedicated Compute Instance' },
+                { text: 'Custom Agent Development' },
+                { text: 'Unlimited Markdown export' },
+                {
+                    text: 'SLA Guarantee',
+                    tooltip: '99.9% uptime guarantee',
+                },
+                { text: 'Dedicated Account Manager' },
+            ],
+            btn: {
+                text: 'Contact Sales',
+                href: 'mailto:sales@aris.io',
+            },
+        },
+    ];
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+
     return (
         <div className="flex min-h-screen flex-col bg-black text-white selection:bg-purple-500/30">
             {/* Navbar */}
             <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-black/50 backdrop-blur-xl">
                 <div className="flex h-16 items-center justify-between px-6 md:px-12">
-                    <div className="flex items-center gap-2 font-bold text-xl tracking-tighter">
-                        <div className="h-6 w-6 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500" />
-                        BidSmith
-                    </div>
+                    <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                        <img src="/logo.png" alt="BidSmith Logo" className="h-12 w-12 object-contain" />
+                        <span className="font-bold text-xl tracking-tighter text-white">BidSmith</span>
+                    </Link>
+
+                    {/* Desktop nav */}
                     <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-zinc-400">
                         <Link href="#features" className="hover:text-white transition-colors">Features</Link>
+                        <Link href="#registry" className="hover:text-white transition-colors">Registry</Link>
                         <Link href="#pricing" className="hover:text-white transition-colors">Pricing</Link>
-                        <Link href="#protocol" className="hover:text-white transition-colors">Protocol</Link>
+                        <Link href="https://arislabs.mintlify.app/" target="_blank" className="hover:text-white transition-colors">Docs</Link>
                     </nav>
+
                     <div className="flex items-center gap-4">
-                        <SignedOut>
-                            <SignInButton mode="modal">
-                                <button className="text-sm font-medium text-zinc-400 hover:text-white transition-colors">
-                                    Log in
-                                </button>
-                            </SignInButton>
-                            <SignInButton mode="modal">
-                                <button className="h-9 px-4 rounded-full bg-white text-black text-sm font-semibold hover:bg-zinc-200 transition-colors">
-                                    Start Free
-                                </button>
-                            </SignInButton>
-                        </SignedOut>
-                        <SignedIn>
-                            <Link href="/dashboard">
-                                <button className="h-9 px-4 rounded-full bg-white text-black text-sm font-semibold hover:bg-zinc-200 transition-colors">
-                                    Dashboard
-                                </button>
-                            </Link>
-                        </SignedIn>
+                        <div className="hidden md:flex items-center gap-4">
+                            {isLoaded && !isSignedIn && (
+                                <>
+                                    <SignInButton mode="modal">
+                                        <button className="text-sm font-medium text-zinc-400 hover:text-white transition-colors">
+                                            Log in
+                                        </button>
+                                    </SignInButton>
+                                    <SignInButton mode="modal">
+                                        <button className="h-9 px-4 rounded-full bg-white text-black text-sm font-semibold hover:bg-zinc-200 transition-colors">
+                                            Start Free
+                                        </button>
+                                    </SignInButton>
+                                </>
+                            )}
+                            {isLoaded && isSignedIn && (
+                                <Link href="/dashboard">
+                                    <button className="h-9 px-4 rounded-full bg-white text-black text-sm font-semibold hover:bg-zinc-200 transition-colors">
+                                        Dashboard
+                                    </button>
+                                </Link>
+                            )}
+                        </div>
+
+                        {/* Mobile Menu Toggle */}
+                        <button
+                            className="md:hidden p-2 text-zinc-400 hover:text-white transition-colors"
+                            onClick={() => setIsMenuOpen(!isMenuOpen)}
+                        >
+                            {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+                        </button>
                     </div>
                 </div>
+
+                {/* Mobile Menu Overlay */}
+                {isMenuOpen && (
+                    <div className="md:hidden fixed inset-0 z-40 bg-black/95 backdrop-blur-3xl p-6 pt-24 animate-in fade-in slide-in-from-top-4 duration-300">
+                        <nav className="flex flex-col gap-6 text-lg font-medium">
+                            <Link href="#features" onClick={() => setIsMenuOpen(false)} className="text-zinc-400 hover:text-white transition-colors">Features</Link>
+                            <Link href="#registry" onClick={() => setIsMenuOpen(false)} className="text-zinc-400 hover:text-white transition-colors">Registry</Link>
+                            <Link href="#pricing" onClick={() => setIsMenuOpen(false)} className="text-zinc-400 hover:text-white transition-colors">Pricing</Link>
+                            <Link href="https://arislabs.mintlify.app/" target="_blank" onClick={() => setIsMenuOpen(false)} className="text-zinc-400 hover:text-white transition-colors">Docs</Link>
+                            <div className="h-px bg-white/10 my-2" />
+                            {isLoaded && !isSignedIn && (
+                                <>
+                                    <SignInButton mode="modal">
+                                        <button className="text-left py-2 text-zinc-400 hover:text-white transition-colors">Log in</button>
+                                    </SignInButton>
+                                    <SignInButton mode="modal">
+                                        <button className="w-full py-3 rounded-xl bg-white text-black font-bold hover:bg-zinc-200 transition-colors mt-4">
+                                            Start Free
+                                        </button>
+                                    </SignInButton>
+                                </>
+                            )}
+                            {isLoaded && isSignedIn && (
+                                <Link href="/dashboard" onClick={() => setIsMenuOpen(false)}>
+                                    <button className="w-full py-3 rounded-xl bg-white text-black font-bold hover:bg-zinc-200 transition-colors mt-4">
+                                        Go to Dashboard
+                                    </button>
+                                </Link>
+                            )}
+                        </nav>
+                    </div>
+                )}
             </header>
 
             <main className="flex-1">
@@ -58,23 +209,30 @@ export default function Home() {
                             BidSmith uses autonomous AI agents to analyze RFPs, identify compliance risks, and generate winning proposals in seconds—not weeks.
                         </p>
                         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-                            <SignedOut>
+                            {isLoaded && !isSignedIn && (
                                 <SignInButton mode="modal">
-                                    <button className="h-12 px-8 rounded-full bg-white text-black font-semibold text-lg hover:bg-zinc-200 transition-all hover:scale-105 active:scale-95 flex items-center gap-2">
-                                        Start Analyzing
-                                        <ArrowRight className="h-4 w-4" />
-                                    </button>
+                                    <ShimmerButton className="shadow-2xl">
+                                        <span className="flex items-center gap-2 whitespace-pre-wrap text-center text-lg font-semibold leading-none tracking-tight text-white dark:from-white dark:to-slate-900/10">
+                                            Start Analyzing
+                                            <ArrowRight className="h-4 w-4" />
+                                        </span>
+                                    </ShimmerButton>
                                 </SignInButton>
-                            </SignedOut>
-                            <SignedIn>
+                            )}
+                            {isLoaded && isSignedIn && (
                                 <Link href="/dashboard">
-                                    <button className="h-12 px-8 rounded-full bg-white text-black font-semibold text-lg hover:bg-zinc-200 transition-all hover:scale-105 active:scale-95 flex items-center gap-2">
-                                        Go to Dashboard
-                                        <ArrowRight className="h-4 w-4" />
-                                    </button>
+                                    <ShimmerButton className="shadow-2xl">
+                                        <span className="flex items-center gap-2 whitespace-pre-wrap text-center text-lg font-semibold leading-none tracking-tight text-white dark:from-white dark:to-slate-900/10">
+                                            Go to Dashboard
+                                            <ArrowRight className="h-4 w-4" />
+                                        </span>
+                                    </ShimmerButton>
                                 </Link>
-                            </SignedIn>
-                            <button className="h-12 px-8 rounded-full border border-white/10 bg-white/5 text-white font-medium hover:bg-white/10 transition-colors backdrop-blur-sm">
+                            )}
+                            <button
+                                onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
+                                className="h-12 px-8 rounded-full border border-white/10 bg-white/5 text-white font-medium hover:bg-white/10 transition-colors backdrop-blur-sm"
+                            >
                                 View Demo
                             </button>
                         </div>
@@ -128,7 +286,7 @@ export default function Home() {
                                 {
                                     name: "Legal Review Bot",
                                     desc: "Analyzes contracts for risks.",
-                                    price: "$0.99 / run",
+                                    price: "$1.00 / run",
                                     tag: "legal",
                                     color: "bg-purple-500"
                                 },
@@ -149,7 +307,7 @@ export default function Home() {
                                 {
                                     name: "Compliance Auditor",
                                     desc: "Checks proposals against FAR clauses (BidSmith Engine).",
-                                    price: "$0.99 / run",
+                                    price: "$1.00 / run",
                                     tag: "compliance",
                                     color: "bg-red-500"
                                 }
@@ -167,23 +325,33 @@ export default function Home() {
                                     <p className="text-zinc-400 text-sm mb-6 h-10">{agent.desc}</p>
                                     <div className="flex justify-between items-center border-t border-white/5 pt-4">
                                         <span className="font-mono text-sm font-semibold text-white">{agent.price}</span>
-                                        <SignedOut>
+                                        {isLoaded && !isSignedIn && (
                                             <SignInButton mode="modal">
                                                 <button className="text-xs font-semibold text-purple-400 hover:text-purple-300">
                                                     Deploy &rarr;
                                                 </button>
                                             </SignInButton>
-                                        </SignedOut>
-                                        <SignedIn>
+                                        )}
+                                        {isLoaded && isSignedIn && (
                                             <Link href="/dashboard" className="text-xs font-semibold text-purple-400 hover:text-purple-300">
                                                 Deploy &rarr;
                                             </Link>
-                                        </SignedIn>
+                                        )}
                                     </div>
                                 </div>
                             ))}
                         </div>
                     </div>
+                </section>
+
+                {/* Pricing Section */}
+                <section id="pricing" className="py-24 border-t border-white/5">
+                    <PricingSection
+                        plans={PLANS}
+                        heading="Flexible Pricing for Every Bid Team"
+                        description="Access the Aris Protocol with plans designed to scale with your procurement needs."
+                        onCheckout={handleCheckout}
+                    />
                 </section>
             </main>
 

@@ -100,10 +100,6 @@ const logos = [
         alt: "Nvidia Logo",
     },
     {
-        src: "https://storage.efferd.com/logo/supabase-wordmark.svg",
-        alt: "Supabase Logo",
-    },
-    {
         src: "https://storage.efferd.com/logo/openai-wordmark.svg",
         alt: "OpenAI Logo",
     },

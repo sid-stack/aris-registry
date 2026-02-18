@@ -3,7 +3,7 @@ import { ReactNode, useEffect, useState } from "react";
 import Link from "next/link";
 import { UserButton } from "@clerk/nextjs";
 import { useApiClient } from "@/lib/api-client";
-import { BarChart3, CreditCard, LayoutDashboard, Menu, Search, X } from "lucide-react";
+import { BookOpen, CreditCard, LayoutDashboard, Menu, Search, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
@@ -30,6 +30,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         { name: "Billing", path: "/dashboard/billing", icon: CreditCard },
     ];
 
+    const externalLinks = [
+        { name: "Docs", href: "https://arislabs.mintlify.app/", icon: BookOpen },
+    ];
+
     return (
         <div className="flex h-screen bg-black text-white selection:bg-purple-500/30 font-sans">
             {/* Mobile Sidebar Trigger */}
@@ -47,10 +51,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
             `}>
                 <div className="flex flex-col h-full p-6">
-                    <div className="flex items-center gap-2 mb-10 pl-2">
-                        <div className="h-6 w-6 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500" />
-                        <span className="font-bold text-xl tracking-tighter">BidSmith</span>
-                    </div>
+                    <Link href="/" className="flex items-center gap-2 mb-10 pl-2 hover:opacity-80 transition-opacity">
+                        <img src="/logo.png" alt="BidSmith Logo" className="h-12 w-12 object-contain" />
+                        <span className="font-bold text-xl tracking-tighter text-white">BidSmith</span>
+                    </Link>
 
                     <nav className="space-y-1 flex-1">
                         {routes.map((route) => {
@@ -72,6 +76,20 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                                 </Link>
                             );
                         })}
+                        <div className="pt-2 mt-2 border-t border-white/5">
+                            {externalLinks.map((link) => (
+                                <a
+                                    key={link.href}
+                                    href={link.href}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors text-zinc-500 hover:text-white hover:bg-white/5"
+                                >
+                                    <link.icon size={18} />
+                                    {link.name}
+                                </a>
+                            ))}
+                        </div>
                     </nav>
 
                     <div className="mt-auto space-y-6 pt-6 border-t border-white/10">

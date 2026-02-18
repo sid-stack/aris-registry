@@ -45,7 +45,7 @@ export function Header() {
         >
             <nav className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between px-4">
                 <div className="hover:bg-accent rounded-md p-2">
-                    <WordmarkIcon className="h-4" />
+                    <WordmarkIcon className="h-8" />
                 </div>
                 <div className="hidden items-center gap-2 md:flex">
                     {links.map((link) => (

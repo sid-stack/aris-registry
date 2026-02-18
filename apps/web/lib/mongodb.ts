@@ -1,10 +1,6 @@
 import mongoose from 'mongoose';
 
-const MONGODB_URI = process.env.MONGODB_URI!;
-
-if (!MONGODB_URI) {
-    throw new Error('MONGODB_URI environment variable is not set');
-}
+const MONGODB_URI = process.env.MONGODB_URI;
 
 // Global cache to prevent multiple connections in dev (Next.js hot reload)
 declare global {
@@ -17,6 +13,10 @@ global._mongooseCache = cache;
 
 export async function connectDB(): Promise<typeof mongoose> {
     if (cache.conn) return cache.conn;
+
+    if (!MONGODB_URI) {
+        throw new Error('MONGODB_URI environment variable is not set');
+    }
 
     if (!cache.promise) {
         cache.promise = mongoose.connect(MONGODB_URI, {

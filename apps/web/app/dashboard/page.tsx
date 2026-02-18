@@ -49,37 +49,41 @@ export default function RegistryPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {loading ? (
-                    [...Array(3)].map((_, i) => (
-                        <div key={i} className="h-48 rounded-xl bg-zinc-900/50 border border-white/5 animate-pulse" />
-                    ))
+                    <>
+                        {[...Array(3)].map((_, i) => (
+                            <div key={i} className="h-48 rounded-xl bg-zinc-900/50 border border-white/5 animate-pulse" />
+                        ))}
+                    </>
                 ) : (
-                    agents.map((agent) => (
-                        <div key={agent.id} className="group relative p-6 rounded-xl border border-white/10 bg-zinc-900/20 hover:bg-zinc-900/40 transition-all hover:border-white/20">
-                            <div className="absolute top-6 right-6 p-2 rounded-lg bg-white/5 group-hover:bg-white/10 border border-white/5 transition-colors">
-                                <Sparkles className="h-4 w-4 text-purple-400" />
-                            </div>
+                    <>
+                        {agents.map((agent, i) => (
+                            <div key={agent.id || i} className="group relative p-6 rounded-xl border border-white/10 bg-zinc-900/20 hover:bg-zinc-900/40 transition-all hover:border-white/20">
+                                <div className="absolute top-6 right-6 p-2 rounded-lg bg-white/5 group-hover:bg-white/10 border border-white/5 transition-colors">
+                                    <Sparkles className="h-4 w-4 text-purple-400" />
+                                </div>
 
-                            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 mb-4 flex items-center justify-center font-bold text-lg">
-                                {agent.name.charAt(0)}
-                            </div>
+                                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 mb-4 flex items-center justify-center font-bold text-lg">
+                                    {agent.name.charAt(0)}
+                                </div>
 
-                            <h3 className="text-lg font-semibold mb-2 group-hover:text-purple-300 transition-colors">
-                                {agent.name}
-                            </h3>
-                            <p className="text-sm text-zinc-500 mb-6 leading-relaxed">
-                                {agent.description}
-                            </p>
+                                <h3 className="text-lg font-semibold mb-2 group-hover:text-purple-300 transition-colors">
+                                    {agent.name}
+                                </h3>
+                                <p className="text-sm text-zinc-500 mb-6 leading-relaxed">
+                                    {agent.description}
+                                </p>
 
-                            <div className="flex items-center justify-between mt-auto pt-4 border-t border-white/5">
-                                <span className="text-xs font-mono text-zinc-400 px-2 py-1 bg-white/5 rounded">
-                                    {agent.category}
-                                </span>
-                                <span className="text-sm font-medium">
-                                    ${agent.price.toFixed(2)} <span className="text-zinc-600 text-xs">/ run</span>
-                                </span>
+                                <div className="flex items-center justify-between mt-auto pt-4 border-t border-white/5">
+                                    <span className="text-xs font-mono text-zinc-400 px-2 py-1 bg-white/5 rounded">
+                                        {agent.category}
+                                    </span>
+                                    <span className="text-sm font-medium">
+                                        ${agent.price.toFixed(2)} <span className="text-zinc-600 text-xs">/ run</span>
+                                    </span>
+                                </div>
                             </div>
-                        </div>
-                    ))
+                        ))}
+                    </>
                 )}
             </div>
         </div>

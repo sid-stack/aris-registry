@@ -1,0 +1,35 @@
+id: bidsmith-proposal-engine
+name: BidSmith Proposal Engine
+description: Analyzes RFPs and generates government-compliant proposals using Aris Registry.
+version: "1.1.0"
+
+# These define the 'tools' the Agent sees
+tools:
+  - name: analyze_rfp
+    description: Extracts requirements and compliance markers from an RFP document.
+    parameters:
+      document_path: string
+      extract_compliance_matrix: boolean
+
+  - name: analyze_with_auth
+    description: Authenticated analysis. Checks user credits via Clerk before running expensive RFP analysis.
+    parameters:
+      clerk_user_id: string
+      document_path: string
+
+  - name: match_registry_agent
+    description: Finds the best AI agent from the Aris Registry for a specific bid.
+    parameters:
+      bid_metadata: object
+
+  - name: verify_compliance
+    description: Audits a generated proposal against specific RFP requirement IDs.
+    parameters:
+      proposal_text: string
+      requirement_ids: array
+
+# Skill Runtime Environment
+runtime:
+  type: python
+  version: "3.10"
+  entrypoint: main.py
