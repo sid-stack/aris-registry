@@ -6,6 +6,7 @@ import shutil
 import os
 import tempfile
 from apps.api.core.gemini import analyze_rfp
+from apps.api.core.bidsmith import verify_compliance
 
 router = APIRouter()
 
@@ -38,21 +39,22 @@ async def analyze_document(
             shutil.copyfileobj(file.file, tmp)
             tmp_path = tmp.name
         
-        # 4. Call Analysis Engine
+        # 4. Call Analysis Engine (Gemini)
         # We assume analyze_rfp takes path and constraints. 
-        # Check signature if possible, but for now we follow the improved logic.
-        # Ensure it returns text or dict.
-        analysis_output = await analyze_rfp(tmp_path) # Wrapper needed if sync
+        gemini_output = await analyze_rfp(tmp_path)
         
+        # 5. Run BidSmith Compliance Skill
+        compliance_report = verify_compliance(str(gemini_output))
+
         # Cleanup
         os.unlink(tmp_path)
 
-        # 5. Save Result
+        # 6. Save Result
         analysis_result = AnalysisResult(
             user_id=current_user.id,
             filename=file.filename,
-            content_summary="AI Analysis", 
-            ai_analysis=str(analysis_output)
+            content_summary="AI Analysis + BidSmith Compliance", 
+            ai_analysis=str(gemini_output)
         )
         
         await database.analysis_results.insert_one(analysis_result.model_dump(by_alias=True))
@@ -60,16 +62,13 @@ async def analyze_document(
         return {
             "status": "success",
             "credits_deducted": ANALYSIS_COST,
-            "remaining_credits": current_user.credits_balance - ANALYSIS_COST, # Approximate
-            "result": analysis_result.model_dump()
+            "remaining_credits": current_user.credits_balance - ANALYSIS_COST,
+            "result": analysis_result.model_dump(),
+            "compliance_report": compliance_report  # Return to frontend
         }
 
     except Exception as e:
-        # Refund on failure? 
-        # For MVP, we might log and manual refund. 
-        # Ideally robust system handles this.
-        # But we already deducted. 
-        # Let's try to refund.
+        # Refund on failure
         await database.users.update_one(
             {"_id": current_user.id},
             {"$inc": {"credits_balance": ANALYSIS_COST}}

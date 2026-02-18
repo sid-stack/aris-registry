@@ -113,6 +113,78 @@ export default function Home() {
                         </div>
                     </div>
                 </section>
+
+                {/* Public Registry Preview */}
+                <section id="registry" className="py-24 border-t border-white/5 bg-zinc-950/50">
+                    <div className="mx-auto max-w-6xl px-6">
+                        <div className="text-center mb-16">
+                            <h2 className="text-3xl md:text-5xl font-bold mb-4">Live Agent Registry</h2>
+                            <p className="text-zinc-400 max-w-2xl mx-auto">
+                                Deploy specialized AI agents directly to your procurement workflow.
+                            </p>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            {[
+                                {
+                                    name: "Legal Review Bot",
+                                    desc: "Analyzes contracts for risks.",
+                                    price: "$0.99 / run",
+                                    tag: "legal",
+                                    color: "bg-purple-500"
+                                },
+                                {
+                                    name: "RFP Analyzer",
+                                    desc: "Extracts requirements from RFPs.",
+                                    price: "$1.50 / run",
+                                    tag: "procurement",
+                                    color: "bg-blue-500"
+                                },
+                                {
+                                    name: "Pricing Strategist",
+                                    desc: "Optimizes bid pricing based on market data.",
+                                    price: "$2.99 / run",
+                                    tag: "finance",
+                                    color: "bg-green-500"
+                                },
+                                {
+                                    name: "Compliance Auditor",
+                                    desc: "Checks proposals against FAR clauses (BidSmith Engine).",
+                                    price: "$0.99 / run",
+                                    tag: "compliance",
+                                    color: "bg-red-500"
+                                }
+                            ].map((agent, i) => (
+                                <div key={i} className="group p-6 rounded-xl border border-white/10 bg-zinc-900/50 hover:bg-zinc-800/50 transition-all hover:scale-[1.02]">
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div className={`h-10 w-10 rounded-full ${agent.color} flex items-center justify-center text-white font-bold`}>
+                                            {agent.name[0]}
+                                        </div>
+                                        <div className="px-3 py-1 rounded-full border border-white/10 text-xs font-mono text-zinc-400 bg-black/50">
+                                            {agent.tag}
+                                        </div>
+                                    </div>
+                                    <h3 className="text-xl font-bold mb-2">{agent.name}</h3>
+                                    <p className="text-zinc-400 text-sm mb-6 h-10">{agent.desc}</p>
+                                    <div className="flex justify-between items-center border-t border-white/5 pt-4">
+                                        <span className="font-mono text-sm font-semibold text-white">{agent.price}</span>
+                                        <SignedOut>
+                                            <SignInButton mode="modal">
+                                                <button className="text-xs font-semibold text-purple-400 hover:text-purple-300">
+                                                    Deploy &rarr;
+                                                </button>
+                                            </SignInButton>
+                                        </SignedOut>
+                                        <SignedIn>
+                                            <Link href="/dashboard" className="text-xs font-semibold text-purple-400 hover:text-purple-300">
+                                                Deploy &rarr;
+                                            </Link>
+                                        </SignedIn>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </section>
             </main>
 
             <footer className="border-t border-white/10 py-12 bg-black">

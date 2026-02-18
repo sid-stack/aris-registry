@@ -1,9 +1,14 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+import os
+import sys
+from dotenv import load_dotenv
+
+# Add project root to sys.path to allow imports from apps.api
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+
 from apps.api.database import db
 from apps.api.routers import users, registry, analyze
-import os
-from dotenv import load_dotenv
 
 load_dotenv()
 
@@ -19,6 +24,7 @@ origins = [
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
+    allow_origin_regex="https://bidsmith-frontend-.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

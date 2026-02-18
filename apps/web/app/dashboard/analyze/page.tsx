@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useApiClient } from "@/lib/api-client";
 import { Upload, FileText, AlertCircle, CheckCircle, Loader2 } from "lucide-react";
+import { ComplianceReport } from "@/components/ComplianceReport";
 
 export default function AnalyzePage() {
     const { fetchWithAuth } = useApiClient();
@@ -9,6 +10,7 @@ export default function AnalyzePage() {
     const [constraints, setConstraints] = useState("");
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [result, setResult] = useState<string | null>(null);
+    const [compliance, setCompliance] = useState<any | null>(null);
     const [error, setError] = useState<string | null>(null);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -23,38 +25,22 @@ export default function AnalyzePage() {
         setIsAnalyzing(true);
         setError(null);
         setResult(null);
+        setCompliance(null);
 
         const formData = new FormData();
         formData.append("file", file);
         formData.append("constraints", constraints);
 
         try {
-            // We use fetchWithAuth for headers but need to handle FormData carefully. 
-            // Our logic in api-client.ts might set Content-Type: application/json if we are not careful.
-            // Let's modify api-client usage or manual fetch if needed.
-            // Actually standard fetch with FormData automatically sets boundary. 
-            // We just need Authorization header.
-
-            // Custom fetch for FormData
-            // We'll reimplement specific call here or update api-client.
-            // Let's use clean fetch but getting token from our hook if we exposed it. 
-            // Currently useApiClient wraps fetch. Let's assume it handles string body? 
-            // The previous implementation of `api-client` does `JSON.stringify(body)`? 
-            // No, it takes `options`. So we can pass `body: formData`.
-            // But we need to make sure `Content-Type` is NOT set to json.
-
-            // Let's rely on `fetchWithAuth` not forcing JSON content type if it's not set.
-            // Checking previous code: 
-            // Authorization: `Bearer ${token}`,
-            // ...options.headers
-            // It does NOT force Content-Type. Good.
-
             const response = await fetchWithAuth("/api/analyze/", {
                 method: "POST",
                 body: formData
             });
 
             setResult(response.result.ai_analysis);
+            if (response.compliance_report) {
+                setCompliance(response.compliance_report);
+            }
 
         } catch (err: any) {
             console.error(err);
@@ -65,7 +51,7 @@ export default function AnalyzePage() {
     };
 
     return (
-        <div className="max-w-4xl mx-auto space-y-8">
+        <div className="max-w-6xl mx-auto space-y-8">
             <div>
                 <h1 className="text-3xl font-bold tracking-tight mb-2">Proposal Analysis Engine</h1>
                 <p className="text-zinc-400">Upload your RFP documents to generate compliance matrices and win themes.</p>
@@ -135,25 +121,36 @@ export default function AnalyzePage() {
                 </div>
 
                 {/* Result Section */}
-                <div className="lg:col-span-2 min-h-[500px] rounded-xl border border-white/10 bg-zinc-900/20 p-8 relative">
-                    {!result ? (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center text-zinc-600 space-y-4">
-                            <FileText className="h-16 w-16 opacity-20" />
-                            <p>Analysis results will appear here</p>
-                        </div>
-                    ) : (
-                        <div className="prose prose-invert max-w-none">
-                            <div className="flex justify-between items-center mb-6 pb-4 border-b border-white/10">
-                                <h3 className="text-xl font-bold m-0">Analysis Report</h3>
-                                <button className="text-xs border border-white/10 px-3 py-1 rounded hover:bg-white/10 transition-colors">
-                                    Download PDF
-                                </button>
-                            </div>
-                            <div className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-zinc-300">
-                                {result}
-                            </div>
-                        </div>
+                <div className="lg:col-span-2 space-y-6">
+                    {/* Compliance Report Card */}
+                    {compliance && (
+                        <ComplianceReport
+                            score={compliance.compliance_score}
+                            status={compliance.status}
+                            findings={compliance.findings}
+                        />
                     )}
+
+                    <div className="min-h-[500px] rounded-xl border border-white/10 bg-zinc-900/20 p-8 relative">
+                        {!result ? (
+                            <div className="absolute inset-0 flex flex-col items-center justify-center text-zinc-600 space-y-4">
+                                <FileText className="h-16 w-16 opacity-20" />
+                                <p>Analysis results will appear here</p>
+                            </div>
+                        ) : (
+                            <div className="prose prose-invert max-w-none">
+                                <div className="flex justify-between items-center mb-6 pb-4 border-b border-white/10">
+                                    <h3 className="text-xl font-bold m-0">Analysis Report</h3>
+                                    <button className="text-xs border border-white/10 px-3 py-1 rounded hover:bg-white/10 transition-colors">
+                                        Download PDF
+                                    </button>
+                                </div>
+                                <div className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-zinc-300">
+                                    {result}
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
