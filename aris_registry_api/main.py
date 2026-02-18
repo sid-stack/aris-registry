@@ -38,7 +38,7 @@ ARIS_PRIVATE_KEY        = os.getenv("ARIS_PRIVATE_KEY")
 GEMINI_API_KEY          = os.getenv("GEMINI_API_KEY")
 DOCS_URL                = os.getenv("DOCS_URL", "https://docs.arislabs.ai")
 HANDSHAKE_COST_USD      = 0.10
-GEMINI_MODEL            = "gemini-2.5-flash"
+GEMINI_MODEL            = "gemini-1.5-flash"
 
 ANALYZE_COST_USD = float(os.getenv("ANALYZE_COST_USD", "0.99"))
 MAX_FILE_SIZE_MB = int(os.getenv("MAX_FILE_SIZE_MB", "10"))
@@ -576,8 +576,8 @@ async def create_checkout(req: BillingRequest):
             mode="payment",
             customer_email=req.email,
             client_reference_id=client_ref_id, # Link Stripe Session to MongoDB User ID
-            success_url="https://aris-registry.onrender.com/success?session_id={CHECKOUT_SESSION_ID}",
-            cancel_url="https://aris-registry.onrender.com/dashboard",
+            success_url="https://aris-registry-api.onrender.com/success?session_id={CHECKOUT_SESSION_ID}",
+            cancel_url="https://aris-registry-api.onrender.com/dashboard",
         )
         return {"url": session.url}
     except Exception as e:
@@ -830,6 +830,9 @@ async def landing():
 async def docs_redirect():
     return RedirectResponse(url=DOCS_URL)
 
-if __name__ == "__main__":
+def start():
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))
+
+if __name__ == "__main__":
+    start()

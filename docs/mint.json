@@ -14,7 +14,7 @@
   "topbarLinks": [
     {
       "name": "Registry (App)",
-      "url": "https://aris-registry.onrender.com"
+      "url": "https://aris-registry-api.onrender.com"
     },
     {
       "name": "GitHub",
