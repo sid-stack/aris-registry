@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (
-        <ClerkProvider>
+        <ClerkProvider signInFallbackRedirectUrl="/dashboard">
             <html lang="en">
                 <body className={cn(inter.variable, firaCode.variable, 'bg-black text-white min-h-screen font-sans antialiased')}>
                     {children}

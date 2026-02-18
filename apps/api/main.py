@@ -23,8 +23,8 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS Configuration - STRICT LOCKDOWN
-production_origins = [
     "https://bidsmith-frontend.vercel.app",
+    "https://aris-registry.vercel.app",
     "https://aris.io"
 ]
 local_origins = [
