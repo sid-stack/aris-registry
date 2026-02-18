@@ -87,7 +87,9 @@ app.add_middleware(
         "https://bidsmith-web.onrender.com",
         "https://bidsmith-frontend.onrender.com",
         "https://bidsmith-frontend.vercel.app",
+        "https://bidsmith-frontend-git-main-sid-stacks-projects.vercel.app", # Vercel Preview/Branch URL
     ],
+    allow_origin_regex="https://bidsmith-frontend-.*\.vercel\.app", # Allow all Vercel previews
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
