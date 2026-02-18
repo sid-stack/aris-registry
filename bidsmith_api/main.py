@@ -254,6 +254,9 @@ async def process_job(job: JobRequest):
     except Exception as e:
         raise HTTPException(500, str(e))
 
-if __name__ == "__main__":
+def start():
     # This allows us to run: python main.py --port 9002
     uvicorn.run(app, host="0.0.0.0", port=args.port)
+
+if __name__ == "__main__":
+    start()

@@ -2,17 +2,53 @@ services:
   - type: web
     name: aris-registry-api
     env: python
+    rootDir: "."
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn aris_registry_api.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
+      - key: MONGODB_URI
+        sync: false
+      - key: ARIS_PRIVATE_KEY
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+
+  - type: web
+    name: bidsmith-api
+    env: python
+    rootDir: "."
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn bidsmith_api.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: ARIS_REGISTRY_URL
+        value: https://aris-registry-api.onrender.com
+
   - type: web
     name: bidsmith-frontend
     env: node
+    rootDir: bidsmith-frontend
     buildCommand: npm install && npm run build
     startCommand: npm start
-    rootDir: bidsmith-frontend
     envVars:
       - key: NODE_VERSION
         value: 20.11.0
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: NEXT_PUBLIC_APP_URL
+        sync: false

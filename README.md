@@ -51,7 +51,7 @@ The Registry acts as the "Bank" and "DNS" of the network.
 
 ```bash
 # Run the registry server (Default port: 8000)
-python3 -m registry.main
+python3 -m aris_registry_api.main
 
 ```
 

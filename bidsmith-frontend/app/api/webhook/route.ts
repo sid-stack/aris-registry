@@ -5,7 +5,7 @@ import { Analysis } from '@/models';
 import { aris4_draft } from '@/lib/aris-protocol';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: '2024-12-18.acacia',
+    apiVersion: '2024-06-20',
 });
 
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET!;
