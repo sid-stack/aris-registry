@@ -1,8 +1,12 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 import os
 import sys
 from dotenv import load_dotenv
+
+# Load env before importing other modules that might rely on env vars at module level
+load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 # Add project root to sys.path to allow imports from apps.api
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
@@ -12,8 +16,6 @@ from apps.api.routers import users, registry, analyze, checkout, orchestrator
 from apps.api.limiter import limiter
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-
-load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
 
 # app initialized after limiter imports to avoid ciruclarity
 app = FastAPI(title="BidSmith API", version="1.0.0")
@@ -25,7 +27,10 @@ production_origins = [
     "https://bidsmith-frontend.vercel.app",
     "https://aris.io"
 ]
-local_origins = ["http://localhost:3000"]
+local_origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000"
+]
 
 origins = [o for o in (production_origins + [os.getenv("FRONTEND_URL")]) if o]
 if os.getenv("ENV") != "production":

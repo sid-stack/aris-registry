@@ -4,9 +4,10 @@ import mongoose, { Schema, Document, Model } from 'mongoose';
 export interface IUser extends Document {
     clerkId: string;
     email: string;
-    credits: number;            // Balance (starts at 5)
+    credits: number;                        // Balance (starts at 5)
     isPro: boolean;
-    analysesUsed: number;       // Lifecycle counter
+    analysesUsed: number;                   // Lifecycle counter
+    processedStripeSessionIds: string[];    // Idempotency: track processed Stripe sessions
     createdAt: Date;
     updatedAt: Date;
 }
@@ -18,6 +19,7 @@ const UserSchema = new Schema<IUser>(
         credits: { type: Number, default: 5 },
         isPro: { type: Boolean, default: false },
         analysesUsed: { type: Number, default: 0 },
+        processedStripeSessionIds: { type: [String], default: [] },
     },
     { timestamps: true }
 );

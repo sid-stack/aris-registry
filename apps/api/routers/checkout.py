@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request, HTTPException, Depends
+from fastapi import APIRouter, Request, HTTPException, Depends, Header
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Optional
@@ -8,10 +8,13 @@ from apps.api.dependencies import get_current_user
 import stripe
 import os
 import logging
+import uuid
+import time
 
 # Initialize Stripe
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 endpoint_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
+INTERNAL_API_SECRET = os.getenv("INTERNAL_API_SECRET", "")
 
 router = APIRouter()
 
@@ -153,3 +156,89 @@ async def stripe_webhook(request: Request):
                 logging.info(f"Credits added and logged for user {user_id}")
 
     return {"status": "success"}
+
+
+# ─── Internal Endpoint (called by Next.js webhook) ────────────────────────────
+
+class AddCreditsRequest(BaseModel):
+    clerk_id: str
+    credits_to_add: float
+    stripe_session_id: str
+    plan_id: str = "unknown"
+
+@router.post("/internal/add-credits")
+async def internal_add_credits(
+    body: AddCreditsRequest,
+    x_internal_secret: Optional[str] = Header(None, alias="x-internal-secret"),
+):
+    """
+    Secure internal endpoint called by the Next.js Stripe webhook.
+    Updates credits_balance in the Python API's MongoDB by clerk_id.
+    Protected by INTERNAL_API_SECRET header.
+    """
+    # Validate internal secret
+    if not INTERNAL_API_SECRET or x_internal_secret != INTERNAL_API_SECRET:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    if body.credits_to_add <= 0:
+        raise HTTPException(status_code=400, detail="credits_to_add must be positive")
+
+    database = db.get_db()
+    client = db.client
+
+    async with await client.start_session() as mongo_session:
+        async with mongo_session.start_transaction():
+            # IDEMPOTENCY: check if this Stripe session was already processed
+            existing = await database.credit_transactions.find_one(
+                {"stripe_session_id": body.stripe_session_id},
+                session=mongo_session
+            )
+            if existing:
+                logging.info(f"[internal] Session {body.stripe_session_id} already processed. Skipping.")
+                return {"status": "success", "note": "idempotent_skip"}
+
+            # Find user by clerk_id
+            user = await database.users.find_one(
+                {"clerk_id": body.clerk_id},
+                session=mongo_session
+            )
+            
+            # Robust fallback: Try finding by email if clerk_id lookup fails (rare edge case)
+            if not user:
+                 # Try to decode clerk_id as maybe it's actually an email? (Unlikely but safe)
+                 if "@" in body.clerk_id:
+                     user = await database.users.find_one({"email": body.clerk_id}, session=mongo_session)
+            
+            if not user:
+                logging.error(f"[internal] User not found for clerk_id: {body.clerk_id}")
+                raise HTTPException(status_code=404, detail=f"User not found: {body.clerk_id}")
+
+            user_id = user["_id"]
+
+            # Audit log entry
+            tx = {
+                "_id": f"tx_{uuid.uuid4().hex[:8]}",
+                "user_id": user_id,
+                "clerk_id": body.clerk_id,
+                "type": "purchase",
+                "amount": body.credits_to_add,
+                "stripe_session_id": body.stripe_session_id,
+                "description": f"Purchase {int(body.credits_to_add)} credits ({body.plan_id} plan)",
+                "status": "completed",
+                "timestamp": time.time(),
+            }
+
+            # Atomic credit increment + audit log
+            await database.users.update_one(
+                {"_id": user_id},
+                {"$inc": {"credits_balance": body.credits_to_add}},
+                session=mongo_session
+            )
+            await database.credit_transactions.insert_one(tx, session=mongo_session)
+
+            logging.info(
+                f"[internal] Added {body.credits_to_add} credits to clerk_id={body.clerk_id} "
+                f"(user_id={user_id}), session={body.stripe_session_id}"
+            )
+
+    return {"status": "success", "credits_added": body.credits_to_add}

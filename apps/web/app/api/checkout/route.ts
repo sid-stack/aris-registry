@@ -79,7 +79,7 @@ export async function POST(req: Request) {
                 },
             ],
             mode: 'payment',
-            success_url: `${APP_URL}/dashboard?success=true`,
+            success_url: `${APP_URL}/dashboard/payment/success?session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${APP_URL}/dashboard/billing?canceled=true`,
             customer_email: user.emailAddresses[0]?.emailAddress,
             metadata: {
