@@ -1,0 +1,43 @@
+---
+title: "Generate Method"
+description: "API reference for the generate() method of the ARIS SDK."
+icon: "code"
+---
+
+# `client.generate()`
+
+Send a prompt to the decentralized network to receive an AI-generated completion.
+
+## Usage
+
+```python
+response = client.generate(
+    prompt="Explain quantum tunneling",
+    max_tokens=256,
+    temperature=0.7
+)
+```
+
+## Arguments
+
+| Argument     | Type  | Default | Description       |
+|--------------|-------|---------|-------------------|
+| `prompt`       | `str`   | Required| Input text prompt  |
+| `max_tokens`   | `int`   | `256`     | Max tokens returned|
+| `temperature`  | `float` | `0.7`     | Sampling randomness|
+
+## Response Structure
+
+Returns a dictionary with the following fields:
+
+```json
+{
+  "id": "job_abc123",
+  "node": "node-9006",
+  "usage": {
+      "tokens": 142,
+      "credits_deducted": 1.42
+  },
+  "output": "Quantum tunneling occurs when..."
+}
+```

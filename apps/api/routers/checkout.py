@@ -188,14 +188,12 @@ async def stripe_webhook(request: Request):
 
     elif event['type'] == 'payment_intent.amount_capturable_updated':
         intent = event['data']['object']
-        # This confirms funds are held and ready to capture
-        # Update Proposal status if matched
         database = db.get_db()
         await database.proposals.update_one(
             {"intent_id": intent['id']},
-            {"$set": {"status": "FUNDS_HELD", "updated_at": time.time()}}
+            {"$set": {"status": "AUTHORIZED", "updated_at": time.time()}}
         )
-        logging.info(f"💰 Funds held for intent {intent['id']}")
+        logging.info(f"💰 Funds authorized for intent {intent['id']}")
 
     elif event['type'] == 'payment_intent.succeeded':
         intent = event['data']['object']
@@ -311,7 +309,23 @@ async def authorize_payment(
                 "type": "outcome_based"
             }
         )
-        
+
+        capture_method = getattr(intent, "capture_method", None)
+        if capture_method != "manual":
+            logging.error(
+                f"PaymentIntent capture_method mismatch for intent={getattr(intent, 'id', 'unknown')}: "
+                f"expected 'manual', got '{capture_method}'"
+            )
+            intent_id = getattr(intent, "id", None)
+            if intent_id:
+                try:
+                    stripe.PaymentIntent.cancel(intent_id)
+                except Exception as cancel_error:
+                    logging.error(
+                        f"Failed to cancel PaymentIntent {intent_id} after capture_method mismatch: {cancel_error}"
+                    )
+            raise HTTPException(status_code=500, detail="PaymentIntent capture_method must be 'manual'")
+
         # Create Proposal Record for tracking
         proposal = {
             "_id": f"prop_{uuid.uuid4().hex[:8]}",

@@ -29,7 +29,8 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 production_origins = [
     "https://bidsmith-frontend.vercel.app",
     "https://aris-registry.vercel.app",
-    "https://aris.io"
+    "https://bidsmith.ai",
+    "https://aris.io",
 ]
 local_origins = [
     "http://localhost:3000",
@@ -122,3 +123,7 @@ app.include_router(analyze.router, prefix="/api/analyze", tags=["Analyze"])
 @app.get("/")
 def read_root():
     return {"message": "BidSmith API is running"}
+
+@app.get("/health")
+async def health_check():
+    return {"status": "ok"}

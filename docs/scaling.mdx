@@ -1,0 +1,18 @@
+---
+title: "Scaling"
+description: "Guidance for scaling worker nodes and registry services."
+icon: "scale"
+---
+
+# Scaling
+
+Recommendations for scaling ARIS components for production workloads.
+
+## Horizontal Scaling
+
+- Run multiple worker nodes behind a load balancer
+- Use autoscaling rules based on queue length or CPU
+
+## Registry Scaling
+
+- Use a managed database and horizontal replicas for the registry service

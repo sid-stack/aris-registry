@@ -1,6 +1,11 @@
 import { useAuth } from "@clerk/nextjs";
 
-const API_Base = process.env.NEXT_PUBLIC_API_URL || "";
+const API_Base = process.env.NEXT_PUBLIC_API_URL;
+
+if (!API_Base) {
+    console.error("NEXT_PUBLIC_API_URL is not defined. API client cannot reach the backend.");
+    throw new Error("NEXT_PUBLIC_API_URL is not defined. Please check your environment variables.");
+}
 
 export const useApiClient = () => {
     const { getToken, orgId } = useAuth();
