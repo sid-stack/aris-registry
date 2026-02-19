@@ -12,6 +12,7 @@
         "@clerk/nextjs": "^6.37.5",
         "@radix-ui/react-slot": "^1.2.4",
         "@radix-ui/react-tooltip": "^1.2.8",
+        "@stripe/react-stripe-js": "^5.6.0",
         "@stripe/stripe-js": "^4.0.0",
         "canvas-confetti": "^1.9.4",
         "class-variance-authority": "^0.7.1",

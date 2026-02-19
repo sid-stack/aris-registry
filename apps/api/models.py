@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, EmailStr
-from typing import Optional, List, Any
+from typing import Optional, List, Any, Dict
 from datetime import datetime
 import time
 
@@ -10,6 +10,10 @@ class User(BaseModel):
     credits_balance: float = 0.0
     created_at: float = Field(default_factory=time.time)
     updated_at: float = Field(default_factory=time.time)
+    
+    # AX (Agent Experience) Footprint
+    is_autonomous: bool = False
+    last_agent_cid: Optional[str] = None
 
     class Config:
         populate_by_name = True
@@ -67,7 +71,30 @@ class Agent(BaseModel):
     provider: str
     capability: str
     status: str = "active"
+    agent_metadata: Dict[str, Any] = Field(default_factory=dict)
 
     class Config:
         populate_by_name = True
+
+class Proposal(BaseModel):
+    id: str = Field(..., alias="_id")
+    user_id: str
+    intent_id: str
+    proposal_text: str
+    pdf_url: Optional[str] = None
+    status: str = "AUTHORIZED"  # AUTHORIZED, DELIVERED, CANCELLED, CANCELLED_TIMEOUT
+    created_at: float = Field(default_factory=time.time)
+    updated_at: float = Field(default_factory=time.time)
+
+    class Config:
+        populate_by_name = True
+        json_schema_extra = {
+            "example": {
+                "_id": "prop_123",
+                "user_id": "user_123",
+                "intent_id": "pi_123",
+                "proposal_text": "Bid proposal content...",
+                "status": "AUTHORIZED"
+            }
+        }
 

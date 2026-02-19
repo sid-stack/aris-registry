@@ -1,22 +1,23 @@
 from fastapi import APIRouter
 import time
+from apps.api.database import redis_client
 
 router = APIRouter()
 
-# Simple shared state for demo purposes
-# In a real system, this would come from a database or Redis
-last_patrol_time = None
-agent_count = 0
-
 @router.get("/status")
 async def get_orchestrator_status():
-    global last_patrol_time, agent_count
+    if not redis_client.client:
+        return {"status": "Error", "detail": "Redis not connected"}
+
+    last_patrol_time = await redis_client.client.get("orchestrator:last_patrol")
+    agent_count = await redis_client.client.get("orchestrator:agent_count")
+    
     return {
         "status": "Active",
         "role": "Lead Orchestrator",
         "policy": "No Idle Policy Enforced",
         "last_patrol": last_patrol_time or "Never",
-        "agents_monitored": agent_count,
+        "agents_monitored": int(agent_count) if agent_count else 0,
         "llm_config": {
             "primary": "gemini-1.5-pro",
             "fallback": "gemini-1.5-flash",
@@ -26,12 +27,11 @@ async def get_orchestrator_status():
 
 @router.post("/update")
 async def update_status(count: int, timestamp: str):
-    global last_patrol_time, agent_count
-    last_patrol_time = timestamp
-    agent_count = count
-    return {"status": "updated"}
+    if not redis_client.client:
+        return {"status": "Error", "detail": "Redis not connected"}
 
-def update_orchestrator_metrics(count: int):
-    global last_patrol_time, agent_count
-    last_patrol_time = time.strftime("%Y-%m-%d %H:%M:%S")
-    agent_count = count
+    # Use pipeline for atomic update if needed, but simple set is fine here
+    await redis_client.client.set("orchestrator:last_patrol", timestamp)
+    await redis_client.client.set("orchestrator:agent_count", count)
+    
+    return {"status": "updated"}

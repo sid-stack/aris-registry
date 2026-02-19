@@ -2,6 +2,8 @@ import os
 from fastapi import Request, HTTPException, Security, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import jwt
+import time
+import logging
 from apps.api.database import db
 from apps.api.models import User
 
@@ -13,7 +15,10 @@ if CLERK_PEM_PUBLIC_KEY:
 # If PEM is not provided, we should likely fetch JWKS, but for now we enforce PEM for performance/security in MVP
 # or allow checking env.
 
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(security)):
+async def get_current_user(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials = Security(security)
+):
     token = credentials.credentials
     
     try:
@@ -60,6 +65,23 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(
         
         if not user_id:
              raise HTTPException(status_code=401, detail="Invalid token payload")
+
+        # ─── ZERO-TRUST HANDSHAKE: FRESHNESS CHECK ───────────────────────────
+        iat = payload.get("iat")
+        if not iat or (time.time() - iat) > 300: # 5 Minute Handshake Policy
+            raise HTTPException(
+                status_code=401, 
+                detail="JWT Handshake stale: Session token must be issued within 5 minutes for MCP Gateway access."
+            )
+
+        # Tracing & Logging
+        is_agent = getattr(request.state, "is_agent", False)
+        correlation_id = getattr(request.state, "correlation_id", "unknown")
+        
+        if is_agent:
+            logging.info(f"🛡️ [ZERO_TRUST_GATEWAY] Authenticated Agent {user_id} | CID: {correlation_id}")
+        else:
+            logging.info(f"🛡️ [ZERO_TRUST_GATEWAY] Authenticated Human {user_id} | CID: {correlation_id}")
 
         # Sync user to DB
         database = db.get_db()

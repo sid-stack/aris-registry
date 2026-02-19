@@ -21,8 +21,56 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
     }
 
+    // --- STRATEGIC: Outcome-Based Billing Handlers ---
+
+    if (event.type === 'payment_intent.amount_capturable_updated') {
+        const intent = event.data.object as Stripe.PaymentIntent;
+        console.log(`💳 [AUTH_HOLD] Intent ${intent.id} is now capturable. Triggering BidSmith...`);
+
+        // In production, this would trigger the Aris Orchestrator to begin proposal generation.
+        // We update the DB status to indicate it's ready for processing.
+        try {
+            await fetch(`${API_BASE}/api/delivery/trigger`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-internal-secret': INTERNAL_API_SECRET
+                },
+                body: JSON.stringify({ intent_id: intent.id, user_id: intent.metadata.user_id })
+            });
+        } catch (err) {
+            console.error('[STRIPE_WEBHOOK] Failed to trigger delivery:', err);
+        }
+    }
+
+    if (event.type === 'payment_intent.succeeded') {
+        const intent = event.data.object as Stripe.PaymentIntent;
+        console.log(`✅ [SETTLEMENT] Payment succeeded for Intent ${intent.id}. Finalizing credits...`);
+
+        // This is the SINGLE SOURCE OF TRUTH for credit updates in outcome-based flows.
+        const clerkUserId = intent.metadata?.clerk_id;
+        const creditsToAdd = 0; // Outcome-based bids don't add credits by default, they deliver a PDF.
+
+        if (clerkUserId) {
+            await fetch(`${API_BASE}/api/checkout/internal/add-credits`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-internal-secret': INTERNAL_API_SECRET,
+                },
+                body: JSON.stringify({
+                    clerk_id: clerkUserId,
+                    credits_to_add: 0,
+                    stripe_session_id: intent.id, // Using intent.id for idempotency
+                    plan_id: 'outcome_bid'
+                }),
+            });
+        }
+    }
+
     if (event.type === 'checkout.session.completed') {
         const session = event.data.object as Stripe.Checkout.Session;
+        // ... (existing credits top-up logic)
 
         // Robustness: Handle both frontend (clerk_user_id) and backend (clerk_id) session metadata
         const clerkUserId = session.metadata?.clerk_user_id || session.metadata?.clerk_id;

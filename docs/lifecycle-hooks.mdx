@@ -1,0 +1,84 @@
+---
+title: "Lifecycle Hooks"
+sidebarTitle: "Execution Hooks"
+description: "Inject custom logic into the RAG pipeline at key execution stages."
+---
+
+# Pipeline Lifecycle
+
+The Aris RAG framework exposes three synchronous hooks for customizing the retrieval and generation process. These hooks allow for query transformation, result filtering, and prompt safety checks.
+
+## Hook Definitions
+
+<CardGroup cols={1}>
+  <Card title="onBeforeRetrieve(query: str, context: dict) -> str" icon="magnifying-glass">
+    **Purpose:** Modify the user's raw query before it hits the vector database.
+    
+    **Use Cases:**
+    -   Expanding acronyms (e.g., "RFP" -> "Request for Proposal").
+    -   Correcting domain-specific spelling errors.
+    -   Injecting metadata filters based on user role.
+  </Card>
+  <Card title="onAfterRetrieve(chunks: list[Chunk]) -> list[Chunk]" icon="filter">
+    **Purpose:** Filter or re-rank the raw results from the vector store.
+    
+    **Use Cases:**
+    -   Removing chunks with low confidence scores (< 0.7).
+    -    Deduplicating identical content from different sources.
+    -   Redacting PII (Personally Identifiable Information) before context injection.
+  </Card>
+  <Card title="onBeforeGenerate(prompt: str, chunks: list[Chunk]) -> str" icon="shield-check">
+    **Purpose:** Final inspection of the full prompt sent to the LLM.
+    
+    **Use Cases:**
+    -   Checking for prompt injection attempts.
+    -   Formatting the `context` block with specific XML tags.
+    -   Truncating the prompt to fit strict token limits.
+  </Card>
+</CardGroup>
+
+## Implementation Example
+
+Register hooks in your `rag_pipeline.py` configuration. All hooks must be synchronous to avoid event loop blocking.
+
+<CodeGroup>
+  ```python Python (FastAPI)
+  def expand_query(query: str, ctx: dict) -> str:
+      """
+      Middleware to expand common acronyms.
+      """
+      acronyms = {"RAG": "Retrieval Augmented Generation", "LLM": "Large Language Model"}
+      for key, value in acronyms.items():
+          query = query.replace(key, value)
+      return query
+
+  def redact_pii(chunks: list[Schema.Chunk]) -> list[Schema.Chunk]:
+      """
+      Middleware to scrub email addresses from retrieved content.
+      """
+      email_pattern = r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"
+      for chunk in chunks:
+          chunk.content = re.sub(email_pattern, "[REDACTED_EMAIL]", chunk.content)
+      return chunks
+
+  # Register hooks
+  pipeline.hooks.register("onBeforeRetrieve", expand_query)
+  pipeline.hooks.register("onAfterRetrieve", redact_pii)
+  ```
+
+  ```typescript TypeScript
+  const ragPipeline = new RAGPipeline({
+    hooks: {
+      onBeforeRetrieve: (query, ctx) => {
+        // Add current user's department to search filters
+        ctx.filters.department = ctx.user.department;
+        return query;
+      },
+      onAfterRetrieve: (chunks) => {
+        // Filter out chunks marked as 'draft'
+        return chunks.filter(c => c.metadata.status !== 'draft');
+      }
+    }
+  });
+  ```
+</CodeGroup>

@@ -1,0 +1,29 @@
+{
+    "name": "Aris Core Ecosystem",
+    "logo": {
+        "light": "/logo/light.svg",
+        "dark": "/logo/dark.svg"
+    },
+    "favicon": "/favicon.png",
+    "colors": {
+        "primary": "#0D9488",
+        "light": "#14B8A6",
+        "dark": "#0F766E"
+    },
+    "navigation": [
+        {
+            "group": "Advanced RAG",
+            "pages": [
+                "rag-architecture",
+                "mcp-integration",
+                "optimization",
+                "lifecycle-hooks",
+                "agentic-rag"
+            ]
+        }
+    ],
+    "footerSocials": {
+        "twitter": "https://twitter.com/aris_labs",
+        "github": "https://github.com/aris-labs"
+    }
+}

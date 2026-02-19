@@ -50,3 +50,4 @@ scripts/verify_*.py
 .cache_ggshield
 aris_sdk.egg-info/
 temp_check/
+.antigravity/

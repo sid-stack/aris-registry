@@ -1,0 +1,88 @@
+---
+title: "Token Optimization & Chunking"
+sidebarTitle: "Optimization"
+description: "Strategies for efficient context window usage: Chunking, Overlap, and Token Budgeting."
+---
+
+# Token Efficiency
+
+Efficient RAG systems must balance context retrieval with the LLM's finite context window. This guide details our chunking strategies and overlap algorithms.
+
+## Chunking Strategies
+
+We employ two distinct chunking mechanisms depending on the source content type.
+
+<Tabs>
+  <Tab title="Semantic Chunking">
+    **Best for:** Unstructured text, essays, and reports where maintaining narrative flow is critical.
+
+    Semantic chunking splits text based on meaning rather than character count. We use embedding similarity between sentences to determine break points.
+
+    -   **Algorithm**: Calculate cosine similarity between adjacent sentences. If similarity drops below threshold $T$ (e.g., 0.5), start a new chunk.
+    -   **Pros**: Keeps related concepts together.
+    -   **Cons**: Variable chunk sizes.
+
+    ```python
+    # Semantic Splitter Configuration
+    from langchain_experimental.text_splitter import SemanticChunker
+
+    splitter = SemanticChunker(
+        embeddings=openai_embeddings,
+        breakpoint_threshold_type="percentile",
+        breakpoint_threshold_amount=95
+    )
+    ```
+  </Tab>
+  <Tab title="Fixed-Size + Overlap">
+    **Best for:** Code, logs, and highly structured data.
+
+    A deterministic approach that guarantees chunk size consistency.
+
+    -   **Chunk Size**: 512 tokens (approx. 2000 chars).
+    -   **Overlap**: 10% (50 tokens).
+
+    <Accordion title="Why Overlap Matters">
+      Overlap prevents "context fracture" where a critical keyword or definition is split between two chunks, making both chunks individually useless for retrieval.
+      
+      **Formula for Coverage:**
+      $$
+      C_{effective} = C_{total} - (2 \times O)
+      $$
+    </Accordion>
+  </Tab>
+</Tabs>
+
+## Token Budgeting
+
+To prevent `context_length_exceeded` errors, we implement a strict token budget for the RAG input.
+
+<Note>
+  **Hard Limit**: The retrieved context must never exceed **60%** of the model's total context window.
+</Note>
+
+### Budget Allocation (Example: GPT-4o)
+
+-   **Total Window**: 128,000 tokens.
+-   **System Prompt**: 2,000 tokens (reserved).
+-   **User Query**: 1,000 tokens (max).
+-   **Output Reservation**: 4,000 tokens.
+-   **Available for Context**: ~70,000 tokens.
+
+### Dynamic Context Pruning
+
+If retrieved chunks exceed the budget, we apply **Max Marginal Relevance (MMR)** to select the most diverse set of chunks that fit within the limit.
+
+```typescript
+function pruneContext(chunks: Chunk[], maxTokens: number): Chunk[] {
+  let currentTokens = 0;
+  const selected: Chunk[] = [];
+
+  for (const chunk of sortByRelevance(chunks)) {
+    if (currentTokens + chunk.tokenCount > maxTokens) break;
+    selected.push(chunk);
+    currentTokens += chunk.tokenCount;
+  }
+  
+  return selected;
+}
+```

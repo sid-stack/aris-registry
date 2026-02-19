@@ -1,20 +1,39 @@
 from fastapi import APIRouter, Request, HTTPException, Depends, Header
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Dict, Any
 from apps.api.database import db
-from apps.api.models import User
+from apps.api.models import User, Proposal
 from apps.api.dependencies import get_current_user
 import stripe
 import os
 import logging
 import uuid
 import time
+import io
+from fpdf import FPDF
+from supabase import create_client, Client
+import boto3
 
 # Initialize Stripe
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 endpoint_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
 INTERNAL_API_SECRET = os.getenv("INTERNAL_API_SECRET", "")
+
+# Storage Configuration
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+SUPABASE_BUCKET = os.getenv("SUPABASE_BUCKET", "bidsmith")
+
+S3_BUCKET = os.getenv("AWS_BUCKET")
+s3_client = None
+if os.getenv("AWS_ACCESS_KEY_ID"):
+    s3_client = boto3.client(
+        's3',
+        aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
+        aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
+        region_name=os.getenv("AWS_REGION", "us-east-1")
+    )
 
 router = APIRouter()
 
@@ -38,10 +57,24 @@ PLANS = {
         "unit_amount": 2000,   # $20.00
         "credits": 25.0,
     },
+    "outcome_bid": {
+        "name": "Outcome-Based Bid Proposal",
+        "unit_amount": 50000,  # $500.00
+        "credits": 0.0,
+    }
 }
 
 class CheckoutRequest(BaseModel):
     plan_id: Optional[str] = "credits"  # default: legacy credits top-up
+
+class AuthorizeRequest(BaseModel):
+    plan_id: str = "outcome_bid"
+
+class CaptureRequest(BaseModel):
+    payment_intent_id: str
+
+class CancelRequest(BaseModel):
+    payment_intent_id: str
 
 @router.post("/create-session")
 async def create_checkout_session(
@@ -131,8 +164,6 @@ async def stripe_webhook(request: Request):
                     amount_to_add = 25.0  # safe fallback
 
                 # 3. Create Audit Log
-                import uuid
-                import time
                 tx = {
                     "_id": f"tx_{uuid.uuid4().hex[:8]}",
                     "user_id": user_id,
@@ -155,8 +186,162 @@ async def stripe_webhook(request: Request):
                 
                 logging.info(f"Credits added and logged for user {user_id}")
 
+    elif event['type'] == 'payment_intent.amount_capturable_updated':
+        intent = event['data']['object']
+        # This confirms funds are held and ready to capture
+        # Update Proposal status if matched
+        database = db.get_db()
+        await database.proposals.update_one(
+            {"intent_id": intent['id']},
+            {"$set": {"status": "FUNDS_HELD", "updated_at": time.time()}}
+        )
+        logging.info(f"💰 Funds held for intent {intent['id']}")
+
+    elif event['type'] == 'payment_intent.succeeded':
+        intent = event['data']['object']
+        # Final capture confirmation
+        database = db.get_db()
+        await database.proposals.update_one(
+            {"intent_id": intent['id']},
+            {"$set": {"status": "PAID", "updated_at": time.time()}}
+        )
+        logging.info(f"✅ Payment succeeded for intent {intent['id']}")
+
     return {"status": "success"}
 
+async def upload_to_cloud(buffer: io.BytesIO, file_path: str) -> str:
+    """
+    Upload buffer to Supabase or S3 depending on env.
+    Returns a 30-day signed URL.
+    """
+    buffer.seek(0)
+    
+    if SUPABASE_URL and SUPABASE_KEY:
+        supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+        supabase.storage.from_(SUPABASE_BUCKET).upload(
+            file_path, 
+            buffer.getvalue(),
+            {"content-type": "application/pdf"}
+        )
+        res = supabase.storage.from_(SUPABASE_BUCKET).create_signed_url(file_path, 30 * 24 * 3600)
+        return res['signedURL']
+    
+    if s3_client and S3_BUCKET:
+        s3_client.upload_fileobj(buffer, S3_BUCKET, file_path)
+        url = s3_client.generate_presigned_url(
+            'get_object',
+            Params={'Bucket': S3_BUCKET, 'Key': file_path},
+            ExpiresIn=30 * 24 * 3600
+        )
+        return url
+    
+    raise Exception("No cloud storage configured")
+
+async def finalize_proposal(intent_id: str, proposal_text: str, user_id: str):
+    """
+    Atomic Delivery Sequence: PDF -> Storage -> DB -> Stripe Capture
+    """
+    database = db.get_db()
+    
+    try:
+        # 1. PDF Generation (in-memory)
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Arial", size=12)
+        pdf.multi_cell(0, 10, proposal_text)
+        
+        pdf_buffer = io.BytesIO()
+        pdf_output = pdf.output(dest='S')
+        pdf_buffer.write(pdf_output.encode('latin-1') if isinstance(pdf_output, str) else pdf_output)
+        
+        # 2. Upload to Cloud Storage
+        file_path = f"bidsmith_final/{user_id}/{intent_id}.pdf"
+        signed_url = await upload_to_cloud(pdf_buffer, file_path)
+        
+        # 3. Update DB
+        await database.proposals.update_one(
+            {"intent_id": intent_id},
+            {
+                "$set": {
+                    "pdf_url": signed_url,
+                    "status": "DELIVERED",
+                    "updated_at": time.time()
+                }
+            }
+        )
+        
+        # 4. Stripe Capture
+        stripe.PaymentIntent.capture(intent_id)
+        logging.info(f"✅ Proposal finalized and payment captured for intent={intent_id}")
+        return {"status": "success", "pdf_url": signed_url}
+
+    except Exception as e:
+        logging.error(f"❌ Atomic Delivery Failed for {intent_id}: {str(e)}")
+        # Fail-safe: Release funds
+        try:
+            stripe.PaymentIntent.cancel(intent_id)
+            await database.proposals.update_one(
+                {"intent_id": intent_id},
+                {"$set": {"status": "CANCELLED_ERROR", "updated_at": time.time()}}
+            )
+        except Exception as stripe_err:
+            logging.error(f"Failed to cancel Stripe intent after delivery error: {str(stripe_err)}")
+        
+        raise HTTPException(status_code=500, detail=f"Delivery failure: {str(e)}")
+
+# ─── Outcome-Based Billing (Auth & Capture) ───────────────────────────────────
+
+@router.post("/authorize")
+async def authorize_payment(
+    body: AuthorizeRequest,
+    current_user: User = Depends(get_current_user)
+):
+    plan = PLANS.get(body.plan_id, PLANS["outcome_bid"])
+    database = db.get_db()
+    
+    try:
+        intent = stripe.PaymentIntent.create(
+            amount=plan["unit_amount"],
+            currency="usd",
+            capture_method="manual",
+            metadata={
+                "user_id": current_user.id,
+                "clerk_id": current_user.clerk_id,
+                "plan_id": body.plan_id,
+                "type": "outcome_based"
+            }
+        )
+        
+        # Create Proposal Record for tracking
+        proposal = {
+            "_id": f"prop_{uuid.uuid4().hex[:8]}",
+            "user_id": current_user.id,
+            "intent_id": intent.id,
+            "proposal_text": "", # Will be filled later
+            "status": "AUTHORIZED",
+            "created_at": time.time(),
+            "updated_at": time.time()
+        }
+        await database.proposals.insert_one(proposal)
+        
+        return {"client_secret": intent.client_secret, "id": intent.id}
+    except Exception as e:
+        logging.error(f"Stripe Auth Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/finalize/{intent_id}")
+async def finalize_proposal_endpoint(
+    intent_id: str,
+    proposal_text: str,
+    current_user: User = Depends(get_current_user)
+):
+    # Security: Ensure the intent belongs to this user
+    database = db.get_db()
+    proposal = await database.proposals.find_one({"intent_id": intent_id, "user_id": current_user.id})
+    if not proposal:
+        raise HTTPException(status_code=404, detail="Proposal session not found or unauthorized")
+    
+    return await finalize_proposal(intent_id, proposal_text, current_user.id)
 
 # ─── Internal Endpoint (called by Next.js webhook) ────────────────────────────
 
@@ -242,3 +427,65 @@ async def internal_add_credits(
             )
 
     return {"status": "success", "credits_added": body.credits_to_add}
+
+@router.post("/capture")
+async def capture_payment(
+    body: CaptureRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Captures an authorized PaymentIntent.
+    Should be called after the Aris agent confirms SUCCESS.
+    """
+    try:
+        intent = stripe.PaymentIntent.capture(body.payment_intent_id)
+        return {"status": "success", "intent_id": intent.id}
+    except Exception as e:
+        logging.error(f"Stripe Capture Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/cancel")
+async def cancel_payment(
+    body: CancelRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Cancels an authorized PaymentIntent (releases the hold).
+    Should be called if the Aris agent fails.
+    """
+    try:
+        intent = stripe.PaymentIntent.cancel(body.payment_intent_id)
+        return {"status": "cancelled", "intent_id": intent.id}
+    except Exception as e:
+        logging.error(f"Stripe Cancel Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ─── Usage-Based SaaS (Micro-transactions for SDK) ───────────────────────────
+
+class UsageRequest(BaseModel):
+    action: str
+    agent_id: str
+    metadata: Dict[str, Any] = {}
+
+@router.post("/sdk/verify-usage")
+async def verify_usage_charge(
+    body: UsageRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Placeholder for the hybrid Usage-Based model.
+    Charges the user a micro-transaction (e.g. $0.05) per verified API call via SDK.
+    """
+    # STRATEGIC ACTION: Establish the "Stair Step" monetization
+    # In production, this would trigger an atomic credit deduction 
+    # or create a Stripe metered usage record.
+    
+    logging.info(f"📊 [SDK_USAGE] User={current_user.id} Agent={body.agent_id} Action={body.action}")
+    
+    return {
+        "status": "verified",
+        "charge_mode": "usage_based",
+        "action_recorded": body.action,
+        "note": "Micro-transaction pending in next billing cycle"
+    }

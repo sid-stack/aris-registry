@@ -19,11 +19,20 @@ class MCPClient:
     def __init__(self):
         self.session: Optional[ClientSession] = None
         self.exit_stack = AsyncExitStack()
+        self.identity_context: Optional[Dict[str, Any]] = None # Zero-Trust Context
 
-    async def connect_stdio(self, command: str, args: List[str], env: Optional[Dict[str, str]] = None):
+    async def connect_stdio(
+        self, 
+        command: str, 
+        args: List[str], 
+        env: Optional[Dict[str, str]] = None,
+        identity: Optional[Dict[str, Any]] = None
+    ):
         """
         Connect to an MCP server running as a subprocess via stdio.
+        Stores the identity context for secure tool-proxying.
         """
+        self.identity_context = identity
         logger.info(f"🔌 Connecting to MCP server: {command} {' '.join(args)}")
         
         server_params = StdioServerParameters(
@@ -60,6 +69,13 @@ class MCPClient:
             raise RuntimeError("MCP Client not connected")
         
         logger.info(f"📞 Calling tool: {name} with {arguments}")
+        
+        # WEAPONIZED MCP GATEWAY: Inject signed JWT if identity exists
+        if self.identity_context:
+            from apps.api.core.security_utils import sign_agent_jwt
+            token = sign_agent_jwt(self.identity_context)
+            arguments["_aris_auth_token"] = token
+            
         result = await self.session.call_tool(name, arguments=arguments)
         return result
 

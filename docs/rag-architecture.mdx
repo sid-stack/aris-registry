@@ -1,0 +1,96 @@
+---
+title: "Advanced RAG Architecture"
+sidebarTitle: "Architecture"
+description: "Deep dive into the Aris RAG pipeline: Hybrid Search, RRF, GraphRAG, and Contextual Compression."
+---
+
+# Modern RAG Architecture
+
+The Aris RAG ecosystem moves beyond simple vector similarity search. We employ a multi-stage retrieval pipeline designed for high-precision context recovery in complex enterprise domains.
+
+<Card title="Architecture Overview">
+  The system executes a strictly ordered pipeline: Query Rewriting -> Hybrid Retrieval -> Reciprocal Rank Fusion -> Contextual Compression -> Generation.
+</Card>
+
+## Retrieval Strategies
+
+We support three primary retrieval modes, configurable via the `retrieval_strategy` parameter in the `retrieve_context` tool.
+
+<Tabs>
+  <Tab title="Hybrid Search">
+    **Best for:** General-purpose queries requiring both semantic understanding and exact keyword matching.
+
+    The system executes two parallel searches:
+    1.  **Dense Retrieval**: Embedding-based search using `text-embedding-3-large` (256/512/1024/3072 dimensions).
+    2.  **Sparse Retrieval**: BM25 keyword search on tokenized documents.
+
+    Results are combined using Reciprocal Rank Fusion (RRF).
+
+    ```python
+    # Hybrid Search Implementation Configuration
+    retrieval_config = {
+        "strategy": "hybrid",
+        "alpha": 0.5, # Weighting between Dense (0.0) and Sparse (1.0)
+        "top_k": 20
+    }
+    ```
+  </Tab>
+  <Tab title="GraphRAG">
+    **Best for:** Multi-hop reasoning and answering "aggregate" questions across documents.
+
+    The knowledge graph is built using:
+    -   **Entity Extraction**: LLM-based extraction of nodes (People, Org, Concept).
+    -   **Relationship Mapping**: Edge creation with semantic descriptions.
+    -   **Community Detection**: Leiden algorithm for hierarchical clustering.
+
+    Retrieval traverses the graph to find connected concepts distinct from vector proximity.
+
+    ```typescript
+    // GraphRAG Query Execution
+    const graphResults = await graphStore.query({
+      query: "How do the procurement policies of Entity A impact Entity B?",
+      depth: 2,
+      include_communities: true
+    });
+    ```
+  </Tab>
+  <Tab title="Contextual Compression">
+    **Best for:** Reducing token usage and noise in retrieved documents.
+
+    After initial retrieval, a strictly smaller LLM (e.g., `gpt-4o-mini`) or a specialized encoder (Cross-Encoder) reranks and compresses the chunks.
+
+    **Process:**
+    1.  **Recall**: Fetch top-50 candidates via Hybrid Search.
+    2.  **Rerank**: Score candidates using `ms-marco-MiniLM-L-6-v2`.
+    3.  **Compress**: Extract only the sentences relevant to the query.
+
+    ```python
+    from langchain.retrievers import ContextualCompressionRetriever
+    from langchain.retrievers.document_compressors import LLMChainExtractor
+
+    compressor = LLMChainExtractor.from_llm(llm)
+    compression_retriever = ContextualCompressionRetriever(
+        base_compressor=compressor, 
+        base_retriever=retriever
+    )
+    ```
+  </Tab>
+</Tabs>
+
+## Reciprocal Rank Fusion (RRF)
+
+We strictly use RRF to merge results from different retrieval systems. This creates a "consensus" ranking that is robust to outliers in any single method.
+
+$$
+RRFscore(d) = \sum_{r \in R} \frac{1}{k + r(d)}
+$$
+
+Where:
+-   $d$ is the document.
+-   $R$ is the set of rankers (Dense, Sparse, Graph).
+-   $k$ is a constant (typically 60).
+-   $r(d)$ is the rank of document $d$ in ranker $r$.
+
+<Note>
+  Do not use weighted averaging for scores from different models (e.g., BM25 scores vs. Cosine Similarity). They are not on the same scale. RRF is scale-invariant.
+</Note>

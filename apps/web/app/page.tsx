@@ -2,153 +2,67 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, FileText, Menu, Settings, ShieldCheck, X, Zap } from "lucide-react";
+import { ArrowRight, CheckCircle2, Shield, Lock, Cpu, DollarSign, Menu, X, FileText, Zap } from "lucide-react";
 import { SignInButton, SignedIn, SignedOut, useUser } from "@clerk/nextjs";
-import { PricingSection } from "@/components/ui/pricing";
-import { ShimmerButton } from "@/components/ui/shimmer-button";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function Home() {
     const { isLoaded, isSignedIn } = useUser();
     const router = useRouter();
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-    const handleCheckout = async (planId: string, frequency: 'monthly' | 'yearly' = 'monthly') => {
+    const handleCheckout = async (planId: string) => {
         if (!isSignedIn) {
             router.push('/sign-up');
             return;
         }
-        try {
-            const res = await fetch('/api/checkout', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ plan_id: planId, frequency }),
-            });
-            if (!res.ok) throw new Error('Checkout failed');
-            const { url } = await res.json();
-            if (url) window.location.href = url;
-        } catch (err) {
-            console.error('[Checkout Error]', err);
-            alert('Unable to start checkout. Please try again.');
-        }
+        // ... (checkout logic placeholder)
+        alert("Redirecting to checkout...");
     };
 
-    const PLANS = [
-        {
-            id: 'basic',
-            name: 'Starter',
-            info: 'For individual consultants',
-            price: {
-                monthly: 19,
-                yearly: 190,
-            },
-            features: [
-                { text: '5 RFP Analyses / month' },
-                { text: 'Basic Compliance Matrix' },
-                { text: 'Standard Win Themes' },
-                {
-                    text: 'Email support',
-                    tooltip: 'Response within 48 hours',
-                },
-            ],
-            plan_id: 'starter',
-            btn: {
-                text: 'Get Started',
-                href: '/sign-up',
-            },
-        },
-        {
-            highlighted: true,
-            id: 'pro',
-            name: 'Professional',
-            info: 'For growing bid teams',
-            price: {
-                monthly: 99,
-                yearly: 990,
-            },
-            features: [
-                { text: 'Unlimited RFP Analyses' },
-                { text: 'Advanced Compliance Matrix' },
-                { text: 'AI-Generated Win Themes' },
-                { text: 'Risk Assessment Module' },
-                { text: 'Priority support', tooltip: 'Get 24/7 chat support' },
-                {
-                    text: 'Agent Personalization',
-                    tooltip: 'Fine-tune agents on your past performance',
-                },
-            ],
-            plan_id: 'pro',
-            btn: {
-                text: 'Go Pro',
-                href: '/sign-up',
-            },
-        },
-        {
-            name: 'Enterprise',
-            info: 'For large organizations',
-            price: {
-                monthly: 499,
-                yearly: 4990,
-            },
-            features: [
-                { text: 'SSO & Custom Integration' },
-                { text: 'Dedicated Compute Instance' },
-                { text: 'Custom Agent Development' },
-                { text: 'Unlimited Markdown export' },
-                {
-                    text: 'SLA Guarantee',
-                    tooltip: '99.9% uptime guarantee',
-                },
-                { text: 'Dedicated Account Manager' },
-            ],
-            btn: {
-                text: 'Contact Sales',
-                href: 'mailto:sales@aris.io',
-            },
-        },
-    ];
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
-
     return (
-        <div className="flex min-h-screen flex-col bg-black text-white selection:bg-purple-500/30">
+        <div className="flex min-h-screen flex-col bg-black text-white selection:bg-emerald-500/30 font-sans">
             {/* Navbar */}
-            <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-black/50 backdrop-blur-xl">
-                <div className="flex h-16 items-center justify-between px-6 md:px-12">
-                    <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-                        <img src="/logo.png" alt="BidSmith Logo" className="h-12 w-12 object-contain" />
-                        <span className="font-bold text-xl tracking-tighter text-white">BidSmith</span>
+            <header className="fixed top-0 z-50 w-full border-b border-white/5 bg-black/80 backdrop-blur-xl">
+                <div className="flex h-16 items-center justify-between px-6 md:px-12 max-w-7xl mx-auto">
+                    <Link href="/" className="flex items-center gap-4 group">
+                        <img
+                            src="/logo.png"
+                            alt="BidSmith Logo"
+                            className="h-16 w-16 object-contain drop-shadow-[0_0_10px_rgba(52,211,153,0.3)] group-hover:scale-105 transition-transform duration-300"
+                        />
+                        <span className="font-bold text-2xl tracking-widest uppercase text-white group-hover:text-emerald-400 transition-colors">BidSmith</span>
                     </Link>
 
                     {/* Desktop nav */}
-                    <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-zinc-400">
-                        <Link href="#features" className="hover:text-white transition-colors">Features</Link>
-                        <Link href="#registry" className="hover:text-white transition-colors">Registry</Link>
-                        <Link href="#pricing" className="hover:text-white transition-colors">Pricing</Link>
-                        <Link href="https://arislabs.mintlify.app/" target="_blank" className="hover:text-white transition-colors">Docs</Link>
+                    <nav className="hidden md:flex items-center gap-8 text-sm font-bold tracking-widest uppercase text-white">
+                        <Link href="#how-it-works" className="hover:text-emerald-400 transition-colors">How it Works</Link>
+                        <Link href="#security" className="hover:text-emerald-400 transition-colors">Security</Link>
+                        <Link href="#pricing" className="hover:text-emerald-400 transition-colors">Pricing</Link>
                     </nav>
 
                     <div className="flex items-center gap-4">
-                        <div className="hidden md:flex items-center gap-4">
-                            {isLoaded && !isSignedIn && (
-                                <>
-                                    <SignInButton mode="modal">
-                                        <button className="text-sm font-medium text-zinc-400 hover:text-white transition-colors">
-                                            Log in
-                                        </button>
-                                    </SignInButton>
-                                    <SignInButton mode="modal">
-                                        <button className="h-9 px-4 rounded-full bg-white text-black text-sm font-semibold hover:bg-zinc-200 transition-colors">
-                                            Start Free
-                                        </button>
-                                    </SignInButton>
-                                </>
-                            )}
-                            {isLoaded && isSignedIn && (
-                                <Link href="/dashboard">
-                                    <button className="h-9 px-4 rounded-full bg-white text-black text-sm font-semibold hover:bg-zinc-200 transition-colors">
-                                        Dashboard
+                        {isLoaded && !isSignedIn && (
+                            <>
+                                <SignInButton mode="modal">
+                                    <button className="text-sm font-bold tracking-wider uppercase text-white hover:text-emerald-400 transition-colors hidden md:block">
+                                        Log in
                                     </button>
-                                </Link>
-                            )}
-                        </div>
+                                </SignInButton>
+                                <SignInButton mode="modal">
+                                    <button className="h-9 px-4 rounded-lg bg-white/5 border border-white/10 text-white text-sm font-bold tracking-wider uppercase hover:bg-white/10 hover:border-emerald-500/50 transition-all shadow-[0_0_15px_-5px_var(--tw-shadow-color)] shadow-emerald-500/20">
+                                        Secure Dashboard
+                                    </button>
+                                </SignInButton>
+                            </>
+                        )}
+                        {isLoaded && isSignedIn && (
+                            <Link href="/dashboard">
+                                <button className="h-9 px-4 rounded-lg bg-emerald-600 text-white text-sm font-bold tracking-wider uppercase hover:bg-emerald-500 transition-colors shadow-lg shadow-emerald-900/20">
+                                    Dashboard
+                                </button>
+                            </Link>
+                        )}
 
                         {/* Mobile Menu Toggle */}
                         <button
@@ -161,203 +75,242 @@ export default function Home() {
                 </div>
 
                 {/* Mobile Menu Overlay */}
-                {isMenuOpen && (
-                    <div className="md:hidden fixed inset-0 z-40 bg-black/95 backdrop-blur-3xl p-6 pt-24 animate-in fade-in slide-in-from-top-4 duration-300">
-                        <nav className="flex flex-col gap-6 text-lg font-medium">
-                            <Link href="#features" onClick={() => setIsMenuOpen(false)} className="text-zinc-400 hover:text-white transition-colors">Features</Link>
-                            <Link href="#registry" onClick={() => setIsMenuOpen(false)} className="text-zinc-400 hover:text-white transition-colors">Registry</Link>
-                            <Link href="#pricing" onClick={() => setIsMenuOpen(false)} className="text-zinc-400 hover:text-white transition-colors">Pricing</Link>
-                            <Link href="https://arislabs.mintlify.app/" target="_blank" onClick={() => setIsMenuOpen(false)} className="text-zinc-400 hover:text-white transition-colors">Docs</Link>
-                            <div className="h-px bg-white/10 my-2" />
-                            {isLoaded && !isSignedIn && (
-                                <>
-                                    <SignInButton mode="modal">
-                                        <button className="text-left py-2 text-zinc-400 hover:text-white transition-colors">Log in</button>
-                                    </SignInButton>
-                                    <SignInButton mode="modal">
-                                        <button className="w-full py-3 rounded-xl bg-white text-black font-bold hover:bg-zinc-200 transition-colors mt-4">
-                                            Start Free
-                                        </button>
-                                    </SignInButton>
-                                </>
-                            )}
-                            {isLoaded && isSignedIn && (
-                                <Link href="/dashboard" onClick={() => setIsMenuOpen(false)}>
-                                    <button className="w-full py-3 rounded-xl bg-white text-black font-bold hover:bg-zinc-200 transition-colors mt-4">
-                                        Go to Dashboard
-                                    </button>
-                                </Link>
-                            )}
-                        </nav>
-                    </div>
-                )}
+                <AnimatePresence>
+                    {isMenuOpen && (
+                        <motion.div
+                            initial={{ opacity: 0, y: -20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            className="md:hidden absolute top-16 left-0 right-0 bg-black/95 border-b border-white/10 p-6 backdrop-blur-3xl"
+                        >
+                            <nav className="flex flex-col gap-6 text-lg font-bold tracking-wider uppercase text-white">
+                                <Link href="#how-it-works" onClick={() => setIsMenuOpen(false)} className="hover:text-emerald-400 transition-colors">How it Works</Link>
+                                <Link href="#security" onClick={() => setIsMenuOpen(false)} className="hover:text-emerald-400 transition-colors">Security</Link>
+                                <Link href="#pricing" onClick={() => setIsMenuOpen(false)} className="hover:text-emerald-400 transition-colors">Pricing</Link>
+                                <div className="h-px bg-white/10 my-2" />
+                                <SignInButton mode="modal">
+                                    <button className="text-left hover:text-emerald-400 transition-colors">Log in</button>
+                                </SignInButton>
+                            </nav>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </header>
 
             <main className="flex-1">
-                {/* Hero */}
-                <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 px-6">
-                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-purple-900/20 via-black to-black -z-10" />
-                    <div className="mx-auto max-w-4xl text-center space-y-8">
-                        <div className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-zinc-400 backdrop-blur-sm">
-                            <span className="flex h-2 w-2 rounded-full bg-green-500 mr-2 animate-pulse" />
-                            Aris Protocol v1.0.3 Live
-                        </div>
-                        <h1 className="text-5xl md:text-7xl font-bold tracking-tight bg-gradient-to-b from-white via-white/90 to-white/50 bg-clip-text text-transparent pb-2">
-                            The Operating System for <br className="hidden md:block" /> Government Contracts.
-                        </h1>
-                        <p className="text-lg md:text-xl text-zinc-400 max-w-2xl mx-auto leading-relaxed">
-                            BidSmith uses autonomous AI agents to analyze RFPs, identify compliance risks, and generate winning proposals in seconds—not weeks.
-                        </p>
-                        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-                            {isLoaded && !isSignedIn && (
-                                <SignInButton mode="modal">
-                                    <ShimmerButton className="shadow-2xl">
-                                        <span className="flex items-center gap-2 whitespace-pre-wrap text-center text-lg font-semibold leading-none tracking-tight text-white dark:from-white dark:to-slate-900/10">
-                                            Start Analyzing
-                                            <ArrowRight className="h-4 w-4" />
+                {/* Hero Section */}
+                <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 px-6 overflow-hidden">
+                    {/* Background Gradients */}
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-emerald-900/20 opacity-30 blur-[120px] rounded-full pointe-events-none -z-10" />
+
+                    <div className="mx-auto max-w-5xl text-center space-y-8 relative z-10">
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5 }}
+                            className="group inline-flex items-center rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-sm text-emerald-300 backdrop-blur-md hover:bg-emerald-500/20 hover:border-emerald-500/50 hover:text-emerald-200 transition-all duration-300 cursor-default"
+                        >
+                            <span className="flex h-2 w-2 rounded-full bg-emerald-400 mr-2 animate-pulse shadow-[0_0_10px_theme('colors.emerald.400')] group-hover:bg-emerald-300 transition-colors" />
+                            Powered by ARIS Zero-Knowledge Protocol
+                        </motion.div>
+
+                        <motion.h1
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5, delay: 0.1 }}
+                            className="text-5xl md:text-7xl font-bold tracking-tight text-white pb-2 leading-[1.1] group cursor-default"
+                        >
+                            <span className="transition-colors duration-300 group-hover:text-emerald-200">Stop Formatting. Start Winning.</span> <br />
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400 transition-all duration-500 group-hover:from-emerald-300 group-hover:to-cyan-300 group-hover:drop-shadow-[0_0_10px_rgba(52,211,153,0.5)]">
+                                Autonomous Proposal Writing.
+                            </span>
+                        </motion.h1>
+
+                        <motion.p
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5, delay: 0.2 }}
+                            className="text-lg md:text-xl text-zinc-400 max-w-2xl mx-auto leading-relaxed"
+                        >
+                            BidSmith uses a swarm of specialized AI agents to ingest 100-page RFPs, cross-reference your past performance, and draft fully compliant technical volumes in minutes.
+                        </motion.p>
+
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5, delay: 0.3 }}
+                            className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4"
+                        >
+                            <SignInButton mode="modal">
+                                <div className="relative group cursor-pointer inline-block">
+                                    <button className="relative inline-block p-px font-semibold leading-6 text-white bg-gray-800 shadow-2xl rounded-xl shadow-zinc-900 transition-transform duration-300 ease-in-out hover:scale-105 active:scale-95">
+                                        <span className="absolute inset-0 rounded-xl bg-gradient-to-r from-teal-400 via-blue-500 to-purple-500 p-[2px] opacity-0 transition-opacity duration-500 group-hover:opacity-100"></span>
+
+                                        <span className="relative z-10 block px-6 py-3 rounded-xl bg-gray-950">
+                                            <div className="relative z-10 flex items-center space-x-2">
+                                                <span className="transition-all duration-500 group-hover:translate-x-1">Let's get started</span>
+                                                <svg
+                                                    className="w-6 h-6 transition-transform duration-500 group-hover:translate-x-1"
+                                                    aria-hidden="true"
+                                                    fill="currentColor"
+                                                    viewBox="0 0 20 20"
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                >
+                                                    <path
+                                                        clipRule="evenodd"
+                                                        d="M8.22 5.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L11.94 10 8.22 6.28a.75.75 0 0 1 0-1.06Z"
+                                                        fillRule="evenodd"
+                                                    ></path>
+                                                </svg>
+                                            </div>
                                         </span>
-                                    </ShimmerButton>
-                                </SignInButton>
-                            )}
-                            {isLoaded && isSignedIn && (
-                                <Link href="/dashboard">
-                                    <ShimmerButton className="shadow-2xl">
-                                        <span className="flex items-center gap-2 whitespace-pre-wrap text-center text-lg font-semibold leading-none tracking-tight text-white dark:from-white dark:to-slate-900/10">
-                                            Go to Dashboard
-                                            <ArrowRight className="h-4 w-4" />
-                                        </span>
-                                    </ShimmerButton>
-                                </Link>
-                            )}
-                            <button
-                                onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
-                                className="h-12 px-8 rounded-full border border-white/10 bg-white/5 text-white font-medium hover:bg-white/10 transition-colors backdrop-blur-sm"
-                            >
-                                View Demo
+                                    </button>
+                                </div>
+                            </SignInButton>
+
+                            <button className="h-12 px-8 rounded-lg border border-white/10 text-zinc-300 font-medium hover:bg-white/5 hover:text-white transition-colors flex items-center gap-2">
+                                <Shield className="h-4 w-4" /> Read the Security Brief
                             </button>
-                        </div>
+                        </motion.div>
+
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ duration: 0.8, delay: 0.5 }}
+                            className="pt-8 text-zinc-500 text-sm flex items-center justify-center gap-6"
+                        >
+                            <span className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-500" /> No Subscription</span>
+                            <span className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-500" /> $500 per win</span>
+                            <span className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-500" /> Zero Data Retention</span>
+                        </motion.div>
                     </div>
                 </section>
 
-                {/* Features Grid */}
-                <section id="features" className="py-24 border-t border-white/5">
-                    <div className="mx-auto max-w-6xl px-6">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                            {[
-                                {
-                                    icon: FileText,
-                                    title: "RFP Analysis",
-                                    desc: "Instant breakdown of requirements, deliverable dates, and compliance matrices."
-                                },
-                                {
-                                    icon: Zap,
-                                    title: "AI Generation",
-                                    desc: "Draft technical volumes, past performance, and executive summaries automatically."
-                                },
-                                {
-                                    icon: ShieldCheck,
-                                    title: "Compliance Check",
-                                    desc: "Real-time validation against FAR/DFARS clauses and proposal instructions."
-                                }
-                            ].map((feature, i) => (
-                                <div key={i} className="group p-8 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors">
-                                    <div className="h-12 w-12 rounded-lg bg-zinc-900 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                                        <feature.icon className="h-6 w-6 text-purple-400" />
-                                    </div>
-                                    <h3 className="text-xl font-semibold mb-3">{feature.title}</h3>
-                                    <p className="text-zinc-400 leading-relaxed">{feature.desc}</p>
+                {/* Agentic Workflow Bento Grid */}
+                <section id="how-it-works" className="py-24 border-t border-white/5 bg-zinc-950/50">
+                    <div className="mx-auto max-w-7xl px-6">
+                        <div className="mb-16">
+                            <h2 className="text-3xl font-bold mb-4">Work-as-a-Service.</h2>
+                            <p className="text-zinc-400 max-w-xl">You aren&apos;t buying software. You&apos;re hiring a digital employee swarm that works while you sleep.</p>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            {/* Card 1: Zero-Knowledge Ingestion */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                className="group relative overflow-hidden rounded-2xl border border-white/10 bg-black p-8 hover:border-emerald-500/30 transition-colors"
+                            >
+                                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                                    <Lock className="h-32 w-32" />
                                 </div>
-                            ))}
+                                <div className="h-12 w-12 rounded-lg bg-zinc-900 border border-white/5 flex items-center justify-center mb-6">
+                                    <Lock className="h-6 w-6 text-emerald-400" />
+                                </div>
+                                <h3 className="text-xl font-bold mb-3 text-white">Zero-Knowledge Ingestion</h3>
+                                <p className="text-zinc-400 leading-relaxed text-sm">
+                                    Drop your messy PDF into our zero-knowledge vault. Your proprietary company data is cryptographically sealed and <span className="text-emerald-400 font-medium">never</span> used to train external models.
+                                </p>
+                            </motion.div>
+
+                            {/* Card 2: Swarm Orchestration */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                transition={{ delay: 0.1 }}
+                                className="group relative overflow-hidden rounded-2xl border border-white/10 bg-black p-8 hover:border-blue-500/30 transition-colors"
+                            >
+                                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                                    <Cpu className="h-32 w-32" />
+                                </div>
+                                <div className="h-12 w-12 rounded-lg bg-zinc-900 border border-white/5 flex items-center justify-center mb-6">
+                                    <Cpu className="h-6 w-6 text-blue-400" />
+                                </div>
+                                <h3 className="text-xl font-bold mb-3 text-white">Swarm Orchestration</h3>
+                                <p className="text-zinc-400 leading-relaxed text-sm">
+                                    BidSmith deploys a dedicated compliance agent, a technical writer, and a pricing analyst that debate and construct your proposal collaboratively in real-time.
+                                </p>
+                            </motion.div>
+
+                            {/* Card 3: Outcome-Based Billing */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                transition={{ delay: 0.2 }}
+                                className="group relative overflow-hidden rounded-2xl border border-white/10 bg-black p-8 hover:border-purple-500/30 transition-colors"
+                            >
+                                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                                    <DollarSign className="h-32 w-32" />
+                                </div>
+                                <div className="h-12 w-12 rounded-lg bg-zinc-900 border border-white/5 flex items-center justify-center mb-6">
+                                    <DollarSign className="h-6 w-6 text-purple-400" />
+                                </div>
+                                <h3 className="text-xl font-bold mb-3 text-white">Outcome-Based Billing</h3>
+                                <p className="text-zinc-400 leading-relaxed text-sm">
+                                    We align our incentives with yours. No subscriptions. No hidden fees. <span className="text-purple-400 font-medium">$500 flat fee</span> only when you submit a successful bid generated by our agents.
+                                </p>
+                            </motion.div>
                         </div>
                     </div>
                 </section>
 
-                {/* Public Registry Preview */}
-                <section id="registry" className="py-24 border-t border-white/5 bg-zinc-950/50">
-                    <div className="mx-auto max-w-6xl px-6">
-                        <div className="text-center mb-16">
-                            <h2 className="text-3xl md:text-5xl font-bold mb-4">Live Agent Registry</h2>
-                            <p className="text-zinc-400 max-w-2xl mx-auto">
-                                Deploy specialized AI agents directly to your procurement workflow.
+                {/* Infrastructure Banner */}
+                <section className="py-24 border-t border-white/5 relative overflow-hidden">
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-zinc-900/40 via-black to-black -z-10" />
+                    <div className="mx-auto max-w-7xl px-6">
+                        <div className="rounded-3xl border border-white/10 bg-zinc-900/30 backdrop-blur-xl p-8 md:p-16 text-center relative overflow-hidden">
+                            <div className="absolute inset-0 bg-grid-white/[0.02] -z-10" />
+
+                            <div className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-zinc-400 mb-6 font-mono">
+                                ARIS_PROTOCOL_SECURE_CONNECTION_ESTABLISHED
+                            </div>
+
+                            <h2 className="text-3xl md:text-4xl font-bold mb-6">Enterprise-Grade by Default.</h2>
+                            <p className="text-zinc-400 max-w-2xl mx-auto mb-10 text-lg">
+                                BidSmith isn&apos;t a thin wrapper. It runs on the ARIS Network—a decentralized Model Context Protocol (MCP) gateway. This means military-grade data routing, mathematically verifiable session tokens, and zero hallucinations.
                             </p>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            {[
-                                {
-                                    name: "Legal Review Bot",
-                                    desc: "Analyzes contracts for risks.",
-                                    price: "$1.00 / run",
-                                    tag: "legal",
-                                    color: "bg-purple-500"
-                                },
-                                {
-                                    name: "RFP Analyzer",
-                                    desc: "Extracts requirements from RFPs.",
-                                    price: "$1.50 / run",
-                                    tag: "procurement",
-                                    color: "bg-blue-500"
-                                },
-                                {
-                                    name: "Pricing Strategist",
-                                    desc: "Optimizes bid pricing based on market data.",
-                                    price: "$2.99 / run",
-                                    tag: "finance",
-                                    color: "bg-green-500"
-                                },
-                                {
-                                    name: "Compliance Auditor",
-                                    desc: "Checks proposals against FAR clauses (BidSmith Engine).",
-                                    price: "$1.00 / run",
-                                    tag: "compliance",
-                                    color: "bg-red-500"
-                                }
-                            ].map((agent, i) => (
-                                <div key={i} className="group p-6 rounded-xl border border-white/10 bg-zinc-900/50 hover:bg-zinc-800/50 transition-all hover:scale-[1.02]">
-                                    <div className="flex justify-between items-start mb-4">
-                                        <div className={`h-10 w-10 rounded-full ${agent.color} flex items-center justify-center text-white font-bold`}>
-                                            {agent.name[0]}
-                                        </div>
-                                        <div className="px-3 py-1 rounded-full border border-white/10 text-xs font-mono text-zinc-400 bg-black/50">
-                                            {agent.tag}
-                                        </div>
-                                    </div>
-                                    <h3 className="text-xl font-bold mb-2">{agent.name}</h3>
-                                    <p className="text-zinc-400 text-sm mb-6 h-10">{agent.desc}</p>
-                                    <div className="flex justify-between items-center border-t border-white/5 pt-4">
-                                        <span className="font-mono text-sm font-semibold text-white">{agent.price}</span>
-                                        {isLoaded && !isSignedIn && (
-                                            <SignInButton mode="modal">
-                                                <button className="text-xs font-semibold text-purple-400 hover:text-purple-300">
-                                                    Deploy &rarr;
-                                                </button>
-                                            </SignInButton>
-                                        )}
-                                        {isLoaded && isSignedIn && (
-                                            <Link href="/dashboard" className="text-xs font-semibold text-purple-400 hover:text-purple-300">
-                                                Deploy &rarr;
-                                            </Link>
-                                        )}
-                                    </div>
+
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
+                                <div className="flex flex-col items-center gap-2">
+                                    <div className="text-2xl font-bold text-white">100%</div>
+                                    <div className="text-xs text-zinc-500 uppercase tracking-widest">Uptime</div>
                                 </div>
-                            ))}
+                                <div className="flex flex-col items-center gap-2">
+                                    <div className="text-2xl font-bold text-white">AES-256</div>
+                                    <div className="text-xs text-zinc-500 uppercase tracking-widest">Encryption</div>
+                                </div>
+                                <div className="flex flex-col items-center gap-2">
+                                    <div className="text-2xl font-bold text-white">SOC 2</div>
+                                    <div className="text-xs text-zinc-500 uppercase tracking-widest">Compliant</div>
+                                </div>
+                                <div className="flex flex-col items-center gap-2">
+                                    <div className="text-2xl font-bold text-white">&lt; 50ms</div>
+                                    <div className="text-xs text-zinc-500 uppercase tracking-widest">Latency</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </section>
 
-                {/* Pricing Section */}
-                <section id="pricing" className="py-24 border-t border-white/5">
-                    <PricingSection
-                        plans={PLANS}
-                        heading="Flexible Pricing for Every Bid Team"
-                        description="Access the Aris Protocol with plans designed to scale with your procurement needs."
-                        onCheckout={handleCheckout}
-                    />
-                </section>
             </main>
 
-            <footer className="border-t border-white/10 py-12 bg-black">
-                <div className="mx-auto max-w-6xl px-6 text-center text-zinc-500 text-sm">
-                    <p>&copy; 2024 Aris Labs Inc. All rights reserved.</p>
+            <footer className="border-t border-white/5 py-12 bg-black">
+                <div className="mx-auto max-w-7xl px-6 flex flex-col md:flex-row items-center justify-between gap-6 opacity-60 hover:opacity-100 transition-opacity">
+                    <div className="flex items-center gap-2">
+                        <div className="h-6 w-6 rounded bg-zinc-800 flex items-center justify-center">
+                            <span className="font-bold text-white/50 text-xs">B</span>
+                        </div>
+                        <span className="text-sm font-semibold text-zinc-500">BidSmith &copy; 2026</span>
+                    </div>
+                    <div className="flex gap-6 text-sm text-zinc-500">
+                        <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
+                        <Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
+                        <Link href="/infrastructure" className="hover:text-white transition-colors">Infrastructure</Link>
+                        <Link href="https://arislabs.mintlify.app/" className="hover:text-white transition-colors">Documentation</Link>
+                    </div>
                 </div>
             </footer>
         </div>

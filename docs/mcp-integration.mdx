@@ -1,0 +1,106 @@
+---
+title: "MCP Integration"
+sidebarTitle: "MCP Tools"
+description: "Exposing the RAG pipeline as Model Context Protocol (MCP) tools."
+---
+
+# MCP Integration
+
+The Aris RAG pipeline is fully compliant with the [Model Context Protocol (MCP)](https://modelcontextprotocol.io). This allows any MCP-enabled agent (Claude Desktop, internal agents) to utilize our vector stores and knowledge graphs as standard tools.
+
+## Tool Definitions
+
+We expose two primary tools via the MCP server: `retrieve_context` and `semantic_search`.
+
+<CodeGroup>
+  ```json retrieve_context (JSON-RPC)
+  {
+    "name": "retrieve_context",
+    "description": "Retrieves high-precision context for answering a user query using Hybrid Search and RRF.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "The user's natural language query."
+        },
+        "filters": {
+          "type": "object",
+          "description": "Metadata filters (e.g., source, author, date range).",
+          "properties": {
+            "source": { "type": "string" },
+            "tags": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "top_k": {
+          "type": "integer",
+          "description": "Number of chunks to retrieve (default: 10).",
+          "minimum": 1,
+          "maximum": 50
+        }
+      },
+      "required": ["query"]
+    }
+  }
+  ```
+
+  ```json semantic_search (JSON-RPC)
+  {
+    "name": "semantic_search",
+    "description": "Performs a raw vector similarity search without RRF or hybrid fusion. Use for exploration.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "vector_query": {
+          "type": "string",
+          "description": "The text to embed and search."
+        },
+        "threshold": {
+          "type": "number",
+          "description": "Minimum similarity score (0.0 to 1.0).",
+          "default": 0.7
+        }
+      },
+      "required": ["vector_query"]
+    }
+  }
+  ```
+</CodeGroup>
+
+## Server Implementation
+
+Our MCP server is built using the `mcp-python-sdk`. It connects to the configured vector database (Qdrant/Pinecone) and manages the `FastAPI` lifecycle.
+
+<Card title="MCP Server Lifecycle">
+  1.  **Initialize**: Connect to Vector DB and embedding model.
+  2.  **Expose Tools**: Register `retrieve_context` and `semantic_search` capabilities.
+  3.  **Handle Requests**: Validate JSON-RPC 2.0 requests.
+  4.  **Execute & Return**: Run the RAG pipeline and return `CallToolResult`.
+</Card>
+
+```python
+# Server-side implementation snippet
+@mcp.tool()
+async def retrieve_context(query: str, filters: dict = None, top_k: int = 10) -> str:
+    """
+    Executes the hybrid retrieval pipeline.
+    """
+    ctx.request_id = generate_uuid()
+    
+    # 1. Expand Query
+    expanded_query = await query_rewriter.rewrite(query)
+    
+    # 2. Retrieve
+    results = await retriever.hybrid_search(
+        query=expanded_query,
+        filters=filters,
+        k=top_k
+    )
+    
+    # 3. Format as Context String
+    return format_results(results)
+```
+
+<Note>
+  Ensure your MCP server has access to the same environment variables (OPENAI_API_KEY, VECTOR_DB_URL) as the main application.
+</Note>
