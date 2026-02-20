@@ -8,8 +8,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
     apiVersion: '2024-06-20',
 });
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL;
-if (!APP_URL) throw new Error("Missing NEXT_PUBLIC_APP_URL");
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://bidsmith.ai');
 
 export async function POST(req: NextRequest) {
     // 1. Authenticate

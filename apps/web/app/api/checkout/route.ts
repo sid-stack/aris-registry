@@ -7,8 +7,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
     typescript: true,
 });
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL;
-if (!APP_URL) throw new Error("Missing NEXT_PUBLIC_APP_URL");
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://bidsmith.ai');
 
 const PLANS: Record<string, { name: string; description: string; unit_amount: number; credits: number }> = {
     // Monthly plans
