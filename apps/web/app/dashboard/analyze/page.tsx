@@ -114,6 +114,7 @@ export default function AnalyzePage() {
         // Simulate extraction phase statuses before triggering the actual completion
         setTimeout(() => addStatus("[ARIS-1 Analyst]: Extracting raw text & constraints..."), 500);
         setTimeout(() => addStatus("[ARIS-3 Writer]: Drafting initial proposal sections..."), 1500);
+        setTimeout(() => addStatus("[ARIS-4 Critic]: Engaging Gemini 1.5 Pro for Compliance Audit..."), 3000);
 
         try {
             // Note: In a real app, you'd upload the file first to get an analysisId.

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { streamText, generateText } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 import { createAnthropic } from '@ai-sdk/anthropic';
+import { google } from '@ai-sdk/google';
 import { connectDB } from '@/lib/mongodb';
 import { Analysis, User } from '@/models';
 
@@ -129,11 +130,21 @@ export async function POST(req: NextRequest) {
         ${initialDraft.text}
         `;
 
-        const criticReview = await generateText({
-            model: anthropic('claude-3-5-sonnet-latest'),
-            system: 'You are ARIS-4, a strict Compliance Auditor.',
-            prompt: criticPrompt,
-        });
+        let criticReview;
+        try {
+            criticReview = await generateText({
+                model: google('gemini-1.5-pro'),
+                system: 'You are ARIS-4, a strict Compliance Auditor. Output exactly "COMPLIANT" or provide revisions.',
+                prompt: criticPrompt,
+            });
+        } catch (criticError) {
+            console.warn('[CORE] Gemini 1.5 Pro failed or timed out. Falling back to Gemini 1.5 Flash.', criticError);
+            criticReview = await generateText({
+                model: google('gemini-1.5-flash'),
+                system: 'You are ARIS-4, a strict Compliance Auditor. Output exactly "COMPLIANT" or provide revisions.',
+                prompt: criticPrompt,
+            });
+        }
 
         // Phase 3: The Refiner streams the final output to the user
         const refinerPrompt = `
