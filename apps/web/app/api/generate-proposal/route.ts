@@ -4,7 +4,7 @@ import { streamText, generateText } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { connectDB } from '@/lib/mongodb';
-import { Analysis } from '@/models';
+import { Analysis, User } from '@/models';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -39,13 +39,28 @@ export async function POST(req: NextRequest) {
     }
 
     try {
+        await connectDB();
         const { messages, prompt, analysisId, constraints, solicitationUrl, stream } = await req.json();
+
+        // --- CORE ENGINE CREDIT CHECK ---
+        if (!isHeadlessBot) {
+            const dbUser = await User.findOne({ clerkId: finalUserId });
+            if (!dbUser || dbUser.credits_balance <= 0) {
+                return NextResponse.json({ error: 'Insufficient Credits' }, { status: 402 });
+            }
+
+            // Deduct 1 credit (Atomic update)
+            await User.updateOne(
+                { clerkId: finalUserId },
+                { $inc: { credits_balance: -1 } }
+            );
+            console.log(`[CORE] Deducted 1 credit from ${finalUserId}. Remaining: ${dbUser.credits_balance - 1}`);
+        }
 
         // Ensure we have the necessary context from previous analysis if analysisId is provided
         // For backwards compatibility and testing, we also allow direct text requests
         let contextText = '';
         if (analysisId) {
-            await connectDB();
             const analysis = await Analysis.findOne({ _id: analysisId, clerkId: finalUserId });
             if (analysis) {
                 contextText = `
