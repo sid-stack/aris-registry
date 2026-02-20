@@ -3,13 +3,7 @@
  * Set AI_PROVIDER=gemini | openrouter | github in .env.local
  */
 
-const AI_PROVIDER = process.env.AI_PROVIDER ?? 'gemini';
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL;
-
-// Validation
-if (!APP_URL) {
-    throw new Error("NEXT_PUBLIC_APP_URL is not set. This is required for security headers.");
-}
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://bidsmith.ai';
 
 export interface AIResponse {
     text: string;
@@ -20,8 +14,8 @@ export async function askAI(
     primaryModel: string = 'google/gemini-2.5-flash',
     backupModel: string = 'anthropic/claude-3-haiku'
 ): Promise<string> {
-    const apiKey = process.env.OPENROUTER_API_KEY;
-    if (!apiKey) throw new Error('OPENROUTER_API_KEY is not set');
+    const apiKey = process.env.OPENROUTER_API_KEY || process.env.OPEN_ROUTER_KEY;
+    if (!apiKey) throw new Error('OPEN_ROUTER_KEY is not set in environment variables');
 
     // Attempt Primary Model
     try {
