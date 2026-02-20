@@ -24,7 +24,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     useEffect(() => {
         const loadCredits = async () => {
             try {
-                const data = await fetchWithAuth("/api/users/credits");
+                const data = await fetchWithAuth("/users/credits");
                 setCredits(data.credits_balance);
             } catch (err) {
                 console.error("Failed to load credits", err);

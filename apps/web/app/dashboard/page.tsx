@@ -25,7 +25,7 @@ export default function RegistryPage() {
                 // Determine if we are in dev/demo mode or real mode.
                 // For the purpose of this redesign, we'll fetch real data but fallback to gorgeous dummy data if empty/fails 
                 // to ensure the user sees the design impact immediately (common in dev cycles).
-                const data = await fetchWithAuth("/api/registry/");
+                const data = await fetchWithAuth("/registry/");
                 if (data && data.length > 0) {
                     setAgents(data);
                 } else {
