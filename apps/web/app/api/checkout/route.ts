@@ -2,7 +2,9 @@ import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { auth, currentUser } from '@clerk/nextjs/server';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+const STRIPE_SECRET = process.env.STRIPE_SECRET_KEY ? process.env.STRIPE_SECRET_KEY.replace(/['"]/g, '') : '';
+
+const stripe = new Stripe(STRIPE_SECRET, {
     apiVersion: '2024-06-20',
     typescript: true,
 });
@@ -81,7 +83,7 @@ export async function POST(req: Request) {
             mode: 'payment',
             success_url: `${APP_URL}/dashboard/payment/success?session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${APP_URL}/dashboard/billing?canceled=true`,
-            customer_email: user.emailAddresses[0]?.emailAddress,
+            customer_email: user.emailAddresses?.[0]?.emailAddress,
             metadata: {
                 clerk_user_id: userId,
                 plan_id: planKey,

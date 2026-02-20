@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, Server, ShieldCheck, Database } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useApiClient } from "@/lib/api-client";
+import { useSession } from "@clerk/nextjs";
 
 type SyncState = 'START' | 'POLLING' | 'SUCCESS' | 'TIMEOUT';
 
@@ -31,6 +32,7 @@ function SyncContent() {
     const searchParams = useSearchParams();
     const sessionId = searchParams.get("session_id");
     const { fetchWithAuth } = useApiClient();
+    const { session } = useSession();
 
     const [state, setState] = useState<SyncState>('START');
     const [logs, setLogs] = useState<string[]>([]);
@@ -80,6 +82,19 @@ function SyncContent() {
                     addLog("> Updating MongoDB user record.......... [SYNCED]");
                     addLog("> [SYSTEM]: Integrity Check Passed. Welcome.");
 
+                    // FAANG CRITICAL FIX: The Edge Middleware reads from the JWT. 
+                    // We MUST force the client to fetch a fresh JWT containing the new credits
+                    // before redirecting, otherwise the Bouncer will loop them back here.
+                    addLog("> Refreshing Secure Token............. [PENDING]");
+                    if (session) {
+                        try {
+                            await session.reload();
+                            addLog("> Secure Token Refreshed.............. [OK]");
+                        } catch (e) {
+                            console.error("Failed to reload session", e);
+                        }
+                    }
+
                     // Play Audio
                     try {
                         audioRef.current?.play();
@@ -90,11 +105,10 @@ function SyncContent() {
                     // Pre-fetch
                     router.prefetch('/dashboard/analyze');
 
-                    // Zoom into dashboard after 2.5 seconds
+                    // Zoom into dashboard after 3.5 seconds
                     setTimeout(() => {
-                        // Force a hard reload to ensure Clerk JWT updates are caught by middleware
                         window.location.href = '/dashboard/analyze';
-                    }, 2500);
+                    }, 3500);
                     return; // Early return to prevent timeout check in the same tick
                 }
             } catch (err) {
@@ -109,7 +123,7 @@ function SyncContent() {
         }, 1500);
 
         return () => clearInterval(timer);
-    }, [state, router, fetchWithAuth]);
+    }, [state, router, fetchWithAuth, session]);
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-black text-white p-4 overflow-hidden relative">

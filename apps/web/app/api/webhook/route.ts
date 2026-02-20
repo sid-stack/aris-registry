@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+const STRIPE_SECRET = process.env.STRIPE_SECRET_KEY ? process.env.STRIPE_SECRET_KEY.replace(/['"]/g, '') : '';
+
+const stripe = new Stripe(STRIPE_SECRET, {
     apiVersion: '2024-06-20',
 });
 
-const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET!;
+const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET ? process.env.STRIPE_WEBHOOK_SECRET.replace(/['"]/g, '') : '';
 const API_BASE = process.env.RENDER_API_URL || 'https://aris-registry.onrender.com';
 const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET!;
 
