@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-        const { messages, analysisId, constraints } = await req.json();
+        const { messages, prompt, analysisId, constraints } = await req.json();
 
         // Ensure we have the necessary context from previous analysis if analysisId is provided
         // For backwards compatibility and testing, we also allow direct text requests
@@ -37,7 +37,6 @@ export async function POST(req: NextRequest) {
             if (analysis) {
                 contextText = `
                 RFP Project Title: ${analysis.projectTitle}
-                RFP Project Title: ${analysis.projectTitle}
                 Original RFP Text: ${(analysis as any).rawText?.substring(0, 10000)}... // Truncated for context
                 Extracted Requirements: ${JSON.stringify((analysis as any).requirements)}
                 Extracted FAR Clauses: ${JSON.stringify((analysis as any).farClauses)}
@@ -45,8 +44,10 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        // Get the last user message to understand the immediate request
-        const lastUserMessage = messages[messages.length - 1]?.content || 'Generate a standard proposal draft.';
+        // Handle both useChat (messages) and useCompletion (prompt) payloads safely
+        const lastUserMessage = messages && messages.length > 0
+            ? messages[messages.length - 1]?.content
+            : (prompt || 'Generate a standard proposal draft.');
 
         // --- THE "RESEARCHER-CRITIC-WRITER" LOOP ---
 
