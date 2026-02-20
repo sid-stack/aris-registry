@@ -109,126 +109,108 @@ export async function POST(req: NextRequest) {
 
         // Let's implement the internal Loop first (Synchronous for the server, but fast):
 
-        const initialDraft = await generateText({
-            model: openai('gpt-4o'),
-            system: 'You are ARIS-3, an elite government Proposal Writer.',
-            prompt: writerPrompt,
-        });
+        let result;
 
-        // Phase 2: The Critic (Claude 3.5 Sonnet) reviews the draft
-        const criticPrompt = `
-        You are ARIS-4, a strict Government Compliance Critic.
-        Review the following proposal draft against the original RFP context.
-        Identify any missing compliance requirements or major weaknesses.
-        If it is perfect, simply output "COMPLIANT".
-        Otherwise, list the specific revisions required.
-        
-        Original Context:
-        ${contextText}
-        
-        Draft to Evaluate:
-        ${initialDraft.text}
-        `;
-
-        let criticReview;
         try {
-            criticReview = await generateText({
-                model: google('gemini-1.5-pro'),
-                system: 'You are ARIS-4, a strict Compliance Auditor. Output exactly "COMPLIANT" or provide revisions.',
-                prompt: criticPrompt,
+            // First attempt with the elite Hybrid Engine
+            const initialDraft = await generateText({
+                model: openai('gpt-4o'),
+                system: 'You are ARIS-3, an elite government Proposal Writer.',
+                prompt: writerPrompt,
             });
-        } catch (criticError) {
-            console.warn('[CORE] Gemini 1.5 Pro failed or timed out. Falling back to Gemini 1.5 Flash.', criticError);
-            criticReview = await generateText({
-                model: google('gemini-1.5-flash'),
-                system: 'You are ARIS-4, a strict Compliance Auditor. Output exactly "COMPLIANT" or provide revisions.',
-                prompt: criticPrompt,
+
+            // Phase 2: The Critic (Gemini 1.5 Pro)
+            const criticPrompt = `
+            You are ARIS-4, a strict Government Compliance Critic.
+            Review the following proposal draft against the original RFP context.
+            Identify any missing compliance requirements or major weaknesses.
+            If it is perfect, simply output "COMPLIANT".
+            Otherwise, list the specific revisions required.
+            
+            Original Context:
+            ${contextText}
+            
+            Draft to Evaluate:
+            ${initialDraft.text}
+            `;
+
+            let criticReview;
+            try {
+                criticReview = await generateText({
+                    model: google('gemini-1.5-pro'),
+                    system: 'You are ARIS-4, a strict Compliance Auditor. Output exactly "COMPLIANT" or provide revisions.',
+                    prompt: criticPrompt,
+                });
+            } catch (criticError) {
+                console.warn('[CORE] Gemini 1.5 Pro failed or timed out. Falling back to Gemini 1.5 Flash.', criticError);
+                criticReview = await generateText({
+                    model: google('gemini-1.5-flash'),
+                    system: 'You are ARIS-4, a strict Compliance Auditor. Output exactly "COMPLIANT" or provide revisions.',
+                    prompt: criticPrompt,
+                });
+            }
+
+            // Phase 3: The Refiner streams the final output to the user
+            const refinerPrompt = `
+            You are ARIS-3 (Writer/Refiner). 
+            You previously wrote a draft proposal. Your Compliance Critic reviewed it and left the following feedback:
+            
+            Critic Feedback:
+            ${criticReview.text}
+            
+            Original Draft:
+            ${initialDraft.text}
+            
+            Instructions:
+            If the Critic said "COMPLIANT", just cleanly rewrite the original draft for final polish.
+            If the Critic provided revisions, implement those revisions exactly and produce the final, compliant proposal section.
+            
+            Format beautifully in Markdown.
+            `;
+
+            result = await streamText({
+                model: openai('gpt-4o'),
+                system: 'You are an elite Proposal Refiner producing the final, compliant draft for the user.',
+                prompt: refinerPrompt,
             });
-        }
 
-        // Phase 3: The Refiner streams the final output to the user
-        const refinerPrompt = `
-        You are ARIS-3 (Writer/Refiner). 
-        You previously wrote a draft proposal. Your Compliance Critic reviewed it and left the following feedback:
-        
-        Critic Feedback:
-        ${criticReview.text}
-        
-        Original Draft:
-        ${initialDraft.text}
-        
-        Instructions:
-        If the Critic said "COMPLIANT", just cleanly rewrite the original draft for final polish.
-        If the Critic provided revisions, implement those revisions exactly and produce the final, compliant proposal section.
-        
-        Format beautifully in Markdown.
-        `;
-
-        const result = await streamText({
-            model: openai('gpt-4o'),
-            system: 'You are an elite Proposal Refiner producing the final, compliant draft for the user.',
-            prompt: refinerPrompt,
-            // Send custom metadata stream parts at the end
-            onFinish({ text, toolCalls, toolResults, finishReason, usage }) {
-                // Here we calculate a rough compliance score based on the critic's severity
-                let score = 95;
-                if (criticReview.text.includes('COMPLIANT')) {
-                    score = 100;
-                } else if (criticReview.text.length > 500) {
-                    score = 85; // Heavy revisions needed
+            return result.toTextStreamResponse({
+                headers: {
+                    'Aris-Critic-Feedback': encodeURIComponent(criticReview.text.substring(0, 100))
                 }
+            });
 
-                // We cannot append to the stream directly after finish in Next.js Response easily without custom encoding,
-                // but the Vercel AI SDK automatically sends usage data. 
-                // We will append a JSON block to the text stream itself for the frontend to parse.
-                // A better approach in modern AI SDK is using custom stream data, but appending text is highly reliable.
-            }
-        });
+        } catch (eliteEngineError) {
+            console.warn('[CORE] Elite Hybrid Engine failed (OpenAI/Gemini Pro). Executing Global Failover to Gemini 1.5 Flash.', eliteEngineError);
 
-        if (stream === false) {
-            // For n8n HTTP Request Nodes waiting for the full JSON response
-            const fullText = await result.text;
-            let finalScore = 95;
-            if (criticReview.text.includes('COMPLIANT')) finalScore = 100;
-            else if (criticReview.text.length > 500) finalScore = 85;
+            // EMERGENCY FALLBACK: Direct to Gemini 1.5 Flash to guarantee delivery
+            const fallbackPrompt = `
+            You are ARIS-Labs Emergency Utility Agent.
+            Draft a high-quality, persuasive proposal section based on the following RFP data and constraints.
+            Adhere strictly to standard federal procurement guidelines and output compliant Markdown.
+            
+            Context:
+            ${contextText}
+            
+            User Request:
+            ${lastUserMessage}
+            
+            Constraints:
+            ${constraints || 'Adhere strictly to standard federal procurement guidelines.'}
+            `;
 
-            return NextResponse.json({
-                text: fullText,
-                compliance_score: finalScore.toString(),
-                critic_notes: criticReview.text.substring(0, 150)
+            result = await streamText({
+                model: google('gemini-1.5-flash'),
+                system: 'You are an elite Proposal Refiner producing a final, compliant draft for the user.',
+                prompt: fallbackPrompt,
+            });
+
+            return result.toTextStreamResponse({
+                headers: {
+                    'Aris-Critic-Feedback': encodeURIComponent('Failover active. Processed directly via Gemini 1.5 Flash.')
+                }
             });
         }
-
-        // Append the compliance score and critic notes to the end of the text stream 
-        // so the frontend can easily parse it out.
-        const customDataString = `\n\n\`\`\`json
-{
-  "compliance_score": "${criticReview.text.includes('COMPLIANT') ? '100' : '92'}",
-  "critic_notes": "ARIS-4 Review Completed. ${criticReview.text.includes('COMPLIANT') ? 'No issues found.' : 'Revisions applied.'}"
-}
-\`\`\``;
-
-        const finalTransform = new TransformStream({
-            transform(chunk, controller) {
-                // Pass through chunks
-                controller.enqueue(chunk);
-            },
-            flush(controller) {
-                // Flush the custom JSON metadata at the very end
-                const encoder = new TextEncoder();
-                controller.enqueue(encoder.encode(customDataString));
-            }
-        });
-
-        // Note: NextRequest does not support returning a piped stream directly from generic streamText Response body 
-        // without some wrangling in App Router. The easiest way is to use `result.toDataStreamResponse()`.
-
-        // We will use standard `toTextStreamResponse()`
-        return result.toTextStreamResponse({
-            headers: {
-                'Aris-Critic-Feedback': encodeURIComponent(criticReview.text.substring(0, 100))
-            }
-        });
 
     } catch (error: any) {
         console.error('Proposal Generation Error:', error);
