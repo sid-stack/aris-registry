@@ -3,14 +3,17 @@ import { useState } from "react";
 import { useApiClient } from "@/lib/api-client";
 import { Upload, FileText, AlertCircle, CheckCircle, Loader2 } from "lucide-react";
 import { ComplianceReport } from "@/components/ComplianceReport";
+import ComplianceMatrix from "@/components/ComplianceMatrix";
 
 export default function AnalyzePage() {
     const { fetchWithAuth } = useApiClient();
     const [file, setFile] = useState<File | null>(null);
+    const [samUrl, setSamUrl] = useState<string>("");
     const [constraints, setConstraints] = useState("");
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [result, setResult] = useState<string | null>(null);
     const [compliance, setCompliance] = useState<any | null>(null);
+    const [complianceMatrix, setComplianceMatrix] = useState<any[]>([]);
     const [error, setError] = useState<string | null>(null);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -21,14 +24,16 @@ export default function AnalyzePage() {
     };
 
     const handleAnalyze = async () => {
-        if (!file) return;
+        if (!file && !samUrl) return;
         setIsAnalyzing(true);
         setError(null);
         setResult(null);
         setCompliance(null);
+        setComplianceMatrix([]);
 
         const formData = new FormData();
-        formData.append("file", file);
+        if (file) formData.append("file", file);
+        if (samUrl) formData.append("samUrl", samUrl);
         formData.append("constraints", constraints);
 
         try {
@@ -42,6 +47,9 @@ export default function AnalyzePage() {
             setResult(response.result.ai_analysis);
             if (response.compliance_report) {
                 setCompliance(response.compliance_report);
+            }
+            if (response.complianceMatrix) {
+                setComplianceMatrix(response.complianceMatrix);
             }
 
         } catch (err: any) {
@@ -86,6 +94,26 @@ export default function AnalyzePage() {
                             </label>
                         </div>
 
+                        <div className="flex items-center gap-4">
+                            <hr className="flex-1 border-zinc-800" />
+                            <span className="text-zinc-500 text-xs font-medium uppercase">OR</span>
+                            <hr className="flex-1 border-zinc-800" />
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="block text-sm font-medium text-zinc-300">Paste SAM.gov Link</label>
+                            <input
+                                type="text"
+                                placeholder="https://sam.gov/opp/..."
+                                value={samUrl}
+                                onChange={(e) => {
+                                    setSamUrl(e.target.value);
+                                    if (e.target.value) setFile(null); // Clear file if typing URL
+                                }}
+                                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm focus:ring-2 focus:ring-emerald-500/50 focus:border-transparent"
+                            />
+                        </div>
+
                         <label className="block text-sm font-medium text-zinc-300">2. Constraints / Context</label>
                         <textarea
                             value={constraints}
@@ -95,11 +123,11 @@ export default function AnalyzePage() {
                         />
 
                         <button
-                            disabled={!file || isAnalyzing}
+                            disabled={(!file && !samUrl) || isAnalyzing}
                             onClick={handleAnalyze}
                             className={`
                                 w-full py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all
-                                ${!file || isAnalyzing
+                                ${(!file && !samUrl) || isAnalyzing
                                     ? "bg-zinc-800 text-zinc-500 cursor-not-allowed"
                                     : "bg-white text-black hover:bg-zinc-200"}
                             `}
@@ -132,6 +160,9 @@ export default function AnalyzePage() {
                             findings={compliance.findings}
                         />
                     )}
+
+                    {/* Extracted Compliance Matrix */}
+                    <ComplianceMatrix items={complianceMatrix} />
 
                     <div className="min-h-[500px] rounded-xl border border-white/10 bg-zinc-900/20 p-8 relative">
                         {!result ? (

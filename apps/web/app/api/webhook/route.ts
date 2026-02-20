@@ -6,7 +6,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 });
 
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET!;
-const API_BASE = process.env.RENDER_API_URL || 'http://localhost:8000';
+const API_BASE = process.env.RENDER_API_URL || 'https://aris-registry.onrender.com';
 const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET!;
 
 export async function POST(req: NextRequest) {

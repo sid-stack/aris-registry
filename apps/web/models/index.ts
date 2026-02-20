@@ -4,7 +4,8 @@ import mongoose, { Schema, Document, Model } from 'mongoose';
 export interface IUser extends Document {
     clerkId: string;
     email: string;
-    credits: number;                        // Balance (starts at 5)
+    credits: number;                        // DEPRECATED: Use credits_balance
+    credits_balance: number;                // Unified specific balance (aligned with Python)
     isPro: boolean;
     analysesUsed: number;                   // Lifecycle counter
     processedStripeSessionIds: string[];    // Idempotency: track processed Stripe sessions
@@ -17,6 +18,7 @@ const UserSchema = new Schema<IUser>(
         clerkId: { type: String, required: true, unique: true, index: true },
         email: { type: String, required: true },
         credits: { type: Number, default: 5 },
+        credits_balance: { type: Number, default: 5 }, // Start with 5 trial credits
         isPro: { type: Boolean, default: false },
         analysesUsed: { type: Number, default: 0 },
         processedStripeSessionIds: { type: [String], default: [] },
@@ -37,7 +39,8 @@ export interface IAnalysis extends Document {
     setAside: string;
     estValue: string;
     deadline: string;
-    complianceItems: string[];
+    complianceMatrix: { section: string; requirement: string; description: string }[];
+    deliverables: string[];
 
     // ARIS-2: Strategic Analyst
     winThemes: string[];
@@ -69,7 +72,14 @@ const AnalysisSchema = new Schema<IAnalysis>(
         setAside: { type: String, default: 'None' },
         estValue: { type: String, default: 'TBD' },
         deadline: { type: String, default: 'TBD' },
-        complianceItems: [{ type: String }],
+        complianceMatrix: [
+            {
+                section: { type: String },
+                requirement: { type: String },
+                description: { type: String },
+            },
+        ],
+        deliverables: [{ type: String }],
 
         winThemes: [{ type: String }],
         keyRisks: [{ type: String }],

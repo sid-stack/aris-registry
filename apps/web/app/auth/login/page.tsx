@@ -9,7 +9,8 @@ export default function LoginPage() {
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const router = useRouter();
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL;
+    if (!API_BASE) throw new Error("Missing NEXT_PUBLIC_API_URL");
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();

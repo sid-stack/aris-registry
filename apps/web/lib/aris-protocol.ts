@@ -7,9 +7,15 @@
  * ARIS-4: Proposal Architect       → full proposal draft (Pro, $0.99)
  */
 
-import { generateText } from './ai-client';
+import { askAI } from './ai-client';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
+
+export interface ComplianceItem {
+    section: string;
+    requirement: string;
+    description: string;
+}
 
 export interface Aris1Output {
     isValidRfp: boolean;
@@ -20,7 +26,8 @@ export interface Aris1Output {
     setAside: string;
     estValue: string;
     deadline: string;
-    complianceItems: string[];
+    complianceMatrix: ComplianceItem[];
+    deliverables: string[];
 }
 
 export interface Aris2Output {
@@ -77,7 +84,14 @@ If VALID, return this exact JSON:
   "setAside": "string (e.g. 'Small Business', '8(a)', 'WOSB', 'None')",
   "estValue": "string (e.g. '$1M–$2M' or 'TBD')",
   "deadline": "string (YYYY-MM-DD or 'TBD')",
-  "complianceItems": ["string", "string", "..."] (up to 10 key requirements)
+  "complianceMatrix": [
+    {
+      "section": "string (e.g. 'Section L', 'Section M', 'Performance Work Statement')",
+      "requirement": "string (short title or ID)",
+      "description": "string (detailed description of what is required)"
+    }
+  ] (Extract explicitly from Section L (Instructions to Offerors) and Section M (Evaluation Criteria)),
+  "deliverables": ["string", "string", "..."] (Extract specific deliverable requirements or output formats)
 }
 
 If INVALID, return:
@@ -90,7 +104,8 @@ If INVALID, return:
   "setAside": "N/A",
   "estValue": "N/A",
   "deadline": "N/A",
-  "complianceItems": []
+  "complianceMatrix": [],
+  "deliverables": []
 }
 
 Return ONLY raw JSON. No markdown, no explanation.
@@ -99,13 +114,14 @@ DOCUMENT (first 25,000 chars):
 ${pdfText.slice(0, 25000)}
 `.trim();
 
-    const raw = await generateText(prompt);
+    const raw = await askAI(prompt, 'google/gemini-2.0-flash-exp:free', 'anthropic/claude-3-haiku');
     return parseJson<Aris1Output>(raw, {
         isValidRfp: false,
         rejectionReason: 'Failed to parse AI response.',
         projectTitle: 'N/A', agency: 'N/A', naicsCode: 'N/A',
         setAside: 'N/A', estValue: 'N/A', deadline: 'N/A',
-        complianceItems: [],
+        complianceMatrix: [],
+        deliverables: []
     });
 }
 
@@ -115,13 +131,13 @@ export async function aris2_analyze(pdfText: string, extraction: Aris1Output): P
     const prompt = `
 You are ARIS-2, an elite Government Contracting Strategic Analyst.
 
-Given this RFP intelligence brief:
+    Given this RFP intelligence brief:
 - Project: ${extraction.projectTitle}
 - Agency: ${extraction.agency}
 - Value: ${extraction.estValue}
 - NAICS: ${extraction.naicsCode}
 - Set-Aside: ${extraction.setAside}
-- Key Requirements: ${extraction.complianceItems.join('; ')}
+- Key Requirements: ${extraction.complianceMatrix.map(req => req.requirement).join('; ')}
 
 And the full document text (first 20,000 chars):
 ${pdfText.slice(0, 20000)}
@@ -136,7 +152,7 @@ Return this exact JSON:
 Return ONLY raw JSON. No markdown, no explanation.
 `.trim();
 
-    const raw = await generateText(prompt);
+    const raw = await askAI(prompt, 'openai/gpt-4o', 'anthropic/claude-3.5-sonnet');
     return parseJson<Aris2Output>(raw, {
         winThemes: ['Technical excellence', 'Past performance', 'Cost efficiency'],
         keyRisks: ['Tight deadline', 'Complex compliance requirements'],
@@ -150,14 +166,14 @@ export async function aris3_score(extraction: Aris1Output, strategy: Aris2Output
     const prompt = `
 You are ARIS-3, a Government Contracting Win Probability Scorer.
 
-Score this opportunity based on:
+    Score this opportunity based on:
 - Project: ${extraction.projectTitle}
 - Agency: ${extraction.agency}
 - Value: ${extraction.estValue}
 - Set-Aside: ${extraction.setAside}
 - Win Themes: ${strategy.winThemes.join(', ')}
 - Key Risks: ${strategy.keyRisks.join(', ')}
-- Compliance Items: ${extraction.complianceItems.length} requirements identified
+- Compliance Items: ${extraction.complianceMatrix.length} requirements identified
 
 Consider: contract size, set-aside favorability, number of compliance requirements,
 agency familiarity, and strategic alignment.
@@ -172,7 +188,7 @@ winScore is an integer 0–100. matchScore is the same value expressed as X.X/10
 Return ONLY raw JSON. No markdown, no explanation.
 `.trim();
 
-    const raw = await generateText(prompt);
+    const raw = await askAI(prompt, 'openai/gpt-4o', 'anthropic/claude-3.5-sonnet');
     return parseJson<Aris3Output>(raw, { winScore: 50, matchScore: '5.0/10' });
 }
 
@@ -193,13 +209,13 @@ PROJECT INTELLIGENCE:
 - Set-Aside: ${extraction.setAside}
 - Win Score: ${score.winScore}/100
 
-STRATEGIC DIRECTION:
+    STRATEGIC DIRECTION:
 - Win Themes: ${strategy.winThemes.join('; ')}
 - Key Risks to Address: ${strategy.keyRisks.join('; ')}
 - Executive Briefing: ${strategy.execBriefing}
 
 COMPLIANCE REQUIREMENTS:
-${extraction.complianceItems.map((item, i) => `${i + 1}. ${item}`).join('\n')}
+${extraction.complianceMatrix.map((item, i) => `${i + 1}. [${item.section}] ${item.requirement}: ${item.description}`).join('\n')}
 
 ORIGINAL RFP (first 15,000 chars for context):
 ${pdfText.slice(0, 15000)}
@@ -215,7 +231,7 @@ Use professional GovCon language. Address each compliance item. Emphasize the wi
 Return the full proposal as plain text with markdown headers (##).
 `.trim();
 
-    const draft = await generateText(prompt);
+    const draft = await askAI(prompt, 'anthropic/claude-3.5-sonnet', 'openai/gpt-4o-2024-08-06');
     return { proposalDraft: draft };
 }
 

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, CheckCircle2, Shield, Lock, Cpu, DollarSign, Menu, X, FileText, Zap } from "lucide-react";
 import { SignInButton, SignedIn, SignedOut, useUser } from "@clerk/nextjs";
 import { motion, AnimatePresence } from "framer-motion";
+import AgentRegistry from "@/components/AgentRegistry";
 
 export default function Home() {
     const { isLoaded, isSignedIn } = useUser();
@@ -97,7 +98,7 @@ export default function Home() {
                 </AnimatePresence>
             </header>
 
-            <main className="flex-1">
+            <main className="flex-1 px-4 py-8 md:px-12 md:py-16">
                 {/* Hero Section */}
                 <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 px-6 overflow-hidden">
                     {/* Background Gradients */}
@@ -118,7 +119,7 @@ export default function Home() {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.5, delay: 0.1 }}
-                            className="text-5xl md:text-7xl font-bold tracking-tight text-white pb-2 leading-[1.1] group cursor-default"
+                            className="text-2xl md:text-4xl lg:text-5xl font-bold tracking-tight text-white pb-2 leading-[1.1] group cursor-default"
                         >
                             <span className="transition-colors duration-300 group-hover:text-emerald-200">Stop Formatting. Start Winning.</span> <br />
                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400 transition-all duration-500 group-hover:from-emerald-300 group-hover:to-cyan-300 group-hover:drop-shadow-[0_0_10px_rgba(52,211,153,0.5)]">
@@ -186,11 +187,18 @@ export default function Home() {
                     </div>
                 </section>
 
+                {/* Embedded Agent Registry */}
+                <section id="registry" className="py-24 border-t border-white/5 bg-zinc-900/30">
+                    <div className="mx-auto max-w-7xl px-6">
+                        <AgentRegistry />
+                    </div>
+                </section>
+
                 {/* Agentic Workflow Bento Grid */}
                 <section id="how-it-works" className="py-24 border-t border-white/5 bg-zinc-950/50">
                     <div className="mx-auto max-w-7xl px-6">
                         <div className="mb-16">
-                            <h2 className="text-3xl font-bold mb-4">Work-as-a-Service.</h2>
+                            <h2 className="text-2xl md:text-4xl lg:text-5xl font-bold mb-4">Work-as-a-Service.</h2>
                             <p className="text-zinc-400 max-w-xl">You aren&apos;t buying software. You&apos;re hiring a digital employee swarm that works while you sleep.</p>
                         </div>
 
@@ -268,7 +276,7 @@ export default function Home() {
                                 ARIS_PROTOCOL_SECURE_CONNECTION_ESTABLISHED
                             </div>
 
-                            <h2 className="text-3xl md:text-4xl font-bold mb-6">Enterprise-Grade by Default.</h2>
+                            <h2 className="text-2xl md:text-4xl lg:text-5xl font-bold mb-6">Enterprise-Grade by Default.</h2>
                             <p className="text-zinc-400 max-w-2xl mx-auto mb-10 text-lg">
                                 BidSmith isn&apos;t a thin wrapper. It runs on the ARIS Network—a decentralized Model Context Protocol (MCP) gateway. This means military-grade data routing, mathematically verifiable session tokens, and zero hallucinations.
                             </p>
@@ -297,19 +305,24 @@ export default function Home() {
 
             </main>
 
-            <footer className="border-t border-white/5 py-12 bg-black">
+            <footer className="border-t border-zinc-800 py-12 bg-black text-zinc-500 text-xs">
                 <div className="mx-auto max-w-7xl px-6 flex flex-col md:flex-row items-center justify-between gap-6 opacity-60 hover:opacity-100 transition-opacity">
-                    <div className="flex items-center gap-2">
-                        <div className="h-6 w-6 rounded bg-zinc-800 flex items-center justify-center">
-                            <span className="font-bold text-white/50 text-xs">B</span>
+                    <div className="flex flex-col md:flex-row items-center gap-4">
+                        <div className="flex items-center gap-2">
+                            <div className="h-6 w-6 rounded bg-zinc-800 flex items-center justify-center">
+                                <span className="font-bold text-white/50 text-[10px]">B</span>
+                            </div>
+                            <span className="font-semibold">&copy; 2026 BidSmith AI. All rights reserved.</span>
                         </div>
-                        <span className="text-sm font-semibold text-zinc-500">BidSmith &copy; 2026</span>
+                        <span className="hidden md:inline text-zinc-700">|</span>
+                        <Link href="/infrastructure" className="flex items-center gap-1.5 hover:text-white transition-colors">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            Powered by Aris Protocol
+                        </Link>
                     </div>
-                    <div className="flex gap-6 text-sm text-zinc-500">
-                        <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
-                        <Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
-                        <Link href="/infrastructure" className="hover:text-white transition-colors">Infrastructure</Link>
-                        <Link href="https://arislabs.mintlify.app/" className="hover:text-white transition-colors">Documentation</Link>
+                    <div className="flex gap-6">
+                        <Link href="/terms" className="hover:text-white transition-colors">Terms</Link>
+                        <Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link>
                     </div>
                 </div>
             </footer>

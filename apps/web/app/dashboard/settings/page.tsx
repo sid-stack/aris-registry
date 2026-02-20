@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL;
+if (!API_BASE) throw new Error("Missing NEXT_PUBLIC_API_URL");
 
 export default function SettingsPage() {
     const [user, setUser] = useState<{

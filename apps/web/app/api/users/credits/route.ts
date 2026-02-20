@@ -28,7 +28,8 @@ export async function GET() {
         }
 
         return NextResponse.json({
-            credits: dbUser.credits,
+            credits_balance: dbUser.credits_balance ?? dbUser.credits ?? 0,
+            credits: dbUser.credits_balance ?? dbUser.credits ?? 0, // Fallback for frontend
             isPro: dbUser.isPro
         });
 

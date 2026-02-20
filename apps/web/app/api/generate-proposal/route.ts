@@ -8,7 +8,8 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
     apiVersion: '2024-06-20',
 });
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL;
+if (!APP_URL) throw new Error("Missing NEXT_PUBLIC_APP_URL");
 
 export async function POST(req: NextRequest) {
     // 1. Authenticate

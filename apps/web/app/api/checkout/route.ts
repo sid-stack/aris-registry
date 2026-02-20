@@ -7,7 +7,8 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
     typescript: true,
 });
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL;
+if (!APP_URL) throw new Error("Missing NEXT_PUBLIC_APP_URL");
 
 const PLANS: Record<string, { name: string; description: string; unit_amount: number; credits: number }> = {
     // Monthly plans
