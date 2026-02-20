@@ -46,6 +46,7 @@ def mock_db_fixture():
 def mock_stripe():
     with patch("stripe.PaymentIntent") as mock_pi:
         mock_pi.create = MagicMock()
+        mock_pi.create.return_value.capture_method = "manual"
         mock_pi.capture = MagicMock()
         mock_pi.cancel = MagicMock()
         yield mock_pi
@@ -67,7 +68,7 @@ def mock_upload():
 @pytest.mark.asyncio
 async def test_webhook_amount_capturable_updated(client, mock_db_fixture, mock_stripe_webhook):
     """
-    Mock construct_event and assert the database status updates to FUNDS_HELD.
+    Mock construct_event and assert the database status updates to AUTHORIZED.
     """
     # Payload simulating Stripe event
     mock_event = {
@@ -90,7 +91,7 @@ async def test_webhook_amount_capturable_updated(client, mock_db_fixture, mock_s
     query, update = call_args[0]
     
     assert query == {"intent_id": "pi_held_123"}
-    assert update["$set"]["status"] == "FUNDS_HELD"
+    assert update["$set"]["status"] == "AUTHORIZED"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 2. TEST ATOMIC DELIVERY SUCCESS (finalize_proposal)
@@ -219,4 +220,3 @@ async def test_cron_release_stale_holds(client, mock_db_fixture, mock_stripe):
     # query, update
     assert call_args[0][0]["_id"] == "prop_old_123"
     assert call_args[0][1]["$set"]["status"] == "CANCELLED_TIMEOUT"
-

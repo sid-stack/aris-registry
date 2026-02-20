@@ -12,13 +12,44 @@
     },
     "navigation": [
         {
+            "group": "Introduction",
+            "pages": [
+                "index",
+                "quickstart",
+                "concepts"
+            ]
+        },
+        {
             "group": "Advanced RAG",
             "pages": [
+                "agentic-rag",
                 "rag-architecture",
                 "mcp-integration",
                 "optimization",
-                "lifecycle-hooks",
-                "agentic-rag"
+                "lifecycle-hooks"
+            ]
+        },
+        {
+            "group": "Node Management",
+            "pages": [
+                "run-node",
+                "monitoring",
+                "scaling"
+            ]
+        },
+        {
+            "group": "Python SDK",
+            "pages": [
+                "python-sdk",
+                "advanced-usage",
+                "errors"
+            ]
+        },
+        {
+            "group": "API Reference",
+            "pages": [
+                "api-reference/handshake",
+                "api-reference/generate"
             ]
         }
     ],
