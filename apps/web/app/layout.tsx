@@ -12,12 +12,15 @@ export const metadata: Metadata = {
     description: 'Analyze RFPs, score win probability, and generate compliant proposal drafts. Powered by the Aris Protocol multi-agent network.',
 };
 
+import { Analytics } from '@vercel/analytics/react';
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (
         <ClerkProvider signInFallbackRedirectUrl="/dashboard">
             <html lang="en">
                 <body className={cn(inter.variable, firaCode.variable, 'bg-black text-white min-h-screen font-sans antialiased')}>
                     {children}
+                    <Analytics />
                 </body>
             </html>
         </ClerkProvider>
