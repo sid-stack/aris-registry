@@ -1,5 +1,5 @@
 /**
- * Aris Protocol — 4-Agent Orchestrator
+ * ARIS Labs — 4-Agent Orchestrator
  *
  * ARIS-1: Intelligence Extractor   → structured data from raw PDF text
  * ARIS-2: Strategic Analyst        → win themes, risks, executive briefing

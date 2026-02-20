@@ -29,10 +29,10 @@ export default function Home() {
                     <Link href="/" className="flex items-center gap-4 group">
                         <img
                             src="/logo.png"
-                            alt="BidSmith Logo"
+                            alt="ARIS Labs Logo"
                             className="h-16 w-16 object-contain drop-shadow-[0_0_10px_rgba(52,211,153,0.3)] group-hover:scale-105 transition-transform duration-300"
                         />
-                        <span className="font-bold text-2xl tracking-widest uppercase text-white group-hover:text-emerald-400 transition-colors">BidSmith</span>
+                        <span className="font-bold text-2xl tracking-widest uppercase text-white group-hover:text-emerald-400 transition-colors">ARIS Labs</span>
                     </Link>
 
                     {/* Desktop nav */}
@@ -133,7 +133,7 @@ export default function Home() {
                             transition={{ duration: 0.5, delay: 0.2 }}
                             className="text-lg md:text-xl text-zinc-400 max-w-2xl mx-auto leading-relaxed"
                         >
-                            BidSmith uses a swarm of specialized AI agents to ingest 100-page RFPs, cross-reference your past performance, and draft fully compliant technical volumes in minutes.
+                            ARIS Labs uses a swarm of specialized AI agents to ingest 100-page RFPs, cross-reference your past performance, and draft fully compliant technical volumes in minutes.
                         </motion.p>
 
                         <motion.div
@@ -238,7 +238,7 @@ export default function Home() {
                                 </div>
                                 <h3 className="text-xl font-bold mb-3 text-white">Swarm Orchestration</h3>
                                 <p className="text-zinc-400 leading-relaxed text-sm">
-                                    BidSmith deploys a dedicated compliance agent, a technical writer, and a pricing analyst that debate and construct your proposal collaboratively in real-time.
+                                    ARIS Labs deploys a dedicated compliance agent, a technical writer, and a pricing analyst that debate and construct your proposal collaboratively in real-time.
                                 </p>
                             </motion.div>
 
@@ -278,7 +278,7 @@ export default function Home() {
 
                             <h2 className="text-2xl md:text-4xl lg:text-5xl font-bold mb-6">Enterprise-Grade by Default.</h2>
                             <p className="text-zinc-400 max-w-2xl mx-auto mb-10 text-lg">
-                                BidSmith isn&apos;t a thin wrapper. It runs on the ARIS Network—a decentralized Model Context Protocol (MCP) gateway. This means military-grade data routing, mathematically verifiable session tokens, and zero hallucinations.
+                                ARIS Labs isn&apos;t a thin wrapper. It runs on the ARIS Network—a decentralized Model Context Protocol (MCP) gateway. This means military-grade data routing, mathematically verifiable session tokens, and zero hallucinations.
                             </p>
 
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
@@ -312,12 +312,12 @@ export default function Home() {
                             <div className="h-6 w-6 rounded bg-zinc-800 flex items-center justify-center">
                                 <span className="font-bold text-white/50 text-[10px]">B</span>
                             </div>
-                            <span className="font-semibold">&copy; 2026 BidSmith AI. All rights reserved.</span>
+                            <span className="font-semibold">&copy; 2026 ARIS Labs AI. All rights reserved.</span>
                         </div>
                         <span className="hidden md:inline text-zinc-700">|</span>
                         <Link href="/infrastructure" className="flex items-center gap-1.5 hover:text-white transition-colors">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                            Powered by Aris Protocol
+                            Powered by ARIS Labs
                         </Link>
                     </div>
                     <div className="flex gap-6">

@@ -155,7 +155,7 @@ export async function POST(req: NextRequest) {
     try {
         analysis = await runFullAnalysis(pdfText);
     } catch (e) {
-        console.error('Aris Protocol error:', e);
+        console.error('ARIS Labs error:', e);
         return NextResponse.json({ error: 'AI analysis failed. Please try again.' }, { status: 500 });
     }
 

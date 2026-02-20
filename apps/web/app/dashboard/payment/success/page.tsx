@@ -151,7 +151,7 @@ function SyncContent() {
                                 </div>
                                 <div className="flex gap-4">
                                     <button onClick={() => window.location.href = '/dashboard'} className="flex-1 py-3 bg-zinc-800 rounded-lg hover:bg-zinc-700 transition font-semibold hover:text-white text-zinc-300">Return Home</button>
-                                    <button onClick={() => window.location.href = 'mailto:support@bidsmith.pro'} className="flex-1 py-3 bg-white text-black font-semibold rounded-lg hover:bg-zinc-200 transition focus:ring-2 focus:ring-white/50 focus:outline-none">Contact Support</button>
+                                    <button onClick={() => window.location.href = 'mailto:support@arislabs.pro'} className="flex-1 py-3 bg-white text-black font-semibold rounded-lg hover:bg-zinc-200 transition focus:ring-2 focus:ring-white/50 focus:outline-none">Contact Support</button>
                                 </div>
                             </div>
                         ) : (

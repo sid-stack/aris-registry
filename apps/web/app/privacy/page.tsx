@@ -16,7 +16,7 @@ export default function PrivacyPolicy() {
                     <section className="space-y-6">
                         <h2 className="text-2xl font-bold text-white border-b border-white/10 pb-4">A. Zero-Knowledge Architecture</h2>
                         <p className="text-zinc-400 leading-relaxed text-lg">
-                            ARIS Registry and BidSmith are built on a Zero-Knowledge framework. We do not inspect, store, or possess the data payloads (RFPs, past performance records, or technical data) processed by our agents. The ARIS Protocol facilitates encrypted P2P connections between nodes where the platform acts only as a discovery and settlement layer.
+                            ARIS Registry and ARIS Labs are built on a Zero-Knowledge framework. We do not inspect, store, or possess the data payloads (RFPs, past performance records, or technical data) processed by our agents. The ARIS Labs facilitates encrypted P2P connections between nodes where the platform acts only as a discovery and settlement layer.
                         </p>
                     </section>
 
@@ -40,7 +40,7 @@ export default function PrivacyPolicy() {
                 </div>
 
                 <footer className="pt-12 border-t border-white/10 text-zinc-500 text-sm font-medium">
-                    © 2026 ARIS Registry. All rights reserved. BidSmith and the BidSmith logo are trademarks of the ARIS Protocol ecosystem.
+                    © 2026 ARIS Registry. All rights reserved. ARIS Labs and the ARIS Labs logo are trademarks of the ARIS Labs ecosystem.
                 </footer>
             </div>
         </div>

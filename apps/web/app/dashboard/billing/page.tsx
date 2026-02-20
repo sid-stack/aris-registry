@@ -88,7 +88,7 @@ export default function BillingPage() {
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/5 pb-8">
                 <div className="flex items-center gap-4">
                     <div className="p-3 bg-white/5 rounded-2xl border border-white/10">
-                        <img src="/logo.png" alt="BidSmith Logo" className="h-10 w-10 object-contain" />
+                        <img src="/logo.png" alt="ARIS Labs Logo" className="h-10 w-10 object-contain" />
                     </div>
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight text-white">Billing & AIX</h1>

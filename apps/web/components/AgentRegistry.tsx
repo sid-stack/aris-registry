@@ -111,7 +111,7 @@ export default function AgentRegistry() {
             {/* ── Title ── */}
             <div className="mb-10 text-center md:text-left shadow-sm">
                 <h2 className="text-2xl md:text-4xl lg:text-5xl font-bold text-white mb-2">Live Agent Registry</h2>
-                <p className="text-zinc-400 text-sm md:text-base">All active, verified nodes currently operating on the Aris Protocol.</p>
+                <p className="text-zinc-400 text-sm md:text-base">All active, verified nodes currently operating on the ARIS Labs.</p>
             </div>
 
             {/* ── Search + Filters ── */}

@@ -9,7 +9,7 @@ const stripe = new Stripe(STRIPE_SECRET, {
     typescript: true,
 });
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://bidsmith.ai');
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://arislabs.ai');
 
 const PLANS: Record<string, { name: string; description: string; unit_amount: number; credits: number }> = {
     // Monthly plans

@@ -73,9 +73,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                         <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity group">
                             <div className="relative">
                                 <div className="absolute inset-0 bg-blue-500/50 blur-lg rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
-                                <img src="/logo.png" alt="BidSmith Logo" className="h-10 w-10 object-contain relative z-10" />
+                                <img src="/logo.png" alt="ARIS Labs Logo" className="h-10 w-10 object-contain relative z-10" />
                             </div>
-                            <span className="font-bold text-xl tracking-tighter text-white">BidSmith</span>
+                            <span className="font-bold text-xl tracking-tighter text-white">ARIS Labs</span>
                         </Link>
                     </div>
 

@@ -10,8 +10,8 @@ export default function AgentsPage() {
                 <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <a href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-                            <img src="/logo.png" alt="BidSmith Logo" className="h-8 w-8 object-contain" />
-                            <span className="font-bold text-lg text-white">BidSmith</span>
+                            <img src="/logo.png" alt="ARIS Labs Logo" className="h-8 w-8 object-contain" />
+                            <span className="font-bold text-lg text-white">ARIS Labs</span>
                         </a>
                         <span className="text-zinc-700">/</span>
                         <span className="text-zinc-400 text-sm">Agent Registry</span>

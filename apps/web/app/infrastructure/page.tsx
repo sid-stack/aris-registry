@@ -22,11 +22,11 @@ export default function Infrastructure() {
                             <Network className="w-24 h-24 text-emerald-500" />
                         </div>
                         <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                            <span className="text-emerald-500">A.</span> The ARIS Protocol Gateway
+                            <span className="text-emerald-500">A.</span> The ARIS Labs Gateway
                         </h2>
                         <div className="space-y-4 text-zinc-400 leading-relaxed text-lg">
                             <p>
-                                ARIS serves as the "USB-C for AI," utilizing the Model Context Protocol (MCP) to standardize how BidSmith connects to specialized data sources.
+                                ARIS serves as the "USB-C for AI," utilizing the Model Context Protocol (MCP) to standardize how ARIS Labs connects to specialized data sources.
                             </p>
                             <ul className="grid gap-4 md:grid-cols-2 mt-4">
                                 <li className="bg-black/50 p-4 rounded-lg border border-white/5">
@@ -50,7 +50,7 @@ export default function Infrastructure() {
                         </h2>
                         <div className="space-y-4 text-zinc-400 leading-relaxed text-lg">
                             <p>
-                                BidSmith employs a Multi-Agent Swarm for proposal generation:
+                                ARIS Labs employs a Multi-Agent Swarm for proposal generation:
                             </p>
                             <div className="space-y-3 mt-4">
                                 <div className="flex gap-4 items-start">
@@ -94,7 +94,7 @@ export default function Infrastructure() {
                 </div>
 
                 <footer className="pt-12 border-t border-white/10 text-zinc-500 text-sm font-medium">
-                    © 2026 ARIS Registry. All rights reserved. BidSmith and the BidSmith logo are trademarks of the ARIS Protocol ecosystem.
+                    © 2026 ARIS Registry. All rights reserved. ARIS Labs and the ARIS Labs logo are trademarks of the ARIS Labs ecosystem.
                 </footer>
             </div>
         </div>

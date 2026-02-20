@@ -8,8 +8,8 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const firaCode = Fira_Code({ subsets: ['latin'], variable: '--font-fira-code' });
 
 export const metadata: Metadata = {
-    title: 'BidSmith | ARIS',
-    description: 'Analyze RFPs, score win probability, and generate compliant proposal drafts. Powered by the Aris Protocol multi-agent network.',
+    title: 'ARIS Labs | ARIS',
+    description: 'Analyze RFPs, score win probability, and generate compliant proposal drafts. Powered by the ARIS Labs multi-agent network.',
 };
 
 import { Analytics } from '@vercel/analytics/react';

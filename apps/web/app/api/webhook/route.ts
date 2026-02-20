@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
 
     if (event.type === 'payment_intent.amount_capturable_updated') {
         const intent = event.data.object as Stripe.PaymentIntent;
-        console.log(`💳 [AUTH_HOLD] Intent ${intent.id} is now capturable. Triggering BidSmith...`);
+        console.log(`💳 [AUTH_HOLD] Intent ${intent.id} is now capturable. Triggering ARIS Labs...`);
 
         // In production, this would trigger the Aris Orchestrator to begin proposal generation.
         // We update the DB status to indicate it's ready for processing.

@@ -36,7 +36,7 @@ export default function LoginPage() {
     return (
         <div className="min-h-screen bg-black text-white flex items-center justify-center p-4 font-mono">
             <div className="w-full max-w-md border border-zinc-800 rounded-xl p-8 bg-zinc-900/50">
-                <h1 className="text-2xl font-bold mb-6 text-center">Login to BidSmith</h1>
+                <h1 className="text-2xl font-bold mb-6 text-center">Login to ARIS Labs</h1>
 
                 {error && <div className="p-3 mb-4 bg-red-900/30 text-red-400 text-sm rounded border border-red-900">{error}</div>}
 
