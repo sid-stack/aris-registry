@@ -34,6 +34,21 @@ export default clerkMiddleware(async (auth, request) => {
             return NextResponse.redirect(pricingUrl);
         }
     }
+
+    // Dashboard Root Redirect (The Onboarding Router)
+    if (request.nextUrl.pathname === '/dashboard') {
+        const { sessionClaims } = await auth();
+        const metadata = (sessionClaims?.metadata as any) || {};
+
+        if (metadata.credits === undefined) {
+            console.log('[MIDDLEWARE] First-time user detected. Bouncing to sync bridge.');
+            return NextResponse.redirect(new URL('/dashboard/payment/success', request.url));
+        } else if (metadata.hasActiveSubscription || metadata.credits > 0) {
+            return NextResponse.redirect(new URL('/dashboard/analyze', request.url));
+        } else {
+            return NextResponse.redirect(new URL('/dashboard/billing', request.url));
+        }
+    }
 });
 
 export const config = {

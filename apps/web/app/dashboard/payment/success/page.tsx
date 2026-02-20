@@ -53,8 +53,13 @@ function SyncContent() {
         addLog("> Initializing Zero-Knowledge Handshake...");
 
         setTimeout(() => addLog("> Checking Clerk session................ [OK]"), 800);
-        setTimeout(() => addLog("> Awaiting Stripe Webhook............... [PENDING]"), 1600);
-    }, []);
+
+        if (sessionId) {
+            setTimeout(() => addLog("> Awaiting Stripe Webhook............... [PENDING]"), 1600);
+        } else {
+            setTimeout(() => addLog("> Provisioning Initial Account.......... [PENDING]"), 1600);
+        }
+    }, [sessionId]);
 
     useEffect(() => {
         if (state !== 'POLLING') return;
@@ -153,7 +158,9 @@ function SyncContent() {
 
                                 <div>
                                     <h2 className="text-lg font-mono font-bold text-white mb-2 tracking-widest">[SECURE_SYNC]</h2>
-                                    <p className="text-zinc-500 text-sm font-mono animate-pulse">Contacting Stripe Ledger...</p>
+                                    <p className="text-zinc-500 text-sm font-mono animate-pulse">
+                                        {sessionId ? "Contacting Stripe Ledger..." : "Synchronizing User Profile..."}
+                                    </p>
                                 </div>
 
                                 <TypewriterLog logs={logs} />

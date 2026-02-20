@@ -58,15 +58,36 @@ export async function POST(req: Request) {
 
         const email = email_addresses && email_addresses.length > 0 ? email_addresses[0].email_address : '';
 
-        await User.create({
-            clerkId: id,
-            email: email,
-            credits: 5, // $5.00 starter credits
-            analysesUsed: 0,
-            isPro: false
-        });
+        try {
+            // 1. Initialize MongoDB User (5 credits to start)
+            await User.updateOne(
+                { clerkId: id },
+                {
+                    $set: {
+                        email,
+                        credits: 5,
+                        credits_balance: 5,
+                        createdAt: new Date()
+                    }
+                },
+                { upsert: true }
+            );
 
-        console.log(`User created via webhook: ${id}`);
+            // 2. Sync Clerk JWT Metadata immediately for the Bouncer
+            const { clerkClient } = await import('@clerk/nextjs/server');
+            const client = await clerkClient();
+            await client.users.updateUserMetadata(id, {
+                publicMetadata: {
+                    credits: 5,
+                    hasActiveSubscription: false
+                }
+            });
+
+            console.log(`✅ [CLERK_WEBHOOK] Successfully onboarded user ${id} with 5 credits.`);
+        } catch (error) {
+            console.error('[CLERK_WEBHOOK] Error syncing user:', error);
+            return new NextResponse('Error syncing user', { status: 500 });
+        }
     }
 
     return NextResponse.json({ message: 'Webhook received' }, { status: 200 });
