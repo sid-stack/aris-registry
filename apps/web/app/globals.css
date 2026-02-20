@@ -191,3 +191,29 @@
 .animate-rainbow {
   animation: rainbow 3s linear infinite;
 }
+
+/* Vercel AI SDK Streaming Effects */
+.typewriter-container > * {
+  display: inline;
+}
+
+.typewriter-cursor {
+  display: inline-block;
+  width: 0.3em;
+  height: 1em;
+  background-color: theme('colors.emerald.400');
+  animation: pulse-cursor 1s infinite steps(1);
+  vertical-align: middle;
+  margin-left: 2px;
+}
+
+@keyframes pulse-cursor {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* Base styles for syntax highlighting if needed */
+.prose pre {
+    background-color: #000 !important;
+    border: 1px solid theme('colors.zinc.800');
+}
