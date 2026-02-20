@@ -169,9 +169,9 @@ export default function Home() {
                                 </div>
                             </SignInButton>
 
-                            <button className="h-12 px-8 rounded-lg border border-white/10 text-zinc-300 font-medium hover:bg-white/5 hover:text-white transition-colors flex items-center gap-2">
+                            <Link href="/infrastructure" className="h-12 px-8 rounded-lg border border-white/10 text-zinc-300 font-medium hover:bg-white/5 hover:text-white transition-colors flex items-center gap-2">
                                 <Shield className="h-4 w-4" /> Read the Security Brief
-                            </button>
+                            </Link>
                         </motion.div>
 
                         <motion.div

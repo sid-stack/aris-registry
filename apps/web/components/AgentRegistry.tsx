@@ -3,9 +3,9 @@
 import { useEffect, useState } from 'react';
 
 interface Agent {
-    did: string;
+    id: string;
     name: string;
-    capability: string;
+    category: string;
     status: string;
 }
 
@@ -66,13 +66,15 @@ export default function AgentRegistry() {
     // Fetch agents
     useEffect(() => {
         const load = async () => {
-            const API_BASE = 'https://aris-registry-api.onrender.com';
             try {
-                const res = await fetch(`${API_BASE}/api/agents`);
+                const res = await fetch('/api/registry');
                 if (!res.ok) throw new Error('Failed to fetch');
                 const data = await res.json();
-                setAgents(data.agents ?? []);
-                setFiltered(data.agents ?? []);
+
+                // Route.ts returns an array natively
+                const agentArray = Array.isArray(data) ? data : [];
+                setAgents(agentArray);
+                setFiltered(agentArray);
             } catch {
                 setError('Could not reach registry. Is the backend running?');
             } finally {
@@ -86,19 +88,19 @@ export default function AgentRegistry() {
     useEffect(() => {
         let result = agents;
         if (activeCap !== 'All') {
-            result = result.filter(a => a.capability === activeCap);
+            result = result.filter(a => a.category === activeCap);
         }
         if (search.trim()) {
             const q = search.toLowerCase();
             result = result.filter(
-                a => a.name.toLowerCase().includes(q) || a.did.toLowerCase().includes(q) || a.capability.toLowerCase().includes(q)
+                a => a.name.toLowerCase().includes(q) || a.id.toLowerCase().includes(q) || a.category.toLowerCase().includes(q)
             );
         }
         setFiltered(result);
     }, [search, activeCap, agents]);
 
     // Unique capabilities for filter tabs
-    const capabilities = ['All', ...Array.from(new Set(agents.map(a => a.capability)))];
+    const capabilities = ['All', ...Array.from(new Set(agents.map(a => a.category)))];
 
     return (
         <div className="w-full">
@@ -173,10 +175,10 @@ export default function AgentRegistry() {
             {!loading && !error && filtered.length > 0 && (
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {filtered.map((agent) => {
-                        const style = getCapabilityStyle(agent.capability);
+                        const style = getCapabilityStyle(agent.category);
                         return (
                             <div
-                                key={agent.did}
+                                key={agent.id}
                                 className="group p-5 rounded-xl border border-zinc-800/80 bg-zinc-900/30 hover:bg-zinc-800/80 hover:border-zinc-600 transition-all duration-300"
                             >
                                 <div className="flex items-start gap-4">
@@ -191,11 +193,11 @@ export default function AgentRegistry() {
                                         </div>
                                         <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono ${style.bg} ${style.text} mb-4`}>
                                             <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`} />
-                                            {agent.capability}
+                                            {agent.category}
                                         </div>
                                         <div className="flex items-center justify-between gap-2 mt-auto">
-                                            <code className="text-[10px] px-2 py-1 rounded bg-black/50 text-zinc-500 truncate border border-zinc-800/50">{agent.did}</code>
-                                            <CopyButton text={agent.did} />
+                                            <code className="text-[10px] px-2 py-1 rounded bg-black/50 text-zinc-500 truncate border border-zinc-800/50">{agent.id}</code>
+                                            <CopyButton text={agent.id} />
                                         </div>
                                     </div>
                                 </div>
