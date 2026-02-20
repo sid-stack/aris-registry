@@ -14,9 +14,25 @@ const isPublicRoute = createRouteMatcher([
     '/static/(.*)'
 ]);
 
+import { NextResponse } from 'next/server';
+
 export default clerkMiddleware(async (auth, request) => {
     if (!isPublicRoute(request)) {
         await auth.protect();
+    }
+
+    // Strict FAANG-level 'Bouncer' Middleware
+    if (request.nextUrl.pathname.startsWith('/dashboard/analyze')) {
+        const { sessionClaims } = await auth();
+        const metadata = (sessionClaims?.metadata as any) || {};
+        const hasSub = metadata?.hasActiveSubscription === true;
+        const credits = metadata?.credits || 0;
+
+        if (!hasSub && credits <= 0) {
+            console.log('[MIDDLEWARE] Unpaid user attempting to access analyzer. Bouncing to billing.');
+            const pricingUrl = new URL('/dashboard/billing', request.url);
+            return NextResponse.redirect(pricingUrl);
+        }
     }
 });
 

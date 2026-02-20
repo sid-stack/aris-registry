@@ -131,6 +131,26 @@ export async function POST(req: NextRequest) {
                 `credits=${creditsToAdd}, plan=${planId}, session=${stripeSessionId}`,
                 result
             );
+
+            // FAANG-Level Polish: Sync MongoDB ledger directly into the Clerk JWT Metadata
+            // This allows the edge middleware to instantly route the user based on credits without hitting the DB.
+            try {
+                const { clerkClient } = await import('@clerk/nextjs/server');
+                const client = await clerkClient();
+                const user = await client.users.getUser(clerkUserId);
+                const currentCredits = (user.publicMetadata.credits as number) || 0;
+                await client.users.updateUserMetadata(clerkUserId, {
+                    publicMetadata: {
+                        credits: currentCredits + creditsToAdd,
+                        hasActiveSubscription: planId.includes('pro') || planId.includes('starter')
+                            ? true
+                            : (user.publicMetadata.hasActiveSubscription || false)
+                    }
+                });
+                console.log(`[STRIPE_WEBHOOK] 🔄 Clerk JWT Metadata synchronized for ${clerkUserId}`);
+            } catch (clerkErr) {
+                console.error('[STRIPE_WEBHOOK] Failed to sync Clerk metadata:', clerkErr);
+            }
         } catch (err) {
             console.error('[STRIPE_WEBHOOK] Failed to call Python API:', err);
             // Return 500 so Stripe retries
