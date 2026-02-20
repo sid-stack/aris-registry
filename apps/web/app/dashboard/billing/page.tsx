@@ -26,7 +26,7 @@ export default function BillingPage() {
     useEffect(() => {
         const loadCredits = async () => {
             try {
-                const data = await fetchWithAuth("/api/users/credits");
+                const data = await fetchWithAuth("/users/credits");
                 setCredits(data.credits_balance);
             } catch (err) {
                 console.error(err);
@@ -41,7 +41,7 @@ export default function BillingPage() {
         try {
             setShowOutcomeFlow(true);
             setAixStatus('authorizing');
-            const data = await fetchWithAuth("/api/checkout/authorize", {
+            const data = await fetchWithAuth("/checkout/authorize", {
                 method: "POST",
                 body: JSON.stringify({ plan_id: "outcome_bid" }),
             });
@@ -66,7 +66,7 @@ export default function BillingPage() {
                 setAixStatus('delivering');
 
                 // ATOMIC DELIVERY REQUEST
-                const response = await fetchWithAuth("/api/delivery/deliver", {
+                const response = await fetchWithAuth("/delivery/deliver", {
                     method: "POST",
                     body: JSON.stringify({
                         intent_id: id,
@@ -131,7 +131,7 @@ export default function BillingPage() {
                             <button
                                 onClick={async () => {
                                     try {
-                                        const response = await fetchWithAuth("/api/checkout/create-session", {
+                                        const response = await fetchWithAuth("/checkout/create-session", {
                                             method: "POST",
                                         });
                                         if (response.url) {
