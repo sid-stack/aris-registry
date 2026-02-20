@@ -4,6 +4,7 @@ import { useCompletion } from "@ai-sdk/react";
 import { Upload, FileText, AlertCircle, CheckCircle, Loader2, SquareTerminal } from "lucide-react";
 import { ComplianceReport } from "@/components/ComplianceReport";
 import ComplianceMatrix from "@/components/ComplianceMatrix";
+import { toast } from "sonner";
 
 export default function AnalyzePage() {
     const [file, setFile] = useState<File | null>(null);
@@ -55,8 +56,21 @@ export default function AnalyzePage() {
             }
         },
         onError: (err: Error) => {
-            setError(err.message || "An error occurred during generation.");
-            addStatus(`[ERROR]: ${err.message}`);
+            console.error("Agent Streaming Error:", err);
+
+            // Professional error override for API/Model failures
+            const message = err.message || "An error occurred during generation.";
+            if (message.includes("500") || message.includes("Failed") || message.includes("API")) {
+                toast.error("Provider Maintenance", {
+                    description: "Our upstream AI providers are currently undergoing maintenance. Please try again in a few moments.",
+                    duration: 5000,
+                });
+                addStatus(`[SYSTEM_FAULT]: Upstream API timeout or 500 anomaly detected.`);
+                setError("Service temporarily unavailable due to upstream provider maintenance.");
+            } else {
+                setError(message);
+                addStatus(`[ERROR]: ${message}`);
+            }
         }
     });
 

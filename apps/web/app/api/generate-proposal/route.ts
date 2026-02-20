@@ -6,6 +6,9 @@ import { createAnthropic } from '@ai-sdk/anthropic';
 import { connectDB } from '@/lib/mongodb';
 import { Analysis } from '@/models';
 
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
+
 // Configure AI Providers
 const openai = createOpenAI({
     apiKey: process.env.OPENAI_API_KEY,

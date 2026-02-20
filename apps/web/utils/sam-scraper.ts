@@ -20,7 +20,10 @@ export async function scrapeSamGov(samIdOrUrl: string): Promise<ScraperResult> {
         }
     }
 
-    const API_KEY = process.env.SAM_GOV_API_KEY || 'placeholder_api_key';
+    const API_KEY = process.env.SAM_GOV_API_KEY;
+    if (!API_KEY) {
+        throw new Error("Critical: SAM_GOV_API_KEY is missing from environment variables.");
+    }
 
     try {
         // Primary: SAM.gov API
@@ -57,7 +60,10 @@ export async function scrapeSamGov(samIdOrUrl: string): Promise<ScraperResult> {
 
         // Fallback: Firecrawl
         const targetUrl = samIdOrUrl.startsWith('http') ? samIdOrUrl : `https://sam.gov/opp/${noticeId}/view`;
-        const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY || 'placeholder_fc_key';
+        const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY;
+        if (!FIRECRAWL_API_KEY) {
+            throw new Error("Critical: FIRECRAWL_API_KEY is missing from environment variables.");
+        }
 
         try {
             const fcResponse = await fetch('https://api.firecrawl.dev/v1/scrape', {
