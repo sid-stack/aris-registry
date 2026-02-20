@@ -5,26 +5,27 @@ import { useEffect, useState } from 'react';
 interface Agent {
     id: string;
     name: string;
+    description?: string;
     category: string;
     status: string;
 }
 
-const CAPABILITY_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
-    'dev': { bg: 'bg-purple-500/10', text: 'text-purple-400', dot: 'bg-purple-400' },
-    'gov': { bg: 'bg-blue-500/10', text: 'text-blue-400', dot: 'bg-blue-400' },
-    'procurement': { bg: 'bg-emerald-500/10', text: 'text-emerald-400', dot: 'bg-emerald-400' },
-    'compliance': { bg: 'bg-orange-500/10', text: 'text-orange-400', dot: 'bg-orange-400' },
-    'legal': { bg: 'bg-yellow-500/10', text: 'text-yellow-400', dot: 'bg-yellow-400' },
-    'finance': { bg: 'bg-green-500/10', text: 'text-green-400', dot: 'bg-green-400' },
-    'search': { bg: 'bg-cyan-500/10', text: 'text-cyan-400', dot: 'bg-cyan-400' },
-    'data': { bg: 'bg-pink-500/10', text: 'text-pink-400', dot: 'bg-pink-400' },
-    'memory': { bg: 'bg-rose-500/10', text: 'text-rose-400', dot: 'bg-rose-400' },
-    'pm': { bg: 'bg-fuchsia-500/10', text: 'text-fuchsia-400', dot: 'bg-fuchsia-400' },
-    'comms': { bg: 'bg-indigo-500/10', text: 'text-indigo-400', dot: 'bg-indigo-400' },
+const CAPABILITY_COLORS: Record<string, { bg: string; text: string; dot: string; spotlight: string }> = {
+    'dev': { bg: 'bg-purple-500/10', text: 'text-purple-400', dot: 'bg-purple-400', spotlight: 'rgba(168, 85, 247, 0.15)' },
+    'gov': { bg: 'bg-blue-500/10', text: 'text-blue-400', dot: 'bg-blue-400', spotlight: 'rgba(59, 130, 246, 0.15)' },
+    'procurement': { bg: 'bg-emerald-500/10', text: 'text-emerald-400', dot: 'bg-emerald-400', spotlight: 'rgba(16, 185, 129, 0.15)' },
+    'compliance': { bg: 'bg-orange-500/10', text: 'text-orange-400', dot: 'bg-orange-400', spotlight: 'rgba(249, 115, 22, 0.15)' },
+    'legal': { bg: 'bg-yellow-500/10', text: 'text-yellow-400', dot: 'bg-yellow-400', spotlight: 'rgba(234, 179, 8, 0.15)' },
+    'finance': { bg: 'bg-green-500/10', text: 'text-green-400', dot: 'bg-green-400', spotlight: 'rgba(34, 197, 94, 0.15)' },
+    'search': { bg: 'bg-cyan-500/10', text: 'text-cyan-400', dot: 'bg-cyan-400', spotlight: 'rgba(6, 182, 212, 0.15)' },
+    'data': { bg: 'bg-pink-500/10', text: 'text-pink-400', dot: 'bg-pink-400', spotlight: 'rgba(236, 72, 153, 0.15)' },
+    'memory': { bg: 'bg-rose-500/10', text: 'text-rose-400', dot: 'bg-rose-400', spotlight: 'rgba(244, 63, 94, 0.15)' },
+    'pm': { bg: 'bg-fuchsia-500/10', text: 'text-fuchsia-400', dot: 'bg-fuchsia-400', spotlight: 'rgba(217, 70, 239, 0.15)' },
+    'comms': { bg: 'bg-indigo-500/10', text: 'text-indigo-400', dot: 'bg-indigo-400', spotlight: 'rgba(99, 102, 241, 0.15)' },
 };
 
 function getCapabilityStyle(cap: string) {
-    return CAPABILITY_COLORS[cap] ?? { bg: 'bg-zinc-800/80', text: 'text-zinc-400', dot: 'bg-zinc-400' };
+    return CAPABILITY_COLORS[cap] ?? { bg: 'bg-zinc-800/80', text: 'text-zinc-400', dot: 'bg-zinc-400', spotlight: 'rgba(255, 255, 255, 0.05)' };
 }
 
 function AgentInitials({ name }: { name: string }) {
@@ -180,31 +181,7 @@ export default function AgentRegistry() {
                     {filtered.map((agent) => {
                         const style = getCapabilityStyle(agent.category);
                         return (
-                            <div
-                                key={agent.id}
-                                className="group p-5 rounded-xl border border-zinc-800/80 bg-zinc-900/30 hover:bg-zinc-800/80 hover:border-zinc-600 transition-all duration-300"
-                            >
-                                <div className="flex items-start gap-4">
-                                    <AgentInitials name={agent.name} />
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <h3 className="font-semibold text-white text-sm truncate">{agent.name}</h3>
-                                            <span className="flex items-center gap-1 shrink-0">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block" />
-                                                <span className="text-emerald-500 text-[10px] font-bold uppercase tracking-wider">live</span>
-                                            </span>
-                                        </div>
-                                        <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono ${style.bg} ${style.text} mb-4`}>
-                                            <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`} />
-                                            {agent.category}
-                                        </div>
-                                        <div className="flex items-center justify-between gap-2 mt-auto">
-                                            <code className="text-[10px] px-2 py-1 rounded bg-black/50 text-zinc-500 truncate border border-zinc-800/50">{agent.id}</code>
-                                            <CopyButton text={agent.id} />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                            <SpotlightCard key={agent.id} agent={agent} style={style} />
                         );
                     })}
                 </div>
@@ -217,5 +194,90 @@ export default function AgentRegistry() {
                 </div>
             )}
         </div>
+    );
+}
+
+import Link from 'next/link';
+import { useRef } from 'react';
+import { motion, useMotionTemplate, useMotionValue } from 'framer-motion';
+
+function SpotlightCard({ agent, style }: { agent: Agent; style: ReturnType<typeof getCapabilityStyle> }) {
+    const mouseX = useMotionValue(0);
+    const mouseY = useMotionValue(0);
+
+    function handleMouseMove({
+        currentTarget,
+        clientX,
+        clientY,
+    }: React.MouseEvent<HTMLDivElement>) {
+        const { left, top } = currentTarget.getBoundingClientRect();
+        mouseX.set(clientX - left);
+        mouseY.set(clientY - top);
+    }
+
+    return (
+        <Link href="/infrastructure" className="block relative group/bento rounded-xl overflow-hidden pointer-events-auto">
+            <div
+                onMouseMove={handleMouseMove}
+                className="relative h-full flex flex-col p-6 rounded-xl border border-zinc-800 bg-zinc-900/50 hover:border-zinc-700 transition-colors duration-500 overflow-hidden"
+            >
+                {/* Spotlight Gradient Layer */}
+                <motion.div
+                    className="pointer-events-none absolute -inset-px rounded-xl opacity-0 transition duration-500 group-hover/bento:opacity-100"
+                    style={{
+                        background: useMotionTemplate`
+                            radial-gradient(
+                                350px circle at ${mouseX}px ${mouseY}px,
+                                ${style.spotlight},
+                                transparent 80%
+                            )
+                        `,
+                    }}
+                />
+
+                {/* Main Content (Translates up on hover) */}
+                <div className="relative z-10 flex flex-col h-full transform-gpu transition-all duration-500 group-hover/bento:-translate-y-6">
+                    <div className="flex items-start gap-4 mb-4">
+                        <AgentInitials name={agent.name} />
+                        <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-2">
+                                <h3 className="font-semibold text-white text-base truncate">{agent.name}</h3>
+                                <span className="flex items-center gap-1 shrink-0">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse group-hover/bento:scale-125 transition-transform duration-500 inline-block" />
+                                    <span className="text-emerald-500 text-[10px] font-bold uppercase tracking-wider">live</span>
+                                </span>
+                            </div>
+                            <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono ${style.bg} ${style.text}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`} />
+                                {agent.category}
+                            </div>
+                        </div>
+                    </div>
+
+                    <p className="text-sm text-zinc-400 mb-6">{agent.description}</p>
+
+                    <div className="flex items-center justify-between gap-2 mt-auto">
+                        <code className="text-[10px] px-2 py-1 rounded bg-black/50 text-zinc-500 truncate border border-zinc-800/50">{agent.id}</code>
+                        {/* We use a div instead of a button here so it doesn't trigger nested button warnings inside the Link */}
+                        <div
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigator.clipboard.writeText(agent.id); }}
+                            className="text-zinc-600 hover:text-zinc-300 transition-colors text-xs px-2 py-1 rounded border border-zinc-800 hover:border-zinc-600 cursor-copy"
+                        >
+                            copy
+                        </div>
+                    </div>
+                </div>
+
+                {/* Bento Reveal CTA (Fades in at the bottom) */}
+                <div className="pointer-events-none absolute bottom-0 left-0 right-0 p-6 flex flex-row items-center justify-between translate-y-4 opacity-0 transition-all duration-500 group-hover/bento:translate-y-0 group-hover/bento:opacity-100 bg-gradient-to-t from-zinc-900 via-zinc-900/80 to-transparent">
+                    <span className="text-sm font-medium text-white flex items-center gap-2">
+                        Access Agent <span className="text-zinc-400">➔</span>
+                    </span>
+                    <span className="text-xs font-mono text-zinc-500 bg-zinc-800/50 px-2 py-1 rounded">
+                        Secure
+                    </span>
+                </div>
+            </div>
+        </Link>
     );
 }
