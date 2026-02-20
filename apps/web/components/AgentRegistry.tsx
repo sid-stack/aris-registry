@@ -10,18 +10,21 @@ interface Agent {
 }
 
 const CAPABILITY_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
-    'dev.git.manage': { bg: 'bg-purple-500/10', text: 'text-purple-400', dot: 'bg-purple-400' },
-    'gov.rfp.bidder': { bg: 'bg-blue-500/10', text: 'text-blue-400', dot: 'bg-blue-400' },
-    'fin.defi.trade': { bg: 'bg-green-500/10', text: 'text-green-400', dot: 'bg-green-400' },
-    'cloud.aws.monitor': { bg: 'bg-orange-500/10', text: 'text-orange-400', dot: 'bg-orange-400' },
-    'chain.solana.validate': { bg: 'bg-yellow-500/10', text: 'text-yellow-400', dot: 'bg-yellow-400' },
-    'devops.vercel.deploy': { bg: 'bg-pink-500/10', text: 'text-pink-400', dot: 'bg-pink-400' },
-    'design.figma.audit': { bg: 'bg-cyan-500/10', text: 'text-cyan-400', dot: 'bg-cyan-400' },
-    'social.discord.moderate': { bg: 'bg-indigo-500/10', text: 'text-indigo-400', dot: 'bg-indigo-400' },
+    'dev': { bg: 'bg-purple-500/10', text: 'text-purple-400', dot: 'bg-purple-400' },
+    'gov': { bg: 'bg-blue-500/10', text: 'text-blue-400', dot: 'bg-blue-400' },
+    'procurement': { bg: 'bg-emerald-500/10', text: 'text-emerald-400', dot: 'bg-emerald-400' },
+    'compliance': { bg: 'bg-orange-500/10', text: 'text-orange-400', dot: 'bg-orange-400' },
+    'legal': { bg: 'bg-yellow-500/10', text: 'text-yellow-400', dot: 'bg-yellow-400' },
+    'finance': { bg: 'bg-green-500/10', text: 'text-green-400', dot: 'bg-green-400' },
+    'search': { bg: 'bg-cyan-500/10', text: 'text-cyan-400', dot: 'bg-cyan-400' },
+    'data': { bg: 'bg-pink-500/10', text: 'text-pink-400', dot: 'bg-pink-400' },
+    'memory': { bg: 'bg-rose-500/10', text: 'text-rose-400', dot: 'bg-rose-400' },
+    'pm': { bg: 'bg-fuchsia-500/10', text: 'text-fuchsia-400', dot: 'bg-fuchsia-400' },
+    'comms': { bg: 'bg-indigo-500/10', text: 'text-indigo-400', dot: 'bg-indigo-400' },
 };
 
 function getCapabilityStyle(cap: string) {
-    return CAPABILITY_COLORS[cap] ?? { bg: 'bg-zinc-800', text: 'text-zinc-400', dot: 'bg-zinc-400' };
+    return CAPABILITY_COLORS[cap] ?? { bg: 'bg-zinc-800/80', text: 'text-zinc-400', dot: 'bg-zinc-400' };
 }
 
 function AgentInitials({ name }: { name: string }) {
