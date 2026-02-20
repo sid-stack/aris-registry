@@ -19,21 +19,34 @@ const anthropic = createAnthropic({
 });
 
 export async function POST(req: NextRequest) {
-    // 1. Authenticate
-    const { userId } = await auth();
-    if (!userId) {
+    // 1. Authenticate (Clerk OR Internal Service Secret for n8n)
+    let finalUserId: string | null = null;
+
+    const authHeader = req.headers.get('authorization');
+    const internalSecret = process.env.INTERNAL_API_SECRET;
+    const isHeadlessBot = internalSecret && authHeader === `Bearer ${internalSecret}`;
+
+    if (isHeadlessBot) {
+        finalUserId = 'SYSTEM_BOT_ID';
+        console.log('[API] Authorized headless n8n / bot request via Service Secret.');
+    } else {
+        const { userId } = await auth();
+        finalUserId = userId;
+    }
+
+    if (!finalUserId) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     try {
-        const { messages, prompt, analysisId, constraints } = await req.json();
+        const { messages, prompt, analysisId, constraints, solicitationUrl, stream } = await req.json();
 
         // Ensure we have the necessary context from previous analysis if analysisId is provided
         // For backwards compatibility and testing, we also allow direct text requests
         let contextText = '';
         if (analysisId) {
             await connectDB();
-            const analysis = await Analysis.findOne({ _id: analysisId, clerkId: userId });
+            const analysis = await Analysis.findOne({ _id: analysisId, clerkId: finalUserId });
             if (analysis) {
                 contextText = `
                 RFP Project Title: ${analysis.projectTitle}
@@ -145,6 +158,20 @@ export async function POST(req: NextRequest) {
                 // A better approach in modern AI SDK is using custom stream data, but appending text is highly reliable.
             }
         });
+
+        if (stream === false) {
+            // For n8n HTTP Request Nodes waiting for the full JSON response
+            const fullText = await result.text;
+            let finalScore = 95;
+            if (criticReview.text.includes('COMPLIANT')) finalScore = 100;
+            else if (criticReview.text.length > 500) finalScore = 85;
+
+            return NextResponse.json({
+                text: fullText,
+                compliance_score: finalScore.toString(),
+                critic_notes: criticReview.text.substring(0, 150)
+            });
+        }
 
         // Append the compliance score and critic notes to the end of the text stream 
         // so the frontend can easily parse it out.
