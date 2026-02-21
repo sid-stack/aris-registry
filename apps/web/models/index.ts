@@ -126,3 +126,52 @@ const AgentSchema = new Schema<IAgent>(
 
 export const Agent: Model<IAgent> =
     mongoose.models.Agent ?? mongoose.model<IAgent>('Agent', AgentSchema);
+
+// ─── Conversation ────────────────────────────────────────────────────────────
+export type ConversationRole = 'user' | 'assistant' | 'system';
+
+export interface IConversationMessage {
+    id: string;
+    role: ConversationRole;
+    content: string;
+    createdAt: Date;
+}
+
+export interface IConversation extends Document {
+    clerkId: string;
+    title: string;
+    messages: IConversationMessage[];
+    lastMessageAt: Date;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+const ConversationMessageSchema = new Schema<IConversationMessage>(
+    {
+        id: { type: String, required: true },
+        role: {
+            type: String,
+            enum: ['user', 'assistant', 'system'],
+            required: true,
+        },
+        content: { type: String, required: true },
+        createdAt: { type: Date, default: Date.now },
+    },
+    { _id: false }
+);
+
+const ConversationSchema = new Schema<IConversation>(
+    {
+        clerkId: { type: String, required: true, index: true },
+        title: { type: String, required: true, default: 'New conversation' },
+        messages: { type: [ConversationMessageSchema], default: [] },
+        lastMessageAt: { type: Date, default: Date.now, index: true },
+    },
+    { timestamps: true }
+);
+
+ConversationSchema.index({ clerkId: 1, updatedAt: -1 });
+
+export const Conversation: Model<IConversation> =
+    mongoose.models.Conversation ??
+    mongoose.model<IConversation>('Conversation', ConversationSchema);

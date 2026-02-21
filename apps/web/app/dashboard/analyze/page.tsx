@@ -5,16 +5,19 @@ import { User } from '@/models';
 import ChatInterface from './ChatInterface';
 
 export default async function AnalyzeServerPage() {
+    const localDevUserId = process.env.LOCAL_DEV_USER_ID;
     const { userId } = await auth();
+    const resolvedUserId = userId ?? localDevUserId ?? null;
 
-    if (!userId) {
+    if (!resolvedUserId) {
         redirect('/sign-in');
     }
 
     await connectDB();
-    const dbUser = await User.findOne({ clerkId: userId });
+    const dbUser = await User.findOne({ clerkId: resolvedUserId });
 
-    const credits = dbUser?.credits_balance || 0;
+    const fallbackCredits = localDevUserId ? 999 : 0;
+    const credits = dbUser?.credits_balance ?? fallbackCredits;
 
     if (credits <= 0) {
         redirect('/dashboard/billing');

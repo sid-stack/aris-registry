@@ -14,7 +14,7 @@ export async function askAI(
     primaryModel: string = 'google/gemini-2.5-flash',
     backupModel: string = 'anthropic/claude-3-haiku'
 ): Promise<string> {
-    const apiKey = process.env.OPENROUTER_API_KEY || process.env.OPEN_ROUTER_KEY;
+    const apiKey = process.env.OPEN_ROUTER_KEY ?? process.env.OPENROUTER_API_KEY;
     if (!apiKey) throw new Error('OPEN_ROUTER_KEY is not set in environment variables');
 
     // Attempt Primary Model

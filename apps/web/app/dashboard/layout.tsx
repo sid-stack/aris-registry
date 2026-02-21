@@ -12,16 +12,23 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     const router = useRouter();
     const pathname = usePathname();
     const { fetchWithAuth } = useApiClient();
+    const localBypass = process.env.NEXT_PUBLIC_LOCAL_DEV_USER_ID === "1";
     const [credits, setCredits] = useState<number | null>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const isAnalyzeRoute = pathname === "/dashboard/analyze";
 
     useEffect(() => {
-        if (isLoaded && !isSignedIn) {
+        if (!localBypass && isLoaded && !isSignedIn) {
             router.push("/sign-in");
         }
-    }, [isLoaded, isSignedIn, router]);
+    }, [isLoaded, isSignedIn, localBypass, router]);
 
     useEffect(() => {
+        if (localBypass) {
+            setCredits(999);
+            return;
+        }
+
         const loadCredits = async () => {
             try {
                 const data = await fetchWithAuth("/users/credits");
@@ -31,7 +38,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             }
         };
         loadCredits();
-    }, []);
+    }, [fetchWithAuth, localBypass]);
 
     const routes = [
         { name: "Registry", path: "/dashboard", icon: LayoutDashboard },
@@ -154,8 +161,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             </aside>
 
             {/* Main Content */}
-            <main className="flex-1 overflow-auto relative z-10">
-                <div className="p-8 lg:p-12 max-w-[1600px] mx-auto">
+            <main className={cn("flex-1 relative z-10", isAnalyzeRoute ? "overflow-hidden" : "overflow-auto")}>
+                <div className={cn(
+                    isAnalyzeRoute
+                        ? "h-full px-3 py-3 lg:px-5 lg:py-5"
+                        : "p-8 lg:p-12 max-w-[1600px] mx-auto"
+                )}>
                     {children}
                 </div>
             </main>

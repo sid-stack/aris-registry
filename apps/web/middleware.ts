@@ -18,6 +18,11 @@ const isPublicRoute = createRouteMatcher([
 import { NextResponse } from 'next/server';
 
 export default clerkMiddleware(async (auth, request) => {
+    const localBypassEnabled = process.env.LOCAL_DEV_USER_ID === 'dev_local_user';
+    if (localBypassEnabled) {
+        return;
+    }
+
     // n8n Service Secret Bypass
     const isN8nRequest = request.nextUrl.pathname.startsWith('/api/generate-proposal') &&
         request.headers.get('authorization') === `Bearer ${process.env.INTERNAL_API_SECRET}`;
