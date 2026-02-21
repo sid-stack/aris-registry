@@ -229,6 +229,7 @@ export default function ChatInterface({ initialCredits }: ChatInterfaceProps) {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const skipNextPersistRef = useRef<boolean>(false);
+    const [analysisId, setAnalysisId] = useState<string | null>(null);
 
     const [agentStatus, setAgentStatus] = useState<string>("[SYSTEM]: Awaiting constraints...");
     const [conversations, setConversations] = useState<ConversationSummary[]>([]);
@@ -261,10 +262,14 @@ export default function ChatInterface({ initialCredits }: ChatInterfaceProps) {
     } = useChat({
         api: "/api/generate-proposal",
         initialMessages,
-        experimental_prepareRequestBody: ({ messages: requestMessages }) => ({
-            messages: serializeMessagesForRequest(optimizeMessagesForContext(requestMessages as Message[])),
-            conversationId: activeConversationId,
-        }),
+        experimental_prepareRequestBody: ({ messages: requestMessages }) => {
+            const payload: Record<string, any> = {
+                messages: serializeMessagesForRequest(optimizeMessagesForContext(requestMessages as Message[])),
+                conversationId: activeConversationId,
+            };
+            if (analysisId) payload.analysisId = analysisId;
+            return payload as any;
+        },
         onError: (error: Error) => {
             console.error("Agent Streaming Error:", error);
             setAgentStatus("[SYSTEM_FAULT]: Service temporarily unavailable or 500 anomaly detected.");
@@ -284,6 +289,16 @@ export default function ChatInterface({ initialCredits }: ChatInterfaceProps) {
                 (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
             );
         });
+    }, []);
+
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            try {
+                const sp = new URLSearchParams(window.location.search);
+                const a = sp.get("analysisId");
+                if (a) setAnalysisId(a);
+            } catch {}
+        }
     }, []);
 
     const loadConversation = useCallback(

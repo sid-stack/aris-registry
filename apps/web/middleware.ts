@@ -1,4 +1,5 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server';
 
 const isPublicRoute = createRouteMatcher([
     '/',
@@ -15,21 +16,33 @@ const isPublicRoute = createRouteMatcher([
     '/static/(.*)'
 ]);
 
-import { NextResponse } from 'next/server';
-
 export default clerkMiddleware(async (auth, request) => {
-    const localBypassEnabled = process.env.LOCAL_DEV_USER_ID === 'dev_local_user';
-    if (localBypassEnabled) {
-        return;
+    const host = request.headers.get('host') || '';
+    const isProd = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
+    if (isProd && !host.endsWith('bidsmith.pro')) {
+        const url = new URL(request.url);
+        url.host = 'bidsmith.pro';
+        url.protocol = 'https:';
+        return NextResponse.redirect(url, 308);
     }
 
-    // n8n Service Secret Bypass
+    const localBypassEnabled = process.env.LOCAL_DEV_USER_ID === 'dev_local_user';
+    if (localBypassEnabled) {
+        const res = NextResponse.next();
+        res.headers.set('X-Authorized-Parties', 'https://bidsmith.pro');
+        return res;
+    }
+
     const isN8nRequest = request.nextUrl.pathname.startsWith('/api/generate-proposal') &&
         request.headers.get('authorization') === `Bearer ${process.env.INTERNAL_API_SECRET}`;
 
     if (!isPublicRoute(request) && !isN8nRequest) {
         await auth.protect();
     }
+
+    const res = NextResponse.next();
+    res.headers.set('X-Authorized-Parties', 'https://bidsmith.pro');
+    return res;
 });
 
 export const config = {

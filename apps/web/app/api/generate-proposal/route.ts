@@ -17,7 +17,7 @@ const openrouter = createOpenAI({
     baseURL: 'https://openrouter.ai/api/v1',
     apiKey: process.env.OPEN_ROUTER_KEY || process.env.OPENROUTER_API_KEY || '',
     headers: {
-        'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+        'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'https://bidsmith.pro',
         'X-Title': 'ARIS Labs'
     }
 });
@@ -81,6 +81,9 @@ export async function POST(req: NextRequest) {
     }
 
     try {
+        if ((process.env.VERCEL === '1' || process.env.NODE_ENV === 'production') && !(process.env.OPEN_ROUTER_KEY || process.env.OPENROUTER_API_KEY)) {
+            throw new Error('CRITICAL: OpenRouter Key Missing in Production');
+        }
         await connectDB();
         const { messages, prompt, analysisId, constraints, solicitationUrl, stream } = await req.json();
 
@@ -204,11 +207,16 @@ export async function POST(req: NextRequest) {
 
             const refinerModel = selectModel('refiner');
             console.log('Model reached: refiner phase');
-            result = await tracedStreamText({
-                model: refinerModel,
-                maxTokens: 4000,
-                messages: finalMessages,
-            });
+            try {
+                result = await tracedStreamText({
+                    model: refinerModel,
+                    maxTokens: 4000,
+                    messages: finalMessages,
+                });
+            } catch (streamErr: any) {
+                console.error('Stream error', { message: streamErr?.message, stack: streamErr?.stack });
+                throw streamErr;
+            }
 
             return result.toTextStreamResponse({
                 headers: {
@@ -222,12 +230,17 @@ export async function POST(req: NextRequest) {
             // EMERGENCY FALLBACK: Direct Failover Model
             const fallbackModel = selectModel('fallback');
             console.log('Model reached: emergency fallback phase');
-            result = await tracedStreamText({
-                model: fallbackModel,
-                maxTokens: 4000,
-                system: systemMessage,
-                messages: convertedMessages,
-            });
+            try {
+                result = await tracedStreamText({
+                    model: fallbackModel,
+                    maxTokens: 4000,
+                    system: systemMessage,
+                    messages: convertedMessages,
+                });
+            } catch (fallbackErr: any) {
+                console.error('Fallback stream error', { message: fallbackErr?.message, stack: fallbackErr?.stack });
+                throw fallbackErr;
+            }
 
             return result.toTextStreamResponse({
                 headers: {
