@@ -118,7 +118,12 @@ export async function GET(_: NextRequest, { params }: RouteContext) {
     }
 
     const { conversationId } = await params;
-    await connectDB();
+    try {
+        await connectDB();
+    } catch (e: any) {
+        console.error('[Conversations.ID.GET] DB connect error:', e?.message);
+        return NextResponse.json({ error: 'DB_UNAVAILABLE', detail: e?.message ?? 'Database not reachable' }, { status: 503 });
+    }
     const conversation = await Conversation.findOne({ _id: conversationId, clerkId: resolvedUserId });
 
     if (!conversation) {
@@ -151,7 +156,12 @@ export async function PUT(req: NextRequest, { params }: RouteContext) {
         return NextResponse.json({ error: 'No updates provided' }, { status: 400 });
     }
 
-    await connectDB();
+    try {
+        await connectDB();
+    } catch (e: any) {
+        console.error('[Conversations.ID.PUT] DB connect error:', e?.message);
+        return NextResponse.json({ error: 'DB_UNAVAILABLE', detail: e?.message ?? 'Database not reachable' }, { status: 503 });
+    }
     const conversation = await Conversation.findOne({ _id: conversationId, clerkId: resolvedUserId });
 
     if (!conversation) {
@@ -183,7 +193,12 @@ export async function DELETE(_: NextRequest, { params }: RouteContext) {
     }
 
     const { conversationId } = await params;
-    await connectDB();
+    try {
+        await connectDB();
+    } catch (e: any) {
+        console.error('[Conversations.ID.DELETE] DB connect error:', e?.message);
+        return NextResponse.json({ error: 'DB_UNAVAILABLE', detail: e?.message ?? 'Database not reachable' }, { status: 503 });
+    }
     const deleted = await Conversation.findOneAndDelete({ _id: conversationId, clerkId: resolvedUserId });
 
     if (!deleted) {

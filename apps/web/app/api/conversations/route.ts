@@ -139,7 +139,12 @@ export async function GET() {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    await connectDB();
+    try {
+        await connectDB();
+    } catch (e: any) {
+        console.error('[Conversations.GET] DB connect error:', e?.message);
+        return NextResponse.json({ error: 'DB_UNAVAILABLE', detail: e?.message ?? 'Database not reachable' }, { status: 503 });
+    }
     const conversations = await Conversation.find({ clerkId: resolvedUserId })
         .sort({ updatedAt: -1 })
         .limit(100)
@@ -184,7 +189,12 @@ export async function POST(req: NextRequest) {
             ? new Date(inputMessages[inputMessages.length - 1].createdAt)
             : new Date();
 
-    await connectDB();
+    try {
+        await connectDB();
+    } catch (e: any) {
+        console.error('[Conversations.POST] DB connect error:', e?.message);
+        return NextResponse.json({ error: 'DB_UNAVAILABLE', detail: e?.message ?? 'Database not reachable' }, { status: 503 });
+    }
     const created = await Conversation.create({
         clerkId: resolvedUserId,
         title,
