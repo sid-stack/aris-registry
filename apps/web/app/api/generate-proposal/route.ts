@@ -22,6 +22,12 @@ const openrouter = createOpenAI({
     }
 });
 
+// DeepSeek (OpenAI-compatible)
+const deepseek = createOpenAI({
+    baseURL: 'https://api.deepseek.com/v1',
+    apiKey: process.env.DEEPSEEK_API_KEY || '',
+});
+
 const ollama = createOpenAI({
     baseURL: 'http://localhost:11434/v1',
     apiKey: 'ollama',
@@ -29,13 +35,35 @@ const ollama = createOpenAI({
 
 // Helper to pick model provider dynamically
 const hasOpenRouterKey = Boolean(process.env.OPEN_ROUTER_KEY || process.env.OPENROUTER_API_KEY);
-const isLocal = process.env.NODE_ENV === 'development' && !hasOpenRouterKey;
+const hasDeepseekKey = Boolean(process.env.DEEPSEEK_API_KEY);
+const isLocal = process.env.NODE_ENV === 'development' && !(hasOpenRouterKey || hasDeepseekKey);
 
 const selectModel = (role: 'writer' | 'critic' | 'refiner' | 'fallback') => {
     if (isLocal) {
         return ollama('llama3.2:1b');
     }
 
+    // Prefer DeepSeek when available (primary conversational/refiner engine)
+    if (hasDeepseekKey) {
+        switch (role) {
+            case 'writer':
+            case 'refiner':
+                return deepseek('deepseek-chat');
+            case 'critic':
+                // Keep a non-DeepSeek critic for diversity; fall back if google not configured
+                try {
+                    return google('models/gemini-1.5-pro-latest');
+                } catch {
+                    return deepseek('deepseek-chat');
+                }
+            case 'fallback':
+                return deepseek('deepseek-chat');
+            default:
+                return deepseek('deepseek-chat');
+        }
+    }
+
+    // Otherwise use OpenRouter stack
     switch (role) {
         case 'writer':
             return openrouter('anthropic/claude-3.5-sonnet');
@@ -81,9 +109,7 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-        if ((process.env.VERCEL === '1' || process.env.NODE_ENV === 'production') && !(process.env.OPEN_ROUTER_KEY || process.env.OPENROUTER_API_KEY)) {
-            throw new Error('CRITICAL: OpenRouter Key Missing in Production');
-        }
+        // Do NOT hard-fail on one provider. We dynamically select based on available keys.
         await connectDB();
         const { messages, prompt, analysisId, constraints, solicitationUrl, stream } = await req.json();
 
@@ -181,7 +207,9 @@ export async function POST(req: NextRequest) {
                 } catch (criticError) {
                     console.warn('[CORE] Primary Critic failed. Falling back to alternative.', criticError);
                     // Alternative Critic if Primary goes down
-                    const fallbackCriticModel = isLocal ? ollama('llama3.2:1b') : openrouter('google/gemini-2.5-flash');
+                    const fallbackCriticModel = isLocal
+                        ? ollama('llama3.2:1b')
+                        : (hasDeepseekKey ? deepseek('deepseek-chat') : openrouter('google/gemini-2.5-flash'));
                     console.log('Model reached: critic fallback phase');
                     const criticReview = await tracedGenerateText({
                         model: fallbackCriticModel,
@@ -251,6 +279,15 @@ export async function POST(req: NextRequest) {
 
     } catch (error: any) {
         console.error('Proposal Generation Error:', error);
-        return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+        // Return a minimal text stream error to avoid client-side stream parser failures
+        const message = typeof error?.message === 'string' ? error.message : 'Internal Server Error';
+        const encoder = new TextEncoder();
+        const stream = new ReadableStream({
+            start(controller) {
+                controller.enqueue(encoder.encode(`ERROR: ${message}`));
+                controller.close();
+            }
+        });
+        return new NextResponse(stream, { headers: { 'Content-Type': 'text/plain; charset=utf-8' }, status: 500 });
     }
 }
