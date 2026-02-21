@@ -6,6 +6,7 @@ config({ path: resolve(process.cwd(), 'apps/web/.env.local') });
 
 const STRIPE_SECRET = process.env.STRIPE_SECRET_KEY!.replace(/['"]/g, '');
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET!.replace(/['"]/g, '');
+const APP_URL = (process.env.NEXT_PUBLIC_APP_URL || 'https://arislabs.ai').replace(/\/$/, '');
 
 const stripe = new Stripe(STRIPE_SECRET, { apiVersion: '2024-06-20' });
 
@@ -38,10 +39,10 @@ async function runGhostTest() {
         secret: WEBHOOK_SECRET
     });
 
-    console.log("📡 Firing Ghost Webhook payload to http://localhost:3000/api/webhook");
+    console.log(`📡 Firing Ghost Webhook payload to ${APP_URL}/api/webhook`);
 
     const start = performance.now();
-    const response = await fetch("http://localhost:3000/api/webhook", {
+    const response = await fetch(`${APP_URL}/api/webhook`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",

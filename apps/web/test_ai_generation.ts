@@ -2,6 +2,7 @@ import { config } from 'dotenv';
 import { resolve } from 'path';
 
 config({ path: resolve(process.cwd(), 'apps/web/.env.local') });
+const APP_URL = (process.env.NEXT_PUBLIC_APP_URL || 'https://arislabs.ai').replace(/\/$/, '');
 
 async function runAITest() {
     console.log("🧠 Firing 'Intelligence & Generation' Stress-Test...");
@@ -17,7 +18,7 @@ async function runAITest() {
     console.log("📡 Streaming Mock Request...");
 
     const start = performance.now();
-    const response = await fetch("http://localhost:3000/api/generate-proposal", {
+    const response = await fetch(`${APP_URL}/api/generate-proposal`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",

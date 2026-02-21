@@ -37,8 +37,8 @@ if os.getenv("AWS_ACCESS_KEY_ID"):
 
 router = APIRouter()
 
-# Live URL or localhost
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+# Prefer explicit frontend URL config and avoid localhost defaults in production paths
+FRONTEND_URL = os.getenv("FRONTEND_URL") or os.getenv("NEXT_PUBLIC_APP_URL") or "https://arislabs.ai"
 
 # Plan definitions: plan_id -> (display_name, unit_amount_cents, credits_to_add)
 PLANS = {
@@ -117,6 +117,9 @@ async def create_checkout_session(
 
 @router.post("/webhook")
 async def stripe_webhook(request: Request):
+    if not endpoint_secret:
+        raise HTTPException(status_code=500, detail="STRIPE_WEBHOOK_SECRET is not configured")
+
     payload = await request.body()
     sig_header = request.headers.get('stripe-signature')
 

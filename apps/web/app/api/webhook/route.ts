@@ -11,7 +11,16 @@ const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET ? process.env.STRIPE_WE
 const API_BASE = process.env.RENDER_API_URL || 'https://aris-registry.onrender.com';
 const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET!;
 
+function getErrorMessage(err: unknown): string {
+    if (err instanceof Error) return err.message;
+    return String(err);
+}
+
 export async function POST(req: NextRequest) {
+    if (!WEBHOOK_SECRET) {
+        return NextResponse.json({ error: 'Webhook secret missing' }, { status: 500 });
+    }
+
     const body = await req.text();
     const sig = req.headers.get('stripe-signature') ?? '';
 
@@ -130,8 +139,8 @@ export async function POST(req: NextRequest) {
                 `credits=${creditsToAdd}, plan=${planId}, session=${stripeSessionId}`,
                 result
             );
-        } catch (err: any) {
-            console.warn(`[STRIPE_WEBHOOK] Failed to call Python API (${err.message}). Falling back to local MongoDB...`);
+        } catch (err: unknown) {
+            console.warn(`[STRIPE_WEBHOOK] Failed to call Python API (${getErrorMessage(err)}). Falling back to local MongoDB...`);
 
             try {
                 // local fallback

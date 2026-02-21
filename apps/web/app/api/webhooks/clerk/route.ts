@@ -5,6 +5,17 @@ import { connectDB } from '@/lib/mongodb'
 import { User } from '@/models'
 import { NextResponse } from 'next/server'
 
+interface ClerkUserCreatedData {
+    id: string;
+    email_addresses?: Array<{ email_address?: string }>;
+}
+
+function isClerkUserCreatedData(data: unknown): data is ClerkUserCreatedData {
+    if (!data || typeof data !== 'object') return false;
+    const candidate = data as { id?: unknown };
+    return typeof candidate.id === 'string';
+}
+
 export async function POST(req: Request) {
     const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET
 
@@ -51,7 +62,10 @@ export async function POST(req: Request) {
     const eventType = evt.type;
 
     if (eventType === 'user.created') {
-        const { id, email_addresses } = evt.data as any;
+        if (!isClerkUserCreatedData(evt.data)) {
+            return new NextResponse('Invalid webhook payload', { status: 400 });
+        }
+        const { id, email_addresses } = evt.data;
 
         // Handle user creation
         await connectDB();

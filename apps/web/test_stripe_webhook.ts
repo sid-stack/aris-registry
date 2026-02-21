@@ -6,6 +6,7 @@ config({ path: resolve(process.cwd(), '.env.local') });
 
 const STRIPE_SECRET = process.env.STRIPE_SECRET_KEY!.replace(/['"]/g, '');
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET!.replace(/['"]/g, '');
+const APP_URL = (process.env.NEXT_PUBLIC_APP_URL || 'https://arislabs.ai').replace(/\/$/, '');
 
 const stripe = new Stripe(STRIPE_SECRET, { apiVersion: '2024-06-20' });
 
@@ -39,9 +40,9 @@ async function runTest() {
         secret: WEBHOOK_SECRET
     });
 
-    console.log("📡 Sending signed webhook payload to http://localhost:3000/api/webhook");
+    console.log(`📡 Sending signed webhook payload to ${APP_URL}/api/webhook`);
 
-    const response = await fetch("http://localhost:3000/api/webhook", {
+    const response = await fetch(`${APP_URL}/api/webhook`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",

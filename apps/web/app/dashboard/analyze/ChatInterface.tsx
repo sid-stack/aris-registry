@@ -2,6 +2,7 @@
 import React, { useEffect, useRef, useState } from "react";
 // Use the canonical ai/react import which has full Next.js compatibility in 3.0+
 import { useChat } from "ai/react";
+import type { Message } from "ai";
 import { Paperclip, Send, Loader2, Cpu, SquareTerminal, RefreshCw } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -10,9 +11,78 @@ interface ChatInterfaceProps {
     initialCredits: number;
 }
 
+const APPROX_CHARS_PER_TOKEN = 4;
+const MAX_CONTEXT_TOKENS = 120000;
+const MAX_MESSAGE_TOKENS = 16000;
+
+function estimateTokens(text: string): number {
+    return Math.ceil(text.length / APPROX_CHARS_PER_TOKEN);
+}
+
+function normalizeWhitespace(text: string): string {
+    return text.replace(/\s+/g, " ").trim();
+}
+
+function truncateToTokenBudget(text: string, maxTokens: number): string {
+    const normalized = normalizeWhitespace(text);
+    if (estimateTokens(normalized) <= maxTokens) {
+        return normalized;
+    }
+    const maxChars = Math.max(1, maxTokens * APPROX_CHARS_PER_TOKEN);
+    const clipped = normalized.slice(0, maxChars);
+    return `${clipped} ... [TRUNCATED_FOR_CONTEXT_WINDOW]`;
+}
+
+function sanitizeMessageContent(content: Message["content"]): Message["content"] {
+    if (typeof content !== "string") {
+        return content;
+    }
+    return truncateToTokenBudget(content, MAX_MESSAGE_TOKENS);
+}
+
+function toSerializableContent(content: Message["content"]): string {
+    if (typeof content === "string") {
+        return content;
+    }
+    return JSON.stringify(content);
+}
+
+function serializeMessagesForRequest(inputMessages: Message[]) {
+    return inputMessages.map((msg) => ({
+        id: msg.id,
+        role: msg.role,
+        content: toSerializableContent(msg.content),
+    }));
+}
+
+function optimizeMessagesForContext(inputMessages: Message[]): Message[] {
+    const sanitized = inputMessages.map((msg) => ({
+        ...msg,
+        content: sanitizeMessageContent(msg.content),
+    }));
+
+    const selected: Message[] = [];
+    let tokenCount = 0;
+
+    for (let i = sanitized.length - 1; i >= 0; i -= 1) {
+        const msg = sanitized[i];
+        const contentTokenCount = typeof msg.content === "string" ? estimateTokens(msg.content) : 0;
+
+        if (selected.length > 0 && tokenCount + contentTokenCount > MAX_CONTEXT_TOKENS) {
+            break;
+        }
+
+        selected.push(msg);
+        tokenCount += contentTokenCount;
+    }
+
+    return selected.reverse();
+}
+
 const playSuccessThud = () => {
     try {
-        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+        const webkitAudioContext = (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+        const AudioContextClass = typeof AudioContext !== "undefined" ? AudioContext : webkitAudioContext;
         if (!AudioContextClass) return;
 
         const audioCtx = new AudioContextClass();
@@ -37,8 +107,12 @@ const playSuccessThud = () => {
 };
 
 export default function ChatInterface({ initialCredits }: ChatInterfaceProps) {
-    const { messages, setMessages, input, handleInputChange, handleSubmit, isLoading, stop } = useChat({
+    const formRef = useRef<HTMLFormElement>(null);
+    const { messages, setMessages, input, handleInputChange, handleSubmit, isLoading } = useChat({
         api: "/api/generate-proposal",
+        experimental_prepareRequestBody: ({ messages: requestMessages }) => ({
+            messages: serializeMessagesForRequest(optimizeMessagesForContext(requestMessages as Message[])),
+        }),
         onError: (err: Error) => {
             console.error("Agent Streaming Error:", err);
             setAgentStatus("[SYSTEM_FAULT]: Service temporarily unavailable or 500 anomaly detected.");
@@ -57,9 +131,9 @@ export default function ChatInterface({ initialCredits }: ChatInterfaceProps) {
         const saved = localStorage.getItem('aris-labs-v1-cache');
         if (saved) {
             try {
-                const parsed = JSON.parse(saved);
+                const parsed: unknown = JSON.parse(saved);
                 if (Array.isArray(parsed) && parsed.length > 0) {
-                    setMessages(parsed);
+                    setMessages(optimizeMessagesForContext(parsed as Message[]));
                 }
             } catch (e) {
                 console.error("Failed to parse chat history:", e);
@@ -70,7 +144,7 @@ export default function ChatInterface({ initialCredits }: ChatInterfaceProps) {
     // 2. Client-Side Persistence: Save messages to LocalStorage when they change
     useEffect(() => {
         if (messages.length > 0) {
-            localStorage.setItem('aris-labs-v1-cache', JSON.stringify(messages));
+            localStorage.setItem('aris-labs-v1-cache', JSON.stringify(optimizeMessagesForContext(messages as Message[])));
         }
     }, [messages]);
 
@@ -165,7 +239,7 @@ export default function ChatInterface({ initialCredits }: ChatInterfaceProps) {
                         </div>
                     )}
 
-                    <form onSubmit={onSubmit} className="relative flex items-end w-full rounded-2xl border border-zinc-700 bg-zinc-900 overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500/50 focus-within:border-transparent transition-all shadow-2xl">
+                    <form ref={formRef} onSubmit={onSubmit} className="relative flex items-end w-full rounded-2xl border border-zinc-700 bg-zinc-900 overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500/50 focus-within:border-transparent transition-all shadow-2xl">
 
                         <button
                             type="button"
@@ -193,7 +267,7 @@ export default function ChatInterface({ initialCredits }: ChatInterfaceProps) {
                             onKeyDown={(e) => {
                                 if (e.key === "Enter" && !e.shiftKey) {
                                     e.preventDefault();
-                                    onSubmit(e as any);
+                                    formRef.current?.requestSubmit();
                                 }
                             }}
                         />
