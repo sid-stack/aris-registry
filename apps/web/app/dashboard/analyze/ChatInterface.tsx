@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState } from "react";
 // Use the canonical ai/react import which has full Next.js compatibility in 3.0+
 import { useChat } from "ai/react";
-import { Paperclip, Send, Loader2, Cpu, SquareTerminal } from "lucide-react";
+import { Paperclip, Send, Loader2, Cpu, SquareTerminal, RefreshCw } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -37,7 +37,7 @@ const playSuccessThud = () => {
 };
 
 export default function ChatInterface({ initialCredits }: ChatInterfaceProps) {
-    const { messages, input, handleInputChange, handleSubmit, isLoading, stop } = useChat({
+    const { messages, setMessages, input, handleInputChange, handleSubmit, isLoading, stop } = useChat({
         api: "/api/generate-proposal",
         onError: (err: Error) => {
             console.error("Agent Streaming Error:", err);
@@ -52,9 +52,40 @@ export default function ChatInterface({ initialCredits }: ChatInterfaceProps) {
     const [agentStatus, setAgentStatus] = useState<string>("[SYSTEM]: Awaiting constraints...");
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
+    // 1. Client-Side Hydration: Load messages from LocalStorage on mount
+    useEffect(() => {
+        const saved = localStorage.getItem('aris-labs-v1-cache');
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    setMessages(parsed);
+                }
+            } catch (e) {
+                console.error("Failed to parse chat history:", e);
+            }
+        }
+    }, [setMessages]);
+
+    // 2. Client-Side Persistence: Save messages to LocalStorage when they change
+    useEffect(() => {
+        if (messages.length > 0) {
+            localStorage.setItem('aris-labs-v1-cache', JSON.stringify(messages));
+        }
+    }, [messages]);
+
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages, agentStatus]);
+
+    // 3. Reset Handler
+    const handleReset = () => {
+        if (window.confirm("Are you sure you want to clear your Analysis History?")) {
+            localStorage.removeItem('aris-labs-v1-cache');
+            setMessages([]);
+            setAgentStatus("[SYSTEM]: History cleared. Awaiting constraints...");
+        }
+    };
 
     // Simulate Agent steps
     const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -102,8 +133,8 @@ export default function ChatInterface({ initialCredits }: ChatInterfaceProps) {
                         messages.map((m) => (
                             <div key={m.id} className={`w-full flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
                                 <div className={`max-w-[85%] rounded-2xl p-5 ${m.role === "user"
-                                        ? "bg-zinc-800 text-white rounded-br-sm"
-                                        : "bg-transparent text-zinc-200 border-l-2 border-emerald-500/50 pl-6 rounded-l-none"
+                                    ? "bg-zinc-800 text-white rounded-br-sm"
+                                    : "bg-transparent text-zinc-200 border-l-2 border-emerald-500/50 pl-6 rounded-l-none"
                                     }`}>
                                     {m.role === "user" ? (
                                         <p className="whitespace-pre-wrap text-sm">{m.content}</p>
@@ -135,6 +166,15 @@ export default function ChatInterface({ initialCredits }: ChatInterfaceProps) {
                     )}
 
                     <form onSubmit={onSubmit} className="relative flex items-end w-full rounded-2xl border border-zinc-700 bg-zinc-900 overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500/50 focus-within:border-transparent transition-all shadow-2xl">
+
+                        <button
+                            type="button"
+                            onClick={handleReset}
+                            className="p-4 text-zinc-400 hover:text-rose-400 transition-colors flex-shrink-0 border-r border-zinc-700/50"
+                            title="Reset Analysis History"
+                        >
+                            <RefreshCw className="w-5 h-5" />
+                        </button>
 
                         <button
                             type="button"
