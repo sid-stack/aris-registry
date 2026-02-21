@@ -1,11 +1,22 @@
 import { useAuth } from "@clerk/nextjs";
 
-const API_Base = process.env.NEXT_PUBLIC_API_URL;
-
-if (!API_Base) {
-    console.error("NEXT_PUBLIC_API_URL is not defined. API client cannot reach the backend.");
-    throw new Error("NEXT_PUBLIC_API_URL is not defined. Please check your environment variables.");
+function resolveApiBase(): string {
+    // Prefer same-origin API on production to avoid cross-origin preflight/redirect issues
+    if (typeof window !== 'undefined') {
+        const host = window.location.hostname;
+        if (host.endsWith('bidsmith.pro')) {
+            return '/api';
+        }
+    }
+    const base = process.env.NEXT_PUBLIC_API_URL;
+    if (!base) {
+        console.error("NEXT_PUBLIC_API_URL is not defined. API client cannot reach the backend.");
+        throw new Error("NEXT_PUBLIC_API_URL is not defined. Please check your environment variables.");
+    }
+    return base;
 }
+
+const API_Base = resolveApiBase();
 
 export const useApiClient = () => {
     const { getToken, orgId } = useAuth();
@@ -23,7 +34,7 @@ export const useApiClient = () => {
             (headers as any)['x-clerk-org-id'] = orgId;
         }
 
-        const res = await fetch(`${API_Base}${endpoint}`, {
+        const res = await fetch(`${API_Base}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`, {
             ...options,
             headers,
         });

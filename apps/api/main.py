@@ -31,6 +31,8 @@ production_origins = [
     "https://aris-registry.vercel.app",
     "https://bidsmith.ai",
     "https://aris.io",
+    "https://bidsmith.pro",
+    "https://www.bidsmith.pro",
 ]
 local_origins = [
     "http://127.0.0.1:3000"
@@ -43,7 +45,7 @@ if os.getenv("ENV") != "production":
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_origin_regex=r"https://bidsmith-frontend-.*\.vercel\.app",
+    allow_origin_regex=r"https://(www\.)?bidsmith-frontend-.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
