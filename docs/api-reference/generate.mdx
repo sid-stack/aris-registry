@@ -1,43 +1,78 @@
 ---
-title: "Generate Method"
-description: "API reference for the generate() method of the ARIS SDK."
-icon: "code"
+title: "Generate"
+description: "Run model inference on the ARIS network."
+api: "POST /generate"
 ---
 
-# `client.generate()`
+Send a prompt to an eligible worker node and receive generated output plus usage metadata.
 
-Send a prompt to the decentralized network to receive an AI-generated completion.
+## Request body
 
-## Usage
+<ParamField name="prompt" body="prompt" type="string" required>
+  Input text for inference.
+</ParamField>
 
-```python
-response = client.generate(
-    prompt="Explain quantum tunneling",
-    max_tokens=256,
-    temperature=0.7
-)
+<ParamField name="model" body="model" type="string">
+  Model identifier (for example `tinyllama`).
+</ParamField>
+
+<ParamField name="max_tokens" body="max_tokens" type="integer">
+  Maximum output tokens. Default is `256`.
+</ParamField>
+
+<ParamField name="temperature" body="temperature" type="number">
+  Sampling temperature between `0.0` and `2.0`. Default is `0.7`.
+</ParamField>
+
+## Example request
+
+```json
+{
+  "prompt": "Explain quantum tunneling in one paragraph.",
+  "model": "tinyllama",
+  "max_tokens": 256,
+  "temperature": 0.7
+}
 ```
 
-## Arguments
+## Success response
 
-| Argument     | Type  | Default | Description       |
-|--------------|-------|---------|-------------------|
-| `prompt`       | `str`   | Required| Input text prompt  |
-| `max_tokens`   | `int`   | `256`     | Max tokens returned|
-| `temperature`  | `float` | `0.7`     | Sampling randomness|
+<ResponseField name="id" type="string">
+  Unique job ID for this generation request.
+</ResponseField>
 
-## Response Structure
+<ResponseField name="node" type="string">
+  Worker node that executed the inference.
+</ResponseField>
 
-Returns a dictionary with the following fields:
+<ResponseField name="output" type="string">
+  Generated completion text.
+</ResponseField>
+
+<ResponseField name="usage" type="object">
+  Usage object with token and credits metadata.
+</ResponseField>
+
+## Response example
 
 ```json
 {
   "id": "job_abc123",
   "node": "node-9006",
   "usage": {
-      "tokens": 142,
-      "credits_deducted": 1.42
+    "tokens": 142,
+    "credits_deducted": 1.42
   },
   "output": "Quantum tunneling occurs when..."
 }
 ```
+
+## Error responses
+
+| Status | Meaning | Retry |
+| --- | --- | --- |
+| `400` | Invalid request parameters. | No |
+| `401` | Missing or invalid API key. | No |
+| `402` | Insufficient credits. | No |
+| `429` | Rate limited. | Yes |
+| `503` | No healthy nodes available. | Yes |

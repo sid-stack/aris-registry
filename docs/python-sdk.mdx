@@ -1,71 +1,70 @@
 ---
-title: "Python SDK"
-description: "The official Python client for the ARIS network."
+title: Python SDK
+description: "Use the official ARIS Python client for generation, retries, and node routing."
 icon: "python"
 ---
 
-## Installation
-
-Install the package from PyPI:
+## Install
 
 ```bash
 pip install aris-sdk
 ```
 
-## Initialization
-
-The `Aris` client is your main entry point. It handles:
-- **Node Discovery**: Finding active compute nodes.
-- **Handshake**: Negotiating payment and session tokens.
-- **Execution**: Sending prompts to the node.
+## Initialize a client
 
 ```python
 from aris.client import Aris
 
 client = Aris(
-    api_key="your-api-key",       # Defaults to ARIS_API_KEY env var
-    registry_url="http://..."     # Optional: For private networks
+    api_key="sk-aris-your-key",
+    registry_url="https://aris-registry.onrender.com",
+    timeout=30,
 )
 ```
 
-## Usage
-
-### `client.generate()`
-
-The core method to run inference.
+## Generate text
 
 ```python
 response = client.generate(
-    prompt="Explain quantum computing in one sentence.",
-    model="tinyllama"  # Default model
+    prompt="Summarize the advantages of distributed inference.",
+    model="tinyllama",
+    max_tokens=256,
+    temperature=0.7,
 )
 
-print(response)
+print(response["output"])
+```
+
+## Configuration reference
+
+| Setting | Type | Default | Description |
+| --- | --- | --- | --- |
+| `api_key` | `str` | `ARIS_API_KEY` | Registry-issued API key. |
+| `registry_url` | `str` | `http://localhost:8000` | Registry base URL. |
+| `timeout` | `int` | `30` | Request timeout in seconds. |
+| `headers` | `dict[str, str]` | `{}` | Extra headers for custom routing. |
+
+## Environment variables
+
+| Variable | Description |
+| --- | --- |
+| `ARIS_API_KEY` | API key for registry authentication. |
+| `ARIS_REGISTRY_URL` | Registry URL for discovery and handshake. |
+
+## Async usage
+
+```python
+import asyncio
+from aris.client import AsyncAris
+
+async def main() -> None:
+    client = AsyncAris(api_key="sk-aris-your-key")
+    result = await client.generate(prompt="Return a one-line health summary.")
+    print(result["output"])
+
+asyncio.run(main())
 ```
 
 <Note>
-The client automatically handles the connection handshake. If a session token expires, it will attempt to refresh it automatically.
+  Move to [/advanced-usage](/advanced-usage) for retries, concurrency, and backoff patterns.
 </Note>
-
-### Helper Function
-
-For quick, one-off scripts, you can use the top-level `generate` helper:
-
-```python
-from aris.client import generate
-
-print(generate("Hello world"))
-```
-
-## Configuration
-
-You can configure the client using environment variables to avoid hardcoding secrets.
-
-| Variable | Description |
-| -------- | ----------- |
-| `ARIS_API_KEY` | Your unique API key (starts with `sk-`). |
-| `ARIS_REGISTRY_URL` | URL of the registry (default: `http://localhost:8000`). |
-
-## Error Handling
-
-See the [Error Handling](/errors) page for details on `ArisPaymentError` and `ArisNodeError`.

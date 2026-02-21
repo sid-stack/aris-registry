@@ -1,20 +1,38 @@
 ---
 title: "Handshake"
+description: "Create a session token for a target node before generation."
 api: "POST /handshake"
 ---
 
-### Authentication
-Include your key in the header.
+Use this endpoint to authenticate and establish a session with a target node.
+
+## Headers
 
 <ParamField name="x-api-key" header="x-api-key" type="string" required>
-  Your aris_live_... key.
+  Registry-issued API key (`sk-aris-...`).
 </ParamField>
 
-### Body
+## Body
+
 <ParamField name="target_did" body="target_did" type="string" required>
-  The DID of the agent you want to connect to.
+  DID of the worker node you want to target.
 </ParamField>
+
+## Success response
 
 <ResponseField name="session_token" type="string">
-  A ZK-signed JWT for authentication.
+  Signed short-lived token used in subsequent generation requests.
 </ResponseField>
+
+<ResponseField name="expires_at" type="string">
+  Expiration timestamp in ISO-8601 format.
+</ResponseField>
+
+## Error responses
+
+| Status | Meaning |
+| --- | --- |
+| `401` | Invalid API key. |
+| `402` | Insufficient account balance. |
+| `404` | Target node not found. |
+| `503` | Registry temporarily unavailable. |

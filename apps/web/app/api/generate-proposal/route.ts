@@ -17,7 +17,12 @@ const openai = createOpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Delete the global anthropic initialization to prevent crashes if the key is missing at boot
+const openrouter = createOpenAI({
+    baseURL: 'https://openrouter.ai/api/v1',
+    apiKey: process.env.OPENROUTER_API_KEY,
+});
+
+// Delete sum global anthropic initialization to prevent crashes if the key is missing at boot
 
 export async function POST(req: NextRequest) {
     // 1. Authenticate (Clerk OR Internal Service Secret for n8n)
@@ -112,16 +117,17 @@ export async function POST(req: NextRequest) {
 
             let criticReview;
             try {
-                // Defaulting Critic to Google Gemini 1.5 Pro to guarantee execution without Anthropic issues
+                // Defaulting Critic to Gemini 2.5 Flash via OpenRouter
                 criticReview = await tracedGenerateText({
-                    model: google('gemini-1.5-pro'),
+                    model: openrouter('google/gemini-2.5-flash'),
+                    maxTokens: 4000,
                     system: 'You are ARIS-4, a strict Compliance Auditor. Output exactly "COMPLIANT" or provide revisions.',
                     prompt: criticPrompt,
                 });
             } catch (criticError) {
-                console.warn('[CORE] Gemini 1.5 Pro failed or timed out. Falling back to Gemini 1.5 Flash.', criticError);
+                console.warn('[CORE] Primary Critic failed. Falling back to alternative.', criticError);
                 criticReview = await tracedGenerateText({
-                    model: google('gemini-1.5-flash'),
+                    model: openrouter('meta-llama/llama-3.1-8b-instruct:free'),
                     system: 'You are ARIS-4, a strict Compliance Auditor. Output exactly "COMPLIANT" or provide revisions.',
                     prompt: criticPrompt,
                 });
@@ -137,7 +143,8 @@ export async function POST(req: NextRequest) {
             const finalMessages = [...convertedMessages, { role: 'assistant', content: refinerSystemMessage }];
 
             result = await tracedStreamText({
-                model: openai('gpt-4o'),
+                model: openrouter('google/gemini-2.5-flash'),
+                maxTokens: 4000,
                 messages: finalMessages,
             });
 
@@ -148,18 +155,19 @@ export async function POST(req: NextRequest) {
             });
 
         } catch (eliteEngineError) {
-            console.warn('[CORE] Elite Hybrid Engine failed (OpenAI/Gemini Pro). Executing Global Failover to Gemini 1.5 Flash.', eliteEngineError);
+            console.warn('[CORE] Elite Hybrid Engine failed. Executing Global Failover.', eliteEngineError);
 
-            // EMERGENCY FALLBACK: Direct to Gemini 1.5 Flash to guarantee delivery
+            // EMERGENCY FALLBACK: Direct to Gemini 2.5 Flash to guarantee delivery
             result = await tracedStreamText({
-                model: google('gemini-1.5-flash'),
+                model: openrouter('google/gemini-2.5-flash'),
+                maxTokens: 4000,
                 system: systemMessage,
                 messages: convertedMessages,
             });
 
             return result.toTextStreamResponse({
                 headers: {
-                    'Aris-Critic-Feedback': encodeURIComponent('Failover active. Processed directly via Gemini 1.5 Flash.')
+                    'Aris-Critic-Feedback': encodeURIComponent('Failover active. Processed directly via Fallback Model.')
                 }
             });
         }

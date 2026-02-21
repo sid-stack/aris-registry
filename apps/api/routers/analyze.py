@@ -83,7 +83,7 @@ async def analyze_document(
         analysis_result = AnalysisResult(
             user_id=current_user.id,
             filename=file.filename,
-            content_summary="AI Analysis + BidSmith Compliance", 
+            content_summary="AI Analysis + ARIS Labs Compliance", 
             ai_analysis=str(gemini_output),
             compliance_report=compliance_report
         )

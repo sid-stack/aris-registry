@@ -1,79 +1,65 @@
 ---
-title: "Agentic Tool Calling"
+title: "Agentic tool calling"
 sidebarTitle: "Agentic RAG"
-description: "Empowering LLMs to autonomously decide when to retrieve context."
+description: "Let the model decide when retrieval tools are required."
 ---
 
-# Autonomous Retrieval
+In agentic RAG, the model chooses whether to call retrieval tools instead of always injecting context.
 
-In an Agentic RAG architecture, the LLM is not forced to retrieve context for every query. Instead, it wields the `retrieve_context` tool as one of many capabilities, deciding dynamically whether external information is required.
+## Decision flow
 
-## Decision Logic
+```mermaid
+graph TD
+  A[User query] --> B{Need external facts?}
+  B -- Yes --> C[Call retrieve_context]
+  B -- No --> D{Need code or calculation?}
+  C --> E[Hybrid search plus RRF]
+  E --> F[Inject context]
+  D -- Yes --> G[Call specialized tool]
+  D -- No --> H[Answer directly]
+  F --> H
+  G --> H
+```
 
-The decision process follows a strict "Tool Use" flow, typically powered by OpenAI function calling or ReAct prompting.
+## Tool description quality
 
-<Card title="Decision Flowchart">
-  ```mermaid
-  graph TD
-    A[User Query] --> B{Need Facts?}
-    B -- Yes --> C[Call retrieve_context]
-    B -- No --> D{Need Calculation?}
-    C --> E[Hybird Search + RRF]
-    E --> F[Inject Context]
-    D -- Yes --> G[Call Calculator/Code Interpreter]
-    D -- No --> H[Answer from Internal Weights]
-    F --> H
-    G --> H
-  ```
-</Card>
+<Tabs>
+  <Tab title="Good">
+    "Use this tool for ARIS policies, docs, release details, and system behavior. If facts are uncertain, call this tool before answering."
+  </Tab>
+  <Tab title="Poor">
+    "Searches database."
+  </Tab>
+</Tabs>
 
-## Tool Definitions
+## Empty-result fallback
 
-To enable this behavior, the `retrieve_context` tool must be defined with a clear description that "sells" its utility to the LLM.
-
-**Good Description:**
-> "Use this tool to fetch specific details about Aris internal policies, recent project updates, or technical documentation. Do not guess. If the user asks about a specific entity, use this tool."
-
-**Bad Description:**
-> "Searches the database."
-
-## Fallback Strategies
-
-Retrieval is not guaranteed to succeed. The agent must handle empty or irrelevant results gracefully.
-
-<Accordion title="Zero-Result Fallback">
-  If `retrieve_context` returns `[]` (empty list):
-  
-  1.  **Reflect**: The agent should analyze *why* the search failed (e.g., "The query was too specific" or "The term is a typo").
-  2.  **Rewrite**: The agent generates a broader search query.
-  3.  **Retry**: Execute `retrieve_context` again with the new query.
-  4.  **Give Up**: If the second attempt fails, admit ignorance to the user.
+<Accordion title="Fallback sequence">
+  1. Inspect why retrieval failed.
+  2. Rewrite query with broader wording.
+  3. Retry retrieval once.
+  4. If still empty, answer with uncertainty and next-best guidance.
 </Accordion>
 
-### Implementation (LangGraph / LangChain)
+## LangGraph routing example
 
 ```python
 from typing import Annotated, Literal
 from typing_extensions import TypedDict
-from langgraph.graph import StateGraph, END
+from langgraph.graph import StateGraph
 
 class AgentState(TypedDict):
     messages: Annotated[list, add_messages]
 
 def router(state: AgentState) -> Literal["retrieve", "end"]:
     last_message = state["messages"][-1]
-    if last_message.tool_calls:
-        return "retrieve"
-    return "end"
+    return "retrieve" if last_message.tool_calls else "end"
 
-# Define the graph
 workflow = StateGraph(AgentState)
 workflow.add_node("agent", agent_node)
 workflow.add_node("retrieve", tool_node)
-
 workflow.set_entry_point("agent")
 workflow.add_conditional_edges("agent", router)
 workflow.add_edge("retrieve", "agent")
-
 app = workflow.compile()
 ```

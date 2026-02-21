@@ -1,19 +1,67 @@
 ---
-title: "Run Node"
-description: "How to run a worker node and contribute compute to ARIS."
+title: "Run node"
+description: "Provision, register, and operate an ARIS worker node in production."
 icon: "server"
 ---
 
-# Run a Worker Node
+## Prerequisites
 
-This guide explains how to start a worker node, register it with the registry, and monitor its activity.
+- Linux host with Docker 24+
+- Stable outbound connectivity to the registry
+- GPU driver/runtime configured (if running GPU workloads)
+- Node keypair and operator wallet
 
-## Start
+## 1. Create node configuration
 
-```bash
-aris-node start --config ./node-config.yaml
+```yaml
+node_id: node-us-east-01
+registry_url: https://aris-registry.onrender.com
+listen_addr: 0.0.0.0:9006
+max_concurrency: 8
+models:
+  - tinyllama
+  - mistral-7b
+wallet:
+  address: 0x1234...abcd
 ```
 
-## Registration
+## 2. Start the worker
 
-- Ensure your node has a valid keypair and is reachable from the registry.
+<CodeGroup>
+  ```bash Docker
+  docker run --rm -it \
+    -p 9006:9006 \
+    -v $(pwd)/node-config.yaml:/app/node-config.yaml \
+    aris/node:latest \
+    aris-node start --config /app/node-config.yaml
+  ```
+
+  ```bash Native
+  aris-node start --config ./node-config.yaml
+  ```
+</CodeGroup>
+
+## 3. Verify registration
+
+<Steps>
+  <Step title="Heartbeat">
+    Confirm heartbeats are visible in registry logs.
+  </Step>
+  <Step title="Health endpoint">
+    Check `GET /health` returns `ok` from your node.
+  </Step>
+  <Step title="First job">
+    Send a test prompt from the SDK and verify the node is selected.
+  </Step>
+</Steps>
+
+## Operational checklist
+
+- Keep clock drift under 1 second (NTP enabled)
+- Rotate node credentials on schedule
+- Pin model versions per environment
+- Set memory and concurrency limits
+
+<Warning>
+  Do not expose admin ports publicly. Restrict management endpoints with network policies.
+</Warning>

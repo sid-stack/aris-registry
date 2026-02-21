@@ -1,8 +1,28 @@
-/* Navigation bar links styling */
-.navbar-link {
-    text-decoration: underline;
-    text-underline-offset: 4px;
+:root {
+  --aris-ring: rgba(20, 184, 166, 0.32);
 }
 
-/* Sidebar toggle button (if supported by theme, this might help visibility) */
-/* Mintlify usually handles this, but custom CSS can sometimes force display */
+/* Create a cleaner card hierarchy and stronger visual grouping. */
+.card {
+  border-radius: 14px;
+  border: 1px solid rgba(13, 148, 136, 0.18);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(15, 118, 110, 0.14);
+}
+
+/* Make code snippets easier to scan in long procedural pages. */
+pre {
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+/* Improve keyboard focus visibility for accessibility. */
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--aris-ring);
+  outline-offset: 2px;
+}

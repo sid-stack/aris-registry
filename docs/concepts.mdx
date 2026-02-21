@@ -1,40 +1,41 @@
 ---
-title: "Network Architecture"
-description: "Understanding the components of the ARIS network."
+title: "Network architecture"
+description: "Core ARIS building blocks and end-to-end request lifecycle."
 icon: "sitemap"
 ---
 
-# Network Architecture
+ARIS is composed of three primary systems: registry, worker nodes, and clients.
 
-ARIS operates as a decentralized network linking **Compute Nodes**, the **Registry**, and **Clients**.
+## Core components
 
-## Components
+<CardGroup cols={3}>
+  <Card title="Registry" icon="database">
+    Handles authentication, node discovery, and usage settlement.
+  </Card>
+  <Card title="Worker nodes" icon="cpu">
+    Execute inference jobs and report usage to the registry.
+  </Card>
+  <Card title="Clients" icon="terminal">
+    SDK-enabled applications that submit prompts and receive results.
+  </Card>
+</CardGroup>
 
-### 1. The Registry
-The central (or federated) authority that manages:
-- **Node Discovery**: Keeping track of active compute nodes.
-- **Authentication**: issuing and validating API keys.
-- **Credit Ledger**: Tracking user balances and node earnings.
+## Request lifecycle
 
-### 2. Compute Nodes
-Independent workers that:
-- Volunteer GPU/CPU resources to the network.
-- Execute inference tasks (e.g., LLM generation).
-- Return results + cryptographic proofs of work.
-
-### 3. The Client (SDK)
-Your application acts as the client:
-- connects to the Registry to find suitable nodes.
-- sends encrypted Payloads to the selected Node.
-- receives and validates the response.
-
-## Request Flow
-
-1. **Discovery**: Client asks Registry for a list of active nodes matching criteria (e.g. Model type).
-2. **Selection**: Client selects a node (randomly or based on latency/reputation).
-3. **Execution**: Client sends the prompt to the Node.
-4. **Verification**: Node processes prompt and returns output.
-5. **Settlement**: Registry updates the credit ledger asynchronously.
+<Steps>
+  <Step title="Discovery">
+    Client requests eligible nodes from the registry.
+  </Step>
+  <Step title="Handshake">
+    Client establishes a short-lived session with a selected node.
+  </Step>
+  <Step title="Inference">
+    Client sends prompt and receives generated output.
+  </Step>
+  <Step title="Settlement">
+    Node reports usage and credits are reconciled.
+  </Step>
+</Steps>
 
 ```mermaid
 sequenceDiagram
@@ -42,10 +43,11 @@ sequenceDiagram
     participant Registry
     participant Node
 
-    Client->>Registry: Request Node List
-    Registry-->>Client: Return Active Nodes
-    Client->>Node: Send Prompt (Inference Request)
-    Node-->>Node: Run LLM Inference
-    Node-->>Client: Return Response
-    Node->>Registry: Report Usage (for Settlement)
+    Client->>Registry: Request eligible nodes
+    Registry-->>Client: Return active nodes
+    Client->>Registry: POST /handshake
+    Registry-->>Client: Session token
+    Client->>Node: POST /generate
+    Node-->>Client: Output + usage
+    Node->>Registry: Settlement event
 ```

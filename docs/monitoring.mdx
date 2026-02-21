@@ -1,18 +1,56 @@
 ---
 title: "Monitoring"
-description: "Monitoring and observability for ARIS nodes and registry."
+description: "Metrics, logs, traces, and alerts for ARIS nodes and registry services."
 icon: "monitor"
 ---
 
-# Monitoring
+## What to monitor
 
-Suggestions for monitoring node health, performance, and billing metrics.
+<CardGroup cols={2}>
+  <Card title="Availability" icon="heart-pulse">
+    Node heartbeats, registry uptime, and request success rate.
+  </Card>
+  <Card title="Latency" icon="timer">
+    P50/P95/P99 inference duration by model and node.
+  </Card>
+  <Card title="Cost" icon="wallet">
+    Credits consumed per route, model, and tenant.
+  </Card>
+  <Card title="Capacity" icon="gauge">
+    Queue depth, GPU utilization, memory pressure, and saturation.
+  </Card>
+</CardGroup>
 
-## Metrics
+## Recommended metrics
 
-- Expose Prometheus metrics from worker nodes
-- Track request latency, token usage, and error rates
+| Metric | Type | Why it matters |
+| --- | --- | --- |
+| `aris_requests_total` | Counter | Total traffic per endpoint/model. |
+| `aris_request_latency_ms` | Histogram | Detect slowdowns and regressions. |
+| `aris_inference_errors_total` | Counter | Track node and model failures. |
+| `aris_queue_depth` | Gauge | Signal backpressure and scale events. |
+| `aris_credits_deducted_total` | Counter | Cost visibility and billing audits. |
 
-## Alerts
+## Alert policy
 
-- Set alerts for high error rates and low credit balances
+<Tabs>
+  <Tab title="Critical">
+    Alert immediately when success rate drops below 97% for 5 minutes or registry is unreachable.
+  </Tab>
+  <Tab title="Warning">
+    Alert when P95 latency rises 2x baseline for 15 minutes.
+  </Tab>
+  <Tab title="Capacity">
+    Alert when queue depth exceeds planned concurrency for 10 minutes.
+  </Tab>
+</Tabs>
+
+## Logs and trace correlation
+
+Use a shared `request_id` across:
+
+- client request logs
+- registry routing logs
+- node execution logs
+
+This allows end-to-end failure triage in one query.

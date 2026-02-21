@@ -20,7 +20,7 @@ from pydantic import BaseModel
 # --- 1. SETUP DYNAMIC ARGS ---
 parser = argparse.ArgumentParser()
 parser.add_argument("--port", type=int, default=9001)
-parser.add_argument("--name", type=str, default="BidSmith AI Node")
+parser.add_argument("--name", type=str, default="ARIS Labs AI Node")
 args, _ = parser.parse_known_args()
 
 app = FastAPI(title=f"Aris Node: {args.name}")

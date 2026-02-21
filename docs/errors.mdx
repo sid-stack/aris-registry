@@ -1,65 +1,60 @@
 ---
-title: "Error Handling"
-description: "Reference for ARIS SDK exceptions and error codes."
+title: "Error handling"
+description: "ARIS SDK exceptions, API status codes, and retry recommendations."
 icon: "triangle-exclamation"
 ---
 
-# Exception Hierarchy
+## Exception hierarchy
 
-The ARIS SDK uses a structured exception hierarchy to help you handle errors gracefully.
-
-All exceptions inherit from the base `ArisError`.
+All SDK errors inherit from `ArisError`.
 
 ```python
 class ArisError(Exception):
-    """Base exception for all Aris SDK errors."""
+    """Base exception for ARIS SDK errors."""
 ```
 
-## Common Errors
+## Common exceptions
 
-### `ArisAuthenticationError`
-Raised when the API key is missing, invalid, or expired.
+| Exception | Meaning | Retry |
+| --- | --- | --- |
+| `ArisAuthenticationError` | Invalid or missing API key. | No |
+| `ArisPaymentError` | Insufficient credits or billing rejection. | No |
+| `ArisNodeError` | Node timeout, disconnect, or execution failure. | Yes |
+| `ArisRateLimitError` | Request rate exceeded. | Yes |
 
-```python
-try:
-    client = Aris(api_key="invalid-key")
-    client.generate("fail")
-except ArisAuthenticationError:
-    print("Please check your API key.")
-```
+## HTTP status mapping
 
-### `ArisPaymentError`
-Raised during the **Handshake** phase if the account has insufficient credits.
+| Status | Meaning | Action |
+| --- | --- | --- |
+| `400` | Invalid request payload. | Fix request fields and retry. |
+| `401` | Authentication failed. | Rotate or correct API key. |
+| `402` | Credits required. | Increase balance and retry. |
+| `429` | Rate limit exceeded. | Backoff and retry with jitter. |
+| `503` | No healthy nodes available. | Retry after short delay. |
 
-```python
-class ArisPaymentError(ArisError):
-    """Raised when payment fails or balance is insufficient."""
-```
-
-### `ArisNodeError`
-Raised when a worker node fails to respond or returns an error during inference. This can happen if a node goes offline mid-request.
+## Recommended pattern
 
 ```python
-class ArisNodeError(ArisError):
-    """Raised when the worker node fails to respond."""
-```
+from aris.client import Aris
+from aris.errors import (
+    ArisAuthenticationError,
+    ArisPaymentError,
+    ArisNodeError,
+    ArisRateLimitError,
+)
 
-## Handling Strategy
-
-We recommend wrapping your generation calls in a try/except block to handle network and payment issues distinctively.
-
-```python
-from aris.client import Aris, ArisPaymentError, ArisNodeError
-
-client = Aris()
+client = Aris(api_key="sk-aris-your-key")
 
 try:
-    response = client.generate("Hello world")
+    response = client.generate(prompt="Generate a status summary")
+except (ArisNodeError, ArisRateLimitError) as err:
+    print(f"Temporary issue: {err}")
 except ArisPaymentError:
-    print("Billing issue - check balance.")
-except ArisNodeError:
-    print("Node failure - retrying automatically...")
-    # Add your retry logic here
-except Exception as e:
-    print(f"Unexpected error: {e}")
+    print("Insufficient credits.")
+except ArisAuthenticationError:
+    print("Invalid API key.")
 ```
+
+<Accordion title="When not to retry">
+  Do not retry malformed prompts (`400`) or invalid credentials (`401`) without changing the request.
+</Accordion>

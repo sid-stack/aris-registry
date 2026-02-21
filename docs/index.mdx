@@ -1,34 +1,53 @@
 ---
 title: Introduction
-description: "Welcome to the ARIS Documentation"
+description: "Build, run, and scale decentralized AI workloads on ARIS."
 icon: "house"
 ---
 
-**ARIS** (Autonomous Registry & Intelligent Systems) is a decentralized compute network designed for AI workloads. Connect to a global grid of GPU nodes to run verifiable inference with a unified Python SDK.
-
-## Key Features
+ARIS (Autonomous Registry and Intelligent Systems) is a decentralized compute network for verifiable AI inference. You can route prompts to distributed worker nodes through one Python SDK.
 
 <CardGroup cols={2}>
-  <Card
-    title="Python SDK"
-    icon="python"
-    href="/python-sdk"
-  >
-    Simple, OpenAI-compatible client for effortless integration.
+  <Card title="Ship an app" icon="rocket" href="/quickstart">
+    Send your first generation request in minutes.
   </Card>
-  <Card
-    title="Run a Node"
-    icon="server"
-    href="/run-node"
-  >
-    Contribute compute power to the network and earn rewards.
+  <Card title="Run infrastructure" icon="server" href="/run-node">
+    Launch worker nodes and earn from compute.
+  </Card>
+  <Card title="Integrate retrieval" icon="brain" href="/agentic-rag">
+    Add agentic RAG and MCP tools.
+  </Card>
+  <Card title="Inspect API" icon="code" href="/api-reference/generate">
+    Review request, response, and error formats.
   </Card>
 </CardGroup>
 
-## Getting Started
+## How ARIS works
 
-Ready to build? Jump into our quickstart guide to send your first request.
+<Steps>
+  <Step title="Authenticate">
+    Your app sends an API key to the registry and receives session credentials.
+  </Step>
+  <Step title="Select node">
+    The SDK selects a healthy compute node based on availability and policy.
+  </Step>
+  <Step title="Run inference">
+    The node executes your prompt and returns output with usage metadata.
+  </Step>
+  <Step title="Settle usage">
+    Credits and earnings are recorded through the registry ledger.
+  </Step>
+</Steps>
 
-<Card title="Quickstart Guide" icon="bolt" href="/quickstart">
-  Install the SDK and run your first prompt in under 5 minutes.
-</Card>
+## Choose your path
+
+<Tabs>
+  <Tab title="Application developers">
+    Start with [/quickstart](/quickstart), then continue to [/python-sdk](/python-sdk) and [/advanced-usage](/advanced-usage).
+  </Tab>
+  <Tab title="Node operators">
+    Start with [/run-node](/run-node), then set up [/monitoring](/monitoring) and [/scaling](/scaling).
+  </Tab>
+  <Tab title="RAG teams">
+    Start with [/agentic-rag](/agentic-rag), then review [/rag-architecture](/rag-architecture) and [/mcp-integration](/mcp-integration).
+  </Tab>
+</Tabs>

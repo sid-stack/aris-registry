@@ -21,7 +21,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 # app initialized after limiter imports to avoid ciruclarity
-app = FastAPI(title="BidSmith API", version="1.0.0")
+app = FastAPI(title="ARIS Labs API", version="1.0.0")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 

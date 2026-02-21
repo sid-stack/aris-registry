@@ -50,7 +50,7 @@ async def test_cors_lockdown():
             print(f"✅ PASSED: Origin https://evil.com was rejected or restricted.")
 
 async def main():
-    print("=== BidSmith Pre-Production Security Audit Verification ===")
+    print("=== ARIS Labs Pre-Production Security Audit Verification ===")
     
     # Check if server is up
     try:

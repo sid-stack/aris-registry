@@ -1,18 +1,55 @@
 ---
 title: "Scaling"
-description: "Guidance for scaling worker nodes and registry services."
+description: "Scale ARIS workers and registry components for higher throughput and reliability."
 icon: "scale"
 ---
 
-# Scaling
+## Scaling goals
 
-Recommendations for scaling ARIS components for production workloads.
+- Increase throughput without unstable tail latency
+- Maintain request success rate during demand spikes
+- Keep credit settlement and node discovery consistent
 
-## Horizontal Scaling
+## Worker scaling strategy
 
-- Run multiple worker nodes behind a load balancer
-- Use autoscaling rules based on queue length or CPU
+<Steps>
+  <Step title="Scale out first">
+    Add more workers before increasing per-node concurrency.
+  </Step>
+  <Step title="Tune concurrency">
+    Raise `max_concurrency` incrementally while tracking P95 latency.
+  </Step>
+  <Step title="Pin workloads">
+    Route model families to dedicated node pools when possible.
+  </Step>
+</Steps>
 
-## Registry Scaling
+## Registry scaling strategy
 
-- Use a managed database and horizontal replicas for the registry service
+| Component | Recommendation |
+| --- | --- |
+| API layer | Run multiple stateless replicas behind a load balancer. |
+| Database | Use managed PostgreSQL with automated backups and read replicas. |
+| Cache | Add Redis for node discovery and session lookup hot paths. |
+| Queue | Use durable queues for asynchronous settlement and retries. |
+
+## Autoscaling signals
+
+Use a combination of:
+
+- queue depth
+- in-flight request count
+- P95 latency
+- GPU utilization
+
+<Accordion title="Avoid common scaling mistakes">
+  <Warning>
+    Scaling only by CPU can under-provision GPU-bound workloads.
+  </Warning>
+  <Warning>
+    Large concurrency jumps can increase timeout rates and reduce total throughput.
+  </Warning>
+  <Warning>
+    Mixing dissimilar models in one pool can create noisy-neighbor effects.
+  </Warning>
+</Accordion>

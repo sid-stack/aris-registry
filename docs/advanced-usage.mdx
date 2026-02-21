@@ -1,20 +1,79 @@
 ---
-title: "Advanced Usage"
-description: "Advanced SDK patterns and customization options."
+title: "Advanced usage"
+description: "Production patterns for retries, streaming, async workloads, and request controls."
 icon: "settings"
 ---
 
-# Advanced Usage
-
-This guide covers advanced SDK features, customization, and integration tips.
-
-## Custom Headers
+## Configure client behavior
 
 ```python
-client = Aris(api_key="sk-...", headers={"X-Environment": "staging"})
+from aris.client import Aris
+
+client = Aris(
+    api_key="sk-aris-your-key",
+    timeout=45,
+    headers={"X-Environment": "staging"},
+)
 ```
 
-## Streaming, async, and performance
+## Retry with exponential backoff
 
-- Use `AsyncAris` for high-throughput applications
-- Prefer streaming if the node supports it to reduce latency
+```python
+import time
+from aris.client import Aris
+from aris.errors import ArisNodeError
+
+client = Aris(api_key="sk-aris-your-key")
+
+for attempt in range(4):
+    try:
+        result = client.generate(prompt="Generate release notes from this changelog")
+        print(result["output"])
+        break
+    except ArisNodeError:
+        if attempt == 3:
+            raise
+        time.sleep(2 ** attempt)
+```
+
+## Async fan-out requests
+
+```python
+import asyncio
+from aris.client import AsyncAris
+
+client = AsyncAris(api_key="sk-aris-your-key")
+
+async def run(prompt: str):
+    return await client.generate(prompt=prompt, max_tokens=120)
+
+async def main():
+    prompts = [
+        "Summarize incident 1021",
+        "Summarize incident 1022",
+        "Summarize incident 1023",
+    ]
+    results = await asyncio.gather(*(run(p) for p in prompts))
+    for item in results:
+        print(item["output"])
+
+asyncio.run(main())
+```
+
+## Runtime guidance
+
+<Tabs>
+  <Tab title="Latency sensitive">
+    Keep `max_tokens` small, use deterministic prompts, and cap retries to avoid tail latency.
+  </Tab>
+  <Tab title="Throughput focused">
+    Use `AsyncAris`, batch independent calls, and apply concurrency limits at your app layer.
+  </Tab>
+  <Tab title="Cost constrained">
+    Lower output token limits, avoid unnecessary context, and monitor credit burn per endpoint.
+  </Tab>
+</Tabs>
+
+<Info>
+  Pair this guide with [/errors](/errors) to standardize retryable vs non-retryable failures.
+</Info>

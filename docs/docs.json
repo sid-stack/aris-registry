@@ -1,0 +1,99 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "ARIS Core Ecosystem",
+  "description": "Build, deploy, and operate decentralized AI workloads on ARIS.",
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg"
+  },
+  "favicon": "/favicon.png",
+  "colors": {
+    "primary": "#0D9488",
+    "light": "#14B8A6",
+    "dark": "#0F766E"
+  },
+  "styling": {
+    "css": "styles.css"
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "Registry",
+        "href": "https://aris-registry.onrender.com"
+      },
+      {
+        "label": "GitHub",
+        "href": "https://github.com/aris-labs"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Get API key",
+      "href": "https://aris-registry.onrender.com"
+    }
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Get started",
+        "groups": [
+          {
+            "group": "Introduction",
+            "pages": ["index", "quickstart", "concepts"]
+          }
+        ]
+      },
+      {
+        "tab": "Build",
+        "groups": [
+          {
+            "group": "Python SDK",
+            "pages": ["python-sdk", "advanced-usage", "errors"]
+          },
+          {
+            "group": "Advanced RAG",
+            "pages": [
+              "agentic-rag",
+              "rag-architecture",
+              "optimization",
+              "lifecycle-hooks",
+              "mcp-integration"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Operate",
+        "groups": [
+          {
+            "group": "Node operations",
+            "pages": ["run-node", "monitoring", "scaling"]
+          }
+        ]
+      },
+      {
+        "tab": "Reference",
+        "groups": [
+          {
+            "group": "API",
+            "pages": ["api-reference/handshake", "api-reference/generate"]
+          }
+        ]
+      }
+    ]
+  },
+  "interaction": {
+    "drilldown": false
+  },
+  "metadata": {
+    "timestamp": true
+  },
+  "footer": {
+    "socials": {
+      "twitter": "https://twitter.com/aris_labs",
+      "github": "https://github.com/aris-labs",
+      "website": "https://aris-registry.onrender.com"
+    }
+  }
+}

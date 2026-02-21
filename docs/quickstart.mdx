@@ -1,57 +1,77 @@
 ---
 title: Quickstart
-description: "Get started with ARIS in less than 5 minutes."
+description: "Install the SDK, authenticate, and send your first request."
 icon: "bolt"
 ---
 
-## Installation
+## Prerequisites
 
-Install the ARIS SDK using pip:
+- Python 3.8+
+- An ARIS API key from [Registry Dashboard](https://aris-registry.onrender.com)
+- Outbound access to your registry URL
+
+## 1. Install the SDK
 
 ```bash
 pip install aris-sdk
 ```
 
-## Prerequisities
+## 2. Set environment variables
 
-Before you begin, ensure you have:
+<CodeGroup>
+  ```bash macOS / Linux
+  export ARIS_API_KEY="sk-aris-your-key"
+  export ARIS_REGISTRY_URL="https://aris-registry.onrender.com"
+  ```
 
-- Python 3.8 or higher installed.
-- An ARIS API Key (you can request one from the <a href="https://aris-registry.onrender.com" target="_blank">Registry Dashboard</a>).
+  ```powershell Windows PowerShell
+  $env:ARIS_API_KEY="sk-aris-your-key"
+  $env:ARIS_REGISTRY_URL="https://aris-registry.onrender.com"
+  ```
+</CodeGroup>
 
-## Your First Request
-
-Create a file named `main.py` and add the following code:
+## 3. Send your first request
 
 ```python
 from aris.client import Aris
 
-# Initialize the client
-client = Aris(api_key="sk-aris-your-key")
+client = Aris()
 
-# Send a generation request
 response = client.generate(
-    prompt="Explain the concept of decentralized AI in one sentence."
+    prompt="Explain decentralized AI in one sentence.",
+    max_tokens=120,
 )
 
-print(response)
+print(response["output"])
 ```
 
-Run the script:
+## 4. Validate the response
 
-```bash
-python main.py
-```
+You should receive:
 
-You should see a JSON response containing the generated text, usage statistics, and node information.
+- `output`: generated text
+- `usage`: token and credit usage
+- `node`: node identifier
 
-## Next Steps
+<Accordion title="Common quickstart issues">
+  <Warning>
+    `401` usually means your API key is missing, malformed, or expired.
+  </Warning>
+  <Warning>
+    `402` indicates low credits. Top up balance in the registry dashboard.
+  </Warning>
+  <Warning>
+    `503` often indicates no eligible nodes are available for your request.
+  </Warning>
+</Accordion>
+
+## Next steps
 
 <CardGroup cols={2}>
-  <Card title="Explore the SDK" icon="python" href="/python-sdk">
-    Deep dive into the Python SDK capabilities.
+  <Card title="SDK reference" icon="python" href="/python-sdk">
+    Explore full client configuration and runtime options.
   </Card>
-  <Card title="API Reference" icon="code" href="/api-reference/generate">
-    View detailed API documentation.
+  <Card title="Generate endpoint" icon="code" href="/api-reference/generate">
+    See argument and response details.
   </Card>
 </CardGroup>
