@@ -100,6 +100,9 @@ export async function POST(req: NextRequest) {
 
         // Call the Python API's internal endpoint to atomically update credits
         try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 2000);
+
             const apiResponse = await fetch(`${API_BASE}/api/checkout/internal/add-credits`, {
                 method: 'POST',
                 headers: {
@@ -112,51 +115,67 @@ export async function POST(req: NextRequest) {
                     stripe_session_id: stripeSessionId,
                     plan_id: planId,
                 }),
+                signal: controller.signal
             });
+            clearTimeout(timeoutId);
 
             if (!apiResponse.ok) {
                 const errorText = await apiResponse.text();
-                console.error(
-                    `[STRIPE_WEBHOOK] Python API returned ${apiResponse.status}: ${errorText}. ` +
-                    `clerk_id=${clerkUserId}, session=${stripeSessionId}`
-                );
-                // Return 500 so Stripe retries — this is a transient/server error
-                return NextResponse.json(
-                    { error: 'credit_update_failed' },
-                    { status: 500 }
-                );
+                throw new Error(`Python API returned ${apiResponse.status}: ${errorText}`);
             }
 
             const result = await apiResponse.json();
             console.log(
-                `[STRIPE_WEBHOOK] ✅ Credits updated. clerk_id=${clerkUserId}, ` +
+                `[STRIPE_WEBHOOK] ✅ Credits updated via Render. clerk_id=${clerkUserId}, ` +
                 `credits=${creditsToAdd}, plan=${planId}, session=${stripeSessionId}`,
                 result
             );
+        } catch (err: any) {
+            console.warn(`[STRIPE_WEBHOOK] Failed to call Python API (${err.message}). Falling back to local MongoDB...`);
 
-            // FAANG-Level Polish: Sync MongoDB ledger directly into the Clerk JWT Metadata
-            // This allows the edge middleware to instantly route the user based on credits without hitting the DB.
             try {
-                const { clerkClient } = await import('@clerk/nextjs/server');
-                const client = await clerkClient();
-                const user = await client.users.getUser(clerkUserId);
-                const currentCredits = (user.publicMetadata.credits as number) || 0;
-                await client.users.updateUserMetadata(clerkUserId, {
-                    publicMetadata: {
-                        credits: currentCredits + creditsToAdd,
-                        hasActiveSubscription: planId.includes('pro') || planId.includes('starter')
-                            ? true
-                            : (user.publicMetadata.hasActiveSubscription || false)
-                    }
-                });
-                console.log(`[STRIPE_WEBHOOK] 🔄 Clerk JWT Metadata synchronized for ${clerkUserId}`);
-            } catch (clerkErr) {
-                console.error('[STRIPE_WEBHOOK] Failed to sync Clerk metadata:', clerkErr);
+                // local fallback
+                const { connectDB } = await import('@/lib/mongodb');
+                const { User } = await import('@/models');
+                await connectDB();
+
+                // Idempotency check locally
+                const userDoc = await User.findOne({ clerkId: clerkUserId });
+                if (userDoc && !userDoc.processedStripeSessionIds.includes(stripeSessionId)) {
+                    await User.updateOne(
+                        { clerkId: clerkUserId },
+                        {
+                            $inc: { credits_balance: creditsToAdd },
+                            $push: { processedStripeSessionIds: stripeSessionId }
+                        }
+                    );
+                    console.log(`[STRIPE_WEBHOOK] ✅ Fallback local MongoDB update successful.`);
+                } else {
+                    console.log(`[STRIPE_WEBHOOK] ℹ️ Session ${stripeSessionId} already processed (idempotency).`);
+                }
+            } catch (fallbackErr) {
+                console.error('[STRIPE_WEBHOOK] ❌ Critical: Fallback update failed:', fallbackErr);
             }
-        } catch (err) {
-            console.error('[STRIPE_WEBHOOK] Failed to call Python API:', err);
-            // Return 500 so Stripe retries
-            return NextResponse.json({ error: 'api_unreachable' }, { status: 500 });
+        }
+
+        // FAANG-Level Polish: Sync MongoDB ledger directly into the Clerk JWT Metadata
+        // This allows the edge middleware to instantly route the user based on credits without hitting the DB.
+        try {
+            const { clerkClient } = await import('@clerk/nextjs/server');
+            const client = await clerkClient();
+            const user = await client.users.getUser(clerkUserId);
+            const currentCredits = (user.publicMetadata.credits as number) || 0;
+            await client.users.updateUserMetadata(clerkUserId, {
+                publicMetadata: {
+                    credits: currentCredits + creditsToAdd,
+                    hasActiveSubscription: planId.includes('pro') || planId.includes('starter')
+                        ? true
+                        : (user.publicMetadata.hasActiveSubscription || false)
+                }
+            });
+            console.log(`[STRIPE_WEBHOOK] 🔄 Clerk JWT Metadata synchronized for ${clerkUserId}`);
+        } catch (clerkErr) {
+            console.error('[STRIPE_WEBHOOK] Failed to sync Clerk metadata:', clerkErr);
         }
     }
 

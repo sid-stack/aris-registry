@@ -4,7 +4,8 @@ const isPublicRoute = createRouteMatcher([
     '/',
     '/sign-in(.*)',
     '/sign-up(.*)',
-    '/api/webhooks(.*)', // Only webhooks should be public
+    '/api/webhook(.*)', // Explicitly allow singular
+    '/api/webhooks(.*)', // explicitly allow plural
     '/api/registry',
     '/infrastructure(.*)',
     '/agents(.*)',

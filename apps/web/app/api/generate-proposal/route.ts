@@ -6,6 +6,8 @@ import { createAnthropic } from '@ai-sdk/anthropic';
 import { google } from '@ai-sdk/google';
 import { connectDB } from '@/lib/mongodb';
 import { Analysis, User } from '@/models';
+import { traceable } from 'langsmith/traceable';
+import { getLatestPrompt } from '@/lib/ai/prompts';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -15,9 +17,7 @@ const openai = createOpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
 
-const anthropic = createAnthropic({
-    apiKey: process.env.ANTHROPIC_API_KEY,
-});
+// Delete the global anthropic initialization to prevent crashes if the key is missing at boot
 
 export async function POST(req: NextRequest) {
     // 1. Authenticate (Clerk OR Internal Service Secret for n8n)
@@ -73,77 +73,54 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        // Handle both useChat (messages) and useCompletion (prompt) payloads safely
-        const lastUserMessage = messages && messages.length > 0
-            ? messages[messages.length - 1]?.content
-            : (prompt || 'Generate a standard proposal draft.');
+        // Ensure Anthropic is isolated
+        const getAnthropicModel = (modelId: string) => {
+            if (process.env.ANTHROPIC_API_KEY) {
+                return createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY })(modelId);
+            }
+            return null;
+        };
+
+        const convertedMessages = messages || [{ role: 'user', content: prompt || 'Generate a standard proposal draft.' }];
+
+        const systemMessageTemplate = await getLatestPrompt('aris-labs/bidsmith-researcher');
+        const systemMessage = systemMessageTemplate
+            .replace('{contextText}', contextText || '')
+            .replace('{constraints}', constraints || 'Adhere strictly to standard federal procurement guidelines.');
 
         // --- THE "RESEARCHER-CRITIC-WRITER" LOOP ---
 
-        // Phase 1: The Writer (GPT-4o) drafts the initial section internally
-        const writerPrompt = `
-        You are ARIS-3, an elite government Proposal Writer.
-        Draft a high-quality, persuasive proposal section based on the following RFP data and constraints.
-        
-        Context:
-        ${contextText}
-        
-        User Request:
-        ${lastUserMessage}
-        
-        Constraints:
-        ${constraints || 'Adhere strictly to standard federal procurement guidelines.'}
-        `;
-
-        // Instead of streaming immediately, we generate text internally first for the Critic to review
-        // Note: For a true long-running agent loop, we would yield status updates to the client.
-        // To achieve the requested "Terminal UI", we will use streamText's tools/callbacks.
-
-        // Since the user wants to stream the final result with a "Real-time Terminal" view 
-        // showing agent status, we will construct a single 'streamText' call that utilizes 
-        // the agent loop within its lifecycle, or we simulate the loop via the stream output.
-
-        // To actually stream the output of the *final* refined draft, while showing status:
-        // We will execute the Critic/Refiner loop *before* returning the final read stream,
-        // or we can stream the intermediate steps if we want the user to see them.
-
-        // Let's implement the internal Loop first (Synchronous for the server, but fast):
+        // LangSmith Traced Wrappers
+        const tracedGenerateText = traceable(generateText, { name: "Agent Generation", project_name: process.env.LANGSMITH_PROJECT || "aris-labs-prod" });
+        const tracedStreamText = traceable(streamText, { name: "Agent Streaming", project_name: process.env.LANGSMITH_PROJECT || "aris-labs-prod" });
 
         let result;
 
         try {
-            // First attempt with the elite Hybrid Engine
-            const initialDraft = await generateText({
+            // Phase 1: The Writer (GPT-4o) drafts the initial section internally
+            const initialDraft = await tracedGenerateText({
                 model: openai('gpt-4o'),
-                system: 'You are ARIS-3, an elite government Proposal Writer.',
-                prompt: writerPrompt,
+                system: systemMessage,
+                messages: convertedMessages,
             });
 
             // Phase 2: The Critic (Gemini 1.5 Pro)
-            const criticPrompt = `
-            You are ARIS-4, a strict Government Compliance Critic.
-            Review the following proposal draft against the original RFP context.
-            Identify any missing compliance requirements or major weaknesses.
-            If it is perfect, simply output "COMPLIANT".
-            Otherwise, list the specific revisions required.
-            
-            Original Context:
-            ${contextText}
-            
-            Draft to Evaluate:
-            ${initialDraft.text}
-            `;
+            const criticTemplate = await getLatestPrompt('aris-labs/bidsmith-critic');
+            const criticPrompt = criticTemplate
+                .replace('{contextText}', contextText || '')
+                .replace('{initialDraft}', initialDraft.text || '');
 
             let criticReview;
             try {
-                criticReview = await generateText({
+                // Defaulting Critic to Google Gemini 1.5 Pro to guarantee execution without Anthropic issues
+                criticReview = await tracedGenerateText({
                     model: google('gemini-1.5-pro'),
                     system: 'You are ARIS-4, a strict Compliance Auditor. Output exactly "COMPLIANT" or provide revisions.',
                     prompt: criticPrompt,
                 });
             } catch (criticError) {
                 console.warn('[CORE] Gemini 1.5 Pro failed or timed out. Falling back to Gemini 1.5 Flash.', criticError);
-                criticReview = await generateText({
+                criticReview = await tracedGenerateText({
                     model: google('gemini-1.5-flash'),
                     system: 'You are ARIS-4, a strict Compliance Auditor. Output exactly "COMPLIANT" or provide revisions.',
                     prompt: criticPrompt,
@@ -151,27 +128,17 @@ export async function POST(req: NextRequest) {
             }
 
             // Phase 3: The Refiner streams the final output to the user
-            const refinerPrompt = `
-            You are ARIS-3 (Writer/Refiner). 
-            You previously wrote a draft proposal. Your Compliance Critic reviewed it and left the following feedback:
-            
-            Critic Feedback:
-            ${criticReview.text}
-            
-            Original Draft:
-            ${initialDraft.text}
-            
-            Instructions:
-            If the Critic said "COMPLIANT", just cleanly rewrite the original draft for final polish.
-            If the Critic provided revisions, implement those revisions exactly and produce the final, compliant proposal section.
-            
-            Format beautifully in Markdown.
-            `;
+            const refinerTemplate = await getLatestPrompt('aris-labs/bidsmith-writer');
+            const refinerSystemMessage = refinerTemplate
+                .replace('{criticReview}', criticReview.text || '')
+                .replace('{initialDraft}', initialDraft.text || '');
 
-            result = await streamText({
+            // Append a dummy message to coerce the refiner to use the previous draft
+            const finalMessages = [...convertedMessages, { role: 'assistant', content: refinerSystemMessage }];
+
+            result = await tracedStreamText({
                 model: openai('gpt-4o'),
-                system: 'You are an elite Proposal Refiner producing the final, compliant draft for the user.',
-                prompt: refinerPrompt,
+                messages: finalMessages,
             });
 
             return result.toTextStreamResponse({
@@ -184,25 +151,10 @@ export async function POST(req: NextRequest) {
             console.warn('[CORE] Elite Hybrid Engine failed (OpenAI/Gemini Pro). Executing Global Failover to Gemini 1.5 Flash.', eliteEngineError);
 
             // EMERGENCY FALLBACK: Direct to Gemini 1.5 Flash to guarantee delivery
-            const fallbackPrompt = `
-            You are ARIS-Labs Emergency Utility Agent.
-            Draft a high-quality, persuasive proposal section based on the following RFP data and constraints.
-            Adhere strictly to standard federal procurement guidelines and output compliant Markdown.
-            
-            Context:
-            ${contextText}
-            
-            User Request:
-            ${lastUserMessage}
-            
-            Constraints:
-            ${constraints || 'Adhere strictly to standard federal procurement guidelines.'}
-            `;
-
-            result = await streamText({
+            result = await tracedStreamText({
                 model: google('gemini-1.5-flash'),
-                system: 'You are an elite Proposal Refiner producing a final, compliant draft for the user.',
-                prompt: fallbackPrompt,
+                system: systemMessage,
+                messages: convertedMessages,
             });
 
             return result.toTextStreamResponse({

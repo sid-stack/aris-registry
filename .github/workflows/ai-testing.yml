@@ -1,0 +1,36 @@
+name: AI Testing Gatekeeper
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  ai-intensive-test:
+    runs-on: ubuntu-latest
+    env:
+      LANGSMITH_TRACING: true
+      LANGSMITH_PROJECT: aris-labs-prod
+      LANGSMITH_API_KEY: ${{ secrets.LANGSMITH_API_KEY }}
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install langsmith langchain langchain-openai langchain-google-genai
+
+      - name: Sync Prompts (Data Injection)
+        run: python scripts/sync_prompts.py
+
+      - name: Smoke Test - The Gatekeeper
+        run: python tests/smoke_test.py

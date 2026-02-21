@@ -9,7 +9,7 @@ export const Header = ({ count = 0 }: { count?: number }) => {
                 <div className="flex items-center gap-2">
                     <img src="/logo.png" alt="Aris Registry" className="w-12 h-12 object-contain" />
                     <h1 className="text-xl font-semibold tracking-tight text-white">
-                        Aris Network Registry
+                        ARIS Labs
                     </h1>
                 </div>
                 <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/5 mx-4">
