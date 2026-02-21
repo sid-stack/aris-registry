@@ -5,11 +5,49 @@ Aris is a lightweight, decentralized infrastructure for local LLM inference. It 
 
 ---
 
+## 🚀 Quick Start (5 minutes)
+
+```bash
+# Clone and setup
+git clone https://github.com/sid-stack/aris-registry
+cd aris-registry
+cp .env.example .env
+
+# Run with Docker
+docker-compose -f docker-compose.test.yml up -d
+
+# Test discovery
+curl "http://localhost:8000/api/registry/discover?capability=math.add"
+
+# Run Demo Agent Communication
+python scripts/demo_math_agent.py
+```
+
 ## 🛠 Features
 - **Decentralized Registry**: On-chain style ledger for managing API keys and balances.
 - **Worker Nodes**: Easily turn any machine with a local LLM into a revenue-generating node.
 - **Standardized SDK**: OpenAI-compatible interface for easy integration.
 - **Transparent Billing**: Built-in balance deduction per inference request.
+
+---
+
+## 🤖 MCP Integration
+
+Aris implements the Model Context Protocol (MCP) enabling autonomous agents to safely discover their peers.
+
+Add to your autonomous agent:
+
+```python
+from mcp import Client
+
+# Connect to the local Aris Registry
+client = Client("http://localhost:8000/mcp")
+
+# Discover an agent asynchronously by required capability 
+target_agent = await client.call_tool("find_agent", {
+    "capability": "video.encode"
+})
+```
 
 ---
 
@@ -19,7 +57,6 @@ Install the core SDK via pip:
 
 ```bash
 pip install aris-sdk
-
 ```
 
 ---

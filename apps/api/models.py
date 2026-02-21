@@ -62,19 +62,56 @@ class AnalysisResult(BaseModel):
     class Config:
         populate_by_name = True
 
+class AgentPricing(BaseModel):
+    amount: float
+    currency: str = "USD"
+    model: str = "fixed" # "fixed", "per_token", "per_minute"
+
+class AgentReputation(BaseModel):
+    total_txs: int = 0
+    successful_txs: int = 0
+    avg_rating: float = 0.0
+    success_rate: float = 0.0
+
+class AgentHealth(BaseModel):
+    status: str = "unhealthy" # "healthy", "unhealthy"
+    latency_ms: float = 0.0
+    last_check: float = Field(default_factory=time.time)
+    uptime_24h: float = 0.0
+
 class Agent(BaseModel):
-    id: str = Field(..., alias="_id")
+    id: str = Field(..., alias="_id") # internal mongo id
+    did: str # did:aris:agent:123
     name: str
     description: str
-    price: float
-    category: str
+    public_key: str # PEM format Base64 encoded for JWT validation
+    endpoint: str # https://agent.com/mcp
+    capabilities: List[str] # ["math.add", "video.encode"]
+    category: str = "general"
     provider: str
-    capability: str
     status: str = "active"
+    verified: bool = False
+    pricing: AgentPricing = Field(default_factory=lambda: AgentPricing(amount=0.0))
+    reputation: AgentReputation = Field(default_factory=AgentReputation)
+    health: AgentHealth = Field(default_factory=AgentHealth)
     agent_metadata: Dict[str, Any] = Field(default_factory=dict)
+    created_at: float = Field(default_factory=time.time)
+    updated_at: float = Field(default_factory=time.time)
 
     class Config:
         populate_by_name = True
+
+class AgentRegistration(BaseModel):
+    did: str
+    name: str
+    description: str
+    public_key: str
+    endpoint: str
+    capabilities: List[str]
+    category: str = "general"
+    provider: str
+    pricing: AgentPricing
+
 
 class Proposal(BaseModel):
     id: str = Field(..., alias="_id")

@@ -1,0 +1,86 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - generic [ref=e4]:
+        - link "ARIS Labs Logo ARIS Labs" [ref=e6] [cursor=pointer]:
+          - /url: /
+          - img "ARIS Labs Logo" [ref=e9]
+          - generic [ref=e10]: ARIS Labs
+        - navigation [ref=e11]:
+          - link "Registry" [ref=e12] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e13]
+            - text: Registry
+          - link "Analyze" [ref=e18] [cursor=pointer]:
+            - /url: /dashboard/analyze
+            - img [ref=e19]
+            - text: Analyze
+          - link "Billing" [ref=e23] [cursor=pointer]:
+            - /url: /dashboard/billing
+            - img [ref=e24]
+            - text: Billing
+          - generic [ref=e26]:
+            - generic [ref=e27]: Resources
+            - link "Docs" [ref=e28] [cursor=pointer]:
+              - /url: https://arislabs.mintlify.app/
+              - img [ref=e29]
+              - text: Docs
+        - generic [ref=e31]:
+          - generic [ref=e32]:
+            - img [ref=e34]
+            - generic [ref=e37]: CURRENT BALANCE
+            - generic [ref=e38]:
+              - generic [ref=e39]: $999.00
+              - generic [ref=e40]: USD
+            - link "Top Up Credits" [ref=e41] [cursor=pointer]:
+              - /url: /dashboard/billing
+          - generic [ref=e43]:
+            - generic [ref=e44]: Account
+            - generic [ref=e45]: Protected Session
+    - main [ref=e46]:
+      - generic [ref=e48]:
+        - complementary [ref=e49]:
+          - generic [ref=e50]:
+            - generic [ref=e51]:
+              - button "New chat" [ref=e52] [cursor=pointer]:
+                - img [ref=e53]
+                - text: New chat
+              - button "Toggle conversations panel" [ref=e55] [cursor=pointer]:
+                - img [ref=e56]
+            - generic [ref=e61]:
+              - button "New conversation No messages yet Feb 21, 7:14 PM" [ref=e62] [cursor=pointer]:
+                - generic [ref=e63]: New conversation
+                - generic [ref=e64]: No messages yet
+                - generic [ref=e65]: Feb 21, 7:14 PM
+              - button "Delete conversation" [ref=e66] [cursor=pointer]:
+                - img [ref=e67]
+        - generic [ref=e70]:
+          - generic [ref=e71]:
+            - generic [ref=e72]:
+              - generic [ref=e73]:
+                - img [ref=e74]
+                - text: ARIS Agent
+              - generic [ref=e77]: Saved conversation
+            - generic [ref=e78]:
+              - generic [ref=e79]: "Credits: 999"
+              - generic [ref=e80]: Synced
+          - main [ref=e81]:
+            - generic [ref=e82]:
+              - img [ref=e83]
+              - heading "ARIS Conversation Workspace" [level=2] [ref=e86]
+              - paragraph [ref=e87]: "Start a chat to see full `Client` and `ARIS Agent` conversation history. Messages are stored and reloaded in this sidebar."
+          - generic [ref=e89]:
+            - generic [ref=e91]:
+              - textbox "Message ARIS Agent..." [ref=e92]
+              - button "Clear current conversation" [disabled] [ref=e93]:
+                - img [ref=e94]
+              - button [disabled] [ref=e99]:
+                - img [ref=e100]
+            - paragraph [ref=e103]: ARIS Agent may produce mistakes. Verify compliance-critical outputs.
+  - button "Open Next.js Dev Tools" [ref=e109] [cursor=pointer]:
+    - img [ref=e110]
+  - alert [ref=e113]
+```

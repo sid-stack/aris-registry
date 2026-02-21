@@ -24,6 +24,44 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
+class AgentJWTHandler:
+    def __init__(self, private_key: str, public_key: str):
+        self.private_key = private_key
+        self.public_key = public_key
+
+    def create_agent_token(
+        self, 
+        from_did: str, 
+        to_did: str, 
+        capability: str,
+        expiry: int = 300
+    ) -> str:
+        """Create short-lived JWT for agent communication"""
+        payload = {
+            "iss": "aris-registry",
+            "sub": from_did,
+            "aud": to_did,
+            "capability": capability,
+            "iat": datetime.utcnow(),
+            "exp": datetime.utcnow() + timedelta(seconds=expiry),
+            "jti": os.urandom(16).hex()
+        }
+        return jwt.encode(payload, self.private_key, algorithm="RS256")
+    
+    def verify_agent_token(self, token: str, expected_aud: str) -> dict:
+        """Verify JWT presented by agent"""
+        try:
+            payload = jwt.decode(
+                token, 
+                self.public_key, 
+                algorithms=["RS256"],
+                audience=expected_aud,
+                issuer="aris-registry"
+            )
+            return payload
+        except jwt.InvalidTokenError:
+            return None
+
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
     if expires_delta:

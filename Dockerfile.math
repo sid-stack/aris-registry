@@ -1,0 +1,8 @@
+FROM python:3.11-slim
+WORKDIR /app
+
+RUN pip install fastapi uvicorn httpx motor pydantic jwt
+
+COPY scripts/demo_math_agent.py .
+
+CMD ["python", "demo_math_agent.py"]

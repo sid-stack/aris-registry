@@ -15,7 +15,7 @@ import uuid
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 from apps.api.database import db
-from apps.api.routers import users, registry, analyze, checkout, orchestrator, delivery, cron
+from apps.api.routers import users, registry, analyze, checkout, orchestrator, delivery, cron, documents
 from apps.api.limiter import limiter
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -105,8 +105,18 @@ async def machine_readable_exception_handler(request: Request, exc: HTTPExceptio
 
 # Database Connection Events
 @app.on_event("startup")
-def startup_db_client():
+async def startup_db_client():
     db.connect()
+    
+    # Initialize necessary MongoDB indices for fast queries
+    database = db.get_db()
+    await database.agents.create_index("capabilities")
+    await database.agents.create_index("did", unique=True)
+    
+    # Start the background background health checker
+    from apps.api.health import health_check_loop
+    import asyncio
+    asyncio.create_task(health_check_loop())
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
@@ -120,6 +130,7 @@ app.include_router(orchestrator.router, prefix="/api/orchestrator", tags=["Orche
 app.include_router(delivery.router, prefix="/api/delivery", tags=["Delivery"])
 app.include_router(cron.router, prefix="/api/cron", tags=["Cron"])
 app.include_router(analyze.router, prefix="/api/analyze", tags=["Analyze"])
+app.include_router(documents.router, prefix="/api/documents", tags=["Documents"])
 
 @app.get("/")
 def read_root():
@@ -128,3 +139,7 @@ def read_root():
 @app.get("/health")
 async def health_check():
     return {"status": "ok"}
+
+# Attach MCP Server to FastAPI
+from apps.api.mcp_server import mcp
+app.mount("/mcp", mcp.sse_app())

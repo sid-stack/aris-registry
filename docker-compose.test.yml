@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  aris-registry:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - ENV=development
+      - MONGODB_URI=mongodb://mongo:27017
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET_KEY=test_secret_key
+      - ARIS_PRIVATE_KEY=mock_private_key
+      - ARIS_PUBLIC_KEY=mock_public_key
+    depends_on:
+      - mongo
+      - redis
+
+  mongo:
+    image: mongo:6.0
+    ports:
+      - "27017:27017"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  math-agent:
+    build: 
+      context: .
+      dockerfile: Dockerfile.math
+    ports:
+      - "8001:8001"
+    depends_on:
+      - aris-registry
