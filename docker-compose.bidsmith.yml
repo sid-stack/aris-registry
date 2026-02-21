@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  # Your existing Aris Registry
+  aris-registry:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - MONGODB_URI=mongodb://mongo:27017/aris
+      - REDIS_URL=redis://redis:6379
+      - ARIS_PRIVATE_KEY=${ARIS_PRIVATE_KEY:-default}
+      - ARIS_PUBLIC_KEY=${ARIS_PUBLIC_KEY:-default}
+    depends_on:
+      - mongo
+      - redis
+
+  # BidSmith specialized agents (mock images for testing until built in repo)
+  bidsmith-analyzer:
+    image: alpine:latest
+    command: tail -f /dev/null
+    environment:
+      - ARIS_REGISTRY=http://aris-registry:8000
+
+  bidsmith-extractor:
+    image: alpine:latest
+    command: tail -f /dev/null
+    environment:
+      - ARIS_REGISTRY=http://aris-registry:8000
+
+  bidsmith-writer:
+    image: alpine:latest
+    command: tail -f /dev/null
+    environment:
+      - ARIS_REGISTRY=http://aris-registry:8000
+
+  bidsmith-pricing:
+    image: alpine:latest
+    command: tail -f /dev/null
+    environment:
+      - ARIS_REGISTRY=http://aris-registry:8000
+
+  # MongoDB with vector search
+  mongo:
+    image: mongo:6
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  # Redis for caching
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  # Next.js frontend
+  web:
+    build: ./apps/web
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://aris-registry:8000
+    depends_on:
+      - aris-registry
+
+volumes:
+  mongo_data:
+  redis_data:

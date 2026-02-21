@@ -111,7 +111,7 @@ async def startup_db_client():
     # Initialize necessary MongoDB indices for fast queries
     database = db.get_db()
     await database.agents.create_index("capabilities")
-    await database.agents.create_index("did", unique=True)
+    await database.agents.create_index("did", unique=True, sparse=True)
     
     # Start the background background health checker
     from apps.api.health import health_check_loop
@@ -131,6 +131,9 @@ app.include_router(delivery.router, prefix="/api/delivery", tags=["Delivery"])
 app.include_router(cron.router, prefix="/api/cron", tags=["Cron"])
 app.include_router(analyze.router, prefix="/api/analyze", tags=["Analyze"])
 app.include_router(documents.router, prefix="/api/documents", tags=["Documents"])
+
+from apps.api.routers.bidsmith import chat as bidsmith_router
+app.include_router(bidsmith_router.router, prefix="/api", tags=["BidSmith"])
 
 @app.get("/")
 def read_root():
