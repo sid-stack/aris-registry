@@ -259,6 +259,8 @@ export default function ChatInterface({ initialCredits }: ChatInterfaceProps) {
         handleInputChange,
         handleSubmit,
         isLoading,
+        error: chatError,
+        reload,
     } = useChat({
         api: "/api/generate-proposal",
         initialMessages,
@@ -297,7 +299,7 @@ export default function ChatInterface({ initialCredits }: ChatInterfaceProps) {
                 const sp = new URLSearchParams(window.location.search);
                 const a = sp.get("analysisId");
                 if (a) setAnalysisId(a);
-            } catch {}
+            } catch { }
         }
     }, []);
 
@@ -732,6 +734,19 @@ export default function ChatInterface({ initialCredits }: ChatInterfaceProps) {
 
                 <footer className="border-t border-zinc-700/60 bg-[#343541] p-4">
                     <div className="mx-auto max-w-3xl">
+                        {chatError && (
+                            <div className="mb-4 flex flex-col items-center justify-center p-4 border border-red-500/50 bg-red-500/10 rounded-xl">
+                                <p className="text-sm text-red-400 mb-2">Error: Failed to parse stream or connection lost.</p>
+                                <button
+                                    type="button"
+                                    onClick={() => reload()}
+                                    className="flex items-center gap-2 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg text-sm font-medium transition-colors"
+                                >
+                                    <RefreshCw className="h-4 w-4" />
+                                    Retry Message
+                                </button>
+                            </div>
+                        )}
                         {isLoading && (
                             <div className="mb-2 flex items-center gap-2 text-xs font-mono text-zinc-400">
                                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
