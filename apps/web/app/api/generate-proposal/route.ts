@@ -52,7 +52,7 @@ const selectModel = (role: 'writer' | 'critic' | 'refiner' | 'fallback') => {
             case 'critic':
                 // Keep a non-DeepSeek critic for diversity; fall back if google not configured
                 try {
-                    return google('gemini-1.5-pro');
+                    return google('gemini-2.5-pro');
                 } catch {
                     return deepseek('deepseek-chat');
                 }
@@ -68,7 +68,7 @@ const selectModel = (role: 'writer' | 'critic' | 'refiner' | 'fallback') => {
         case 'writer':
             return openrouter('anthropic/claude-3.5-sonnet');
         case 'critic':
-            return google('gemini-1.5-pro');
+            return google('gemini-2.5-pro');
         case 'refiner':
             return openrouter('anthropic/claude-3.5-sonnet');
         case 'fallback':
@@ -274,7 +274,7 @@ export async function POST(req: NextRequest) {
             console.warn('[CORE] Elite Hybrid Engine failed. Executing Global Failover to Free Alternative.', eliteEngineError);
 
             // EMERGENCY FALLBACK: Direct Failover Model using Gemini Flash (Free Alternative)
-            const fallbackModel = google('gemini-1.5-flash');
+            const fallbackModel = google('gemini-2.5-flash');
             console.log('Model reached: emergency fallback phase (Gemini)');
             try {
                 result = await tracedStreamText({
