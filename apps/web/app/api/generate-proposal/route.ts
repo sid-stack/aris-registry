@@ -271,11 +271,11 @@ export async function POST(req: NextRequest) {
             });
 
         } catch (eliteEngineError) {
-            console.warn('[CORE] Elite Hybrid Engine failed. Executing Global Failover to DeepSeek-R1.', eliteEngineError);
+            console.warn('[CORE] Elite Hybrid Engine failed. Executing Global Failover to Free Alternative.', eliteEngineError);
 
-            // EMERGENCY FALLBACK: Direct Failover Model using DeepSeek-R1 (via OpenRouter to bypass direct deepseek API exhaustion)
-            const fallbackModel = (hasOpenRouterKey) ? openrouter('deepseek/deepseek-r1') : selectModel('fallback');
-            console.log('Model reached: emergency fallback phase (DeepSeek-R1)');
+            // EMERGENCY FALLBACK: Direct Failover Model using Gemini Flash (Free Alternative)
+            const fallbackModel = google('models/gemini-1.5-flash');
+            console.log('Model reached: emergency fallback phase (Gemini)');
             try {
                 result = await tracedStreamText({
                     model: fallbackModel,
