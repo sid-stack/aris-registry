@@ -81,6 +81,9 @@ const config: Config = {
                 "shimmer-slide": {
                     to: { transform: "translate(calc(100cqw - 100%), 0)" },
                 },
+                "shimmer": {
+                    "100%": { transform: "translateX(100%)" },
+                },
             },
             animation: {
                 "accordion-down": "accordion-down 0.2s ease-out",
@@ -88,6 +91,7 @@ const config: Config = {
                 "fade-in": "fade-in 0.5s ease-out",
                 "slide-in-from-bottom": "slide-in-from-bottom 0.5s ease-out",
                 "shimmer-slide": "shimmer-slide var(--speed) ease-in-out infinite alternate",
+                "shimmer": "shimmer 2s infinite",
                 "spin-around": "spin-around calc(var(--speed) * 2) infinite linear",
             },
         },

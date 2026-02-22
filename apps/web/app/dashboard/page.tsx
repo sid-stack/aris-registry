@@ -130,8 +130,8 @@ export default function RegistryPage() {
                                 </div>
 
                                 <ShinyButton className="!h-9 !px-4">
-                                    <span className="mr-2">Deploy</span>
-                                    <Zap size={14} className="fill-current" />
+                                    <span className="text-white font-medium mr-1 text-sm">Deploy</span>
+                                    <Zap size={14} className="fill-current text-white" />
                                 </ShinyButton>
                             </div>
                         </div>
