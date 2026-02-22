@@ -143,6 +143,10 @@ def read_root():
 async def health_check():
     return {"status": "ok"}
 
-# Attach MCP Server to FastAPI
+# Attach core Registry MCP Server to FastAPI
 from apps.api.mcp_server import mcp
 app.mount("/mcp", mcp.sse_app())
+
+# Attach Stripe MCP Server
+from apps.api.mcp_stripe import mcp_stripe
+app.mount("/mcp/stripe", mcp_stripe.sse_app())
