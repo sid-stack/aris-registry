@@ -1,14 +1,7 @@
 import { useAuth } from "@clerk/nextjs";
 
 function resolveApiBase(): string {
-    // Prefer same-origin API on production to avoid cross-origin preflight/redirect issues
-    if (typeof window !== 'undefined') {
-        const host = window.location.hostname;
-        if (host.endsWith('bidsmith.pro')) {
-            return '/api';
-        }
-    }
-    const base = process.env.NEXT_PUBLIC_API_URL;
+    const base = process.env.NEXT_PUBLIC_API_URL || 'https://aris-registry.onrender.com';
     if (!base) {
         console.error("NEXT_PUBLIC_API_URL is not defined. API client cannot reach the backend.");
         throw new Error("NEXT_PUBLIC_API_URL is not defined. Please check your environment variables.");
