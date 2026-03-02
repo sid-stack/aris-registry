@@ -5,11 +5,11 @@ import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 
-const __dirname   = dirname(fileURLToPath(import.meta.url));
-const PROMPTS     = join(__dirname, "llm");
-const SYS_PROMPT  = readFileSync(join(PROMPTS, "system_prompt.txt"), "utf8").trim();
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const PROMPTS = join(__dirname, "llm");
+const SYS_PROMPT = readFileSync(join(PROMPTS, "system_prompt.txt"), "utf8").trim();
 
-const app  = express();
+const app = express();
 const PORT = process.env.PORT || 8080;
 
 app.use(cors({
@@ -36,8 +36,11 @@ app.post("/api/generate", upload.single("rfp"), async (req, res) => {
     if (!req.body.companyProfile) return res.status(400).json({ error: "No company profile provided" });
 
     console.log(`[/api/generate] Processing PDF: ${req.file.originalname}`);
-    
-    const response = await fetch("https://openrouter.ai/api/v1/messages", {
+
+    const pp = (await import("pdf-parse/lib/pdf-parse.js")).default;
+    const pdfText = (await pp(req.file.buffer)).text;
+
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${key}`,
@@ -51,9 +54,12 @@ app.post("/api/generate", upload.single("rfp"), async (req, res) => {
         messages: [
           {
             role: "user",
-            content: `You are a federal RFP compliance expert. Analyze this company profile and generate a professional federal proposal draft in markdown format.
+            content: `You are a federal RFP compliance expert. Analyze this company profile against the provided Federal RFP and generate a professional federal proposal draft in markdown format.
 
 Company Profile: ${req.body.companyProfile}
+
+RFP Text Extract (first 20000 chars):
+${pdfText.slice(0, 20000)}
 
 Generate a comprehensive proposal that includes:
 1. Executive Summary
@@ -74,10 +80,10 @@ Format as markdown. Be specific and professional.`
       console.error("[ERROR] OpenRouter:", data);
       throw new Error(data.error?.message || "API error");
     }
-    
-    const proposal = data.content[0]?.text || "No proposal generated";
-    
-    res.json({ 
+
+    const proposal = data.choices?.[0]?.message?.content || "No proposal generated";
+
+    res.json({
       proposal,
       metadata: { file: req.file.originalname, size: req.file.size },
       score: { bid_score: 85, compliance_score: 90, risk_level: "Low" }

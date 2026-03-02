@@ -5,31 +5,40 @@ export default function Proposal({ proposal, onReset }) {
   // If proposal is a string (markdown), render it directly
   if (typeof proposal === 'string') {
     return (
-      <div style={{ maxWidth: 1060, margin: "0 auto", padding: "32px 24px 60px", fontFamily: "sans-serif", color: "#d4d8e2", background: "#0d0f14", minHeight: "100vh" }}>
+      <div style={{ maxWidth: 1060, margin: "0 auto", padding: "32px 24px 60px", fontFamily: "sans-serif", color: "#0d0d0d", background: "#ffffff", minHeight: "100vh" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 600 }}>Federal Proposal Draft</h1>
-          <button onClick={onReset} style={{ padding: "8px 14px", background: "transparent", border: "1px solid #2a2f3a", borderRadius: 6, color: "#6b7585", cursor: "pointer", fontSize: 12 }}>← New RFP</button>
+          <h1 style={{ margin: 0, fontSize: 24, fontWeight: 600, color: "#0d0d0d" }}>Federal Proposal Draft</h1>
+          <button onClick={onReset} style={{ padding: "8px 14px", background: "transparent", border: "1px solid #e5e5e5", borderRadius: 6, color: "#6b7280", cursor: "pointer", fontSize: 13, fontWeight: 500 }}>← New RFP</button>
         </div>
-        <div style={{ background: "#13161e", border: "1px solid #252932", borderRadius: 8, padding: "20px", marginBottom: 20 }}>
+        <div style={{ background: "#ffffff", border: "1px solid #e5e5e5", borderRadius: 8, padding: "32px", marginBottom: 20, width: "100%", boxSizing: "border-box", overflow: "hidden", overflowX: "hidden", wordBreak: "break-word", whiteSpace: "pre-wrap" }}>
           <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
-            p: ({node, ...props}) => <p style={{ lineHeight: 1.6, marginBottom: 12, color: "#d4d8e2" }} {...props} />,
-            h1: ({node, ...props}) => <h1 style={{ fontSize: 20, marginTop: 20, marginBottom: 10, color: "#4a7cff" }} {...props} />,
-            h2: ({node, ...props}) => <h2 style={{ fontSize: 16, marginTop: 16, marginBottom: 8, color: "#4a7cff" }} {...props} />,
-            h3: ({node, ...props}) => <h3 style={{ fontSize: 14, marginTop: 12, marginBottom: 6, color: "#6b7585" }} {...props} />,
-            ul: ({node, ...props}) => <ul style={{ marginLeft: 20, marginBottom: 12, color: "#d4d8e2" }} {...props} />,
-            ol: ({node, ...props}) => <ol style={{ marginLeft: 20, marginBottom: 12, color: "#d4d8e2" }} {...props} />,
-            li: ({node, ...props}) => <li style={{ marginBottom: 4 }} {...props} />,
-            table: ({node, ...props}) => <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 12 }} {...props} />,
-            th: ({node, ...props}) => <th style={{ background: "#1a1e28", padding: "10px", textAlign: "left", border: "1px solid #2a2f3a", fontWeight: 600 }} {...props} />,
-            td: ({node, ...props}) => <td style={{ padding: "10px", border: "1px solid #2a2f3a" }} {...props} />,
-            code: ({node, ...props}) => <code style={{ background: "#1a1e28", padding: "2px 6px", borderRadius: 3, fontFamily: "monospace", fontSize: 12, color: "#4a7cff" }} {...props} />,
+            p: ({ node, ...props }) => <p style={{ width: "100%", lineHeight: 1.6, marginBottom: 16, color: "#0d0d0d", wordBreak: "break-word", fontSize: 15 }} {...props} />,
+            blockquote: ({ node, ...props }) => <blockquote style={{ width: "100%", wordBreak: "break-word", whiteSpace: "pre-wrap", borderLeft: "4px solid #e5e5e5", paddingLeft: "16px", margin: "16px 0", color: "#6b7280", fontSize: 15 }} {...props} />,
+            strong: ({ node, ...props }) => <strong style={{ wordBreak: "break-word", fontWeight: 700, color: "#0d0d0d" }} {...props} />,
+            em: ({ node, ...props }) => <em style={{ wordBreak: "break-word", fontStyle: "italic", color: "#0d0d0d" }} {...props} />,
+            pre: ({ node, ...props }) => <pre style={{ maxWidth: "100%", overflowX: "auto", whiteSpace: "pre-wrap", background: "#f7f7f8", padding: "16px", borderRadius: "8px", marginBottom: "16px", wordBreak: "break-word", color: "#0d0d0d", fontSize: 14 }} {...props} />,
+            h1: ({ node, ...props }) => <h1 style={{ fontSize: 24, marginTop: 32, marginBottom: 16, color: "#0d0d0d", fontWeight: 600 }} {...props} />,
+            h2: ({ node, ...props }) => <h2 style={{ fontSize: 20, marginTop: 24, marginBottom: 12, color: "#0d0d0d", fontWeight: 600 }} {...props} />,
+            h3: ({ node, ...props }) => <h3 style={{ fontSize: 18, marginTop: 24, marginBottom: 12, color: "#0d0d0d", fontWeight: 600 }} {...props} />,
+            ul: ({ node, ...props }) => <ul style={{ marginLeft: 24, marginBottom: 16, color: "#0d0d0d", fontSize: 15 }} {...props} />,
+            ol: ({ node, ...props }) => <ol style={{ marginLeft: 24, marginBottom: 16, color: "#0d0d0d", fontSize: 15 }} {...props} />,
+            li: ({ node, ...props }) => <li style={{ marginBottom: 8, color: "#0d0d0d" }} {...props} />,
+            table: ({ node, ...props }) => <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 16, fontSize: 15, color: "#0d0d0d" }} {...props} />,
+            th: ({ node, ...props }) => <th style={{ background: "#f9fafb", padding: "12px", textAlign: "left", border: "1px solid #e5e5e5", fontWeight: 600, color: "#374151" }} {...props} />,
+            td: ({ node, ...props }) => <td style={{ padding: "12px", border: "1px solid #e5e5e5", color: "#0d0d0d" }} {...props} />,
+            code: ({ node, inline, ...props }) =>
+              inline ?
+                <code style={{ background: "rgba(0,0,0,0.05)", padding: "2px 6px", borderRadius: 4, fontFamily: "monospace", fontSize: 13, color: "#0d0d0d", wordBreak: "break-word" }} {...props} /> :
+                <code style={{ background: "transparent", display: "block", overflowX: "auto", fontFamily: "monospace", fontSize: 13, color: "#0d0d0d", whiteSpace: "pre-wrap", wordBreak: "break-word" }} {...props} />,
           }}>
-            {proposal}
+            {typeof proposal === 'string'
+              ? proposal.replace(/^```[a-z]*\s*/i, '').replace(/\s*```$/i, '').trim()
+              : proposal}
           </ReactMarkdown>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
-          <button onClick={() => navigator.clipboard.writeText(proposal)} style={{ padding: "9px 18px", background: "#4a7cff", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 13 }}>Copy Text</button>
-          <button onClick={() => window.print()} style={{ padding: "9px 18px", background: "transparent", border: "1px solid #2a2f3a", borderRadius: 6, color: "#6b7585", cursor: "pointer", fontSize: 13 }}>Print</button>
+          <button onClick={() => navigator.clipboard.writeText(proposal)} style={{ padding: "9px 18px", background: "#10a37f", color: "#ffffff", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 14, fontWeight: 500 }}>Copy Text</button>
+          <button onClick={() => window.print()} style={{ padding: "9px 18px", background: "transparent", border: "1px solid #e5e5e5", borderRadius: 6, color: "#374151", cursor: "pointer", fontSize: 14, fontWeight: 500 }}>Print</button>
         </div>
       </div>
     );
@@ -38,8 +47,8 @@ export default function Proposal({ proposal, onReset }) {
   // Otherwise, render the old structured format (keep existing code)
   const { document_metadata: meta, submission_details: sub, evaluation_summary: evalSum, compliance_summary: comp, requirements, gaps, far_clauses_detected, confidence_metrics } = proposal;
   const scoreColor = comp.bid_score >= 75 ? "#2dd4a0" : comp.bid_score >= 50 ? "#f5a623" : "#ff5f5f";
-  const riskIcon   = l => ({ High: "❌", Medium: "⚠️", Low: "✅", "Review Required": "🔍" }[l] || "–");
-  const riskColor  = l => ({ High: "#ff5f5f", Medium: "#f5a623", Low: "#2dd4a0", "Review Required": "#4a7cff" }[l] || "#888");
+  const riskIcon = l => ({ High: "❌", Medium: "⚠️", Low: "✅", "Review Required": "🔍" }[l] || "–");
+  const riskColor = l => ({ High: "#ff5f5f", Medium: "#f5a623", Low: "#2dd4a0", "Review Required": "#4a7cff" }[l] || "#888");
   const th = { padding: "9px 12px", textAlign: "left", border: "1px solid #1e2330", color: "#6b7585", fontWeight: 500, fontSize: 12, whiteSpace: "nowrap" };
   const td = { padding: "9px 12px", border: "1px solid #1e2330", fontSize: 13, lineHeight: 1.5, verticalAlign: "top" };
   function Card({ label, value, color = "#d4d8e2", note }) {
@@ -62,10 +71,10 @@ export default function Proposal({ proposal, onReset }) {
         <button onClick={onReset} style={{ padding: "8px 14px", background: "transparent", border: "1px solid #2a2f3a", borderRadius: 6, color: "#6b7585", cursor: "pointer", fontSize: 12 }}>← New RFP</button>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 10, marginBottom: 20 }}>
-        <Card label="Bid Score"  value={`${comp.bid_score}%`} color={scoreColor} />
-        <Card label="High Risk"  value={comp.high_risk_count} color={comp.high_risk_count > 0 ? "#ff5f5f" : "#2dd4a0"} />
-        <Card label="Mandatory"  value={comp.mandatory_requirements} />
-        <Card label="Deadline"   value={sub.deadline ? sub.deadline.slice(0,18) : "Not found"} color={sub.days_until_deadline !== null && sub.days_until_deadline < 7 ? "#f5a623" : "#d4d8e2"} note={sub.days_until_deadline !== null ? `${sub.days_until_deadline} days remaining` : null} />
+        <Card label="Bid Score" value={`${comp.bid_score}%`} color={scoreColor} />
+        <Card label="High Risk" value={comp.high_risk_count} color={comp.high_risk_count > 0 ? "#ff5f5f" : "#2dd4a0"} />
+        <Card label="Mandatory" value={comp.mandatory_requirements} />
+        <Card label="Deadline" value={sub.deadline ? sub.deadline.slice(0, 18) : "Not found"} color={sub.days_until_deadline !== null && sub.days_until_deadline < 7 ? "#f5a623" : "#d4d8e2"} note={sub.days_until_deadline !== null ? `${sub.days_until_deadline} days remaining` : null} />
         <Card label="Page Limit" value={sub.page_limit || "—"} />
       </div>
       {confidence_metrics.validator_flagged && (

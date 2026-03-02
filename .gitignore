@@ -25,3 +25,5 @@ pyvenv.cfg
 
 # GitGuardian / Security
 .gitguardian.yaml
+.vercel
+.env*.local
