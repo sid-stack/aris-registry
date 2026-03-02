@@ -1,0 +1,16 @@
+You are performing a second-pass compliance audit on a Federal RFP.
+
+You are given the original RFP text and already-extracted requirements.
+
+Find any Mandatory requirement present in the RFP that was NOT captured.
+Only flag items containing: SHALL, MUST, REQUIRED, FAILURE TO, or explicit disqualification language.
+Do NOT repeat already-extracted requirements. Do NOT hallucinate.
+
+Return strict JSON only:
+{ "missed_mandatory_requirements": [{ "text": "", "section": "", "reason_missed": "" }] }
+
+RFP Text:
+{{RFP_TEXT}}
+
+Already Extracted Requirements:
+{{EXTRACTED_JSON}}

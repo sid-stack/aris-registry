@@ -1,0 +1,27 @@
+# Node & React
+node_modules/
+dist/
+build/
+.env
+.env.*
+!.env.example
+
+# Python
+venv/
+env/
+.venv/
+bin/
+include/
+lib/
+share/
+pyvenv.cfg
+*.pyc
+
+# System & OS
+.DS_Store
+*.log
+.vscode/
+.idea/
+
+# GitGuardian / Security
+.gitguardian.yaml
