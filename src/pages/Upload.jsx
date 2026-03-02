@@ -1,5 +1,7 @@
 import { useState, useRef } from "react";
 
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.bidsmith.pro';
+
 export default function Upload({ onProposalGenerated }) {
   const [file, setFile] = useState(null);
   const [companyProfile, setCompanyProfile] = useState("");
@@ -23,7 +25,7 @@ export default function Upload({ onProposalGenerated }) {
     formData.append("rfp", file);
     formData.append("companyProfile", companyProfile);
     try {
-      const res = await fetch("/api/generate", { method: "POST", body: formData });
+      const res = await fetch(`${API_URL}/api/generate`, { method: "POST", body: formData });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || `Server error ${res.status}`);
       onProposalGenerated(data.proposal);
