@@ -48,20 +48,34 @@ app.post("/api/generate", upload.single("rfp"), async (req, res) => {
       body: JSON.stringify({
         model: "google/gemini-2.0-flash-001",
         max_tokens: 2048,
-        system: SYS_PROMPT,
         messages: [
           {
             role: "user",
-            content: `Company Profile: ${req.body.companyProfile}\n\nGenerate a federal proposal draft.`
+            content: `You are a federal RFP compliance expert. Analyze this company profile and generate a professional federal proposal draft in markdown format.
+
+Company Profile: ${req.body.companyProfile}
+
+Generate a comprehensive proposal that includes:
+1. Executive Summary
+2. Technical Approach
+3. Management Plan
+4. Past Performance
+5. Risk Mitigation
+6. Compliance Certification
+
+Format as markdown. Be specific and professional.`
           }
         ]
       })
     });
 
     const data = await response.json();
-    if (!response.ok) throw new Error(data.error?.message || "API error");
+    if (!response.ok) {
+      console.error("[ERROR] OpenRouter:", data);
+      throw new Error(data.error?.message || "API error");
+    }
     
-    const proposal = data.content[0]?.text || "";
+    const proposal = data.content[0]?.text || "No proposal generated";
     
     res.json({ 
       proposal,
