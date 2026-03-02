@@ -1,11 +1,18 @@
 import { useState } from "react";
-import Upload from "./pages/Upload.jsx";
-import Proposal from "./pages/Proposal.jsx";
+import Upload from "./pages/Upload";
+import Proposal from "./pages/Proposal";
+import Login from "./pages/Login";
 
 export default function App() {
+  const [authenticated, setAuthenticated] = useState(false);
   const [proposal, setProposal] = useState(null);
+
+  if (!authenticated) {
+    return <Login onLogin={() => setAuthenticated(true)} />;
+  }
+
   return (
-    <div style={{ minHeight: "100vh", background: "#0d0f14", color: "#d4d8e2", fontFamily: "sans-serif" }}>
+    <div>
       {!proposal ? <Upload onProposalGenerated={setProposal} /> : <Proposal proposal={proposal} onReset={() => setProposal(null)} />}
     </div>
   );
