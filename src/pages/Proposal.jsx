@@ -1,4 +1,41 @@
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+
 export default function Proposal({ proposal, onReset }) {
+  // If proposal is a string (markdown), render it directly
+  if (typeof proposal === 'string') {
+    return (
+      <div style={{ maxWidth: 1060, margin: "0 auto", padding: "32px 24px 60px", fontFamily: "sans-serif", color: "#d4d8e2", background: "#0d0f14", minHeight: "100vh" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 600 }}>Federal Proposal Draft</h1>
+          <button onClick={onReset} style={{ padding: "8px 14px", background: "transparent", border: "1px solid #2a2f3a", borderRadius: 6, color: "#6b7585", cursor: "pointer", fontSize: 12 }}>← New RFP</button>
+        </div>
+        <div style={{ background: "#13161e", border: "1px solid #252932", borderRadius: 8, padding: "20px", marginBottom: 20 }}>
+          <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
+            p: ({node, ...props}) => <p style={{ lineHeight: 1.6, marginBottom: 12, color: "#d4d8e2" }} {...props} />,
+            h1: ({node, ...props}) => <h1 style={{ fontSize: 20, marginTop: 20, marginBottom: 10, color: "#4a7cff" }} {...props} />,
+            h2: ({node, ...props}) => <h2 style={{ fontSize: 16, marginTop: 16, marginBottom: 8, color: "#4a7cff" }} {...props} />,
+            h3: ({node, ...props}) => <h3 style={{ fontSize: 14, marginTop: 12, marginBottom: 6, color: "#6b7585" }} {...props} />,
+            ul: ({node, ...props}) => <ul style={{ marginLeft: 20, marginBottom: 12, color: "#d4d8e2" }} {...props} />,
+            ol: ({node, ...props}) => <ol style={{ marginLeft: 20, marginBottom: 12, color: "#d4d8e2" }} {...props} />,
+            li: ({node, ...props}) => <li style={{ marginBottom: 4 }} {...props} />,
+            table: ({node, ...props}) => <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 12 }} {...props} />,
+            th: ({node, ...props}) => <th style={{ background: "#1a1e28", padding: "10px", textAlign: "left", border: "1px solid #2a2f3a", fontWeight: 600 }} {...props} />,
+            td: ({node, ...props}) => <td style={{ padding: "10px", border: "1px solid #2a2f3a" }} {...props} />,
+            code: ({node, ...props}) => <code style={{ background: "#1a1e28", padding: "2px 6px", borderRadius: 3, fontFamily: "monospace", fontSize: 12, color: "#4a7cff" }} {...props} />,
+          }}>
+            {proposal}
+          </ReactMarkdown>
+        </div>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={() => navigator.clipboard.writeText(proposal)} style={{ padding: "9px 18px", background: "#4a7cff", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 13 }}>Copy Text</button>
+          <button onClick={() => window.print()} style={{ padding: "9px 18px", background: "transparent", border: "1px solid #2a2f3a", borderRadius: 6, color: "#6b7585", cursor: "pointer", fontSize: 13 }}>Print</button>
+        </div>
+      </div>
+    );
+  }
+
+  // Otherwise, render the old structured format (keep existing code)
   const { document_metadata: meta, submission_details: sub, evaluation_summary: evalSum, compliance_summary: comp, requirements, gaps, far_clauses_detected, confidence_metrics } = proposal;
   const scoreColor = comp.bid_score >= 75 ? "#2dd4a0" : comp.bid_score >= 50 ? "#f5a623" : "#ff5f5f";
   const riskIcon   = l => ({ High: "❌", Medium: "⚠️", Low: "✅", "Review Required": "🔍" }[l] || "–");
