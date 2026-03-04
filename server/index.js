@@ -1,4 +1,5 @@
 import express from "express";
+import rateLimit from "express-rate-limit";
 import cors from "cors";
 import multer from "multer";
 import OpenAI from "openai";
@@ -10,13 +11,13 @@ import { enrichFARClauses } from "./middleware/gatekeeper.js";
 import { extractMetadata } from "./middleware/extractor.js";
 import { computeScore } from "./middleware/scorer.js";
 
-const __dirname  = dirname(fileURLToPath(import.meta.url));
-const PROMPTS    = join(__dirname, "llm");
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const PROMPTS = join(__dirname, "llm");
 const SYS_PROMPT = readFileSync(join(PROMPTS, "system_prompt.txt"), "utf8").trim();
 const EXT_PROMPT = readFileSync(join(PROMPTS, "extract_prompt.txt"), "utf8").trim();
 const VAL_PROMPT = readFileSync(join(PROMPTS, "validate_prompt.txt"), "utf8").trim();
 
-const app  = express();
+const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(cors({
@@ -24,6 +25,17 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
+
+const analyzeLinkLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 10, // Limit each IP to 10 requests per `window` (here, per 1 minute)
+  message: {
+    error: "Rate limit exceeded",
+    message: "Too many compliance audits. Please wait and retry."
+  },
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+});
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -33,7 +45,7 @@ const upload = multer({
 
 function makeClient() {
   const key = process.env.OPENROUTER_API_KEY;
-  if (!key) throw new Error("OPENROUTER_API_KEY not set");
+  if (!key) return null;
   return new OpenAI({
     baseURL: "https://openrouter.ai/api/v1",
     apiKey: key,
@@ -71,13 +83,13 @@ app.post("/api/generate", upload.single("rfp"), async (req, res) => {
     if (!req.file) return res.status(400).json({ error: "No PDF uploaded." });
     let text;
     try { text = await parsePDF(req.file.buffer); }
-    catch (e) { return res.status(422).json({ error: "PDF parse failed: " + e.message }); }
+    catch (e) { return res.status(422).json({ error: "Compliance engine incomplete", instruction: "Manual upload required" }); }
     if (!text || text.trim().length < 100)
-      return res.status(422).json({ error: "PDF appears empty or image-only." });
+      return res.status(422).json({ error: "Compliance engine incomplete", instruction: "Manual upload required" });
 
     let intent;
     try { intent = await classifyIntent(text, client); }
-    catch (e) { return res.status(502).json({ error: "Intent classification failed: " + e.message }); }
+    catch (e) { return res.status(502).json({ error: "Compliance engine incomplete", instruction: "Manual upload required", details: "Intent classification failed" }); }
     if (!intent.isFederalRFP)
       return res.status(422).json({ error: "NOT_FEDERAL_RFP", message: `Document does not appear to be a U.S. Federal RFP. ${intent.reason}`, confidence: intent.confidence });
 
@@ -118,12 +130,12 @@ app.post("/api/generate", upload.single("rfp"), async (req, res) => {
     });
 
     const farRaw = [...(llmResult.far_clauses_detected || []).map(f => f.clause_number), ...meta.far_clauses_raw];
-    const mandatory  = allReqs.filter(r => r.type === "Mandatory");
+    const mandatory = allReqs.filter(r => r.type === "Mandatory");
     const evaluation = allReqs.filter(r => r.type === "Evaluation");
-    const high       = allReqs.filter(r => r.risk_level === "High");
-    const medium     = allReqs.filter(r => r.risk_level === "Medium");
-    const low        = allReqs.filter(r => r.risk_level === "Low");
-    const review     = allReqs.filter(r => r.risk_level === "Review Required");
+    const high = allReqs.filter(r => r.risk_level === "High");
+    const medium = allReqs.filter(r => r.risk_level === "Medium");
+    const low = allReqs.filter(r => r.risk_level === "Low");
+    const review = allReqs.filter(r => r.risk_level === "Review Required");
     const confidence = Math.min(1.0,
       0.4 +
       (llmResult.document_metadata?.solicitation_number ? 0.1 : 0) +
@@ -185,30 +197,47 @@ app.post("/api/generate", upload.single("rfp"), async (req, res) => {
 });
 
 // ─── /api/audit — 7-Pillar Compliance Audit (file upload) ────────────────────
-const AUDIT_PROMPT = `You are a federal contract compliance auditor. Perform a TWO-PASS analysis.
+const AUDIT_PROMPT = `You are a federal contract compliance auditor and disqualification gatekeeper. Your primary job is to protect the firm from bidding on unwinnable contracts.
 
-PASS 1 — Return a JSON object FIRST. Use exactly these keys. If a pillar is not explicitly found, use "NOT FOUND" — never guess or infer.
+Perform a strict THREE-PASS analysis on the provided solicitation text.
 
+PASS 1 — Extraction Matrix:
+Extract the 7 pillars. For EVERY extracted value, you MUST include the exact verbatim 'source_snippet' from the text that proves it. If not explicitly found, set value to "NOT FOUND" and snippet to "".
+
+PASS 2 — Anti-Hallucination Verification:
+Review your extracted snippets. If a snippet does not explicitly support the value, change the value to "NOT FOUND" and delete the snippet. NEVER infer or guess.
+
+PASS 3 — Disqualification Gate:
+Apply these hard disqualification rules:
+- Explicit eligibility barriers (e.g. "Only 8(a) certified firms eligible")
+- Security clearances (e.g. "Top Secret clearance required")
+- Massive bonding capacity minimums (e.g. "$40,000,000 minimum")
+- Explicit past performance minimums (e.g. "Minimum 5 similar federal contracts")
+
+Return a JSON object FIRST. EXACTLY match this structure:
 {
-  "solicitation_id": "<RFP/RFQ/IFB number or 'NOT FOUND'>",
-  "deadline_date": "<ISO 8601 YYYY-MM-DD or 'NOT FOUND'>",
-  "set_aside_type": "<Small Business / 8(a) / SDVOSB / HUBZone / WOSB / Unrestricted or 'NOT FOUND'>",
+  "solicitation_id": { "value": "<RFP/RFQ/IFB number or 'NOT FOUND'>", "snippet": "<verbatim text>" },
+  "deadline_date": { "value": "<ISO 8601 YYYY-MM-DD or 'NOT FOUND'>", "snippet": "<verbatim text>" },
+  "set_aside_type": { "value": "<8(a) / SDVOSB / HUBZone / WOSB / Total Small Business / Unrestricted or 'NOT FOUND'>", "snippet": "<verbatim text>" },
   "bonding_reqs": {
-    "bid_bond": "<percentage or dollar amount or 'NOT FOUND'>",
-    "performance_bond": "<percentage or dollar amount or 'NOT FOUND'>",
-    "payment_bond": "<percentage or dollar amount or 'NOT FOUND'>"
+    "bid_bond": { "value": "<amount or 'NOT FOUND'>", "snippet": "<verbatim text>" },
+    "performance_bond": { "value": "<amount or 'NOT FOUND'>", "snippet": "<verbatim text>" },
+    "payment_bond": { "value": "<amount or 'NOT FOUND'>", "snippet": "<verbatim text>" }
   },
-  "past_performance_threshold": "<explicit minimum projects/dollar/timeframe or 'NOT FOUND'>",
-  "technical_disqualifiers": ["<mandatory cert/clearance — only explicitly disqualifying. Return ['NOT FOUND'] if none>"],
-  "risk_score_1_to_10": <integer 1-10: bonding(0-2)+clearance(0-2)+past perf(0-2)+deadline urgency(0-2)+complexity(0-2)>
+  "past_performance_threshold": { "value": "<explicit minimums or 'NOT FOUND'>", "snippet": "<verbatim text>" },
+  "technical_disqualifiers": [
+    { "value": "<mandatory cert/clearance>", "snippet": "<verbatim text>" }
+  ],
+  "disqualification_assessment": {
+    "disqualified": <true or false>,
+    "risk_level": "<HIGH/MEDIUM/LOW>",
+    "trigger_category": "<SET_ASIDE/CLEARANCE/BONDING/PAST_PERFORMANCE or NONE>",
+    "matched_phrase": "<exact phrase that triggered it or "">",
+    "confidence": "<HIGH/MEDIUM/LOW or NONE>",
+    "reason": "<If disqualified, state the exact explicit barrier. Otherwise empty string.>"
+  }
 }
-
-PILLAR RULES:
-- bonding_reqs: look for "Bid Bond", "Performance Bond", "Payment Bond", "surety bond"
-- technical_disqualifiers: MANDATORY only — "required", "shall possess", "must hold". Flag ISO certs, clearances, CMMC
-- past_performance_threshold: explicit minimums only
-
-PASS 2 — Verify every field. If inferred not explicitly stated, correct to "NOT FOUND".
+If no technical disqualifiers exist, return an empty array for 'technical_disqualifiers'.
 
 After the JSON write a BID/NO-BID EXECUTIVE SUMMARY:
 
@@ -230,22 +259,70 @@ After the JSON write a BID/NO-BID EXECUTIVE SUMMARY:
 3. [Action]
 ---`;
 
+function enforceDisqualification(compliance, text) {
+  if (!compliance) return compliance;
+  if (!compliance.disqualification_assessment) {
+    compliance.disqualification_assessment = {
+      disqualified: false, risk_level: "UNKNOWN", reason: "",
+      trigger_category: "NONE", matched_phrase: "", confidence: "NONE"
+    };
+  }
+
+  const triggers = [
+    {
+      category: "SET_ASIDE",
+      rgx: /(8\(a\)\s+Program|Total\s+Small\s+Business\s+Set-Aside\s*\(?8\(a\)\)?|Restricted\s+to\s+8\(a\)\s+participants|Only\s+certified\s+8\(a\)\s+firms|HUBZone\s+Set-Aside|SDVOSB\s+Set-Aside)/i,
+      reason: "Explicit set-aside restriction detected."
+    },
+    {
+      category: "CLEARANCE",
+      rgx: /(Top\s+Secret\s+clearance\s+required|Secret\s+clearance\s+required|TS\/SCI|Facility\s+Clearance\s+Level|FCL\s+required|Active\s+clearance\s+required)/i,
+      reason: "Mandatory security clearance requirement."
+    },
+    {
+      category: "BONDING",
+      rgx: /(Bonding\s+capacity\s+.*?\$?\d{1,3}(,\d{3})*(\.\d+)?|Performance\s+bond\s+.*?\$?\d{1,3}(,\d{3})*(\.\d+)?|Payment\s+bond\s+.*?\$?\d{1,3}(,\d{3})*(\.\d+)?|Minimum\s+bonding\s+.*?\$?\d{1,3}(,\d{3})*(\.\d+)?)/i,
+      reason: "Requires massive bonding capacity."
+    },
+    {
+      category: "PAST_PERFORMANCE",
+      rgx: /(Minimum\s+of\s+\d+\s+similar\s+contracts|At\s+least\s+\d+\s+years\s+experience|Offeror\s+must\s+demonstrate\s+prior\s+federal\s+contracts)/i,
+      reason: "Stringent past performance baseline required."
+    }
+  ];
+
+  for (const trigger of triggers) {
+    const match = text.match(trigger.rgx);
+    if (match && !compliance.disqualification_assessment.disqualified) {
+      compliance.disqualification_assessment.disqualified = true;
+      compliance.disqualification_assessment.risk_level = "HIGH";
+      compliance.disqualification_assessment.trigger_category = trigger.category;
+      compliance.disqualification_assessment.matched_phrase = match[0];
+      compliance.disqualification_assessment.confidence = "HIGH";
+      compliance.disqualification_assessment.reason = trigger.reason;
+    }
+  }
+  return compliance;
+}
+
+
 app.post("/api/audit", upload.single("file"), async (req, res) => {
   const client = makeClient();
+  if (!client) return res.status(500).json({ error: "Server configuration incomplete" });
   try {
     if (!req.file) return res.status(400).json({ error: "No PDF uploaded" });
     let text;
     try { text = await parsePDF(req.file.buffer); }
-    catch (e) { return res.status(422).json({ error: "PDF parse failed: " + e.message }); }
+    catch (e) { return res.status(422).json({ error: "Compliance engine incomplete", instruction: "Manual upload required" }); }
     if (!text || text.trim().length < 50)
-      return res.status(422).json({ error: "Could not extract text. Try a non-scanned PDF." });
+      return res.status(422).json({ error: "Compliance engine incomplete", instruction: "Manual upload required" });
 
     console.log(`[/api/audit] ${req.file.originalname} — ${text.length} chars`);
 
     const raw = await llm(client, [
       { role: "system", content: AUDIT_PROMPT },
       { role: "user", content: `Audit this solicitation:\n\n---\n${text.slice(0, 20000)}\n---` }
-    ]);
+    ], 3000);
 
     let compliance = null;
     const deepMatch = raw.match(/\{[\s\S]*\}/);
@@ -253,6 +330,8 @@ app.post("/api/audit", upload.single("file"), async (req, res) => {
       try { compliance = JSON.parse(deepMatch[0]); }
       catch { compliance = { parse_error: "JSON extraction failed" }; }
     }
+
+    compliance = enforceDisqualification(compliance, text);
 
     let executiveSummary = "";
     if (deepMatch) {
@@ -268,12 +347,11 @@ app.post("/api/audit", upload.single("file"), async (req, res) => {
     });
   } catch (err) {
     console.error("[/api/audit] ERROR:", err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "Compliance engine incomplete", instruction: "Manual upload required", details: err.message });
   }
 });
 
 // ─── /api/analyze-link — SAM.gov URL → Audit Pipeline ────────────────────────
-const SAM_API_KEY = process.env.SAM_GOV_API_KEY || "SAM-30bd2085-030d-4ce4-9d40-8e9a1d030829";
 const noticeCache = new Map();
 
 function parseNoticeId(url) {
@@ -302,10 +380,10 @@ async function scoreAttachments(links, apiKey) {
       const fullUrl = url.includes('api_key') ? url : `${url}?api_key=${apiKey}`;
       const res = await fetch(fullUrl, { method: 'HEAD', redirect: 'manual' });
       const disp = res.headers.get('content-disposition') || '';
-      const loc  = res.headers.get('location') || '';
+      const loc = res.headers.get('location') || '';
       // Filename lives in content-disposition OR encoded in S3 location header
       const dispMatch = disp.match(/filename[^;=\n]*=["']?([^"'\n]+)["']?/i);
-      const locMatch  = decodeURIComponent(loc).match(/filename=([^&]+)/);
+      const locMatch = decodeURIComponent(loc).match(/filename=([^&]+)/);
       const name = (dispMatch?.[1] || locMatch?.[1] || url.split('/').pop()).trim();
       const score = scoreByName(name);
       console.log(`[scoreAttachments] "${name}" → ${score}`);
@@ -334,14 +412,17 @@ async function downloadWithRetry(url, retries = 3) {
   }
 }
 
-app.post("/api/analyze-link", async (req, res) => {
+app.post("/api/analyze-link", analyzeLinkLimiter, async (req, res) => {
   const client = makeClient();
+  if (!client) return res.status(500).json({ error: "Server configuration incomplete" });
   const { url } = req.body;
+  const SAM_API_KEY = process.env.SAM_API_KEY || process.env.SAM_GOV_API_KEY;
+  if (!SAM_API_KEY) return res.status(500).json({ error: "Server configuration incomplete" });
 
   if (!url) return res.status(400).json({ error: "Missing url in request body." });
 
   const noticeId = parseNoticeId(url);
-  if (!noticeId) return res.status(400).json({ error: "Could not parse a valid SAM.gov notice ID from URL. Expected: sam.gov/opp/{noticeId}/view" });
+  if (!noticeId) return res.status(400).json({ error: "Compliance engine incomplete", instruction: "Manual upload required" });
 
   const cached = noticeCache.get(noticeId);
   if (cached && Date.now() - cached.ts < 86400000) {
@@ -361,14 +442,14 @@ app.post("/api/analyze-link", async (req, res) => {
     if (!samRes.ok) throw new Error(`SAM.gov API returned ${samRes.status}`);
     samData = await samRes.json();
   } catch (e) {
-    return res.status(502).json({ error: "Failed to reach SAM.gov API: " + e.message });
+    return res.status(502).json({ error: "Compliance engine incomplete", instruction: "Manual upload required", details: "Failed to reach SAM.gov API" });
   }
 
   const opportunity = samData?.opportunitiesData?.[0];
-  if (!opportunity) return res.status(404).json({ error: "No opportunity found for this notice ID. The link may be expired or invalid." });
+  if (!opportunity) return res.status(404).json({ error: "Compliance engine incomplete", instruction: "Manual upload required", details: "No opportunity found" });
 
-  const title       = opportunity.title || "Unknown";
-  const agency      = opportunity.fullParentPathName || opportunity.organizationName || "Unknown Agency";
+  const title = opportunity.title || "Unknown";
+  const agency = opportunity.fullParentPathName || opportunity.organizationName || "Unknown Agency";
   const description = opportunity.description || "";
 
   const rawLinks = [
@@ -410,12 +491,12 @@ app.post("/api/analyze-link", async (req, res) => {
   }
 
   if (!auditText || auditText.trim().length < 50)
-    return res.status(422).json({ error: "Could not extract enough text. Try uploading the PDF manually." });
+    return res.status(422).json({ error: "Compliance engine incomplete", instruction: "Manual upload required" });
 
   const raw = await llm(client, [
     { role: "system", content: AUDIT_PROMPT },
     { role: "user", content: `Audit this solicitation:\n\n---\n${auditText.slice(0, 20000)}\n---` }
-  ]);
+  ], 3000);
 
   let compliance = null;
   const deepMatch = raw.match(/\{[\s\S]*\}/);
@@ -423,6 +504,8 @@ app.post("/api/analyze-link", async (req, res) => {
     try { compliance = JSON.parse(deepMatch[0]); }
     catch { compliance = { parse_error: "JSON extraction failed" }; }
   }
+
+  compliance = enforceDisqualification(compliance, auditText);
 
   let executiveSummary = "";
   if (deepMatch) {

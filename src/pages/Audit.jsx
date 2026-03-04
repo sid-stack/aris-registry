@@ -4,8 +4,8 @@ const LOADING_STEPS = [
   "Connecting to SAM.gov...",
   "Fetching opportunity data...",
   "Ranking attachments...",
-  "Downloading primary document...",
-  "Running 7-pillar compliance audit...",
+  "Extracting primary document...",
+  "Running compliance audit...",
   "Validating requirements...",
 ];
 
@@ -14,10 +14,10 @@ function useLoadingStep(active) {
   const ref = useRef();
   useEffect(() => {
     if (!active) { setStep(0); return; }
-    ref.current = setInterval(() => setStep(s => Math.min(s + 1, LOADING_STEPS.length - 1)), 5000);
+    ref.current = setInterval(() => setStep(s => Math.min(s + 1, LOADING_STEPS.length - 1)), 3000);
     return () => clearInterval(ref.current);
   }, [active]);
-  return LOADING_STEPS[step];
+  return { stepText: LOADING_STEPS[step], stepIndex: step };
 }
 
 const KEYWORD_SCORES = {
@@ -39,49 +39,103 @@ function formatBytes(b) {
   return b < 1048576 ? `${(b / 1024).toFixed(1)} KB` : `${(b / 1048576).toFixed(1)} MB`;
 }
 
-function getRiskColor(score) {
-  if (score == null || score === "NOT FOUND") return { bg: "#1e293b", text: "#64748b", label: "—" };
-  if (score <= 3) return { bg: "#052e16", text: "#4ade80", label: "LOW" };
-  if (score <= 6) return { bg: "#422006", text: "#fb923c", label: "MED" };
-  return { bg: "#450a0a", text: "#f87171", label: "HIGH" };
+function ExecutiveBanner({ assessment }) {
+  if (!assessment) return null;
+  const { disqualified, risk_level, reason } = assessment;
+
+  let bgStr = "", borderStr = "", textStr = "", label = "", icon = "", explanation = "";
+  if (disqualified) {
+    bgStr = "#fff1f2";
+    borderStr = "1px solid #fda4af";
+    textStr = "#9f1239";
+    label = "DISQUALIFIED — HIGH RISK";
+    icon = "🔴";
+    explanation = "Do not bid. Explicit disqualifiers detected based on firm eligibility or core technical/bonding thresholds.";
+  } else if (risk_level === "HIGH" || risk_level === "MEDIUM") {
+    bgStr = "#fffbeb";
+    borderStr = "1px solid #fcd34d";
+    textStr = "#92400e";
+    label = "HIGH RISK";
+    icon = "🟡";
+    explanation = "Proceed with caution. Severe compliance hurdles or ambiguities detected.";
+  } else {
+    bgStr = "#f0fdf4";
+    borderStr = "1px solid #86efac";
+    textStr = "#166534";
+    label = "ELIGIBLE TO BID";
+    icon = "🟢";
+    explanation = "No explicit disqualifying barriers found. Final manual vetting advised before proposal preparation.";
+  }
+
+  return (
+    <div style={{ background: bgStr, border: borderStr, borderRadius: "6px", padding: "20px 24px", marginBottom: "20px", display: "flex", flexDirection: "column", gap: "8px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+        <span style={{ fontSize: "20px" }}>{icon}</span>
+        <span style={{ fontSize: "16px", fontWeight: 800, letterSpacing: "0.02em", color: textStr, fontFamily: "monospace" }}>{label}</span>
+      </div>
+      <div style={{ fontSize: "13px", color: textStr, opacity: 0.9, fontFamily: "monospace", marginTop: "2px" }}>
+        {explanation}
+      </div>
+      {reason && (
+        <div style={{ marginTop: "12px", padding: "10px 14px", background: "rgba(0,0,0,0.03)", borderLeft: `2px solid ${textStr}`, fontSize: "12px", color: textStr, fontFamily: "monospace" }}>
+          <strong>Trigger:</strong> {reason}
+        </div>
+      )}
+    </div>
+  );
 }
 
-function PillarCard({ icon, label, value, wide }) {
+function PillarCard({ icon, label, data, wide }) {
+  const value = typeof data === 'object' && data !== null ? data.value : data;
+  const snippet = typeof data === 'object' && data !== null ? data.snippet : null;
   const isNotFound = !value || value === "NOT FOUND";
+
   return (
-    <div style={{ background: isNotFound ? "#0f172a" : "#0d1f2d", border: `1px solid ${isNotFound ? "#1e293b" : "#1e3a5f"}`, borderRadius: "8px", padding: "16px 20px", gridColumn: wide ? "span 2" : "span 1", display: "flex", flexDirection: "column", gap: "8px", minWidth: 0 }}>
+    <div style={{ background: isNotFound ? "#f8fafc" : "#ffffff", border: `1px solid #e2e8f0`, borderRadius: "6px", padding: "16px 20px", gridColumn: wide ? "span 2" : "span 1", display: "flex", flexDirection: "column", gap: "8px", minWidth: 0, boxShadow: "0 1px 2px rgba(0,0,0,0.02)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
         <span style={{ fontSize: "16px" }}>{icon}</span>
-        <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.12em", color: "#475569", textTransform: "uppercase", fontFamily: "monospace" }}>{label}</span>
+        <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em", color: "#64748b", textTransform: "uppercase", fontFamily: "monospace" }}>{label}</span>
       </div>
-      <div style={{ fontSize: "13px", fontFamily: "monospace", color: isNotFound ? "#374151" : "#e2e8f0", fontStyle: isNotFound ? "italic" : "normal", wordBreak: "break-word", lineHeight: 1.5 }}>
+      <div style={{ fontSize: "13px", fontFamily: "monospace", color: isNotFound ? "#94a3b8" : "#0f172a", fontStyle: isNotFound ? "italic" : "normal", wordBreak: "break-word", lineHeight: 1.5, fontWeight: isNotFound ? 400 : 600 }}>
         {isNotFound ? "NOT FOUND" : value}
       </div>
+      {snippet && !isNotFound && (
+        <div style={{ marginTop: "8px", padding: "8px 12px", background: "#f1f5f9", borderLeft: "2px solid #3b82f6", fontSize: "11px", color: "#475569", fontStyle: "italic", fontFamily: "monospace", wordBreak: "break-word" }}>
+          "{snippet}"
+        </div>
+      )}
     </div>
   );
 }
 
 function BondingCard({ bonding }) {
   const items = [
-    { label: "Bid Bond", value: bonding?.bid_bond },
-    { label: "Performance Bond", value: bonding?.performance_bond },
-    { label: "Payment Bond", value: bonding?.payment_bond },
+    { label: "Bid Bond", data: bonding?.bid_bond },
+    { label: "Performance Bond", data: bonding?.performance_bond },
+    { label: "Payment Bond", data: bonding?.payment_bond },
   ];
   return (
-    <div style={{ background: "#0d1f2d", border: "1px solid #1e3a5f", borderRadius: "8px", padding: "16px 20px", gridColumn: "span 2", display: "flex", flexDirection: "column", gap: "10px" }}>
+    <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "6px", padding: "16px 20px", gridColumn: "span 2", display: "flex", flexDirection: "column", gap: "10px", boxShadow: "0 1px 2px rgba(0,0,0,0.02)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
         <span style={{ fontSize: "16px" }}>🔒</span>
-        <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.12em", color: "#475569", textTransform: "uppercase", fontFamily: "monospace" }}>Bonding Requirements</span>
+        <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em", color: "#64748b", textTransform: "uppercase", fontFamily: "monospace" }}>Bonding Requirements</span>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px" }}>
-        {items.map(({ label, value }) => {
+        {items.map(({ label, data }) => {
+          const value = typeof data === 'object' && data !== null ? data.value : data;
+          const snippet = typeof data === 'object' && data !== null ? data.snippet : null;
           const missing = !value || value === "NOT FOUND";
           return (
-            <div key={label} style={{ background: missing ? "#0f172a" : "#0a2540", borderRadius: "6px", padding: "10px 12px", border: `1px solid ${missing ? "#1e293b" : "#1e4976"}` }}>
-              <div style={{ fontSize: "9px", color: "#475569", fontFamily: "monospace", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "4px" }}>{label}</div>
-              <div style={{ fontSize: "12px", fontFamily: "monospace", color: missing ? "#374151" : "#93c5fd", fontStyle: missing ? "italic" : "normal" }}>
+            <div key={label} style={{ background: missing ? "#f8fafc" : "#f0f9ff", borderRadius: "4px", padding: "10px 12px", border: `1px solid ${missing ? "#e2e8f0" : "#bae6fd"}` }}>
+              <div style={{ fontSize: "9px", color: "#64748b", fontFamily: "monospace", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: "4px" }}>{label}</div>
+              <div style={{ fontSize: "12px", fontFamily: "monospace", color: missing ? "#94a3b8" : "#0f172a", fontStyle: missing ? "italic" : "normal", fontWeight: missing ? 400 : 700 }}>
                 {missing ? "NOT FOUND" : value}
               </div>
+              {snippet && !missing && (
+                <div style={{ marginTop: "6px", fontSize: "10px", color: "#475569", fontStyle: "italic", wordBreak: "break-word" }} title={snippet}>
+                  "{snippet}"
+                </div>
+              )}
             </div>
           );
         })}
@@ -91,100 +145,38 @@ function BondingCard({ bonding }) {
 }
 
 function DisqualifiersCard({ items }) {
-  const hasItems = Array.isArray(items) && items.length > 0 && items[0] !== "NOT FOUND";
+  const normalizedItems = Array.isArray(items) ? items : [];
+  const hasItems = normalizedItems.length > 0 &&
+    (typeof normalizedItems[0] === 'string' ? normalizedItems[0] !== "NOT FOUND" : normalizedItems[0].value !== "NOT FOUND");
+
   return (
-    <div style={{ background: hasItems ? "#1a0505" : "#0f172a", border: `1px solid ${hasItems ? "#7f1d1d" : "#1e293b"}`, borderRadius: "8px", padding: "16px 20px", gridColumn: "span 2", display: "flex", flexDirection: "column", gap: "10px" }}>
+    <div style={{ background: hasItems ? "#fff1f2" : "#ffffff", border: `1px solid ${hasItems ? "#fecaca" : "#e2e8f0"}`, borderRadius: "6px", padding: "16px 20px", gridColumn: "span 2", display: "flex", flexDirection: "column", gap: "10px", boxShadow: "0 1px 2px rgba(0,0,0,0.02)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
         <span style={{ fontSize: "16px" }}>⛔</span>
-        <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.12em", color: hasItems ? "#dc2626" : "#475569", textTransform: "uppercase", fontFamily: "monospace" }}>Technical Disqualifiers</span>
+        <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em", color: hasItems ? "#e11d48" : "#64748b", textTransform: "uppercase", fontFamily: "monospace" }}>Technical Disqualifiers</span>
       </div>
       {hasItems ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-          {items.map((item, i) => (
-            <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: "8px", fontSize: "13px", fontFamily: "monospace", color: "#fca5a5" }}>
-              <span style={{ color: "#dc2626", marginTop: "1px", flexShrink: 0 }}>◆</span>{item}
-            </div>
-          ))}
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          {normalizedItems.map((item, i) => {
+            const value = typeof item === 'object' ? item.value : item;
+            const snippet = typeof item === 'object' ? item.snippet : null;
+            return (
+              <div key={i} style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: "8px", fontSize: "13px", fontFamily: "monospace", color: "#be123c", fontWeight: 600 }}>
+                  <span style={{ color: "#e11d48", marginTop: "1px", flexShrink: 0 }}>◆</span>{value}
+                </div>
+                {snippet && (
+                  <div style={{ marginLeft: "14px", padding: "6px 8px", background: "#fef1f2", borderLeft: "2px solid #e11d48", fontSize: "11px", color: "#9f1239", fontStyle: "italic", fontFamily: "monospace", wordBreak: "break-word" }}>
+                    "{snippet}"
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       ) : (
-        <div style={{ fontSize: "13px", fontFamily: "monospace", color: "#374151", fontStyle: "italic" }}>NOT FOUND</div>
+        <div style={{ fontSize: "13px", fontFamily: "monospace", color: "#94a3b8", fontStyle: "italic" }}>No explicit disqualifiers found</div>
       )}
-    </div>
-  );
-}
-
-function RiskScoreBadge({ score }) {
-  const { bg, text, label } = getRiskColor(score);
-  return (
-    <div style={{ background: bg, border: `1px solid ${text}33`, borderRadius: "8px", padding: "16px 20px", gridColumn: "span 1", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "6px" }}>
-      <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.12em", color: "#475569", textTransform: "uppercase", fontFamily: "monospace" }}>Risk Score</span>
-      <div style={{ display: "flex", alignItems: "baseline", gap: "4px" }}>
-        <span style={{ fontSize: "42px", fontWeight: 900, color: text, fontFamily: "monospace", lineHeight: 1 }}>
-          {score == null || score === "NOT FOUND" ? "–" : score}
-        </span>
-        {score != null && score !== "NOT FOUND" && <span style={{ fontSize: "16px", color: "#475569", fontFamily: "monospace" }}>/10</span>}
-      </div>
-      <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.15em", color: text, fontFamily: "monospace" }}>{label}</span>
-    </div>
-  );
-}
-
-function ExecutiveSummary({ text }) {
-  if (!text) return null;
-  const cleaned = text.replace(/^```[a-z]*\n?/i, "").replace(/```$/i, "").trim();
-  const lines = cleaned.split("\n");
-  return (
-    <div style={{ marginTop: "32px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
-        <div style={{ height: "1px", flex: 1, background: "linear-gradient(90deg, #1e3a5f, transparent)" }} />
-        <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.15em", color: "#475569", textTransform: "uppercase", fontFamily: "monospace" }}>Bid / No-Bid Executive Summary</span>
-        <div style={{ height: "1px", flex: 1, background: "linear-gradient(270deg, #1e3a5f, transparent)" }} />
-      </div>
-      <div style={{ background: "#080f1a", border: "1px solid #1e293b", borderRadius: "8px", padding: "24px", fontFamily: "monospace", fontSize: "13px", lineHeight: "1.8", color: "#94a3b8" }}>
-        {lines.map((line, i) => {
-          if (line.startsWith("## ") || line.startsWith("# "))
-            return <div key={i} style={{ fontSize: "14px", fontWeight: 700, color: "#e2e8f0", margin: "12px 0 8px" }}>{line.replace(/^#+\s/, "")}</div>;
-          if (line.match(/\*\*(.+?)\*\*/)) {
-            const parsed = line.replace(/\*\*(.+?)\*\*/g, (_, m) => `<strong style="color:#e2e8f0">${m}</strong>`);
-            return <div key={i} dangerouslySetInnerHTML={{ __html: parsed }} style={{ marginBottom: "2px" }} />;
-          }
-          if (line.startsWith("- ✅") || line.startsWith("- ⚠️") || line.startsWith("- ❌")) {
-            const color = line.includes("✅") ? "#4ade80" : line.includes("⚠️") ? "#fb923c" : "#f87171";
-            return <div key={i} style={{ color, marginBottom: "4px", paddingLeft: "8px" }}>{line.slice(2)}</div>;
-          }
-          if (line.match(/^\d+\./))
-            return <div key={i} style={{ color: "#93c5fd", marginBottom: "4px", paddingLeft: "8px" }}>{line}</div>;
-          if (line.trim() === "---")
-            return <hr key={i} style={{ border: "none", borderTop: "1px solid #1e293b", margin: "12px 0" }} />;
-          return <div key={i} style={{ marginBottom: line.trim() === "" ? "8px" : "2px" }}>{line}</div>;
-        })}
-      </div>
-    </div>
-  );
-}
-
-function FileRow({ ranked, index, isSelected, onSelect }) {
-  const { file, score, matched } = ranked;
-  return (
-    <div onClick={onSelect} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "10px 14px", borderRadius: "6px", cursor: "pointer", transition: "all 0.12s", border: isSelected ? "1px solid #2563eb" : "1px solid #1e293b", background: isSelected ? "#0a1929" : "#0a0f1e" }}>
-      <div style={{ width: "22px", height: "22px", borderRadius: "4px", background: index === 0 ? "#1d4ed8" : "#1e293b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", fontWeight: 700, color: index === 0 ? "#fff" : "#475569", fontFamily: "monospace", flexShrink: 0 }}>#{index + 1}</div>
-      <span style={{ fontSize: "16px", flexShrink: 0 }}>📄</span>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: "13px", fontFamily: "monospace", color: isSelected ? "#e2e8f0" : "#94a3b8", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontWeight: isSelected ? 700 : 400 }}>{file.name}</div>
-        <div style={{ display: "flex", gap: "4px", marginTop: "4px", flexWrap: "wrap" }}>
-          {matched.map(kw => (
-            <span key={kw} style={{ fontSize: "9px", fontFamily: "monospace", letterSpacing: "0.08em", padding: "2px 6px", borderRadius: "3px", background: "#0f2540", color: "#60a5fa", border: "1px solid #1e3a5f" }}>{kw}</span>
-          ))}
-          {matched.length === 0 && <span style={{ fontSize: "9px", fontFamily: "monospace", color: "#374151" }}>no keywords matched</span>}
-        </div>
-      </div>
-      <div style={{ textAlign: "right", flexShrink: 0 }}>
-        <div style={{ fontSize: "13px", fontFamily: "monospace", color: score > 0 ? "#60a5fa" : "#374151", fontWeight: 700 }}>+{score}pts</div>
-        <div style={{ fontSize: "10px", color: "#374151", fontFamily: "monospace" }}>{formatBytes(file.size)}</div>
-      </div>
-      <div style={{ width: "16px", height: "16px", borderRadius: "50%", border: isSelected ? "none" : "2px solid #1e293b", background: isSelected ? "#2563eb" : "transparent", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        {isSelected && <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#fff" }} />}
-      </div>
     </div>
   );
 }
@@ -193,15 +185,18 @@ function ResultMeta({ result }) {
   if (!result?.title && !result?.agency) return null;
   const isFallback = result.source === "description_text";
   return (
-    <div style={{ marginBottom: "16px", padding: "14px 18px", background: "#080f1a", border: "1px solid #1e293b", borderRadius: "8px", display: "flex", flexDirection: "column", gap: "6px" }}>
-      {result.title && <div style={{ fontSize: "14px", fontWeight: 700, color: "#e2e8f0", fontFamily: "monospace" }}>{result.title}</div>}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", alignItems: "center" }}>
-        {result.agency && <span style={{ fontSize: "11px", fontFamily: "monospace", color: "#475569" }}>🏛 {result.agency}</span>}
-        {result.primaryDoc && result.primaryDoc !== "description_text" && <span style={{ fontSize: "11px", fontFamily: "monospace", color: "#60a5fa" }}>📄 {result.primaryDoc}</span>}
-        {result.attachmentsFound > 0 && <span style={{ fontSize: "11px", fontFamily: "monospace", color: "#374151" }}>{result.attachmentsFound} attachments ranked</span>}
+    <div style={{ marginBottom: "20px", padding: "16px 20px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "6px", display: "flex", flexDirection: "column", gap: "8px" }}>
+      {result.title && <div style={{ fontSize: "15px", fontWeight: 700, color: "#0f172a", fontFamily: "monospace", display: "flex", alignItems: "center", gap: "8px" }}>
+        <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#2563eb" }}></span>
+        {result.title}
+      </div>}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", alignItems: "center" }}>
+        {result.agency && <span style={{ fontSize: "12px", fontFamily: "monospace", color: "#475569", fontWeight: 600 }}>🏛 {result.agency}</span>}
+        {result.primaryDoc && result.primaryDoc !== "description_text" && <span style={{ fontSize: "12px", fontFamily: "monospace", color: "#2563eb", fontWeight: 600 }}>📄 {result.primaryDoc}</span>}
+        {result.attachmentsFound > 0 && <span style={{ fontSize: "12px", fontFamily: "monospace", color: "#64748b" }}>{result.attachmentsFound} attachments logged</span>}
         {isFallback && (
-          <span style={{ fontSize: "11px", fontFamily: "monospace", color: "#fb923c", background: "#1c0f00", padding: "2px 8px", borderRadius: "4px", border: "1px solid #7c2d12" }}>
-            ⚠ No PDF found — audited from description text. Upload PDF for full analysis.
+          <span style={{ fontSize: "11px", fontFamily: "monospace", color: "#b45309", background: "#fef3c7", padding: "4px 8px", borderRadius: "4px", border: "1px solid #fde68a" }}>
+            ⚠ Source text derived from description only. Document retrieval failed.
           </span>
         )}
       </div>
@@ -209,18 +204,46 @@ function ResultMeta({ result }) {
   );
 }
 
+function FileRow({ ranked, index, isSelected, onSelect }) {
+  const { file, score, matched } = ranked;
+  return (
+    <div onClick={onSelect} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "10px 14px", borderRadius: "6px", cursor: "pointer", transition: "all 0.12s", border: isSelected ? "1px solid #2563eb" : "1px solid #e2e8f0", background: isSelected ? "#eff6ff" : "#ffffff" }}>
+      <div style={{ width: "22px", height: "22px", borderRadius: "4px", background: index === 0 ? "#2563eb" : "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", fontWeight: 700, color: index === 0 ? "#fff" : "#64748b", fontFamily: "monospace", flexShrink: 0 }}>#{index + 1}</div>
+      <span style={{ fontSize: "16px", flexShrink: 0 }}>📄</span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: "13px", fontFamily: "monospace", color: isSelected ? "#1e3a8a" : "#334155", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontWeight: isSelected ? 700 : 500 }}>{file.name}</div>
+        <div style={{ display: "flex", gap: "4px", marginTop: "4px", flexWrap: "wrap" }}>
+          {matched.map(kw => (
+            <span key={kw} style={{ fontSize: "9px", fontFamily: "monospace", letterSpacing: "0.08em", padding: "2px 6px", borderRadius: "3px", background: "#e0f2fe", color: "#0369a1", border: "1px solid #bae6fd" }}>{kw}</span>
+          ))}
+          {matched.length === 0 && <span style={{ fontSize: "9px", fontFamily: "monospace", color: "#94a3b8" }}>no keywords matched</span>}
+        </div>
+      </div>
+      <div style={{ textAlign: "right", flexShrink: 0 }}>
+        <div style={{ fontSize: "13px", fontFamily: "monospace", color: score > 0 ? "#2563eb" : "#64748b", fontWeight: 700 }}>+{score}pts</div>
+        <div style={{ fontSize: "10px", color: "#94a3b8", fontFamily: "monospace" }}>{formatBytes(file.size)}</div>
+      </div>
+      <div style={{ width: "16px", height: "16px", borderRadius: "50%", border: isSelected ? "none" : "2px solid #cbd5e1", background: isSelected ? "#2563eb" : "transparent", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        {isSelected && <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#fff" }} />}
+      </div>
+    </div>
+  );
+}
+
 export default function Audit() {
-  const [samUrl, setSamUrl]               = useState("");
-  const [rankedFiles, setRankedFiles]     = useState([]);
+  const [samUrl, setSamUrl] = useState("");
+  const [rankedFiles, setRankedFiles] = useState([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [result, setResult]               = useState(null);
-  const [loadingUrl, setLoadingUrl]       = useState(false);
-  const [loadingFile, setLoadingFile]     = useState(false);
-  const [error, setError]                 = useState("");
-  const loadingStep                       = useLoadingStep(loadingUrl);
-  const selectedFile                      = rankedFiles[selectedIndex];
-  const c                                 = result?.compliance;
-  const isLoading                         = loadingUrl || loadingFile;
+  const [result, setResult] = useState(null);
+  const [loadingUrl, setLoadingUrl] = useState(false);
+  const [loadingFile, setLoadingFile] = useState(false);
+  const [error, setError] = useState("");
+  const [showUpload, setShowUpload] = useState(false);
+
+  const { stepText, stepIndex } = useLoadingStep(loadingUrl);
+  const selectedFile = rankedFiles[selectedIndex];
+  const c = result?.compliance;
+  const isLoading = loadingUrl || loadingFile;
 
   function handleFilesChange(e) {
     const files = e.target.files;
@@ -228,11 +251,12 @@ export default function Audit() {
     setRankedFiles(scoreFiles(files));
     setSelectedIndex(0);
     setResult(null); setError("");
+    setShowUpload(true);
   }
 
   async function runUrlAudit() {
     if (!samUrl.trim()) return;
-    setLoadingUrl(true); setError(""); setResult(null);
+    setLoadingUrl(true); setError(""); setResult(null); setShowUpload(false);
     try {
       const res = await fetch("/api/analyze-link", {
         method: "POST",
@@ -240,9 +264,19 @@ export default function Audit() {
         body: JSON.stringify({ url: samUrl.trim() }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "URL audit failed");
+      if (!res.ok) {
+        setShowUpload(true);
+        throw new Error(data.error || "Compliance Engine verification failed. Manual extraction required.");
+      }
       setResult(data);
-    } catch (e) { setError(e.message); }
+    } catch (e) {
+      if (e.message.includes("Compliance engine incomplete") || e.message.includes("Manual upload required") || e.message.includes("fetch")) {
+        setError("Automatic retrieval failed. Upload the solicitation PDF below.");
+        setShowUpload(true);
+      } else {
+        setError(e.message);
+      }
+    }
     finally { setLoadingUrl(false); }
   }
 
@@ -254,148 +288,153 @@ export default function Audit() {
       formData.append("file", selectedFile.file);
       const res = await fetch("/api/audit", { method: "POST", body: formData });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Audit failed");
+      if (!res.ok) throw new Error(data.error || "Compliance evaluation failed");
       setResult(data);
     } catch (e) { setError(e.message); }
     finally { setLoadingFile(false); }
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#030711", color: "#e2e8f0", fontFamily: "'IBM Plex Mono', 'Courier New', monospace", padding: "40px 24px" }}>
-      <div style={{ maxWidth: "900px", margin: "0 auto" }}>
+    <div style={{ minHeight: "100vh", background: "#f8fafc", color: "#0f172a", fontFamily: "'IBM Plex Mono', 'Courier New', monospace", padding: "40px 24px" }}>
+      <div style={{ maxWidth: "800px", margin: "0 auto" }}>
 
         <div style={{ marginBottom: "36px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
-            <div style={{ width: "8px", height: "8px", background: "#3b82f6", borderRadius: "50%", boxShadow: "0 0 12px #3b82f6" }} />
-            <span style={{ fontSize: "10px", letterSpacing: "0.2em", color: "#3b82f6", textTransform: "uppercase" }}>Aris · ContractAI</span>
+            <div style={{ width: "8px", height: "8px", background: "#2563eb", borderRadius: "50%" }} />
+            <span style={{ fontSize: "11px", letterSpacing: "0.15em", color: "#475569", textTransform: "uppercase", fontWeight: 700 }}>Aris Protocol</span>
           </div>
-          <h1 style={{ fontSize: "28px", fontWeight: 900, color: "#f1f5f9", margin: "0 0 6px", letterSpacing: "-0.02em" }}>7-Pillar Compliance Auditor</h1>
-          <p style={{ fontSize: "12px", color: "#475569", margin: 0, letterSpacing: "0.05em" }}>Paste a SAM.gov link for instant audit — or upload PDFs directly</p>
+          <h1 style={{ fontSize: "28px", fontWeight: 900, color: "#0f172a", margin: "0 0 8px", letterSpacing: "-0.02em" }}>Federal Bid Compliance Check</h1>
+          <p style={{ fontSize: "13px", color: "#64748b", margin: 0, letterSpacing: "0.02em" }}>Instant disqualification filtering. Execute semantic audits on live solicitations.</p>
         </div>
 
         {/* SAM.gov URL */}
-        <div style={{ marginBottom: "24px", background: "#080f1a", border: "1px solid #1e3a5f", borderRadius: "10px", padding: "20px 24px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
-            <span style={{ fontSize: "14px" }}>🏛</span>
-            <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.15em", color: "#3b82f6", textTransform: "uppercase", fontFamily: "monospace" }}>SAM.gov Direct Link</span>
-            <span style={{ fontSize: "10px", color: "#374151", fontFamily: "monospace", marginLeft: "auto" }}>No download needed — attachments fetched & ranked automatically</span>
-          </div>
-          <div style={{ display: "flex", gap: "10px" }}>
+        <div style={{ marginBottom: "24px", background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "24px", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
             <input
               type="text"
               value={samUrl}
               onChange={e => setSamUrl(e.target.value)}
               onKeyDown={e => e.key === "Enter" && !isLoading && runUrlAudit()}
-              placeholder="https://sam.gov/opp/6a1fabc0700446cab376819df6feb7c3/view"
-              style={{ flex: 1, background: "#030711", border: "1px solid #1e293b", borderRadius: "6px", padding: "11px 14px", color: "#94a3b8", fontSize: "13px", fontFamily: "monospace", outline: "none", minWidth: 0 }}
+              placeholder="Paste SAM.gov Opportunity Link (e.g., https://sam.gov/opp/...)"
+              style={{ flex: 1, background: "#ffffff", border: "2px solid #cbd5e1", borderRadius: "6px", padding: "14px 16px", color: "#0f172a", fontSize: "14px", fontFamily: "monospace", outline: "none", minWidth: 0, transition: "border-color 0.2s" }}
+              onFocus={e => e.target.style.borderColor = "#2563eb"}
+              onBlur={e => e.target.style.borderColor = "#cbd5e1"}
             />
             <button
               onClick={runUrlAudit}
               disabled={isLoading || !samUrl.trim()}
-              style={{ background: isLoading || !samUrl.trim() ? "#1e293b" : "linear-gradient(135deg, #1d4ed8, #2563eb)", color: isLoading || !samUrl.trim() ? "#475569" : "#fff", border: "none", borderRadius: "6px", padding: "11px 22px", fontSize: "12px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", cursor: isLoading || !samUrl.trim() ? "not-allowed" : "pointer", fontFamily: "monospace", display: "flex", alignItems: "center", gap: "8px", whiteSpace: "nowrap" }}
+              style={{ width: "100%", background: isLoading || !samUrl.trim() ? "#e2e8f0" : "#0f172a", color: isLoading || !samUrl.trim() ? "#94a3b8" : "#ffffff", border: "none", borderRadius: "6px", padding: "16px", fontSize: "14px", fontWeight: 800, letterSpacing: "0.05em", textTransform: "uppercase", cursor: isLoading || !samUrl.trim() ? "not-allowed" : "pointer", fontFamily: "monospace", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}
             >
-              {loadingUrl
-                ? <><span style={{ display: "inline-block", width: "12px", height: "12px", border: "2px solid #475569", borderTopColor: "#60a5fa", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />Auditing...</>
-                : "Run Audit →"}
+              Run Compliance Audit
             </button>
+            <div style={{ textAlign: "center", fontSize: "12px", color: "#64748b", fontFamily: "monospace" }}>
+              No upload required. We fetch documents automatically.
+            </div>
           </div>
+
+          {/* Vertical Loading State */}
           {loadingUrl && (
-            <div style={{ marginTop: "12px", display: "flex", alignItems: "center", gap: "10px" }}>
-              <div style={{ display: "flex", gap: "3px" }}>
-                {LOADING_STEPS.map((s, i) => (
-                  <div key={i} style={{ width: "20px", height: "3px", borderRadius: "2px", background: i <= LOADING_STEPS.indexOf(loadingStep) ? "#3b82f6" : "#1e293b", transition: "background 0.4s" }} />
-                ))}
-              </div>
-              <span style={{ fontSize: "11px", fontFamily: "monospace", color: "#60a5fa", letterSpacing: "0.05em" }}>{loadingStep}</span>
+            <div style={{ marginTop: "24px", borderTop: "1px solid #e2e8f0", paddingTop: "20px", display: "flex", flexDirection: "column", gap: "12px" }}>
+              {LOADING_STEPS.map((step, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: "12px", opacity: i <= stepIndex ? 1 : 0.3, transition: "opacity 0.3s" }}>
+                  <div style={{ width: "16px", height: "16px", borderRadius: "50%", background: i < stepIndex ? "#22c55e" : i === stepIndex ? "#3b82f6" : "#cbd5e1", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    {i < stepIndex && <span style={{ color: "#fff", fontSize: "10px" }}>✓</span>}
+                  </div>
+                  <span style={{ fontSize: "13px", fontFamily: "monospace", color: i <= stepIndex ? "#0f172a" : "#94a3b8", fontWeight: i === stepIndex ? 700 : 400 }}>{step}</span>
+                </div>
+              ))}
             </div>
           )}
         </div>
 
-        {/* Divider */}
-        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
-          <div style={{ flex: 1, height: "1px", background: "#1e293b" }} />
-          <span style={{ fontSize: "10px", fontFamily: "monospace", color: "#374151", letterSpacing: "0.1em" }}>OR UPLOAD PDF DIRECTLY</span>
-          <div style={{ flex: 1, height: "1px", background: "#1e293b" }} />
-        </div>
-
-        {/* File Upload */}
-        <label
-          style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "10px", border: "2px dashed #1e293b", borderRadius: "10px", padding: "28px 24px", cursor: "pointer", background: "#080f1a", transition: "border-color 0.15s", marginBottom: "16px" }}
-          onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = "#2563eb"; }}
-          onDragLeave={e => { e.currentTarget.style.borderColor = "#1e293b"; }}
-          onDrop={e => { e.preventDefault(); e.currentTarget.style.borderColor = "#1e293b"; if (e.dataTransfer.files.length) { setRankedFiles(scoreFiles(e.dataTransfer.files)); setSelectedIndex(0); setResult(null); setError(""); } }}
-        >
-          <span style={{ fontSize: "24px" }}>📂</span>
-          <span style={{ fontSize: "13px", color: "#475569", fontFamily: "monospace" }}>Drop PDFs here or <span style={{ color: "#3b82f6" }}>click to browse</span></span>
-          <span style={{ fontSize: "10px", color: "#374151", fontFamily: "monospace", letterSpacing: "0.08em" }}>Multiple files OK — keyword ranker auto-selects primary document</span>
-          <input type="file" accept=".pdf" multiple onChange={handleFilesChange} style={{ display: "none" }} />
-        </label>
-
-        {/* File Ranker */}
-        {rankedFiles.length > 0 && (
-          <div style={{ marginBottom: "16px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
-              <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.12em", color: "#475569", textTransform: "uppercase", fontFamily: "monospace" }}>Ranked Documents ({rankedFiles.length})</span>
-              <div style={{ height: "1px", flex: 1, background: "#1e293b" }} />
-              <span style={{ fontSize: "10px", color: "#374151", fontFamily: "monospace" }}>click to change selection</span>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "10px" }}>
-              {rankedFiles.map((rf, i) => (
-                <FileRow key={`${rf.file.name}-${i}`} ranked={rf} index={i} isSelected={i === selectedIndex} onSelect={() => setSelectedIndex(i)} />
-              ))}
-            </div>
-            <div style={{ marginBottom: "12px", padding: "9px 14px", background: "#050e1a", border: "1px solid #1e3a5f", borderRadius: "6px", fontSize: "11px", fontFamily: "monospace", color: "#475569", display: "flex", gap: "8px", alignItems: "center" }}>
-              <span style={{ color: "#3b82f6" }}>◆</span>
-              <span>
-                <span style={{ color: "#94a3b8", fontWeight: 700 }}>Primary: </span>
-                <span style={{ color: "#60a5fa" }}>{selectedFile?.file.name}</span>
-                {selectedIndex === 0 && rankedFiles.length > 1 && <span style={{ color: "#4ade80" }}> (auto-selected)</span>}
-                {selectedIndex !== 0 && <span style={{ color: "#fb923c" }}> (manually overridden)</span>}
-              </span>
-            </div>
-            <button
-              onClick={runFileAudit}
-              disabled={isLoading}
-              style={{ background: isLoading ? "#1e293b" : "linear-gradient(135deg, #1d4ed8, #2563eb)", color: isLoading ? "#475569" : "#fff", border: "none", borderRadius: "6px", padding: "12px 24px", fontSize: "12px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", cursor: isLoading ? "not-allowed" : "pointer", fontFamily: "monospace", display: "flex", alignItems: "center", gap: "8px" }}
-            >
-              {loadingFile
-                ? <><span style={{ display: "inline-block", width: "12px", height: "12px", border: "2px solid #475569", borderTopColor: "#94a3b8", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />Auditing {selectedFile?.file.name}...</>
-                : `Audit "${selectedFile?.file.name}" →`}
+        {/* Upload Fallback Link */}
+        {!showUpload && !isLoading && !result && (
+          <div style={{ textAlign: "center", marginTop: "24px" }}>
+            <button onClick={() => setShowUpload(true)} style={{ background: "transparent", border: "none", color: "#64748b", fontSize: "12px", fontFamily: "monospace", textDecoration: "underline", cursor: "pointer", padding: "8px" }}>
+              Upload PDF manually instead
             </button>
           </div>
         )}
 
         {error && (
-          <div style={{ margin: "16px 0", background: "#1a0505", border: "1px solid #7f1d1d", borderRadius: "6px", padding: "12px 16px", color: "#f87171", fontSize: "13px", fontFamily: "monospace" }}>⚠ {error}</div>
+          <div style={{ margin: "24px 0", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "6px", padding: "14px 18px", color: "#b91c1c", fontSize: "13px", fontFamily: "monospace", fontWeight: 600 }}>⚠ {error}</div>
         )}
 
+        {/* Main Manual Upload Box Triggered Only Upon Failure or Request */}
+        {showUpload && (
+          <div style={{ marginTop: "32px", animation: "fadeIn 0.3s ease-out" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
+              <div style={{ flex: 1, height: "1px", background: "#e2e8f0" }} />
+              <span style={{ fontSize: "10px", fontFamily: "monospace", color: "#64748b", letterSpacing: "0.1em" }}>MANUAL COMPLIANCE OVERRIDE</span>
+              <div style={{ flex: 1, height: "1px", background: "#e2e8f0" }} />
+            </div>
+
+            <label
+              style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "12px", border: "2px dashed #cbd5e1", borderRadius: "8px", padding: "32px 24px", cursor: "pointer", background: "#ffffff", transition: "all 0.15s", marginBottom: "16px" }}
+              onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = "#2563eb"; e.currentTarget.style.background = "#f0fdf4"; }}
+              onDragLeave={e => { e.currentTarget.style.borderColor = "#cbd5e1"; e.currentTarget.style.background = "#ffffff"; }}
+              onDrop={e => { e.preventDefault(); e.currentTarget.style.borderColor = "#cbd5e1"; e.currentTarget.style.background = "#ffffff"; if (e.dataTransfer.files.length) handleFilesChange({ target: { files: e.dataTransfer.files } }); }}
+            >
+              <span style={{ fontSize: "28px" }}>📂</span>
+              <span style={{ fontSize: "14px", color: "#334155", fontFamily: "monospace", fontWeight: 600 }}>Drop PDFs here or <span style={{ color: "#2563eb", textDecoration: "underline" }}>click to browse</span></span>
+              <span style={{ fontSize: "11px", color: "#64748b", fontFamily: "monospace", letterSpacing: "0.05em" }}>Keyword ranker will isolate the primary solicitation</span>
+              <input type="file" accept=".pdf" multiple onChange={handleFilesChange} style={{ display: "none" }} />
+            </label>
+
+            {/* File Ranker */}
+            {rankedFiles.length > 0 && (
+              <div style={{ marginBottom: "16px", background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "20px", boxShadow: "0 2px 4px -1px rgba(0,0,0,0.02)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
+                  <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.08em", color: "#475569", textTransform: "uppercase", fontFamily: "monospace" }}>Ranked Documents</span>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "16px" }}>
+                  {rankedFiles.map((rf, i) => (
+                    <FileRow key={`${rf.file.name}-${i}`} ranked={rf} index={i} isSelected={i === selectedIndex} onSelect={() => setSelectedIndex(i)} />
+                  ))}
+                </div>
+                <button
+                  onClick={runFileAudit}
+                  disabled={isLoading}
+                  style={{ width: "100%", background: isLoading ? "#e2e8f0" : "#2563eb", color: isLoading ? "#64748b" : "#fff", border: "none", borderRadius: "6px", padding: "14px", fontSize: "13px", fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", cursor: isLoading ? "not-allowed" : "pointer", fontFamily: "monospace", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}
+                >
+                  {loadingFile
+                    ? <><span style={{ display: "inline-block", width: "12px", height: "12px", border: "2px solid #64748b", borderTopColor: "#fff", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />Analyzing {selectedFile?.file.name}...</>
+                    : `Evaluate "${selectedFile?.file.name}"`}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Audit Output Render */}
         {result && c && (
-          <div style={{ marginTop: "32px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
-              <div style={{ height: "1px", flex: 1, background: "linear-gradient(90deg, #1e3a5f, transparent)" }} />
-              <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.15em", color: "#475569", textTransform: "uppercase" }}>Compliance Audit — {new Date(result.auditedAt).toLocaleString()}</span>
-              <div style={{ height: "1px", flex: 1, background: "linear-gradient(270deg, #1e3a5f, transparent)" }} />
-            </div>
+          <div style={{ marginTop: "40px" }}>
+            <ExecutiveBanner assessment={c.disqualification_assessment} />
             <ResultMeta result={result} />
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "10px" }}>
-              <PillarCard icon="🆔" label="Solicitation ID" value={c.solicitation_id} />
-              <PillarCard icon="📅" label="Deadline Date" value={c.deadline_date} />
-              <PillarCard icon="🏷️" label="Set-Aside Type" value={c.set_aside_type} />
-              <RiskScoreBadge score={c.risk_score_1_to_10} />
-              <BondingCard bonding={c.bonding_reqs} />
-              <PillarCard icon="📋" label="Past Performance Threshold" value={c.past_performance_threshold} wide />
-              <DisqualifiersCard items={c.technical_disqualifiers} />
+
+            <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px", marginTop: "10px" }}>
+              <div style={{ height: "1px", flex: 1, background: "linear-gradient(90deg, #e2e8f0, transparent)" }} />
+              <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.1em", color: "#64748b", textTransform: "uppercase" }}>7-Pillar Verification Grid</span>
+              <div style={{ height: "1px", flex: 1, background: "linear-gradient(270deg, #e2e8f0, transparent)" }} />
             </div>
-            <ExecutiveSummary text={result.executiveSummary} />
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "12px" }}>
+              <PillarCard icon="🆔" label="Solicitation ID" data={c.solicitation_id} />
+              <PillarCard icon="📅" label="Deadline Date" data={c.deadline_date} />
+              <PillarCard icon="🏷️" label="Set-Aside Type" data={c.set_aside_type} />
+              <PillarCard icon="📋" label="Past Performance Threshold" data={c.past_performance_threshold} />
+              <DisqualifiersCard items={c.technical_disqualifiers} />
+              <BondingCard bonding={c.bonding_reqs} />
+            </div>
           </div>
         )}
       </div>
 
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
-        button:hover:not(:disabled) { filter: brightness(1.12); transform: translateY(-1px); }
-        label:hover { border-color: #1e3a5f !important; }
-        input:focus { border-color: #1e3a5f !important; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        button:hover:not(:disabled) { filter: brightness(1.05); }
+        input::placeholder { color: #94a3b8; }
       `}</style>
     </div>
   );
