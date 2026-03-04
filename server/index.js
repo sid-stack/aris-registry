@@ -69,24 +69,20 @@ app.post("/api/generate", upload.single("rfp"), async (req, res) => {
   const client = makeClient();
   try {
     if (!req.file) return res.status(400).json({ error: "No PDF uploaded." });
-
     let text;
     try { text = await parsePDF(req.file.buffer); }
     catch (e) { return res.status(422).json({ error: "PDF parse failed: " + e.message }); }
     if (!text || text.trim().length < 100)
       return res.status(422).json({ error: "PDF appears empty or image-only." });
 
-    // Stage 1: Intent
     let intent;
     try { intent = await classifyIntent(text, client); }
     catch (e) { return res.status(502).json({ error: "Intent classification failed: " + e.message }); }
     if (!intent.isFederalRFP)
       return res.status(422).json({ error: "NOT_FEDERAL_RFP", message: `Document does not appear to be a U.S. Federal RFP. ${intent.reason}`, confidence: intent.confidence });
 
-    // Stage 2: Deterministic extraction
     const meta = extractMetadata(text);
 
-    // Stage 3: LLM extract
     let llmResult;
     try {
       const raw = await llm(client, [{ role: "user", content: SYS_PROMPT + "\n\n" + EXT_PROMPT.replace("{{RFP_TEXT}}", text.slice(0, 14000)) }]);
@@ -99,7 +95,6 @@ app.post("/api/generate", upload.single("rfp"), async (req, res) => {
       source_excerpt: r.source_excerpt || r.text?.slice(0, 120) || ""
     }));
 
-    // Stage 4: Validation pass
     let missed = [];
     try {
       const valRaw = await llm(client, [{ role: "user", content: VAL_PROMPT.replace("{{RFP_TEXT}}", text.slice(0, 8000)).replace("{{EXTRACTED_JSON}}", JSON.stringify(requirements)) }], 2048);
@@ -117,7 +112,6 @@ app.post("/api/generate", upload.single("rfp"), async (req, res) => {
       }))
     ];
 
-    // Stage 5: Score
     const { score, gaps } = computeScore(allReqs, {
       days_until_deadline: meta.days_until_deadline,
       page_limit: llmResult.submission_details?.page_limit || meta.page_limit
@@ -190,7 +184,7 @@ app.post("/api/generate", upload.single("rfp"), async (req, res) => {
   }
 });
 
-// ─── /api/audit — 7-Pillar Compliance Audit ──────────────────────────────────
+// ─── /api/audit — 7-Pillar Compliance Audit (file upload) ────────────────────
 const AUDIT_PROMPT = `You are a federal contract compliance auditor. Perform a TWO-PASS analysis.
 
 PASS 1 — Return a JSON object FIRST. Use exactly these keys. If a pillar is not explicitly found, use "NOT FOUND" — never guess or infer.
@@ -240,7 +234,6 @@ app.post("/api/audit", upload.single("file"), async (req, res) => {
   const client = makeClient();
   try {
     if (!req.file) return res.status(400).json({ error: "No PDF uploaded" });
-
     let text;
     try { text = await parsePDF(req.file.buffer); }
     catch (e) { return res.status(422).json({ error: "PDF parse failed: " + e.message }); }
@@ -273,23 +266,15 @@ app.post("/api/audit", upload.single("file"), async (req, res) => {
       auditedAt: new Date().toISOString(),
       metadata: { file: req.file.originalname, size: req.file.size }
     });
-
   } catch (err) {
     console.error("[/api/audit] ERROR:", err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// ─── Start ────────────────────────────────────────────────────────────────────
-app.listen(PORT, () => {
-  console.log(`✅ ARIS v3 → http://localhost:${PORT}`);
-  console.log(`   Pipeline: Intent → Extract → Validate → Score`);
-  if (!process.env.OPENROUTER_API_KEY) console.warn("⚠️  OPENROUTER_API_KEY not set");
-});
-
-// ─── SAM.gov URL → Audit Pipeline ────────────────────────────────────────────
+// ─── /api/analyze-link — SAM.gov URL → Audit Pipeline ────────────────────────
 const SAM_API_KEY = process.env.SAM_GOV_API_KEY || "SAM-30bd2085-030d-4ce4-9d40-8e9a1d030829";
-const noticeCache = new Map(); // 24h in-memory cache
+const noticeCache = new Map();
 
 function parseNoticeId(url) {
   const oppMatch = url.match(/\/opp\/([a-f0-9]{32})/i);
@@ -299,17 +284,38 @@ function parseNoticeId(url) {
   return null;
 }
 
-function scoreAttachments(links) {
-  return links.map(link => {
-    const name = (link.split('/').pop() || link).toLowerCase();
-    let score = 0;
-    if (/solicitation|combined|rfp/.test(name)) score += 50;
-    if (/statement.of.work|sow/.test(name)) score += 30;
-    if (/performance.work.statement|pws/.test(name)) score += 20;
-    if (/amendment|qa|questions/.test(name)) score -= 40;
-    if (/wage.determination|attachment|exhibit/.test(name)) score -= 60;
-    return { url: link, name, score };
-  }).sort((a, b) => b.score - a.score);
+function scoreByName(name) {
+  const n = name.toLowerCase();
+  let score = 0;
+  if (/solicitation|combined|rfp/.test(n)) score += 50;
+  if (/statement.of.work|sow/.test(n)) score += 30;
+  if (/performance.work.statement|pws/.test(n)) score += 20;
+  if (/amendment|qa|questions/.test(n)) score -= 40;
+  if (/wage.determination|attachment|exhibit/.test(n)) score -= 60;
+  return score;
+}
+
+async function scoreAttachments(links, apiKey) {
+  const sample = links.slice(0, 15);
+  const results = await Promise.all(sample.map(async (url) => {
+    try {
+      const fullUrl = url.includes('api_key') ? url : `${url}?api_key=${apiKey}`;
+      const res = await fetch(fullUrl, { method: 'HEAD', redirect: 'manual' });
+      const disp = res.headers.get('content-disposition') || '';
+      const loc  = res.headers.get('location') || '';
+      // Filename lives in content-disposition OR encoded in S3 location header
+      const dispMatch = disp.match(/filename[^;=\n]*=["']?([^"'\n]+)["']?/i);
+      const locMatch  = decodeURIComponent(loc).match(/filename=([^&]+)/);
+      const name = (dispMatch?.[1] || locMatch?.[1] || url.split('/').pop()).trim();
+      const score = scoreByName(name);
+      console.log(`[scoreAttachments] "${name}" → ${score}`);
+      return { url, name, score };
+    } catch (e) {
+      console.warn('[scoreAttachments] HEAD failed:', e.message);
+      return { url, name: url.split('/').pop(), score: 0 };
+    }
+  }));
+  return results.sort((a, b) => b.score - a.score);
 }
 
 async function downloadWithRetry(url, retries = 3) {
@@ -320,8 +326,7 @@ async function downloadWithRetry(url, retries = 3) {
       const res = await fetch(url, { signal: controller.signal });
       clearTimeout(timeout);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const buffer = Buffer.from(await res.arrayBuffer());
-      return buffer;
+      return Buffer.from(await res.arrayBuffer());
     } catch (e) {
       if (i === retries - 1) throw e;
       await new Promise(r => setTimeout(r, 1000 * Math.pow(2, i)));
@@ -334,12 +339,10 @@ app.post("/api/analyze-link", async (req, res) => {
   const { url } = req.body;
 
   if (!url) return res.status(400).json({ error: "Missing url in request body." });
-  if (!SAM_API_KEY) return res.status(401).json({ error: "SAM_GOV_API_KEY not configured." });
 
   const noticeId = parseNoticeId(url);
-  if (!noticeId) return res.status(400).json({ error: "Could not parse a valid SAM.gov notice ID from URL. Expected format: sam.gov/opp/{noticeId}/view" });
+  if (!noticeId) return res.status(400).json({ error: "Could not parse a valid SAM.gov notice ID from URL. Expected: sam.gov/opp/{noticeId}/view" });
 
-  // Check cache
   const cached = noticeCache.get(noticeId);
   if (cached && Date.now() - cached.ts < 86400000) {
     console.log(`[/api/analyze-link] Cache hit: ${noticeId}`);
@@ -348,12 +351,11 @@ app.post("/api/analyze-link", async (req, res) => {
 
   console.log(`[/api/analyze-link] Fetching SAM.gov: ${noticeId}`);
 
-  // Step 1 — SAM.gov API
   let samData;
   try {
     const samRes = await fetch(
       `https://api.sam.gov/opportunities/v2/search?noticeid=${noticeId}&limit=1&api_key=${SAM_API_KEY}`,
-      { headers: { "Accept": "application/json" } }
+      { headers: { Accept: "application/json" } }
     );
     if (samRes.status === 429) return res.status(429).json({ error: "SAM.gov rate limit reached. Try again in a few minutes." });
     if (!samRes.ok) throw new Error(`SAM.gov API returned ${samRes.status}`);
@@ -365,40 +367,38 @@ app.post("/api/analyze-link", async (req, res) => {
   const opportunity = samData?.opportunitiesData?.[0];
   if (!opportunity) return res.status(404).json({ error: "No opportunity found for this notice ID. The link may be expired or invalid." });
 
-  const title = opportunity.title || "Unknown";
-  const agency = opportunity.fullParentPathName || opportunity.organizationName || "Unknown Agency";
+  const title       = opportunity.title || "Unknown";
+  const agency      = opportunity.fullParentPathName || opportunity.organizationName || "Unknown Agency";
   const description = opportunity.description || "";
 
-  // Step 2 — Collect attachment links
   const rawLinks = [
     ...(opportunity.resourceLinks || []),
     ...(opportunity.attachments || []).map(a => a.accessPointUrl || a.downloadUrl || "").filter(Boolean),
   ].filter(l => l && l.startsWith("http"));
 
-  const pdfLinks = rawLinks.filter(l => l.toLowerCase().includes(".pdf") || l.toLowerCase().includes("download"));
-  const ranked = scoreAttachments(pdfLinks.length ? pdfLinks : rawLinks);
+  console.log(`[/api/analyze-link] ${rawLinks.length} attachment links found`);
+
+  const ranked = await scoreAttachments(rawLinks, SAM_API_KEY);
+  console.log(`[/api/analyze-link] Top ranked: "${ranked[0]?.name}" score=${ranked[0]?.score}`);
 
   let auditText = "";
   let primaryDoc = "description_text";
   let source = "description_text";
 
-  // Step 3 — Download primary PDF
-  if (ranked.length > 0 && ranked[0].score >= -30) {
-    const target = ranked[0];
-    const downloadUrl = target.url.includes("api_key")
-      ? target.url
-      : `${target.url}${target.url.includes("?") ? "&" : "?"}api_key=${SAM_API_KEY}`;
-
+  // Try to download top-scored PDF (score must be > 0)
+  const pdfCandidates = ranked.filter(r => r.score > 0 && /\.pdf$/i.test(r.name));
+  if (pdfCandidates.length > 0) {
+    const target = pdfCandidates[0];
+    const downloadUrl = target.url.includes("api_key") ? target.url : `${target.url}?api_key=${SAM_API_KEY}`;
     try {
       console.log(`[/api/analyze-link] Downloading: ${target.name}`);
       const buffer = await downloadWithRetry(downloadUrl);
-      const pp = (await import("pdf-parse/lib/pdf-parse.js")).default;
-      auditText = (await pp(buffer)).text;
+      auditText = await parsePDF(buffer);
       primaryDoc = target.name;
       source = "pdf";
       console.log(`[/api/analyze-link] PDF extracted: ${auditText.length} chars`);
     } catch (e) {
-      console.warn(`[/api/analyze-link] PDF download failed, falling back to description: ${e.message}`);
+      console.warn(`[/api/analyze-link] PDF download failed: ${e.message}`);
     }
   }
 
@@ -406,14 +406,12 @@ app.post("/api/analyze-link", async (req, res) => {
   if (!auditText || auditText.trim().length < 100) {
     auditText = description;
     source = "description_text";
-    console.log(`[/api/analyze-link] Using description text: ${auditText.length} chars`);
+    console.log(`[/api/analyze-link] Fallback to description: ${auditText.length} chars`);
   }
 
-  if (!auditText || auditText.trim().length < 50) {
-    return res.status(422).json({ error: "Could not extract enough text from this opportunity. Try downloading the PDF manually and using the upload." });
-  }
+  if (!auditText || auditText.trim().length < 50)
+    return res.status(422).json({ error: "Could not extract enough text. Try uploading the PDF manually." });
 
-  // Step 4 — 3-Pass Audit
   const raw = await llm(client, [
     { role: "system", content: AUDIT_PROMPT },
     { role: "user", content: `Audit this solicitation:\n\n---\n${auditText.slice(0, 20000)}\n---` }
@@ -433,17 +431,19 @@ app.post("/api/analyze-link", async (req, res) => {
   }
 
   const result = {
-    noticeId,
-    title,
-    agency,
-    primaryDoc,
-    source,
+    noticeId, title, agency, primaryDoc, source,
     attachmentsFound: ranked.length,
-    compliance,
-    executiveSummary,
+    compliance, executiveSummary,
     auditedAt: new Date().toISOString(),
   };
 
   noticeCache.set(noticeId, { ts: Date.now(), data: result });
   res.json(result);
+});
+
+// ─── Start ────────────────────────────────────────────────────────────────────
+app.listen(PORT, () => {
+  console.log(`✅ ARIS v3 → http://localhost:${PORT}`);
+  console.log(`   Pipeline: Intent → Extract → Validate → Score`);
+  if (!process.env.OPENROUTER_API_KEY) console.warn("⚠️  OPENROUTER_API_KEY not set");
 });
