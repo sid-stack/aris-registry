@@ -286,3 +286,164 @@ app.listen(PORT, () => {
   console.log(`   Pipeline: Intent → Extract → Validate → Score`);
   if (!process.env.OPENROUTER_API_KEY) console.warn("⚠️  OPENROUTER_API_KEY not set");
 });
+
+// ─── SAM.gov URL → Audit Pipeline ────────────────────────────────────────────
+const SAM_API_KEY = process.env.SAM_GOV_API_KEY || "SAM-30bd2085-030d-4ce4-9d40-8e9a1d030829";
+const noticeCache = new Map(); // 24h in-memory cache
+
+function parseNoticeId(url) {
+  const oppMatch = url.match(/\/opp\/([a-f0-9]{32})/i);
+  if (oppMatch) return oppMatch[1];
+  const qMatch = url.match(/[?&]noticeId=([^&]+)/i);
+  if (qMatch) return qMatch[1];
+  return null;
+}
+
+function scoreAttachments(links) {
+  return links.map(link => {
+    const name = (link.split('/').pop() || link).toLowerCase();
+    let score = 0;
+    if (/solicitation|combined|rfp/.test(name)) score += 50;
+    if (/statement.of.work|sow/.test(name)) score += 30;
+    if (/performance.work.statement|pws/.test(name)) score += 20;
+    if (/amendment|qa|questions/.test(name)) score -= 40;
+    if (/wage.determination|attachment|exhibit/.test(name)) score -= 60;
+    return { url: link, name, score };
+  }).sort((a, b) => b.score - a.score);
+}
+
+async function downloadWithRetry(url, retries = 3) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeout);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const buffer = Buffer.from(await res.arrayBuffer());
+      return buffer;
+    } catch (e) {
+      if (i === retries - 1) throw e;
+      await new Promise(r => setTimeout(r, 1000 * Math.pow(2, i)));
+    }
+  }
+}
+
+app.post("/api/analyze-link", async (req, res) => {
+  const client = makeClient();
+  const { url } = req.body;
+
+  if (!url) return res.status(400).json({ error: "Missing url in request body." });
+  if (!SAM_API_KEY) return res.status(401).json({ error: "SAM_GOV_API_KEY not configured." });
+
+  const noticeId = parseNoticeId(url);
+  if (!noticeId) return res.status(400).json({ error: "Could not parse a valid SAM.gov notice ID from URL. Expected format: sam.gov/opp/{noticeId}/view" });
+
+  // Check cache
+  const cached = noticeCache.get(noticeId);
+  if (cached && Date.now() - cached.ts < 86400000) {
+    console.log(`[/api/analyze-link] Cache hit: ${noticeId}`);
+    return res.json(cached.data);
+  }
+
+  console.log(`[/api/analyze-link] Fetching SAM.gov: ${noticeId}`);
+
+  // Step 1 — SAM.gov API
+  let samData;
+  try {
+    const samRes = await fetch(
+      `https://api.sam.gov/opportunities/v2/search?noticeid=${noticeId}&limit=1&api_key=${SAM_API_KEY}`,
+      { headers: { "Accept": "application/json" } }
+    );
+    if (samRes.status === 429) return res.status(429).json({ error: "SAM.gov rate limit reached. Try again in a few minutes." });
+    if (!samRes.ok) throw new Error(`SAM.gov API returned ${samRes.status}`);
+    samData = await samRes.json();
+  } catch (e) {
+    return res.status(502).json({ error: "Failed to reach SAM.gov API: " + e.message });
+  }
+
+  const opportunity = samData?.opportunitiesData?.[0];
+  if (!opportunity) return res.status(404).json({ error: "No opportunity found for this notice ID. The link may be expired or invalid." });
+
+  const title = opportunity.title || "Unknown";
+  const agency = opportunity.fullParentPathName || opportunity.organizationName || "Unknown Agency";
+  const description = opportunity.description || "";
+
+  // Step 2 — Collect attachment links
+  const rawLinks = [
+    ...(opportunity.resourceLinks || []),
+    ...(opportunity.attachments || []).map(a => a.accessPointUrl || a.downloadUrl || "").filter(Boolean),
+  ].filter(l => l && l.startsWith("http"));
+
+  const pdfLinks = rawLinks.filter(l => l.toLowerCase().includes(".pdf") || l.toLowerCase().includes("download"));
+  const ranked = scoreAttachments(pdfLinks.length ? pdfLinks : rawLinks);
+
+  let auditText = "";
+  let primaryDoc = "description_text";
+  let source = "description_text";
+
+  // Step 3 — Download primary PDF
+  if (ranked.length > 0 && ranked[0].score >= -30) {
+    const target = ranked[0];
+    const downloadUrl = target.url.includes("api_key")
+      ? target.url
+      : `${target.url}${target.url.includes("?") ? "&" : "?"}api_key=${SAM_API_KEY}`;
+
+    try {
+      console.log(`[/api/analyze-link] Downloading: ${target.name}`);
+      const buffer = await downloadWithRetry(downloadUrl);
+      const pp = (await import("pdf-parse/lib/pdf-parse.js")).default;
+      auditText = (await pp(buffer)).text;
+      primaryDoc = target.name;
+      source = "pdf";
+      console.log(`[/api/analyze-link] PDF extracted: ${auditText.length} chars`);
+    } catch (e) {
+      console.warn(`[/api/analyze-link] PDF download failed, falling back to description: ${e.message}`);
+    }
+  }
+
+  // Fallback to description
+  if (!auditText || auditText.trim().length < 100) {
+    auditText = description;
+    source = "description_text";
+    console.log(`[/api/analyze-link] Using description text: ${auditText.length} chars`);
+  }
+
+  if (!auditText || auditText.trim().length < 50) {
+    return res.status(422).json({ error: "Could not extract enough text from this opportunity. Try downloading the PDF manually and using the upload." });
+  }
+
+  // Step 4 — 3-Pass Audit
+  const raw = await llm(client, [
+    { role: "system", content: AUDIT_PROMPT },
+    { role: "user", content: `Audit this solicitation:\n\n---\n${auditText.slice(0, 20000)}\n---` }
+  ]);
+
+  let compliance = null;
+  const deepMatch = raw.match(/\{[\s\S]*\}/);
+  if (deepMatch) {
+    try { compliance = JSON.parse(deepMatch[0]); }
+    catch { compliance = { parse_error: "JSON extraction failed" }; }
+  }
+
+  let executiveSummary = "";
+  if (deepMatch) {
+    const jsonEnd = raw.indexOf(deepMatch[0]) + deepMatch[0].length;
+    executiveSummary = raw.slice(jsonEnd).trim();
+  }
+
+  const result = {
+    noticeId,
+    title,
+    agency,
+    primaryDoc,
+    source,
+    attachmentsFound: ranked.length,
+    compliance,
+    executiveSummary,
+    auditedAt: new Date().toISOString(),
+  };
+
+  noticeCache.set(noticeId, { ts: Date.now(), data: result });
+  res.json(result);
+});
