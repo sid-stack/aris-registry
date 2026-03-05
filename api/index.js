@@ -689,7 +689,7 @@ app.get("/api/generate-report-stream", async (req, res) => {
   // Read pillars from query param (base64-encoded JSON)
   let pillars, title, agency, executiveSummary;
   try {
-    const parsed = JSON.parse(Buffer.from(req.query.ctx, "base64").toString("utf8"));
+    const parsed = JSON.parse(decodeURIComponent(escape(Buffer.from(req.query.ctx, "base64").toString("binary"))));
     ({ pillars, title, agency, executiveSummary } = parsed);
   } catch {
     emit({ type: "error", message: "Invalid context" });

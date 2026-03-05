@@ -86,23 +86,33 @@ function ExecutiveBanner({ assessment }) {
   );
 }
 
-function PillarCard({ icon, label, data, wide }) {
+// Strip raw error snippets — SAM.gov 404 pages or "Sorry..." strings should never render
+const ERROR_STRINGS = ["sorry", "couldn't find", "not found on sam", "error", "404"];
+function isBadSnippet(s) { const l = (s || "").toLowerCase(); return ERROR_STRINGS.some(e => l.includes(e)); }
+function isNullValue(v) {
+  if (!v) return true;
+  const l = (v || "").toLowerCase();
+  return l === "not found" || l.startsWith("n/a") || l === "null" || l === "undefined" || l === "none";
+}
+
+function PillarCard({ icon, label, data }) {
   const value = typeof data === 'object' && data !== null ? data.value : data;
   const snippet = typeof data === 'object' && data !== null ? data.snippet : null;
-  const isNotFound = !value || value === "NOT FOUND";
+  const isNotFound = isNullValue(value);
+  const cleanSnippet = !isBadSnippet(snippet) ? snippet : null;
 
   return (
-    <div style={{ background: isNotFound ? "#f8fafc" : "#ffffff", border: `1px solid #e2e8f0`, borderRadius: "6px", padding: "16px 20px", gridColumn: wide ? "span 2" : "span 1", display: "flex", flexDirection: "column", gap: "8px", minWidth: 0, boxShadow: "0 1px 2px rgba(0,0,0,0.02)" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-        <span style={{ fontSize: "16px" }}>{icon}</span>
-        <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em", color: "#64748b", textTransform: "uppercase", fontFamily: "monospace" }}>{label}</span>
+    <div style={{ background: "#ffffff", border: `1px solid ${isNotFound ? "#f1f5f9" : "#e2e8f0"}`, borderRadius: "8px", padding: "16px 20px", display: "flex", flexDirection: "column", gap: "6px", minWidth: 0 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "2px" }}>
+        <span style={{ fontSize: "15px" }}>{icon}</span>
+        <span style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.1em", color: "#94a3b8", textTransform: "uppercase", fontFamily: "'IBM Plex Mono', monospace" }}>{label}</span>
       </div>
-      <div style={{ fontSize: "13px", fontFamily: "monospace", color: isNotFound ? "#94a3b8" : "#0f172a", fontStyle: isNotFound ? "italic" : "normal", wordBreak: "break-word", lineHeight: 1.5, fontWeight: isNotFound ? 400 : 600 }}>
-        {isNotFound ? "NOT FOUND" : value}
+      <div style={{ fontSize: "13px", fontFamily: "'IBM Plex Mono', monospace", color: isNotFound ? "#cbd5e1" : "#0f172a", fontStyle: isNotFound ? "italic" : "normal", wordBreak: "break-word", lineHeight: 1.5, fontWeight: isNotFound ? 400 : 600 }}>
+        {isNotFound ? "—" : value}
       </div>
-      {snippet && !isNotFound && (
-        <div style={{ marginTop: "8px", padding: "8px 12px", background: "#f1f5f9", borderLeft: "2px solid #3b82f6", fontSize: "11px", color: "#475569", fontStyle: "italic", fontFamily: "monospace", wordBreak: "break-word" }}>
-          "{snippet}"
+      {cleanSnippet && !isNotFound && (
+        <div style={{ marginTop: "4px", padding: "6px 10px", background: "#f8fafc", borderLeft: "2px solid #bfdbfe", fontSize: "10px", color: "#64748b", fontFamily: "monospace", wordBreak: "break-word", lineHeight: 1.5 }}>
+          {cleanSnippet}
         </div>
       )}
     </div>
@@ -116,27 +126,21 @@ function BondingCard({ bonding }) {
     { label: "Payment Bond", data: bonding?.payment_bond },
   ];
   return (
-    <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "6px", padding: "16px 20px", gridColumn: "span 2", display: "flex", flexDirection: "column", gap: "10px", boxShadow: "0 1px 2px rgba(0,0,0,0.02)" }}>
+    <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "16px 20px", gridColumn: "span 2", display: "flex", flexDirection: "column", gap: "10px" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-        <span style={{ fontSize: "16px" }}>🔒</span>
-        <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em", color: "#64748b", textTransform: "uppercase", fontFamily: "monospace" }}>Bonding Requirements</span>
+        <span style={{ fontSize: "15px" }}>🔒</span>
+        <span style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.1em", color: "#94a3b8", textTransform: "uppercase", fontFamily: "'IBM Plex Mono', monospace" }}>Bonding Requirements</span>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px" }}>
         {items.map(({ label, data }) => {
           const value = typeof data === 'object' && data !== null ? data.value : data;
-          const snippet = typeof data === 'object' && data !== null ? data.snippet : null;
-          const missing = !value || value === "NOT FOUND";
+          const missing = isNullValue(value);
           return (
-            <div key={label} style={{ background: missing ? "#f8fafc" : "#f0f9ff", borderRadius: "4px", padding: "10px 12px", border: `1px solid ${missing ? "#e2e8f0" : "#bae6fd"}` }}>
-              <div style={{ fontSize: "9px", color: "#64748b", fontFamily: "monospace", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: "4px" }}>{label}</div>
-              <div style={{ fontSize: "12px", fontFamily: "monospace", color: missing ? "#94a3b8" : "#0f172a", fontStyle: missing ? "italic" : "normal", fontWeight: missing ? 400 : 700 }}>
-                {missing ? "NOT FOUND" : value}
+            <div key={label} style={{ background: missing ? "#f8fafc" : "#f0f9ff", borderRadius: "6px", padding: "10px 12px", border: `1px solid ${missing ? "#f1f5f9" : "#bae6fd"}` }}>
+              <div style={{ fontSize: "9px", color: "#94a3b8", fontFamily: "monospace", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "4px" }}>{label}</div>
+              <div style={{ fontSize: "12px", fontFamily: "'IBM Plex Mono', monospace", color: missing ? "#cbd5e1" : "#0f172a", fontStyle: missing ? "italic" : "normal", fontWeight: missing ? 400 : 700 }}>
+                {missing ? "—" : value}
               </div>
-              {snippet && !missing && (
-                <div style={{ marginTop: "6px", fontSize: "10px", color: "#475569", fontStyle: "italic", wordBreak: "break-word" }} title={snippet}>
-                  "{snippet}"
-                </div>
-              )}
             </div>
           );
         })}
@@ -315,12 +319,14 @@ export default function Audit({ onProceed }) {
 
     setLoadingReport(true); setReport(null); setAgents([]); setAgentSteps({});
 
-    const ctx = btoa(JSON.stringify({
+    // Unicode-safe base64: encodeURIComponent handles multibyte chars, unescape maps to Latin1
+    const json = JSON.stringify({
       pillars: auditData.compliance,
       executiveSummary: auditData.executiveSummary || "",
       title: auditData.title || "",
       agency: auditData.agency || ""
-    }));
+    });
+    const ctx = btoa(unescape(encodeURIComponent(json)));
 
     const es = new EventSource(`https://api.bidsmith.pro/api/generate-report-stream?ctx=${ctx}`);
     esRef.current = es;
