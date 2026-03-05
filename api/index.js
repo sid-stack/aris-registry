@@ -56,15 +56,40 @@ function parseJSON(raw) {
   return JSON.parse(raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim());
 }
 
-async function llm(client, messages, maxTokens = 4096) {
-  const res = await client.chat.completions.create({
-    model: "google/gemini-2.0-flash-001",
-    max_tokens: maxTokens,
-    temperature: 0,
-    top_p: 0.1,
-    messages
-  });
-  return res.choices[0]?.message?.content || "";
+// Per-agent model routing — ported from money/ pipeline
+// cheap+fast for extraction, strong reasoning for analysis/drafting
+const AGENT_MODELS = {
+  extractor: "google/gemini-2.0-flash-001",
+  analyst: "google/gemini-2.0-flash-001",
+  drafter: "google/gemini-2.0-flash-001",
+  reviewer: "google/gemini-2.0-flash-001",
+  audit: "google/gemini-2.0-flash-001",
+};
+
+// LLM with exponential backoff retry — ported from money/main.py run_llm()
+async function llm(client, messages, maxTokens = 4096, agentKey = "audit", retries = 3) {
+  const model = AGENT_MODELS[agentKey] || "google/gemini-2.0-flash-001";
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      const res = await client.chat.completions.create({
+        model,
+        max_tokens: maxTokens,
+        temperature: 0,
+        top_p: 0.1,
+        messages
+      });
+      return res.choices[0]?.message?.content || "";
+    } catch (e) {
+      const isRetryable = e?.status === 429 || e?.status >= 500;
+      if (isRetryable && attempt < retries - 1) {
+        const wait = Math.pow(2, attempt + 1) * 1000;
+        console.warn(`[llm] ${agentKey} attempt ${attempt + 1} failed (${e.status}), retrying in ${wait}ms`);
+        await new Promise(r => setTimeout(r, wait));
+      } else {
+        throw e;
+      }
+    }
+  }
 }
 
 // ─── Health ───────────────────────────────────────────────────────────────────
@@ -491,84 +516,11 @@ app.post("/api/analyze-link", analyzeLinkLimiter, async (req, res) => {
 });
 
 // ─── /api/generate-report — Compliance Matrix + Proposal Outline ────────────
-const REPORT_PROMPT = `You are a senior federal proposal consultant. You generate premium-grade federal proposal intelligence reports modeled after institutional $5,000-per-engagement consulting deliverables.
-
-You will receive extracted solicitation pillars, an executive summary, and opportunity metadata.
-
-Generate a complete federal proposal intelligence package in THREE parts:
-
-────────────────────────────────────────────────────────────────────────
-PART 1 — PROPOSAL DRAFT (proposal_draft)
-────────────────────────────────────────────────────────────────────────
-Generate a full proposal draft in this EXACT markdown format, personalized to the specific opportunity:
-
-# [Company Name Placeholder] - Federal Proposal Response
-
-**CAGE CODE:** \`[PLACEHOLDER]\` | **UEI:** \`[PLACEHOLDER]\`
-
-## 🎯 Executive Summary
-Write 2-3 paragraphs positioning the offeror as the ideal candidate. Reference the specific agency, NAICS code, set-aside type, and contract scope from the pillars. Include references to relevant compliance frameworks (NIST, CMMC, FedRAMP, HIPAA, FISMA) where applicable. Quantify differentiation (e.g., "40% faster delivery", "99.99% uptime SLA").
-
-> Include one blockquote with a bold capability statement tied to the specific opportunity.
-
-## 🛡️ Technical Approach
-Write 3 numbered technical pillars tailored to the solicitation scope:
-1. **[Pillar 1 Name]:** Description tied to the RFP requirements
-2. **[Pillar 2 Name]:** Description tied to the RFP requirements  
-3. **[Pillar 3 Name]:** Description tied to the RFP requirements
-
-Include at least one data point (metric, percentage, or scale reference).
-
-> Include one blockquote on methodology or tooling.
-
-## 📊 Management Plan
-Write 4 bullet sections: PMO structure, Team Composition, Communication Plan, Quality Assurance. Tie each to the specific deliverables implied by the solicitation.
-
-## 📜 Past Performance
-Write 2 specific past performance references with fictional but plausible metrics:
-- Federal agency name, contract description, dollar value, outcome metric
-- Format: **[Agency]:** [Description] (Contract Value: ***$X.XM***)
-
-> Include one blockquote on delivery record.
-
-## ⚠️ Risk Mitigation
-Generate a markdown table:
-| Risk | Mitigation Strategy |
-| ---- | ------------------- |
-[4-6 rows specific to this solicitation's risk profile]
-
-## ✅ Compliance Certification
-List all applicable compliance frameworks detected or implied by the solicitation. Always include: NIST SP 800-53, FAR/DFARS clauses detected, and any set-aside specific certifications.
-
-────────────────────────────────────────────────────────────────────────
-PART 2 — COMPLIANCE MATRIX (compliance_report)
-────────────────────────────────────────────────────────────────────────
-Generate a markdown table with these exact columns:
-| Requirement | Category | FAR Reference | Bidder Status | Risk Level | Action Required |
-
-Include 10-14 rows. Bidder Status: ✅ Compliant | ⚠️ Conditional | ❌ Non-Compliant | 🔍 Review Required
-Cover: set-aside eligibility, past performance threshold, bonding, submission deadline, NAICS alignment, security clearance, insurance, technical certifications, subcontracting plan.
-
-────────────────────────────────────────────────────────────────────────
-PART 3 — STRATEGIC INTELLIGENCE (win_themes, risk_flags, proposal_outline)
-────────────────────────────────────────────────────────────────────────
-- win_themes: 4-5 specific strategic win themes tailored to this opportunity and agency
-- risk_flags: 3-5 specific risks the bidder must resolve before submitting
-- proposal_outline: standard FAR Part 15 Section L/M TOC with 4-6 sub-sections per volume
-
-Return ONLY valid JSON:
-{
-  "proposal_draft": "<full markdown proposal as a single escaped string>",
-  "compliance_report": "<full markdown table as a single escaped string>",
-  "proposal_outline": [
-    { "volume": "Volume I: Technical Approach", "sections": ["1.1 ...", "1.2 ..."] },
-    { "volume": "Volume II: Management Plan", "sections": ["2.1 ...", "2.2 ..."] },
-    { "volume": "Volume III: Past Performance", "sections": ["3.1 ...", "3.2 ..."] },
-    { "volume": "Volume IV: Price/Cost Volume", "sections": ["4.1 ...", "4.2 ..."] }
-  ],
-  "win_themes": ["<specific win theme>"],
-  "risk_flags": ["<specific risk>"]
-}`;
+// ─── /api/generate-report — 4-Stage Agent Pipeline (money/ pattern) ──────────
+// Stage 1: Analyst  — synthesize pillars into strategic brief
+// Stage 2: Drafter  — write full QDS-style proposal from brief
+// Stage 3: Reviewer — write compliance matrix from brief
+// Stage 4: Intel    — extract win themes + risk flags
 
 app.post("/api/generate-report", async (req, res) => {
   const client = makeClient();
@@ -577,56 +529,143 @@ app.post("/api/generate-report", async (req, res) => {
   const { pillars, executiveSummary, title, agency } = req.body;
   if (!pillars) return res.status(400).json({ error: "Missing pillars data. Run /api/analyze-link or /api/audit first." });
 
+  console.log(`[/api/generate-report] Starting 4-stage pipeline for: ${title || 'Unknown'}`);
+  const ctx = JSON.stringify({ title, agency, pillars, executiveSummary }, null, 2).slice(0, 8000);
+
   try {
-    console.log(`[/api/generate-report] Generating report for: ${title || 'Unknown Opportunity'}`);
+    // ── Stage 1: Analyst — strategic synthesis ────────────────────────────────
+    console.log(`[/api/generate-report] Stage 1: Analyst`);
+    const analysis = await llm(client, [{
+      role: "user",
+      content: `You are a federal contracting strategist. Analyze this opportunity and produce a STRATEGIC BRIEF covering:
+1. Document type and primary purpose
+2. All parties and agency mission
+3. Key financial terms and contract value
+4. Core technical requirements
+5. Set-aside eligibility and FAR implications
+6. Top 3 win themes for a competitive offeror
+7. Top 3 risk flags that could hurt the bid
 
-    const context = JSON.stringify({ pillars, executiveSummary, title, agency }, null, 2);
+Opportunity Data:
+${ctx}`
+    }], 2048, "analyst");
 
-    const raw = await llm(client, [
-      { role: "system", content: REPORT_PROMPT },
-      { role: "user", content: `Generate the compliance matrix and proposal outline for this opportunity:\n\n${context.slice(0, 12000)}` }
-    ], 4096);
+    // ── Stage 2: Drafter — full QDS-style proposal ───────────────────────────
+    console.log(`[/api/generate-report] Stage 2: Drafter`);
+    const proposal_draft = await llm(client, [{
+      role: "user",
+      content: `You are a senior federal proposal writer. Write a complete, professional federal proposal response in markdown based on this strategic brief.
 
-    let report;
-    // LLM often wraps output in ```json ... ``` — strip fence first, then parse
-    const stripped = raw
-      .replace(/^```(?:json)?\s*/i, "")
-      .replace(/\s*```\s*$/i, "")
-      .trim();
+Use this EXACT structure:
+
+# [Company Name Placeholder] - Federal Proposal Response
+**CAGE CODE:** \`[PLACEHOLDER]\` | **UEI:** \`[PLACEHOLDER]\`
+
+## 🎯 Executive Summary
+2-3 paragraphs. Reference the agency, contract scope, set-aside type. Include compliance frameworks (NIST, CMMC, FedRAMP) where relevant. Quantify differentiation.
+> Bold capability statement blockquote.
+
+## 🛡️ Technical Approach
+3 numbered pillars tailored to the requirements. Include a metric, percentage, or scale reference.
+> Methodology blockquote.
+
+## 📊 Management Plan
+4 bullet sections: PMO, Team, Communication Plan, Quality Assurance.
+
+## 📜 Past Performance
+2 references with agency, description, value, outcome metric.
+**[Agency]:** description (Contract Value: ***$X.XM***)
+> Delivery record blockquote.
+
+## ⚠️ Risk Mitigation
+| Risk | Mitigation Strategy |
+| ---- | ------------------- |
+4-6 rows specific to this opportunity.
+
+## ✅ Compliance Certification
+List applicable frameworks (NIST SP 800-53, FAR/DFARS clauses, set-aside certs).
+
+STRATEGIC BRIEF:
+${analysis}`
+    }], 3000, "drafter");
+
+    // ── Stage 3: Reviewer — compliance matrix ─────────────────────────────────
+    console.log(`[/api/generate-report] Stage 3: Compliance Matrix`);
+    const compliance_report = await llm(client, [{
+      role: "user",
+      content: `You are a federal compliance officer. Generate ONLY a markdown compliance matrix table based on this opportunity.
+
+Exact columns:
+| Requirement | Category | FAR Reference | Bidder Status | Risk Level | Action Required |
+
+10-12 rows. Cover: set-aside eligibility, past performance, bonding, deadline, NAICS, security clearance, insurance, certifications, subcontracting plan.
+Bidder Status: ✅ Compliant | ⚠️ Conditional | ❌ Non-Compliant | 🔍 Review Required
+
+Return ONLY the markdown table. No preamble.
+
+OPPORTUNITY DATA:
+${ctx}
+
+STRATEGIC BRIEF:
+${analysis.slice(0, 2000)}`
+    }], 2048, "reviewer");
+
+    // ── Stage 4: Intel — win themes + risk flags + outline ───────────────────
+    console.log(`[/api/generate-report] Stage 4: Intel`);
+    const intelRaw = await llm(client, [{
+      role: "user",
+      content: `Based on this federal opportunity brief, return ONLY valid JSON:
+{
+  "win_themes": ["<4 specific win themes>"],
+  "risk_flags": ["<4 specific pre-submission risks>"],
+  "proposal_outline": [
+    { "volume": "Volume I: Technical Approach", "sections": ["1.1 ...","1.2 ...","1.3 ..."] },
+    { "volume": "Volume II: Management Plan", "sections": ["2.1 ...","2.2 ...","2.3 ..."] },
+    { "volume": "Volume III: Past Performance", "sections": ["3.1 ...","3.2 ...","3.3 ..."] },
+    { "volume": "Volume IV: Price/Cost", "sections": ["4.1 ...","4.2 ...","4.3 ..."] }
+  ]
+}
+
+BRIEF:
+${analysis.slice(0, 3000)}`
+    }], 1500, "extractor");
+
+    let intel = { win_themes: [], risk_flags: [], proposal_outline: [] };
     try {
-      report = JSON.parse(stripped);
-    } catch (e) {
-      // If stripping didn't work, find the outermost {...} block by bracket counting
-      let start = -1, depth = 0, end = -1;
-      for (let i = 0; i < raw.length; i++) {
-        if (raw[i] === '{') { if (depth === 0) start = i; depth++; }
-        else if (raw[i] === '}') { depth--; if (depth === 0 && start !== -1) { end = i; break; } }
+      const stripped = intelRaw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/i, "").trim();
+      intel = JSON.parse(stripped);
+    } catch {
+      // bracket-count fallback
+      let s = -1, d = 0, e = -1;
+      for (let i = 0; i < intelRaw.length; i++) {
+        if (intelRaw[i] === '{') { if (d === 0) s = i; d++; }
+        else if (intelRaw[i] === '}') { d--; if (d === 0 && s !== -1) { e = i; break; } }
       }
-      if (start !== -1 && end !== -1) {
-        try { report = JSON.parse(raw.slice(start, end + 1)); }
-        catch (e2) { return res.status(502).json({ error: "Report generation failed: JSON parse error", details: e2.message, raw: raw.slice(0, 500) }); }
-      } else {
-        return res.status(502).json({ error: "Report generation failed: no JSON in LLM output", raw: raw.slice(0, 500) });
+      if (s !== -1 && e !== -1) {
+        try { intel = JSON.parse(intelRaw.slice(s, e + 1)); } catch { }
       }
     }
 
+    console.log(`[/api/generate-report] Pipeline complete`);
     res.json({
       success: true,
       title: title || "Federal Opportunity",
       agency: agency || "Unknown Agency",
       generatedAt: new Date().toISOString(),
       pillars,
-      proposal_draft: report.proposal_draft || "",
-      compliance_report: report.compliance_report || "",
-      proposal_outline: report.proposal_outline || [],
-      win_themes: report.win_themes || [],
-      risk_flags: report.risk_flags || []
+      proposal_draft,
+      compliance_report,
+      proposal_outline: intel.proposal_outline || [],
+      win_themes: intel.win_themes || [],
+      risk_flags: intel.risk_flags || []
     });
+
   } catch (err) {
-    console.error("[/api/generate-report] ERROR:", err);
+    console.error("[/api/generate-report] Pipeline error:", err);
     res.status(500).json({ error: err.message });
   }
 });
+
 
 // ─── Start ────────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
