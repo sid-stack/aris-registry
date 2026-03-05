@@ -1,8 +1,8 @@
 {
-  "rewrites": [
+  "routes": [
     {
-      "source": "/api/:path*",
-      "destination": "https://api.bidsmith.pro/api/:path*"
+      "src": "/api/(.*)",
+      "dest": "https://api.bidsmith.pro/api/$1"
     }
   ]
 }
