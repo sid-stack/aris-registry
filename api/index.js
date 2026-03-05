@@ -588,13 +588,23 @@ app.post("/api/generate-report", async (req, res) => {
     ], 4096);
 
     let report;
-    try { report = parseJSON(raw); }
-    catch (e) {
-      // Attempt to extract JSON block if LLM wrapped it
-      const match = raw.match(/\{[\s\S]*\}/);
-      if (match) {
-        try { report = JSON.parse(match[0]); }
-        catch { return res.status(502).json({ error: "Report generation failed: could not parse LLM output", raw: raw.slice(0, 500) }); }
+    // LLM often wraps output in ```json ... ``` — strip fence first, then parse
+    const stripped = raw
+      .replace(/^```(?:json)?\s*/i, "")
+      .replace(/\s*```\s*$/i, "")
+      .trim();
+    try {
+      report = JSON.parse(stripped);
+    } catch (e) {
+      // If stripping didn't work, find the outermost {...} block by bracket counting
+      let start = -1, depth = 0, end = -1;
+      for (let i = 0; i < raw.length; i++) {
+        if (raw[i] === '{') { if (depth === 0) start = i; depth++; }
+        else if (raw[i] === '}') { depth--; if (depth === 0 && start !== -1) { end = i; break; } }
+      }
+      if (start !== -1 && end !== -1) {
+        try { report = JSON.parse(raw.slice(start, end + 1)); }
+        catch (e2) { return res.status(502).json({ error: "Report generation failed: JSON parse error", details: e2.message, raw: raw.slice(0, 500) }); }
       } else {
         return res.status(502).json({ error: "Report generation failed: no JSON in LLM output", raw: raw.slice(0, 500) });
       }
