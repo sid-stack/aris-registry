@@ -324,12 +324,20 @@ export default function Audit({ onProceed }) {
       <div style={{ maxWidth: "800px", margin: "0 auto" }}>
 
         <div style={{ marginBottom: "36px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
-            <div style={{ width: "8px", height: "8px", background: "#2563eb", borderRadius: "50%" }} />
-            <span style={{ fontSize: "11px", letterSpacing: "0.15em", color: "#475569", textTransform: "uppercase", fontWeight: 700 }}>Aris Protocol</span>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
+            <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "36px", height: "36px", background: "rgba(59,130,246,0.1)", border: "1px solid rgba(59,130,246,0.25)", borderRadius: "8px", flexShrink: 0 }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2L4 6v6c0 5.25 3.5 10.15 8 11.35C16.5 22.15 20 17.25 20 12V6L12 2z" stroke="#3b82f6" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M9 12l2 2 4-4" stroke="#3b82f6" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+            <div>
+              <div style={{ fontSize: "16px", fontWeight: 800, color: "#0f172a", letterSpacing: "-0.01em", fontFamily: "'Inter', sans-serif" }}>BidSmith</div>
+              <div style={{ fontSize: "10px", color: "#64748b", letterSpacing: "0.1em", textTransform: "uppercase", fontFamily: "monospace", fontWeight: 600 }}>Aris Protocol · Bid Intelligence</div>
+            </div>
           </div>
-          <h1 style={{ fontSize: "28px", fontWeight: 900, color: "#0f172a", margin: "0 0 8px", letterSpacing: "-0.02em" }}>Federal Bid Compliance Check</h1>
-          <p style={{ fontSize: "13px", color: "#64748b", margin: 0, letterSpacing: "0.02em" }}>Instant disqualification filtering. Execute semantic audits on live solicitations.</p>
+          <h1 style={{ fontSize: "28px", fontWeight: 900, color: "#0f172a", margin: "0 0 8px", letterSpacing: "-0.02em", fontFamily: "'Inter', sans-serif" }}>Federal Bid Compliance Check</h1>
+          <p style={{ fontSize: "13px", color: "#64748b", margin: 0, letterSpacing: "0.02em", fontFamily: "monospace" }}>Instant disqualification filtering. Execute semantic audits on live solicitations.</p>
         </div>
 
         {/* SAM.gov URL */}
