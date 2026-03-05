@@ -667,7 +667,109 @@ ${analysis.slice(0, 3000)}`
 });
 
 
-// ─── Start ────────────────────────────────────────────────────────────────────
+// ─── /api/generate-report-stream — SSE Agentic Pipeline ─────────────────────
+// Streams real-time agent events as each stage completes (like money/ websocket)
+// Events: { type, stage, agent, status, data }
+
+app.get("/api/generate-report-stream", async (req, res) => {
+  const client = makeClient();
+  if (!client) { res.status(500).end(); return; }
+
+  // SSE headers
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.flushHeaders();
+
+  const emit = (payload) => {
+    res.write(`data: ${JSON.stringify(payload)}\n\n`);
+  };
+
+  // Read pillars from query param (base64-encoded JSON)
+  let pillars, title, agency, executiveSummary;
+  try {
+    const parsed = JSON.parse(Buffer.from(req.query.ctx, "base64").toString("utf8"));
+    ({ pillars, title, agency, executiveSummary } = parsed);
+  } catch {
+    emit({ type: "error", message: "Invalid context" });
+    res.end(); return;
+  }
+
+  if (!pillars) { emit({ type: "error", message: "Missing pillars" }); res.end(); return; }
+
+  const ctx = JSON.stringify({ title, agency, pillars, executiveSummary }, null, 2).slice(0, 8000);
+  const AGENTS = [
+    { id: "analyst", label: "🧠 Analyst Agent", role: "Synthesizing solicitation data into strategic brief" },
+    { id: "drafter", label: "✍️  Drafter Agent", role: "Writing QDS-style federal proposal draft" },
+    { id: "reviewer", label: "⚖️  Reviewer Agent", role: "Generating FAR-referenced compliance matrix" },
+    { id: "intel", label: "🔍 Intel Agent", role: "Extracting win themes, risk flags, and volume outline" },
+  ];
+
+  emit({ type: "pipeline_start", agents: AGENTS });
+
+  try {
+    // Stage 1: Analyst
+    emit({ type: "agent_start", stage: 1, agent: AGENTS[0] });
+    const analysis = await llm(client, [{
+      role: "user", content: `You are a federal contracting strategist. Analyze this opportunity and produce a STRATEGIC BRIEF covering:\n1. Document type and primary purpose\n2. All parties and agency mission\n3. Key financial terms and contract value\n4. Core technical requirements\n5. Set-aside eligibility and FAR implications\n6. Top 3 win themes\n7. Top 3 risk flags\n\nOpportunity Data:\n${ctx}`
+    }], 2048, "analyst");
+    emit({ type: "agent_done", stage: 1, agent: AGENTS[0], data: { preview: analysis.slice(0, 200) } });
+
+    // Stage 2: Drafter
+    emit({ type: "agent_start", stage: 2, agent: AGENTS[1] });
+    const proposal_draft = await llm(client, [{
+      role: "user", content: `You are a senior federal proposal writer. Write a complete professional federal proposal response in markdown.\n\nUse this EXACT structure:\n\n# [Company Name Placeholder] - Federal Proposal Response\n**CAGE CODE:** \`[PLACEHOLDER]\` | **UEI:** \`[PLACEHOLDER]\`\n\n## 🎯 Executive Summary\n2-3 paragraphs. Reference the agency, contract scope, set-aside type. Include compliance frameworks where relevant. Quantify differentiation.\n> Bold capability statement blockquote.\n\n## 🛡️ Technical Approach\n3 numbered pillars tailored to the requirements. Include a metric.\n> Methodology blockquote.\n\n## 📊 Management Plan\n4 bullet sections: PMO, Team Composition, Communication Plan, Quality Assurance.\n\n## 📜 Past Performance\n2 references: **[Agency]:** description (Contract Value: ***$X.XM***)\n> Delivery record blockquote.\n\n## ⚠️ Risk Mitigation\n| Risk | Mitigation Strategy |\n| ---- | ------------------- |\n4-6 rows.\n\n## ✅ Compliance Certification\nList applicable frameworks (NIST SP 800-53, FAR/DFARS, set-aside certs).\n\nSTRATEGIC BRIEF:\n${analysis}`
+    }], 3000, "drafter");
+    emit({ type: "agent_done", stage: 2, agent: AGENTS[1], data: { proposal_draft } });
+
+    // Stage 3: Reviewer
+    emit({ type: "agent_start", stage: 3, agent: AGENTS[2] });
+    const compliance_report = await llm(client, [{
+      role: "user", content: `You are a federal compliance officer. Generate ONLY a markdown table:\n| Requirement | Category | FAR Reference | Bidder Status | Risk Level | Action Required |\n10-12 rows. Bidder Status: ✅ Compliant | ⚠️ Conditional | ❌ Non-Compliant | 🔍 Review Required\nReturn ONLY the markdown table, no preamble.\n\nOPPORTUNITY:\n${ctx}\n\nBRIEF:\n${analysis.slice(0, 2000)}`
+    }], 2048, "reviewer");
+    emit({ type: "agent_done", stage: 3, agent: AGENTS[2], data: { compliance_report } });
+
+    // Stage 4: Intel
+    emit({ type: "agent_start", stage: 4, agent: AGENTS[3] });
+    const intelRaw = await llm(client, [{
+      role: "user", content: `Return ONLY valid JSON:\n{\n  "win_themes": ["<4 specific win themes>"],\n  "risk_flags": ["<4 specific pre-submission risks>"],\n  "proposal_outline": [\n    { "volume": "Volume I: Technical Approach", "sections": ["1.1 ...","1.2 ...","1.3 ..."] },\n    { "volume": "Volume II: Management Plan", "sections": ["2.1 ...","2.2 ...","2.3 ..."] },\n    { "volume": "Volume III: Past Performance", "sections": ["3.1 ...","3.2 ...","3.3 ..."] },\n    { "volume": "Volume IV: Price/Cost", "sections": ["4.1 ...","4.2 ...","4.3 ..."] }\n  ]\n}\n\nBRIEF:\n${analysis.slice(0, 3000)}`
+    }], 1500, "extractor");
+
+    let intel = { win_themes: [], risk_flags: [], proposal_outline: [] };
+    try {
+      const stripped = intelRaw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/i, "").trim();
+      intel = JSON.parse(stripped);
+    } catch {
+      let s = -1, d = 0, e = -1;
+      for (let i = 0; i < intelRaw.length; i++) {
+        if (intelRaw[i] === '{') { if (d === 0) s = i; d++; }
+        else if (intelRaw[i] === '}') { d--; if (d === 0 && s !== -1) { e = i; break; } }
+      }
+      if (s !== -1 && e !== -1) { try { intel = JSON.parse(intelRaw.slice(s, e + 1)); } catch { } }
+    }
+    emit({ type: "agent_done", stage: 4, agent: AGENTS[3], data: intel });
+
+    emit({
+      type: "pipeline_complete",
+      proposal_draft, compliance_report,
+      win_themes: intel.win_themes || [],
+      risk_flags: intel.risk_flags || [],
+      proposal_outline: intel.proposal_outline || [],
+      title: title || "Federal Opportunity",
+      agency: agency || "Unknown Agency",
+      generatedAt: new Date().toISOString(),
+    });
+
+  } catch (err) {
+    console.error("[SSE pipeline] error:", err);
+    emit({ type: "error", message: err.message });
+  }
+
+  res.end();
+});
+
+
 app.listen(PORT, () => {
   console.log(`✅ BidSmith API → http://localhost:${PORT}`);
   if (!process.env.OPENROUTER_API_KEY) console.warn("⚠️  OPENROUTER_API_KEY not set");
