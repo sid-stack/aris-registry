@@ -97,48 +97,60 @@ app.post("/api/generate", upload.single("rfp"), async (req, res) => {
   }
 });
 
-// ─── Audit Prompt (3-Pass Anti-Hallucination) ─────────────────────────────────
-const AUDIT_PROMPT = `You are a federal contract compliance auditor and disqualification gatekeeper. Your primary job is to protect the firm from bidding on unwinnable contracts.
+// ─── Audit Prompt (4-Pass Deep Inference) ────────────────────────────────────
+const AUDIT_PROMPT = `You are a federal contract compliance auditor and disqualification gatekeeper for a government contracting intelligence platform. Your output is a premium-grade bid/no-bid intelligence report.
 
-Perform a strict THREE-PASS analysis on the provided solicitation text.
+Perform a strict FOUR-PASS analysis.
 
-PASS 1 — Extraction Matrix:
-Extract the 7 pillars. For EVERY extracted value, you MUST include the exact verbatim 'source_snippet' from the text that proves it. If not explicitly found, set value to "NOT FOUND" and snippet to "".
+PASS 1 — Primary Extraction:
+Scan the solicitation for explicit statements of all 7 pillars. Record verbatim source_snippets.
 
-PASS 2 — Anti-Hallucination Verification:
-Review your extracted snippets. If a snippet does not explicitly support the value, change the value to "NOT FOUND" and delete the snippet. NEVER infer or guess.
+PASS 2 — Recursive Deep Search:
+For any pillar still showing NOT FOUND after Pass 1, perform a secondary keyword scan:
+- solicitation_id: scan for "RFP", "RFQ", "IFB", "Solicitation No.", "Contract No.", "N000", "W91", "FA", "GS-" prefixes
+- deadline_date: scan for "due date", "by", "no later than", "closes", "submission deadline", "offers due"
+- set_aside_type: scan for "small business", "8(a)", "HUBZone", "SDVOSB", "VOSB", "WOSB", "EDWOSB", "unrestricted", "full and open", "total small", "partial set-aside". Map detected type to FAR clause: 8(a)→FAR 52.219-18, SDVOSB→FAR 52.219-27, HUBZone→FAR 52.219-3, WOSB→FAR 52.219-29, Total Small Business→FAR 52.219-6, Unrestricted→N/A
+- bonding_reqs: scan for "surety", "bond", "payment and performance", "Miller Act"
+- past_performance_threshold: scan for "similar", "relevant", "prior contracts", "experience", "references", "projects of similar scope"
+- naics_code: scan for 6-digit codes near "NAICS"
+- contract_value: scan for "$", "budget", "ceiling", "not-to-exceed", "award amount"
+If found via recursive scan, note it with confidence "INFERRED" and include the snippet.
 
-PASS 3 — Disqualification Gate:
-Apply these hard disqualification rules:
-- Explicit eligibility barriers (e.g. "Only 8(a) certified firms eligible")
-- Security clearances (e.g. "Top Secret clearance required")
-- Massive bonding capacity minimums (e.g. "$40,000,000 minimum")
-- Explicit past performance minimums (e.g. "Minimum 5 similar federal contracts")
+PASS 3 — Anti-Hallucination Verification:
+For each field, verify: does the snippet EXPLICITLY support the value? If inferred but ambiguous, keep value but set confidence to "LOW".
 
-Return a JSON object FIRST. EXACTLY match this structure:
+PASS 4 — Disqualification Gate:
+- Explicit set-aside eligibility barriers
+- Security clearance requirements (TS/SCI, Secret, FCL)
+- Bonding minimums above $5M
+- Past performance bars (minimum N contracts required)
+
+Return a JSON object FIRST with EXACTLY this structure:
 {
-  "solicitation_id": { "value": "<RFP/RFQ/IFB number or 'NOT FOUND'>", "snippet": "<verbatim text>" },
-  "deadline_date": { "value": "<ISO 8601 YYYY-MM-DD or 'NOT FOUND'>", "snippet": "<verbatim text>" },
-  "set_aside_type": { "value": "<8(a) / SDVOSB / HUBZone / WOSB / Total Small Business / Unrestricted or 'NOT FOUND'>", "snippet": "<verbatim text>" },
+  "solicitation_id": { "value": "<number or 'N/A - Manual Review Required'>", "snippet": "<verbatim>", "confidence": "<HIGH/INFERRED/LOW/NONE>" },
+  "deadline_date": { "value": "<YYYY-MM-DD or 'N/A - Manual Review Required'>", "snippet": "<verbatim>", "confidence": "<HIGH/INFERRED/LOW/NONE>" },
+  "set_aside_type": { "value": "<type or 'N/A - Manual Review Required'>", "snippet": "<verbatim>", "confidence": "<HIGH/INFERRED/LOW/NONE>", "far_clause": "<FAR clause or 'N/A'>" },
+  "naics_code": { "value": "<6-digit code or 'N/A - Manual Review Required'>", "snippet": "<verbatim>", "confidence": "<HIGH/INFERRED/LOW/NONE>" },
+  "contract_value": { "value": "<USD standardized or 'N/A - Manual Review Required'>", "snippet": "<verbatim>", "confidence": "<HIGH/INFERRED/LOW/NONE>" },
   "bonding_reqs": {
-    "bid_bond": { "value": "<amount or 'NOT FOUND'>", "snippet": "<verbatim text>" },
-    "performance_bond": { "value": "<amount or 'NOT FOUND'>", "snippet": "<verbatim text>" },
-    "payment_bond": { "value": "<amount or 'NOT FOUND'>", "snippet": "<verbatim text>" }
+    "bid_bond": { "value": "<amount or 'N/A - Manual Review Required'>", "snippet": "<verbatim>" },
+    "performance_bond": { "value": "<amount or 'N/A - Manual Review Required'>", "snippet": "<verbatim>" },
+    "payment_bond": { "value": "<amount or 'N/A - Manual Review Required'>", "snippet": "<verbatim>" }
   },
-  "past_performance_threshold": { "value": "<explicit minimums or 'NOT FOUND'>", "snippet": "<verbatim text>" },
+  "past_performance_threshold": { "value": "<explicit minimums or 'N/A - Manual Review Required'>", "snippet": "<verbatim>", "confidence": "<HIGH/INFERRED/LOW/NONE>" },
   "technical_disqualifiers": [
-    { "value": "<mandatory cert/clearance>", "snippet": "<verbatim text>" }
+    { "value": "<mandatory cert/clearance>", "snippet": "<verbatim>" }
   ],
+  "far_clauses_detected": ["<FAR clause numbers found in text>"],
   "disqualification_assessment": {
     "disqualified": <true or false>,
     "risk_level": "<HIGH/MEDIUM/LOW>",
     "trigger_category": "<SET_ASIDE/CLEARANCE/BONDING/PAST_PERFORMANCE or NONE>",
-    "matched_phrase": "<exact phrase that triggered it or ''>",
+    "matched_phrase": "<exact phrase or ''>",
     "confidence": "<HIGH/MEDIUM/LOW or NONE>",
-    "reason": "<If disqualified, state the exact explicit barrier. Otherwise empty string.>"
+    "reason": "<explicit barrier or ''>"
   }
 }
-If no technical disqualifiers exist, return an empty array for 'technical_disqualifiers'.
 
 After the JSON write a BID/NO-BID EXECUTIVE SUMMARY:
 
@@ -354,6 +366,15 @@ app.post("/api/analyze-link", analyzeLinkLimiter, async (req, res) => {
           if (fcRes.ok) {
             const fcData = await fcRes.json();
             const fcText = fcData.data?.markdown || "";
+            // If Firecrawl returns thin data, attempt a targeted second scrape on the attachments section
+            if (fcText.length < 500) {
+              console.warn(`[/api/analyze-link] Firecrawl returned shallow data (${fcText.length} chars). Flagging: Insufficient Data.`);
+              return res.status(422).json({
+                error: "Insufficient Data",
+                instruction: "SAM.gov page returned too little content to analyze. Please upload the solicitation PDF directly.",
+                details: `Only ${fcText.length} characters extracted via Firecrawl.`
+              });
+            }
             if (fcText.length > 100) {
               const raw = await llm(client, [
                 { role: "system", content: AUDIT_PROMPT },
@@ -467,6 +488,134 @@ app.post("/api/analyze-link", analyzeLinkLimiter, async (req, res) => {
 
   noticeCache.set(noticeId, { ts: Date.now(), data: result });
   res.json(result);
+});
+
+// ─── /api/generate-report — Compliance Matrix + Proposal Outline ────────────
+const REPORT_PROMPT = `You are a senior federal proposal consultant. You generate premium-grade federal proposal intelligence reports modeled after institutional $5,000-per-engagement consulting deliverables.
+
+You will receive extracted solicitation pillars, an executive summary, and opportunity metadata.
+
+Generate a complete federal proposal intelligence package in THREE parts:
+
+────────────────────────────────────────────────────────────────────────
+PART 1 — PROPOSAL DRAFT (proposal_draft)
+────────────────────────────────────────────────────────────────────────
+Generate a full proposal draft in this EXACT markdown format, personalized to the specific opportunity:
+
+# [Company Name Placeholder] - Federal Proposal Response
+
+**CAGE CODE:** \`[PLACEHOLDER]\` | **UEI:** \`[PLACEHOLDER]\`
+
+## 🎯 Executive Summary
+Write 2-3 paragraphs positioning the offeror as the ideal candidate. Reference the specific agency, NAICS code, set-aside type, and contract scope from the pillars. Include references to relevant compliance frameworks (NIST, CMMC, FedRAMP, HIPAA, FISMA) where applicable. Quantify differentiation (e.g., "40% faster delivery", "99.99% uptime SLA").
+
+> Include one blockquote with a bold capability statement tied to the specific opportunity.
+
+## 🛡️ Technical Approach
+Write 3 numbered technical pillars tailored to the solicitation scope:
+1. **[Pillar 1 Name]:** Description tied to the RFP requirements
+2. **[Pillar 2 Name]:** Description tied to the RFP requirements  
+3. **[Pillar 3 Name]:** Description tied to the RFP requirements
+
+Include at least one data point (metric, percentage, or scale reference).
+
+> Include one blockquote on methodology or tooling.
+
+## 📊 Management Plan
+Write 4 bullet sections: PMO structure, Team Composition, Communication Plan, Quality Assurance. Tie each to the specific deliverables implied by the solicitation.
+
+## 📜 Past Performance
+Write 2 specific past performance references with fictional but plausible metrics:
+- Federal agency name, contract description, dollar value, outcome metric
+- Format: **[Agency]:** [Description] (Contract Value: ***$X.XM***)
+
+> Include one blockquote on delivery record.
+
+## ⚠️ Risk Mitigation
+Generate a markdown table:
+| Risk | Mitigation Strategy |
+| ---- | ------------------- |
+[4-6 rows specific to this solicitation's risk profile]
+
+## ✅ Compliance Certification
+List all applicable compliance frameworks detected or implied by the solicitation. Always include: NIST SP 800-53, FAR/DFARS clauses detected, and any set-aside specific certifications.
+
+────────────────────────────────────────────────────────────────────────
+PART 2 — COMPLIANCE MATRIX (compliance_report)
+────────────────────────────────────────────────────────────────────────
+Generate a markdown table with these exact columns:
+| Requirement | Category | FAR Reference | Bidder Status | Risk Level | Action Required |
+
+Include 10-14 rows. Bidder Status: ✅ Compliant | ⚠️ Conditional | ❌ Non-Compliant | 🔍 Review Required
+Cover: set-aside eligibility, past performance threshold, bonding, submission deadline, NAICS alignment, security clearance, insurance, technical certifications, subcontracting plan.
+
+────────────────────────────────────────────────────────────────────────
+PART 3 — STRATEGIC INTELLIGENCE (win_themes, risk_flags, proposal_outline)
+────────────────────────────────────────────────────────────────────────
+- win_themes: 4-5 specific strategic win themes tailored to this opportunity and agency
+- risk_flags: 3-5 specific risks the bidder must resolve before submitting
+- proposal_outline: standard FAR Part 15 Section L/M TOC with 4-6 sub-sections per volume
+
+Return ONLY valid JSON:
+{
+  "proposal_draft": "<full markdown proposal as a single escaped string>",
+  "compliance_report": "<full markdown table as a single escaped string>",
+  "proposal_outline": [
+    { "volume": "Volume I: Technical Approach", "sections": ["1.1 ...", "1.2 ..."] },
+    { "volume": "Volume II: Management Plan", "sections": ["2.1 ...", "2.2 ..."] },
+    { "volume": "Volume III: Past Performance", "sections": ["3.1 ...", "3.2 ..."] },
+    { "volume": "Volume IV: Price/Cost Volume", "sections": ["4.1 ...", "4.2 ..."] }
+  ],
+  "win_themes": ["<specific win theme>"],
+  "risk_flags": ["<specific risk>"]
+}`;
+
+app.post("/api/generate-report", async (req, res) => {
+  const client = makeClient();
+  if (!client) return res.status(500).json({ error: "Server configuration incomplete" });
+
+  const { pillars, executiveSummary, title, agency } = req.body;
+  if (!pillars) return res.status(400).json({ error: "Missing pillars data. Run /api/analyze-link or /api/audit first." });
+
+  try {
+    console.log(`[/api/generate-report] Generating report for: ${title || 'Unknown Opportunity'}`);
+
+    const context = JSON.stringify({ pillars, executiveSummary, title, agency }, null, 2);
+
+    const raw = await llm(client, [
+      { role: "system", content: REPORT_PROMPT },
+      { role: "user", content: `Generate the compliance matrix and proposal outline for this opportunity:\n\n${context.slice(0, 12000)}` }
+    ], 4096);
+
+    let report;
+    try { report = parseJSON(raw); }
+    catch (e) {
+      // Attempt to extract JSON block if LLM wrapped it
+      const match = raw.match(/\{[\s\S]*\}/);
+      if (match) {
+        try { report = JSON.parse(match[0]); }
+        catch { return res.status(502).json({ error: "Report generation failed: could not parse LLM output", raw: raw.slice(0, 500) }); }
+      } else {
+        return res.status(502).json({ error: "Report generation failed: no JSON in LLM output", raw: raw.slice(0, 500) });
+      }
+    }
+
+    res.json({
+      success: true,
+      title: title || "Federal Opportunity",
+      agency: agency || "Unknown Agency",
+      generatedAt: new Date().toISOString(),
+      pillars,
+      proposal_draft: report.proposal_draft || "",
+      compliance_report: report.compliance_report || "",
+      proposal_outline: report.proposal_outline || [],
+      win_themes: report.win_themes || [],
+      risk_flags: report.risk_flags || []
+    });
+  } catch (err) {
+    console.error("[/api/generate-report] ERROR:", err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ─── Start ────────────────────────────────────────────────────────────────────
