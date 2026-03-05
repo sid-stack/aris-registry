@@ -230,7 +230,7 @@ function FileRow({ ranked, index, isSelected, onSelect }) {
   );
 }
 
-export default function Audit() {
+export default function Audit({ onProceed }) {
   const [samUrl, setSamUrl] = useState("");
   const [rankedFiles, setRankedFiles] = useState([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -425,6 +425,15 @@ export default function Audit() {
               <PillarCard icon="📋" label="Past Performance Threshold" data={c.past_performance_threshold} />
               <DisqualifiersCard items={c.technical_disqualifiers} />
               <BondingCard bonding={c.bonding_reqs} />
+            </div>
+
+            <div style={{ marginTop: "32px", textAlign: "right" }}>
+              <button
+                onClick={() => onProceed(selectedFile ? selectedFile.file : null)}
+                style={{ background: "#2563eb", color: "#fff", border: "none", borderRadius: "6px", padding: "16px 32px", fontSize: "15px", fontWeight: 800, letterSpacing: "0.05em", cursor: "pointer", fontFamily: "monospace", display: "inline-flex", alignItems: "center", gap: "8px", boxShadow: "0 4px 6px rgba(37,99,235,0.2)" }}
+              >
+                Proceed to Proposal Generation ➔
+              </button>
             </div>
           </div>
         )}

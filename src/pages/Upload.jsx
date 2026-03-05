@@ -2,8 +2,8 @@ import { useState, useRef } from "react";
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.bidsmith.pro';
 
-export default function Upload({ onProposalGenerated }) {
-  const [file, setFile] = useState(null);
+export default function Upload({ preLoadedFile, onProposalGenerated }) {
+  const [file, setFile] = useState(preLoadedFile || null);
   const [companyProfile, setCompanyProfile] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);

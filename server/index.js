@@ -260,7 +260,16 @@ After the JSON write a BID/NO-BID EXECUTIVE SUMMARY:
 ---`;
 
 function enforceDisqualification(compliance, text) {
-  if (!compliance) return compliance;
+  if (!compliance) {
+    compliance = {
+      solicitation_id: "NOT FOUND",
+      deadline_date: "NOT FOUND",
+      set_aside_type: "NOT FOUND",
+      bonding_reqs: { bid_bond: "NOT FOUND", performance_bond: "NOT FOUND", payment_bond: "NOT FOUND" },
+      past_performance_threshold: "NOT FOUND",
+      technical_disqualifiers: []
+    };
+  }
   if (!compliance.disqualification_assessment) {
     compliance.disqualification_assessment = {
       disqualified: false, risk_level: "UNKNOWN", reason: "",
@@ -438,11 +447,44 @@ app.post("/api/analyze-link", analyzeLinkLimiter, async (req, res) => {
       `https://api.sam.gov/opportunities/v2/search?noticeid=${noticeId}&limit=1&api_key=${SAM_API_KEY}`,
       { headers: { Accept: "application/json" } }
     );
-    if (samRes.status === 429) return res.status(429).json({ error: "SAM.gov rate limit reached. Try again in a few minutes." });
-    if (!samRes.ok) throw new Error(`SAM.gov API returned ${samRes.status}`);
+
+    if (!samRes.ok) {
+      console.log(`[/api/analyze-link] SAM.gov API Error (${samRes.status}). Attempting Firecrawl fallback.`);
+      const fcKey = process.env.FIRECRAWL_API_KEY;
+      if (fcKey) {
+        try {
+          const fcRes = await fetch('https://api.firecrawl.dev/v1/scrape', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${fcKey}` },
+            body: JSON.stringify({ url: `https://sam.gov/opp/${noticeId}/view`, formats: ["markdown"] })
+          });
+          if (fcRes.ok) {
+            const fcData = await fcRes.json();
+            return res.json({
+              noticeId,
+              title: `Opportunity: ${noticeId}`,
+              agency: "Extracted via Secondary Source",
+              primaryDoc: "firecrawl_extraction.md",
+              source: "scraper_fallback",
+              attachmentsFound: 0,
+              compliance: enforceDisqualification(null, fcData.data?.markdown || ""),
+              executiveSummary: "Generated via Fallback Data.",
+              auditedAt: new Date().toISOString()
+            });
+          }
+          console.warn(`[/api/analyze-link] Firecrawl returned ${fcRes.status}`);
+        } catch (fcErr) {
+          console.warn(`[/api/analyze-link] Firecrawl failed:`, fcErr.message);
+        }
+      } else {
+        console.warn(`[/api/analyze-link] No FIRECRAWL_API_KEY set, skipping fallback.`);
+      }
+      return res.status(503).json({ error: "SAM.gov temporarily unavailable", instruction: "Manual upload required", details: `SAM.gov returned ${samRes.status}. Please upload the solicitation PDF directly.` });
+    }
     samData = await samRes.json();
   } catch (e) {
-    return res.status(502).json({ error: "Compliance engine incomplete", instruction: "Manual upload required", details: "Failed to reach SAM.gov API" });
+    console.error(`[/api/analyze-link] Fetch failed:`, e);
+    return res.status(502).json({ error: "Compliance engine incomplete", instruction: "Manual upload required", details: "Failed to reach SAM.gov API and Fallback" });
   }
 
   const opportunity = samData?.opportunitiesData?.[0];
