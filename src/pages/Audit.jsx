@@ -258,7 +258,7 @@ export default function Audit({ onProceed }) {
     if (!samUrl.trim()) return;
     setLoadingUrl(true); setError(""); setResult(null); setShowUpload(false);
     try {
-      const res = await fetch("/api/analyze-link", {
+      const res = await fetch((import.meta.env.VITE_API_URL || "") + "/api/analyze-link", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: samUrl.trim() }),
@@ -286,7 +286,7 @@ export default function Audit({ onProceed }) {
     try {
       const formData = new FormData();
       formData.append("file", selectedFile.file);
-      const res = await fetch("/api/audit", { method: "POST", body: formData });
+      const res = await fetch((import.meta.env.VITE_API_URL || "") + "/api/audit", { method: "POST", body: formData });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Compliance evaluation failed");
       setResult(data);
