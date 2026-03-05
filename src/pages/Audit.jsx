@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import ReactMarkdown from "react-markdown";
 
 const LOADING_STEPS = [
   "Connecting to SAM.gov...",
@@ -235,8 +236,10 @@ export default function Audit({ onProceed }) {
   const [rankedFiles, setRankedFiles] = useState([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [result, setResult] = useState(null);
+  const [report, setReport] = useState(null);
   const [loadingUrl, setLoadingUrl] = useState(false);
   const [loadingFile, setLoadingFile] = useState(false);
+  const [loadingReport, setLoadingReport] = useState(false);
   const [error, setError] = useState("");
   const [showUpload, setShowUpload] = useState(false);
 
@@ -254,9 +257,29 @@ export default function Audit({ onProceed }) {
     setShowUpload(true);
   }
 
+  async function fetchReport(auditData) {
+    if (!auditData?.compliance) return;
+    setLoadingReport(true); setReport(null);
+    try {
+      const res = await fetch("https://api.bidsmith.pro/api/generate-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pillars: auditData.compliance,
+          executiveSummary: auditData.executiveSummary || "",
+          title: auditData.title || "",
+          agency: auditData.agency || ""
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) setReport(data);
+    } catch (e) { console.warn("Report generation failed:", e.message); }
+    finally { setLoadingReport(false); }
+  }
+
   async function runUrlAudit() {
     if (!samUrl.trim()) return;
-    setLoadingUrl(true); setError(""); setResult(null); setShowUpload(false);
+    setLoadingUrl(true); setError(""); setResult(null); setReport(null); setShowUpload(false);
     try {
       const res = await fetch("https://api.bidsmith.pro/api/analyze-link", {
         method: "POST",
@@ -269,6 +292,7 @@ export default function Audit({ onProceed }) {
         throw new Error(data.error || "Compliance Engine verification failed. Manual extraction required.");
       }
       setResult(data);
+      fetchReport(data);
     } catch (e) {
       if (e.message.includes("Compliance engine incomplete") || e.message.includes("Manual upload required") || e.message.includes("fetch")) {
         setError("Automatic retrieval failed. Upload the solicitation PDF below.");
@@ -282,7 +306,7 @@ export default function Audit({ onProceed }) {
 
   async function runFileAudit() {
     if (!selectedFile) return;
-    setLoadingFile(true); setError(""); setResult(null);
+    setLoadingFile(true); setError(""); setResult(null); setReport(null);
     try {
       const formData = new FormData();
       formData.append("file", selectedFile.file);
@@ -290,6 +314,7 @@ export default function Audit({ onProceed }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Compliance evaluation failed");
       setResult(data);
+      fetchReport(data);
     } catch (e) { setError(e.message); }
     finally { setLoadingFile(false); }
   }
@@ -427,14 +452,69 @@ export default function Audit({ onProceed }) {
               <BondingCard bonding={c.bonding_reqs} />
             </div>
 
-            <div style={{ marginTop: "32px", textAlign: "right" }}>
-              <button
-                onClick={() => onProceed(selectedFile ? selectedFile.file : null)}
-                style={{ background: "#2563eb", color: "#fff", border: "none", borderRadius: "6px", padding: "16px 32px", fontSize: "15px", fontWeight: 800, letterSpacing: "0.05em", cursor: "pointer", fontFamily: "monospace", display: "inline-flex", alignItems: "center", gap: "8px", boxShadow: "0 4px 6px rgba(37,99,235,0.2)" }}
-              >
-                Proceed to Proposal Generation ➔
-              </button>
-            </div>
+            {/* Compliance Report + Matrix */}
+            {(loadingReport || report) && (
+              <div style={{ marginTop: "40px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "24px" }}>
+                  <div style={{ height: "1px", flex: 1, background: "linear-gradient(90deg, #e2e8f0, transparent)" }} />
+                  <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.1em", color: "#64748b", textTransform: "uppercase" }}>Bid Intelligence Report</span>
+                  <div style={{ height: "1px", flex: 1, background: "linear-gradient(270deg, #e2e8f0, transparent)" }} />
+                </div>
+
+                {loadingReport && (
+                  <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "32px", textAlign: "center" }}>
+                    <div style={{ display: "inline-block", width: "20px", height: "20px", border: "2px solid #e2e8f0", borderTopColor: "#2563eb", borderRadius: "50%", animation: "spin 0.8s linear infinite", marginBottom: "12px" }} />
+                    <div style={{ fontSize: "13px", fontFamily: "monospace", color: "#64748b" }}>Generating premium bid intelligence report...</div>
+                  </div>
+                )}
+
+                {report && (
+                  <>
+                    {/* Proposal Draft */}
+                    {report.proposal_draft && (
+                      <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "32px", marginBottom: "20px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+                        <div style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", color: "#2563eb", textTransform: "uppercase", fontFamily: "monospace", marginBottom: "20px", paddingBottom: "12px", borderBottom: "1px solid #e2e8f0" }}>📄 Proposal Draft</div>
+                        <div style={{ fontSize: "13px", lineHeight: 1.7, color: "#1e293b", fontFamily: "'IBM Plex Mono', monospace" }}>
+                          <ReactMarkdown>{report.proposal_draft}</ReactMarkdown>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Compliance Matrix */}
+                    {report.compliance_report && (
+                      <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "32px", marginBottom: "20px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)", overflowX: "auto" }}>
+                        <div style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", color: "#2563eb", textTransform: "uppercase", fontFamily: "monospace", marginBottom: "20px", paddingBottom: "12px", borderBottom: "1px solid #e2e8f0" }}>📊 Compliance Matrix</div>
+                        <div style={{ fontSize: "12px", lineHeight: 1.6, color: "#1e293b", fontFamily: "'IBM Plex Mono', monospace" }}>
+                          <ReactMarkdown>{report.compliance_report}</ReactMarkdown>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Win Themes + Risk Flags */}
+                    {(report.win_themes?.length > 0 || report.risk_flags?.length > 0) && (
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "20px" }}>
+                        {report.win_themes?.length > 0 && (
+                          <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: "8px", padding: "20px" }}>
+                            <div style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", color: "#166534", textTransform: "uppercase", fontFamily: "monospace", marginBottom: "12px" }}>🏆 Win Themes</div>
+                            <ul style={{ margin: 0, paddingLeft: "16px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                              {report.win_themes.map((t, i) => <li key={i} style={{ fontSize: "12px", fontFamily: "monospace", color: "#166534", lineHeight: 1.5 }}>{t}</li>)}
+                            </ul>
+                          </div>
+                        )}
+                        {report.risk_flags?.length > 0 && (
+                          <div style={{ background: "#fff7ed", border: "1px solid #fed7aa", borderRadius: "8px", padding: "20px" }}>
+                            <div style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", color: "#9a3412", textTransform: "uppercase", fontFamily: "monospace", marginBottom: "12px" }}>⚠️ Risk Flags</div>
+                            <ul style={{ margin: 0, paddingLeft: "16px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                              {report.risk_flags.map((r, i) => <li key={i} style={{ fontSize: "12px", fontFamily: "monospace", color: "#9a3412", lineHeight: 1.5 }}>{r}</li>)}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
