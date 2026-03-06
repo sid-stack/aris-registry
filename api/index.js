@@ -444,7 +444,51 @@ app.post("/api/analyze-link", analyzeLinkLimiter, async (req, res) => {
   }
 
   const opportunity = samData?.opportunitiesData?.[0];
-  if (!opportunity) return res.status(404).json({ error: "No opportunity found for this notice ID.", instruction: "Manual upload required" });
+  if (!opportunity) {
+    // SAM returned 200 but empty results — notice may be archived or have indexing lag.
+    // Attempt Firecrawl scrape as recovery before failing.
+    console.warn(`[/api/analyze-link] SAM returned empty opportunitiesData for ${noticeId}. Attempting Firecrawl recovery.`);
+    const fcKey = process.env.FIRECRAWL_API_KEY;
+    if (fcKey) {
+      try {
+        const fcRes = await fetch('https://api.firecrawl.dev/v1/scrape', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${fcKey}` },
+          body: JSON.stringify({ url: `https://sam.gov/opp/${noticeId}/view`, formats: ["markdown"] })
+        });
+        if (fcRes.ok) {
+          const fcData = await fcRes.json();
+          const fcText = fcData.data?.markdown || "";
+          if (fcText.length > 100) {
+            console.log(`[/api/analyze-link] Firecrawl recovery success: ${fcText.length} chars`);
+            const raw = await llm(client, [
+              { role: "system", content: AUDIT_PROMPT },
+              { role: "user", content: `Audit this solicitation:\n\n---\n${fcText.slice(0, 20000)}\n---` }
+            ], 3000);
+            let compliance = null;
+            const deepMatch = raw.match(/\{[\s\S]*\}/);
+            if (deepMatch) { try { compliance = JSON.parse(deepMatch[0]); } catch { compliance = { parse_error: "JSON extraction failed" }; } }
+            compliance = enforceDisqualification(compliance, fcText);
+            let executiveSummary = "";
+            if (deepMatch) executiveSummary = raw.slice(raw.indexOf(deepMatch[0]) + deepMatch[0].length).trim();
+            const result = {
+              noticeId, title: `Opportunity ${noticeId}`, agency: "Extracted via Firecrawl",
+              primaryDoc: "firecrawl_extraction.md", source: "scraper_fallback",
+              attachmentsFound: 0, compliance, executiveSummary,
+              auditedAt: new Date().toISOString()
+            };
+            noticeCache.set(noticeId, { ts: Date.now(), data: result });
+            return res.json(result);
+          }
+        }
+        console.warn(`[/api/analyze-link] Firecrawl recovery returned thin data or failed.`);
+      } catch (fcErr) {
+        console.warn(`[/api/analyze-link] Firecrawl recovery error:`, fcErr.message);
+      }
+    }
+    return res.status(404).json({ error: "No opportunity found for this notice ID.", instruction: "Manual upload required", details: "SAM.gov returned no data and Firecrawl recovery failed. The notice may be archived or expired." });
+  }
+
 
   const title = opportunity.title || "Unknown";
   const agency = opportunity.fullParentPathName || opportunity.organizationName || "Unknown Agency";
