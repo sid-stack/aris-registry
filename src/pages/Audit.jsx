@@ -243,6 +243,8 @@ export default function Audit({ onProceed }) {
   const [report, setReport] = useState(null);
   const [agents, setAgents] = useState([]);       // pipeline agent definitions
   const [agentSteps, setAgentSteps] = useState({}); // { stageId: "idle"|"running"|"done" }
+  const [terminalLog, setTerminalLog] = useState([]); // live action lines
+  const logEndRef = useRef(null);
   const [loadingUrl, setLoadingUrl] = useState(false);
   const [loadingFile, setLoadingFile] = useState(false);
   const [loadingReport, setLoadingReport] = useState(false);
@@ -317,7 +319,7 @@ export default function Audit({ onProceed }) {
     if (!auditData?.compliance) return;
     if (esRef.current) esRef.current.close();
 
-    setLoadingReport(true); setReport(null); setAgents([]); setAgentSteps({});
+    setLoadingReport(true); setReport(null); setAgents([]); setAgentSteps({}); setTerminalLog([]);
 
     // Unicode-safe base64: encodeURIComponent handles multibyte chars, unescape maps to Latin1
     const json = JSON.stringify({
@@ -337,19 +339,26 @@ export default function Audit({ onProceed }) {
         setAgents(msg.agents);
         const steps = {}; msg.agents.forEach(a => { steps[a.id] = "idle"; });
         setAgentSteps(steps);
+        setTerminalLog([{ ts: Date.now(), text: "▶ Pipeline initialized. 4 agents queued.", kind: "system" }]);
       } else if (msg.type === "agent_start") {
         setAgentSteps(prev => ({ ...prev, [msg.agent.id]: "running" }));
+        setTerminalLog(prev => [...prev, { ts: Date.now(), text: `→ ${msg.agent.label} started`, kind: "start" }]);
+      } else if (msg.type === "agent_log") {
+        setTerminalLog(prev => [...prev, { ts: Date.now(), text: `  ${msg.message}`, kind: "log" }]);
+        // auto-scroll
+        setTimeout(() => logEndRef.current?.scrollIntoView({ behavior: "smooth" }), 30);
       } else if (msg.type === "agent_done") {
         setAgentSteps(prev => ({ ...prev, [msg.agent.id]: "done" }));
-        // stream proposal draft as it arrives
+        setTerminalLog(prev => [...prev, { ts: Date.now(), text: `✓ ${msg.agent.label} complete`, kind: "done" }]);
         if (msg.data?.proposal_draft) setReport(prev => ({ ...(prev || {}), proposal_draft: msg.data.proposal_draft }));
         if (msg.data?.compliance_report) setReport(prev => ({ ...(prev || {}), compliance_report: msg.data.compliance_report }));
       } else if (msg.type === "pipeline_complete") {
+        setTerminalLog(prev => [...prev, { ts: Date.now(), text: "✦ Pipeline complete. Report ready.", kind: "system" }]);
         setReport(msg);
         setLoadingReport(false);
         es.close();
       } else if (msg.type === "error") {
-        console.error("[SSE]", msg.message);
+        setTerminalLog(prev => [...prev, { ts: Date.now(), text: `✕ Error: ${msg.message}`, kind: "error" }]);
         setLoadingReport(false);
         es.close();
       }
@@ -574,6 +583,40 @@ export default function Audit({ onProceed }) {
                   </div>
                 )}
 
+                {/* ── Live Agent Terminal Log ── */}
+                {terminalLog.length > 0 && (
+                  <div style={{ background: "#020617", borderRadius: "10px", border: "1px solid #1e293b", marginBottom: "28px", overflow: "hidden" }}>
+                    <div style={{ padding: "10px 16px", borderBottom: "1px solid #0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
+                      <div style={{ display: "flex", gap: "5px" }}>
+                        <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#ef4444" }} />
+                        <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#f59e0b" }} />
+                        <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#22c55e" }} />
+                      </div>
+                      <span style={{ fontSize: "10px", color: "#334155", fontFamily: "'IBM Plex Mono', monospace", letterSpacing: "0.08em" }}>aris-agent — pipeline log</span>
+                      {loadingReport && <span style={{ marginLeft: "auto", display: "inline-block", width: "8px", height: "8px", borderRadius: "50%", background: "#22c55e", animation: "ping 1s ease infinite" }} />}
+                    </div>
+                    <div style={{ maxHeight: "240px", overflowY: "auto", padding: "14px 18px", display: "flex", flexDirection: "column", gap: "3px" }}>
+                      {terminalLog.map((line, i) => {
+                        const colors = {
+                          system: "#60a5fa", start: "#c084fc", log: "#4ade80",
+                          done: "#86efac", error: "#f87171",
+                        };
+                        return (
+                          <div key={i} style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
+                            <span style={{ fontSize: "9px", color: "#1e3a5f", fontFamily: "'IBM Plex Mono', monospace", flexShrink: 0, marginTop: "2px", letterSpacing: "0.05em" }}>
+                              {new Date(line.ts).toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                            </span>
+                            <span style={{ fontSize: "11px", color: colors[line.kind] || "#64748b", fontFamily: "'IBM Plex Mono', monospace", lineHeight: 1.6, letterSpacing: "0.02em" }}>
+                              {line.text}
+                            </span>
+                          </div>
+                        );
+                      })}
+                      <div ref={logEndRef} />
+                    </div>
+                  </div>
+                )}
+
                 {/* loading fallback if SSE didn't send agents yet */}
                 {loadingReport && agents.length === 0 && (
                   <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "24px", textAlign: "center", marginBottom: "20px" }}>
@@ -589,22 +632,22 @@ export default function Audit({ onProceed }) {
                       <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "10px", marginBottom: "24px", boxShadow: "0 2px 8px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.02)" }}>
                         <div style={{ padding: "20px 28px", borderBottom: "1px solid #f1f5f9", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                            <div style={{ width: "32px", height: "32px", background: "rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.2)", borderRadius: "6px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "15px" }}>📄</div>
+                            <div style={{ width: "32px", height: "32px", background: "rgba(220,38,38,0.08)", border: "1px solid rgba(220,38,38,0.2)", borderRadius: "6px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "15px" }}>🔐</div>
                             <div>
-                              <div style={{ fontSize: "13px", fontWeight: 800, color: "#0f172a", fontFamily: "'Inter', sans-serif", letterSpacing: "-0.01em" }}>Proposal Draft</div>
-                              <div style={{ fontSize: "10px", color: "#64748b", fontFamily: "monospace", letterSpacing: "0.06em", textTransform: "uppercase" }}>QDS-Style • FAR Part 15 Compliant</div>
+                              <div style={{ fontSize: "13px", fontWeight: 800, color: "#0f172a", fontFamily: "'Inter', sans-serif", letterSpacing: "-0.01em" }}>Risk Memorandum</div>
+                              <div style={{ fontSize: "10px", color: "#64748b", fontFamily: "monospace", letterSpacing: "0.06em", textTransform: "uppercase" }}>Phase 1 Disqualification Audit · BidSmith Intelligence</div>
                             </div>
                           </div>
                           <div style={{ display: "flex", gap: "8px" }}>
                             <button onClick={copyProposal} style={{ padding: "7px 14px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "6px", fontSize: "11px", fontWeight: 700, fontFamily: "monospace", color: copied ? "#166534" : "#475569", cursor: "pointer", letterSpacing: "0.06em", display: "flex", alignItems: "center", gap: "5px", transition: "all 0.15s" }}>
                               {copied ? "✓ COPIED" : "⎘ COPY"}
                             </button>
-                            <button onClick={exportMarkdown} style={{ padding: "7px 14px", background: "#0f172a", border: "none", borderRadius: "6px", fontSize: "11px", fontWeight: 700, fontFamily: "monospace", color: "#fff", cursor: "pointer", letterSpacing: "0.06em", display: "flex", alignItems: "center", gap: "5px" }}>
-                              ↓ EXPORT .MD
+                            <button onClick={() => window.print()} style={{ padding: "7px 14px", background: "#dc2626", border: "none", borderRadius: "6px", fontSize: "11px", fontWeight: 700, fontFamily: "monospace", color: "#fff", cursor: "pointer", letterSpacing: "0.06em", display: "flex", alignItems: "center", gap: "5px" }}>
+                              ↓ EXPORT PDF
                             </button>
                           </div>
                         </div>
-                        <div style={{ padding: "32px 36px", fontSize: "14px", lineHeight: 1.8, color: "#1e293b", fontFamily: "'Inter', sans-serif" }}>
+                        <div id="risk-memo-print" style={{ padding: "32px 36px", fontSize: "14px", lineHeight: 1.8, color: "#1e293b", fontFamily: "'Inter', sans-serif" }}>
                           <ReactMarkdown components={{
                             h1: ({ children }) => <h1 style={{ fontSize: "22px", fontWeight: 900, color: "#0f172a", marginBottom: "4px", letterSpacing: "-0.02em", fontFamily: "'Inter', sans-serif" }}>{children}</h1>,
                             h2: ({ children }) => <h2 style={{ fontSize: "16px", fontWeight: 800, color: "#1e40af", marginTop: "28px", marginBottom: "12px", letterSpacing: "-0.01em", fontFamily: "'Inter', sans-serif", borderBottom: "1px solid #e0f2fe", paddingBottom: "8px" }}>{children}</h2>,
@@ -723,6 +766,30 @@ export default function Audit({ onProceed }) {
         @keyframes ping { 0% { transform: scale(0.8); opacity: 1; } 100% { transform: scale(1); opacity: 0.6; } }
         button:hover:not(:disabled) { filter: brightness(1.05); }
         input::placeholder { color: #94a3b8; }
+
+        @media print {
+          body * { visibility: hidden !important; }
+          #risk-memo-print, #risk-memo-print * { visibility: visible !important; }
+          #risk-memo-print {
+            position: fixed !important;
+            top: 0; left: 0;
+            width: 100% !important;
+            padding: 48px 56px !important;
+            font-family: 'Times New Roman', Times, serif !important;
+            font-size: 12pt !important;
+            line-height: 1.7 !important;
+            color: #000 !important;
+            background: #fff !important;
+          }
+          #risk-memo-print h1 { font-size: 16pt !important; font-weight: 900 !important; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 16px; }
+          #risk-memo-print h3 { font-size: 13pt !important; font-weight: 700 !important; margin-top: 24px !important; }
+          #risk-memo-print table { width: 100% !important; border-collapse: collapse !important; font-size: 10pt !important; page-break-inside: avoid; }
+          #risk-memo-print th { background: #f0f0f0 !important; border: 1px solid #999 !important; padding: 6px 8px !important; font-weight: 700 !important; text-align: left !important; }
+          #risk-memo-print td { border: 1px solid #ccc !important; padding: 5px 8px !important; vertical-align: top !important; }
+          #risk-memo-print blockquote { border-left: 3px solid #000 !important; padding: 10px 16px !important; margin: 16px 0 !important; background: #f8f8f8 !important; page-break-inside: avoid; }
+          #risk-memo-print hr { border: none !important; border-top: 1px solid #ccc !important; margin: 20px 0 !important; }
+          @page { margin: 0.75in; size: letter; }
+        }
       `}</style>
     </div>
   );
