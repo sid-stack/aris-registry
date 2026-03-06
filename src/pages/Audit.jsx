@@ -658,9 +658,9 @@ export default function Audit({ onProceed }) {
                             ul: ({ children }) => <ul style={{ paddingLeft: "20px", marginBottom: "14px" }}>{children}</ul>,
                             ol: ({ children }) => <ol style={{ paddingLeft: "20px", marginBottom: "14px" }}>{children}</ol>,
                             code: ({ children }) => <code style={{ background: "#f1f5f9", padding: "2px 6px", borderRadius: "4px", fontSize: "12px", fontFamily: "'IBM Plex Mono', monospace", color: "#334155" }}>{children}</code>,
-                            table: ({ children }) => <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "16px", fontSize: "12px" }}>{children}</table>,
+                            table: ({ children }) => (<div style={{ overflowX: "auto", marginBottom: "16px", borderRadius: "6px", border: "1px solid #e2e8f0" }}><table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px", minWidth: "640px" }}>{children}</table></div>),
                             th: ({ children }) => <th style={{ padding: "8px 12px", background: "#f8fafc", border: "1px solid #e2e8f0", fontWeight: 700, color: "#475569", textAlign: "left", fontFamily: "'IBM Plex Mono', monospace", fontSize: "10px", letterSpacing: "0.06em", textTransform: "uppercase" }}>{children}</th>,
-                            td: ({ children }) => <td style={{ padding: "8px 12px", border: "1px solid #e2e8f0", color: "#334155", verticalAlign: "top" }}>{children}</td>,
+                            td: ({ children }) => <td style={{ padding: "8px 12px", border: "1px solid #e2e8f0", color: "#334155", verticalAlign: "top", minWidth: "80px", maxWidth: "220px", wordBreak: "break-word", lineHeight: 1.5 }}>{children}</td>,
                           }}>{report.proposal_draft}</ReactMarkdown>
                         </div>
                       </div>
