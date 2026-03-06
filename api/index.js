@@ -18,7 +18,9 @@ app.use(cors({
   origin: ['https://www.bidsmith.pro', 'https://bidsmith.pro', 'http://localhost:5173', 'http://localhost:3000'],
   credentials: true
 }));
+app.set('trust proxy', 1); // Required for Railway/Heroku reverse proxy — fixes express-rate-limit X-Forwarded-For
 app.use(express.json());
+
 
 const upload = multer({
   storage: multer.memoryStorage(),
