@@ -1,14 +1,2 @@
-export function okResponse(data) {
-  return { success: true, data };
-}
-
-export function failResponse(code, message, details) {
-  return {
-    success: false,
-    error: {
-      code,
-      message,
-      ...(details ? { details } : {}),
-    },
-  };
-}
+export const okResponse = (data) => ({ success: true, ...data });
+export const failResponse = (code, message) => ({ success: false, error: { code, message } });
