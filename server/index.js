@@ -6,6 +6,10 @@ import OpenAI from "openai";
 import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
+import { requestId } from "./middleware/requestId.js";
+import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
+import { asyncHandler } from "./utils/asyncHandler.js";
+import { okResponse, failResponse } from "./utils/response.js";
 import { classifyIntent } from "./middleware/intent.js";
 import { enrichFARClauses } from "./middleware/gatekeeper.js";
 import { extractMetadata } from "./middleware/extractor.js";
@@ -16,15 +20,88 @@ const PROMPTS = join(__dirname, "llm");
 const SYS_PROMPT = readFileSync(join(PROMPTS, "system_prompt.txt"), "utf8").trim();
 const EXT_PROMPT = readFileSync(join(PROMPTS, "extract_prompt.txt"), "utf8").trim();
 const VAL_PROMPT = readFileSync(join(PROMPTS, "validate_prompt.txt"), "utf8").trim();
+const CODE_AUDIT_SYSTEM_PROMPT = `You are an expert coding assistant specialized in large-scale, stateless, low-latency code generation for RFP audit pipelines.
+
+Your job is to:
+1. Parse a supplied JSON or markdown excerpt of a SAM.gov RFP (or legal clause).
+2. Identify missing or non-compliant fields (for example required certifications, deadline formats, and cost breakdowns).
+3. Generate concise production-ready code (Python, Node, or Bash) that validates extracted data against an ARIS registry-style schema and returns a single JSON result with:
+   {"status":"OK|FAIL","issues":[...],"remediation":"..."}.
+4. Provide up to three alternative implementations internally and rank them by latency and memory use.
+5. Select the best candidate (lowest latency, target under 5ms on a typical t4g.micro) and output only that final snippet, preceded by:
+   Chosen implementation:
+
+Constraints:
+- Do not emit explanatory text after the final code block.
+- Keep total response under 500 tokens.
+- Use Python 3.11 or Node 18 only.
+- Avoid external dependencies beyond standard library or Node built-ins.
+- Generated code must be stateless, with no filesystem writes.
+- If input cannot be parsed, return:
+  {"status":"FAIL","issues":["unparseable_input"],"remediation":"request a clean JSON excerpt of the RFP"}.
+
+Style:
+- Follow PEP 8 (Python) or Airbnb style (Node).
+- Include type hints (Python) or JSDoc (Node) for public functions.
+- Use async/await where possible.`;
+
+const STRIPE_PRODUCTS = {
+  starter: { productId: "prod_Starter", priceId: "price_StarterMonthly", mode: "subscription" },
+  growth: { productId: "prod_Growth", priceId: "price_GrowthMonthly", mode: "subscription" },
+  pilot: { productId: "prod_Pilot", priceId: "price_PilotOneTime", mode: "payment" },
+};
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const allowedOrigins = new Set([
+  "https://www.bidsmith.pro",
+  "https://bidsmith.pro",
+  "http://localhost:5173",
+  "http://localhost:3000",
+]);
+
+const stripeMissingVars = [];
+const stripePublicKey = process.env.VITE_STRIPE_PUBLIC_KEY || process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+if (!process.env.STRIPE_SECRET_KEY) stripeMissingVars.push("STRIPE_SECRET_KEY");
+if (!stripePublicKey) stripeMissingVars.push("VITE_STRIPE_PUBLIC_KEY (or NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)");
+if (stripeMissingVars.length > 0) {
+  throw new Error(`[STRIPE_CONFIG] Missing required env vars: ${stripeMissingVars.join(", ")}`);
+}
 
 app.use(cors({
-  origin: ['https://www.bidsmith.pro', 'https://bidsmith.pro', 'http://localhost:5173', 'http://localhost:3000'],
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.has(origin)) return callback(null, true);
+    return callback(Object.assign(new Error("CORS origin not allowed"), { status: 403, code: "cors_denied" }));
+  },
   credentials: true
 }));
-app.use(express.json());
+app.use(requestId);
+app.use((req, res, next) => {
+  req.log = {
+    info(message, extra = {}) {
+      console.log(JSON.stringify({ level: "info", requestId: req.id, message, ...extra }));
+    },
+    error(message, extra = {}) {
+      console.error(JSON.stringify({ level: "error", requestId: req.id, message, ...extra }));
+    },
+  };
+  res.on("finish", () => {
+    req.log.info("request_completed", {
+      method: req.method,
+      path: req.originalUrl,
+      status: res.statusCode,
+    });
+  });
+  next();
+});
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("Permissions-Policy", "geolocation=(), microphone=(), camera=()");
+  next();
+});
+app.use(express.json({ limit: "2mb" }));
 
 const analyzeLinkLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
@@ -36,6 +113,15 @@ const analyzeLinkLimiter = rateLimit({
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 });
+
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  message: failResponse("rate_limited", "Too many requests, try again later"),
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use("/api", apiLimiter);
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -62,19 +148,240 @@ function parseJSON(raw) {
   return JSON.parse(raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim());
 }
 
-async function llm(client, messages, maxTokens = 4096) {
+async function llm(client, messages, maxTokens = 4096, options = {}) {
   const res = await client.chat.completions.create({
-    model: "google/gemini-2.0-flash-001",
+    model: options.model || "google/gemini-2.0-flash-001",
     max_tokens: maxTokens,
-    temperature: 0,
-    top_p: 0.1,
+    temperature: options.temperature ?? 0,
+    top_p: options.topP ?? 0.1,
     messages
   });
   return res.choices[0]?.message?.content || "";
 }
 
+function stripCodeFences(raw = "") {
+  return raw
+    .replace(/^```(?:json|python|javascript|js|bash)?\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim();
+}
+
 // ─── Health ───────────────────────────────────────────────────────────────────
-app.get("/api/health", (_, res) => res.json({ status: "ok", version: "3.0.0" }));
+app.get("/api/health", asyncHandler(async (_req, res) => {
+  res.json(okResponse({ status: "ok", version: "3.0.0" }));
+}));
+
+function parseCookies(cookieHeader = "") {
+  return cookieHeader
+    .split(";")
+    .map((chunk) => chunk.trim())
+    .filter(Boolean)
+    .reduce((acc, pair) => {
+      const index = pair.indexOf("=");
+      if (index < 0) return acc;
+      const key = pair.slice(0, index);
+      const value = pair.slice(index + 1);
+      acc[key] = decodeURIComponent(value);
+      return acc;
+    }, {});
+}
+
+/**
+ * Stores cookie consent state in an HttpOnly cookie for auditability.
+ */
+app.post("/api/privacy/consent", asyncHandler(async (req, res) => {
+  const necessary = req.body?.necessary !== false;
+  const analytics = req.body?.analytics === true;
+  const marketing = req.body?.marketing === true;
+  const source = String(req.body?.source || "banner").slice(0, 64);
+
+  const consentState = analytics || marketing ? "custom_or_accept" : "reject_optional";
+  const payload = {
+    necessary,
+    analytics,
+    marketing,
+    source,
+    updatedAt: new Date().toISOString(),
+  };
+
+  const cookieValue = encodeURIComponent(Buffer.from(JSON.stringify(payload)).toString("base64url"));
+  const secureFlag = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  res.setHeader("Set-Cookie", `bidsmith_consent=${cookieValue}; Path=/; Max-Age=31536000; SameSite=Lax; HttpOnly${secureFlag}`);
+
+  res.json(okResponse({ consent: payload, state: consentState }));
+}));
+
+app.get("/api/privacy/consent", asyncHandler(async (req, res) => {
+  const cookies = parseCookies(req.headers.cookie || "");
+  const raw = cookies.bidsmith_consent;
+  if (!raw) {
+    return res.json(okResponse({ consent: null, state: "unset" }));
+  }
+
+  try {
+    const decoded = JSON.parse(Buffer.from(raw, "base64url").toString("utf8"));
+    return res.json(okResponse({ consent: decoded, state: "set" }));
+  } catch {
+    return res.status(400).json(failResponse("invalid_consent_cookie", "Consent cookie could not be parsed"));
+  }
+}));
+
+app.post("/api/arislabs/discover", async (req, res) => {
+  try {
+    const capability = String(req.body?.capability || "").trim();
+    if (!capability) {
+      return res.status(400).json({ error: "Missing capability in request body." });
+    }
+
+    const apiKey = process.env.ARIS_API_KEY;
+    const apiBase = process.env.ARIS_API_BASE_URL;
+    if (!apiKey || !apiBase) {
+      return res.status(500).json({
+        error: "Aris Labs configuration missing",
+        required: ["ARIS_API_KEY", "ARIS_API_BASE_URL"],
+      });
+    }
+
+    const endpoint = `${apiBase.replace(/\/$/, "")}/discover`;
+    const upstream = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-API-KEY": apiKey,
+      },
+      body: JSON.stringify({ capability }),
+    });
+
+    const raw = await upstream.text();
+    let data = {};
+    try { data = JSON.parse(raw); } catch { data = { raw }; }
+
+    if (!upstream.ok) {
+      return res.status(502).json({
+        error: "Aris Labs upstream request failed",
+        status: upstream.status,
+        detail: data,
+      });
+    }
+
+    return res.json({
+      agent_url: data.endpoint || data.agent_url || "",
+      latency_ms: Number(data.latency || data.latency_ms || 0),
+      uptime_pct: Number(data.uptime || data.uptime_pct || 0),
+      price_inr: Number(data.price || data.price_inr || 20),
+      raw: data,
+    });
+  } catch (err) {
+    console.error("[/api/arislabs/discover] ERROR:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * Creates a Stripe Checkout session for a pricing plan.
+ */
+app.post("/api/checkout/session", asyncHandler(async (req, res) => {
+  const plan = String(req.body?.plan || "").toLowerCase();
+  const successUrl = String(req.body?.successUrl || "").trim();
+  const cancelUrl = String(req.body?.cancelUrl || "").trim();
+  const planConfig = STRIPE_PRODUCTS[plan];
+
+  if (!planConfig) {
+    return res.status(400).json({ error: "Unsupported plan" });
+  }
+  if (!successUrl || !cancelUrl) {
+    return res.status(400).json({ error: "Missing successUrl or cancelUrl" });
+  }
+
+  const stripeAuth = Buffer.from(`${process.env.STRIPE_SECRET_KEY}:`).toString("base64");
+  const formBody = new URLSearchParams();
+  formBody.append("mode", planConfig.mode);
+  formBody.append("success_url", successUrl);
+  formBody.append("cancel_url", cancelUrl);
+  formBody.append("line_items[0][price]", planConfig.priceId);
+  formBody.append("line_items[0][quantity]", "1");
+  formBody.append("client_reference_id", `${plan}_${Date.now()}`);
+
+  const stripeResponse = await fetch("https://api.stripe.com/v1/checkout/sessions", {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${stripeAuth}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: formBody.toString(),
+  });
+
+  const raw = await stripeResponse.text();
+  let payload = {};
+  try { payload = JSON.parse(raw); } catch { payload = { raw }; }
+
+  if (!stripeResponse.ok) {
+    return res.status(502).json({
+      error: "Stripe checkout session creation failed",
+      detail: payload,
+    });
+  }
+
+  return res.json({
+    id: payload.id,
+    url: payload.url,
+    mode: planConfig.mode,
+    productId: planConfig.productId,
+    priceId: planConfig.priceId,
+  });
+}));
+
+app.post("/api/audit/code", async (req, res) => {
+  const client = makeClient();
+  if (!client) return res.status(500).json({ error: "Server configuration incomplete" });
+
+  try {
+    const excerpt = String(req.body?.excerpt || "").trim();
+    const preferredLanguage = String(req.body?.language || "python").toLowerCase();
+
+    if (!excerpt) {
+      return res.status(400).json({
+        status: "FAIL",
+        issues: ["missing_excerpt"],
+        remediation: "Provide excerpt in request body as {excerpt: string}",
+      });
+    }
+
+    const userPrompt = [
+      `RFP excerpt:\n${excerpt.slice(0, 20000)}`,
+      `Preferred output language: ${preferredLanguage === "node" ? "Node 18" : "Python 3.11"}.`,
+      "Generate the final chosen implementation only.",
+    ].join("\n\n");
+
+    const raw = await llm(
+      client,
+      [
+        { role: "system", content: CODE_AUDIT_SYSTEM_PROMPT },
+        { role: "user", content: userPrompt },
+      ],
+      500,
+      {
+        model: process.env.GEMINI_CODE_MODEL || "google/gemini-3-pro-coding",
+        temperature: 0.7,
+        topP: 0.95,
+      },
+    );
+
+    const cleaned = stripCodeFences(raw);
+    let structured = null;
+    try { structured = JSON.parse(cleaned); } catch {}
+    if (structured?.status === "FAIL") return res.status(422).json(structured);
+
+    return res.json({
+      status: "OK",
+      model: process.env.GEMINI_CODE_MODEL || "google/gemini-3-pro-coding",
+      snippet: cleaned,
+    });
+  } catch (err) {
+    console.error("[/api/audit/code] ERROR:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
 
 // ─── /api/generate — Full proposal pipeline ──────────────────────────────────
 app.post("/api/generate", upload.single("rfp"), async (req, res) => {
@@ -565,6 +872,9 @@ app.post("/api/analyze-link", analyzeLinkLimiter, async (req, res) => {
   noticeCache.set(noticeId, { ts: Date.now(), data: result });
   res.json(result);
 });
+
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 // ─── Start ────────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {

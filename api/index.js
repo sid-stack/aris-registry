@@ -6,20 +6,97 @@ import OpenAI from "openai";
 import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
+import { requestId } from "./middleware/requestId.js";
+import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
+import { asyncHandler } from "./utils/asyncHandler.js";
+import { okResponse, failResponse } from "./utils/response.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROMPTS = join(__dirname, "llm");
 const SYS_PROMPT = readFileSync(join(PROMPTS, "system_prompt.txt"), "utf8").trim();
+const CODE_AUDIT_SYSTEM_PROMPT = `You are an expert coding assistant specialized in large-scale, stateless, low-latency code generation for RFP audit pipelines.
+
+Your job is to:
+1. Parse a supplied JSON or markdown excerpt of a SAM.gov RFP (or legal clause).
+2. Identify missing or non-compliant fields (for example required certifications, deadline formats, and cost breakdowns).
+3. Generate concise production-ready code (Python, Node, or Bash) that validates extracted data against an ARIS registry-style schema and returns a single JSON result with:
+   {"status":"OK|FAIL","issues":[...],"remediation":"..."}.
+4. Provide up to three alternative implementations internally and rank them by latency and memory use.
+5. Select the best candidate (lowest latency, target under 5ms on a typical t4g.micro) and output only that final snippet, preceded by:
+   Chosen implementation:
+
+Constraints:
+- Do not emit explanatory text after the final code block.
+- Keep total response under 500 tokens.
+- Use Python 3.11 or Node 18 only.
+- Avoid external dependencies beyond standard library or Node built-ins.
+- Generated code must be stateless, with no filesystem writes.
+- If input cannot be parsed, return:
+  {"status":"FAIL","issues":["unparseable_input"],"remediation":"request a clean JSON excerpt of the RFP"}.
+
+Style:
+- Follow PEP 8 (Python) or Airbnb style (Node).
+- Include type hints (Python) or JSDoc (Node) for public functions.
+- Use async/await where possible.`;
+
+const STRIPE_PRODUCTS = {
+  starter: { productId: "prod_Starter", priceId: "price_StarterMonthly", mode: "subscription" },
+  growth: { productId: "prod_Growth", priceId: "price_GrowthMonthly", mode: "subscription" },
+  pilot: { productId: "prod_Pilot", priceId: "price_PilotOneTime", mode: "payment" },
+};
 
 const app = express();
 const PORT = process.env.PORT || 8080;
+const allowedOrigins = new Set([
+  "https://www.bidsmith.pro",
+  "https://bidsmith.pro",
+  "http://localhost:5173",
+  "http://localhost:3000",
+]);
+
+const stripeMissingVars = [];
+const stripePublicKey = process.env.VITE_STRIPE_PUBLIC_KEY || process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+if (!process.env.STRIPE_SECRET_KEY) stripeMissingVars.push("STRIPE_SECRET_KEY");
+if (!stripePublicKey) stripeMissingVars.push("VITE_STRIPE_PUBLIC_KEY (or NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)");
+if (stripeMissingVars.length > 0) {
+  throw new Error(`[STRIPE_CONFIG] Missing required env vars: ${stripeMissingVars.join(", ")}`);
+}
 
 app.use(cors({
-  origin: ['https://www.bidsmith.pro', 'https://bidsmith.pro', 'http://localhost:5173', 'http://localhost:3000'],
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.has(origin)) return callback(null, true);
+    return callback(Object.assign(new Error("CORS origin not allowed"), { status: 403, code: "cors_denied" }));
+  },
   credentials: true
 }));
 app.set('trust proxy', 1); // Required for Railway/Heroku reverse proxy — fixes express-rate-limit X-Forwarded-For
-app.use(express.json());
+app.use(requestId);
+app.use((req, res, next) => {
+  req.log = {
+    info(message, extra = {}) {
+      console.log(JSON.stringify({ level: "info", requestId: req.id, message, ...extra }));
+    },
+    error(message, extra = {}) {
+      console.error(JSON.stringify({ level: "error", requestId: req.id, message, ...extra }));
+    },
+  };
+  res.on("finish", () => {
+    req.log.info("request_completed", {
+      method: req.method,
+      path: req.originalUrl,
+      status: res.statusCode,
+    });
+  });
+  next();
+});
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("Permissions-Policy", "geolocation=(), microphone=(), camera=()");
+  next();
+});
+app.use(express.json({ limit: "2mb" }));
 
 
 const upload = multer({
@@ -35,6 +112,15 @@ const analyzeLinkLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
+
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  message: failResponse("rate_limited", "Too many requests, try again later"),
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use("/api", apiLimiter);
 
 // ─── Shared Utilities ─────────────────────────────────────────────────────────
 
@@ -66,18 +152,19 @@ const AGENT_MODELS = {
   drafter: "google/gemini-2.0-flash-001",
   reviewer: "google/gemini-2.0-flash-001",
   audit: "google/gemini-2.0-flash-001",
+  audit_codegen: process.env.GEMINI_CODE_MODEL || "google/gemini-3-pro-coding",
 };
 
 // LLM with exponential backoff retry — ported from money/main.py run_llm()
-async function llm(client, messages, maxTokens = 4096, agentKey = "audit", retries = 3) {
+async function llm(client, messages, maxTokens = 4096, agentKey = "audit", retries = 3, options = {}) {
   const model = AGENT_MODELS[agentKey] || "google/gemini-2.0-flash-001";
   for (let attempt = 0; attempt < retries; attempt++) {
     try {
       const res = await client.chat.completions.create({
         model,
         max_tokens: maxTokens,
-        temperature: 0,
-        top_p: 0.1,
+        temperature: options.temperature ?? 0,
+        top_p: options.topP ?? 0.1,
         messages
       });
       return res.choices[0]?.message?.content || "";
@@ -94,8 +181,228 @@ async function llm(client, messages, maxTokens = 4096, agentKey = "audit", retri
   }
 }
 
+function stripCodeFences(raw = "") {
+  return raw
+    .replace(/^```(?:json|python|javascript|js|bash)?\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim();
+}
+
 // ─── Health ───────────────────────────────────────────────────────────────────
-app.get("/api/health", (_, res) => res.json({ status: "ok", version: "3.0.0" }));
+app.get("/api/health", asyncHandler(async (_req, res) => {
+  res.json(okResponse({ status: "ok", version: "3.0.0" }));
+}));
+
+function parseCookies(cookieHeader = "") {
+  return cookieHeader
+    .split(";")
+    .map((chunk) => chunk.trim())
+    .filter(Boolean)
+    .reduce((acc, pair) => {
+      const index = pair.indexOf("=");
+      if (index < 0) return acc;
+      const key = pair.slice(0, index);
+      const value = pair.slice(index + 1);
+      acc[key] = decodeURIComponent(value);
+      return acc;
+    }, {});
+}
+
+/**
+ * Stores cookie consent state in an HttpOnly cookie for auditability.
+ */
+app.post("/api/privacy/consent", asyncHandler(async (req, res) => {
+  const necessary = req.body?.necessary !== false;
+  const analytics = req.body?.analytics === true;
+  const marketing = req.body?.marketing === true;
+  const source = String(req.body?.source || "banner").slice(0, 64);
+
+  const consentState = analytics || marketing ? "custom_or_accept" : "reject_optional";
+  const payload = {
+    necessary,
+    analytics,
+    marketing,
+    source,
+    updatedAt: new Date().toISOString(),
+  };
+
+  const cookieValue = encodeURIComponent(Buffer.from(JSON.stringify(payload)).toString("base64url"));
+  const secureFlag = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  res.setHeader("Set-Cookie", `bidsmith_consent=${cookieValue}; Path=/; Max-Age=31536000; SameSite=Lax; HttpOnly${secureFlag}`);
+
+  res.json(okResponse({ consent: payload, state: consentState }));
+}));
+
+app.get("/api/privacy/consent", asyncHandler(async (req, res) => {
+  const cookies = parseCookies(req.headers.cookie || "");
+  const raw = cookies.bidsmith_consent;
+  if (!raw) {
+    return res.json(okResponse({ consent: null, state: "unset" }));
+  }
+
+  try {
+    const decoded = JSON.parse(Buffer.from(raw, "base64url").toString("utf8"));
+    return res.json(okResponse({ consent: decoded, state: "set" }));
+  } catch {
+    return res.status(400).json(failResponse("invalid_consent_cookie", "Consent cookie could not be parsed"));
+  }
+}));
+
+app.post("/api/arislabs/discover", async (req, res) => {
+  try {
+    const capability = String(req.body?.capability || "").trim();
+    if (!capability) {
+      return res.status(400).json({ error: "Missing capability in request body." });
+    }
+
+    const apiKey = process.env.ARIS_API_KEY;
+    const apiBase = process.env.ARIS_API_BASE_URL;
+    if (!apiKey || !apiBase) {
+      return res.status(500).json({
+        error: "Aris Labs configuration missing",
+        required: ["ARIS_API_KEY", "ARIS_API_BASE_URL"],
+      });
+    }
+
+    const endpoint = `${apiBase.replace(/\/$/, "")}/discover`;
+    const upstream = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-API-KEY": apiKey,
+      },
+      body: JSON.stringify({ capability }),
+    });
+
+    const raw = await upstream.text();
+    let data = {};
+    try { data = JSON.parse(raw); } catch { data = { raw }; }
+
+    if (!upstream.ok) {
+      return res.status(502).json({
+        error: "Aris Labs upstream request failed",
+        status: upstream.status,
+        detail: data,
+      });
+    }
+
+    return res.json({
+      agent_url: data.endpoint || data.agent_url || "",
+      latency_ms: Number(data.latency || data.latency_ms || 0),
+      uptime_pct: Number(data.uptime || data.uptime_pct || 0),
+      price_inr: Number(data.price || data.price_inr || 20),
+      raw: data,
+    });
+  } catch (err) {
+    console.error("[/api/arislabs/discover] ERROR:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * Creates a Stripe Checkout session for a pricing plan.
+ */
+app.post("/api/checkout/session", asyncHandler(async (req, res) => {
+  const plan = String(req.body?.plan || "").toLowerCase();
+  const successUrl = String(req.body?.successUrl || "").trim();
+  const cancelUrl = String(req.body?.cancelUrl || "").trim();
+  const planConfig = STRIPE_PRODUCTS[plan];
+
+  if (!planConfig) {
+    return res.status(400).json({ error: "Unsupported plan" });
+  }
+  if (!successUrl || !cancelUrl) {
+    return res.status(400).json({ error: "Missing successUrl or cancelUrl" });
+  }
+
+  const stripeAuth = Buffer.from(`${process.env.STRIPE_SECRET_KEY}:`).toString("base64");
+  const formBody = new URLSearchParams();
+  formBody.append("mode", planConfig.mode);
+  formBody.append("success_url", successUrl);
+  formBody.append("cancel_url", cancelUrl);
+  formBody.append("line_items[0][price]", planConfig.priceId);
+  formBody.append("line_items[0][quantity]", "1");
+  formBody.append("client_reference_id", `${plan}_${Date.now()}`);
+
+  const stripeResponse = await fetch("https://api.stripe.com/v1/checkout/sessions", {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${stripeAuth}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: formBody.toString(),
+  });
+
+  const raw = await stripeResponse.text();
+  let payload = {};
+  try { payload = JSON.parse(raw); } catch { payload = { raw }; }
+
+  if (!stripeResponse.ok) {
+    return res.status(502).json({
+      error: "Stripe checkout session creation failed",
+      detail: payload,
+    });
+  }
+
+  return res.json({
+    id: payload.id,
+    url: payload.url,
+    mode: planConfig.mode,
+    productId: planConfig.productId,
+    priceId: planConfig.priceId,
+  });
+}));
+
+app.post("/api/audit/code", async (req, res) => {
+  const client = makeClient();
+  if (!client) return res.status(500).json({ error: "Server configuration incomplete" });
+
+  try {
+    const excerpt = String(req.body?.excerpt || "").trim();
+    const preferredLanguage = String(req.body?.language || "python").toLowerCase();
+
+    if (!excerpt) {
+      return res.status(400).json({
+        status: "FAIL",
+        issues: ["missing_excerpt"],
+        remediation: "Provide excerpt in request body as {excerpt: string}",
+      });
+    }
+
+    const userPrompt = [
+      `RFP excerpt:\n${excerpt.slice(0, 20000)}`,
+      `Preferred output language: ${preferredLanguage === "node" ? "Node 18" : "Python 3.11"}.`,
+      "Generate the final chosen implementation only.",
+    ].join("\n\n");
+
+    const raw = await llm(
+      client,
+      [
+        { role: "system", content: CODE_AUDIT_SYSTEM_PROMPT },
+        { role: "user", content: userPrompt },
+      ],
+      500,
+      "audit_codegen",
+      3,
+      { temperature: 0.7, topP: 0.95 },
+    );
+
+    const cleaned = stripCodeFences(raw);
+    let structured = null;
+    try { structured = JSON.parse(cleaned); } catch {}
+
+    if (structured?.status === "FAIL") return res.status(422).json(structured);
+
+    return res.json({
+      status: "OK",
+      model: AGENT_MODELS.audit_codegen,
+      snippet: cleaned,
+    });
+  } catch (err) {
+    console.error("[/api/audit/code] ERROR:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
 
 // ─── /api/generate ────────────────────────────────────────────────────────────
 app.post("/api/generate", upload.single("rfp"), async (req, res) => {
@@ -645,8 +952,8 @@ OUTPUT THIS EXACT STRUCTURE:
 > **FULL PROPOSAL MAPPING & COMPLIANCE MATRIX**
 > This document represents a partial Phase 1 extraction.
 > To authorize the BidSmith Engine to generate the complete 40-point Compliance Matrix and Volume Outline for this solicitation:
-> **Fee:** $450.00 (Flat Rate)
-> **Turnaround:** 24 Hours
+> **Pricing Options:** Starter $29/mo + $0.25/call | Growth $199/mo (1,000 calls) + $0.20/call | Pilot $2,500 / 30 days (onboarding + 5,000 calls)
+> **Turnaround:** 24 Hours for pilot onboarding kickoff
 > **Action:** Visit [bidsmith.pro](https://bidsmith.pro) to authorize execution.
 
 COMPLIANCE INTELLIGENCE BRIEF:
@@ -721,7 +1028,7 @@ THE 4 RULES OF EDITING:
 1. ZERO FLUFF: If you see generic marketing language (e.g., "Acme Solutions," "leading provider," "innovative solutions," "our team"), DELETE IT. Replace with technical specifics.
 2. ENFORCE CITATIONS: If a risk is mentioned but does not cite a specific FAR/DFARS clause or section number, either add the correct citation or remove the row entirely.
 3. FORMAT ENFORCEMENT: Ensure the document strictly follows the "Confidential Risk Memorandum" structure with all 4 sections intact. Ensure the Bid-Killer Matrix (Red/Yellow/Green) is perfectly formatted as a markdown table.
-4. SOW CHECK: Verify that the Statement of Work ($450 Phase 2 Authorization) blockquote is present and unchanged at the bottom. If missing, restore it exactly.
+4. SOW CHECK: Verify that the Statement of Work pricing ladder blockquote (Starter/Growth/Pilot) is present and unchanged at the bottom. If missing, restore it exactly.
 
 Output ONLY the finalized clean Markdown. No preamble, no "Here is the edited version", no explanations.`
     }, {
@@ -730,11 +1037,21 @@ Output ONLY the finalized clean Markdown. No preamble, no "Here is the edited ve
     }], 3000, "reviewer");
 
     console.log(`[/api/generate-report] Pipeline complete`);
-    res.json({
+    const envelope = {
       success: true,
+      generatedAt: new Date().toISOString(),
+      engine: "sse_5_agent",
+      pipelineStages: ["analyst", "drafter", "reviewer", "intel", "editor"],
+    };
+
+    res.json({
+      envelope,
+      success: true,
+      engine: envelope.engine,
+      pipelineStages: envelope.pipelineStages,
       title: title || "Federal Opportunity",
       agency: agency || "Unknown Agency",
-      generatedAt: new Date().toISOString(),
+      generatedAt: envelope.generatedAt,
       pillars,
       proposal_draft,
       compliance_report,
@@ -765,7 +1082,10 @@ app.get("/api/generate-report-stream", async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.flushHeaders();
 
-  const emit = (payload) => {
+  const emit = (payload, eventName = null) => {
+    if (eventName) {
+      res.write(`event: ${eventName}\n`);
+    }
     res.write(`data: ${JSON.stringify(payload)}\n\n`);
   };
 
@@ -790,7 +1110,21 @@ app.get("/api/generate-report-stream", async (req, res) => {
     { id: "editor", label: "🕵️  Editor-in-Chief", role: "QA review — stripping fluff, enforcing citations, locking SOW" },
   ];
 
-  emit({ type: "pipeline_start", agents: AGENTS });
+  const envelope = {
+    success: true,
+    generatedAt: new Date().toISOString(),
+    engine: "sse_5_agent",
+    pipelineStages: AGENTS.map((agent) => agent.id),
+  };
+  emit(envelope, "envelope");
+
+  emit({
+    type: "pipeline_start",
+    engine: envelope.engine,
+    pipelineStages: envelope.pipelineStages,
+    generatedAt: envelope.generatedAt,
+    agents: AGENTS,
+  });
 
   // Heartbeat helper — emits action logs every 500ms while each LLM call runs
   const AGENT_LOGS = {
@@ -822,7 +1156,7 @@ app.get("/api/generate-report-stream", async (req, res) => {
     editor: [
       "Scanning for generic marketing language...", "Enforcing FAR/DFARS citation requirements...",
       "Validating Bid-Killer Matrix format...", "Verifying Executive Risk Summary (3-sentence rule)...",
-      "Checking SOW Phase 2 Authorization block...", "Locking final memorandum format...",
+      "Checking SOW pricing ladder block...", "Locking final memorandum format...",
     ],
   };
 
@@ -849,7 +1183,7 @@ app.get("/api/generate-report-stream", async (req, res) => {
     emit({ type: "agent_start", stage: 2, agent: AGENTS[1] });
     const memo_draft = await withHeartbeat("drafter", 2, AGENTS[1], () => llm(client, [{
       role: "user",
-      content: `You are an elite Federal Proposal Capture Manager. Generate a CONFIDENTIAL RISK MEMORANDUM using the EXACT markdown structure below. Fill every [ ] bracket from the compliance intelligence brief. DO NOT produce generic marketing text, company boilerplate, or "Acme Solutions"-style filler.\n\nOUTPUT THIS EXACT STRUCTURE:\n\n# 📄 CONFIDENTIAL RISK MEMORANDUM\n\n**Prepared For:** [Company/Capture Team from data, or "Your Capture Team" if unknown]\n**Prepared By:** BidSmith Automated Intelligence / S. Aris\n**Subject:** Phase 1 Technical Disqualification Audit\n**Solicitation ID:** [solicitation number from brief] | **Agency:** [agency name from brief]\n\n---\n\n### 🚨 EXECUTIVE RISK SUMMARY\n\n[Write exactly 3 sentences. Be ruthless and analytical. State the compliance risk posture, the number of critical traps found, and the manual review recommendation.]\n\n---\n\n### 🍱 THE "BID-KILLER" MATRIX\n\n| Risk Level | Risk Category | FAR/DFARS Citation | The Hidden Requirement | Impact if Missed | Remediation Action |\n| --- | --- | --- | --- | --- | --- |\n[Generate 5-7 rows. Use 🔴 **CRITICAL** for immediate DQ risks, 🟡 **HIGH RISK** for technical downgrade risks, 🟢 **COMPLIANT** for standard boilerplate areas. Every row MUST have a real FAR/DFARS clause number or Section L/M reference from the brief.]\n\n---\n\n### 🧠 ARIS ENGINE RECOMMENDATIONS\n\n[2 sentences mapping specific FAR flow-downs to the offeror's technical volume actions. Name the clauses explicitly.]\n\n**Time Saved by BidSmith:** ~14 Hours of manual FAR clause extraction.\n\n---\n\n### 📝 STATEMENT OF WORK: PHASE 2 AUTHORIZATION\n\n> **FULL PROPOSAL MAPPING & COMPLIANCE MATRIX**\n> This document represents a partial Phase 1 extraction.\n> To authorize the BidSmith Engine to generate the complete 40-point Compliance Matrix and Volume Outline for this solicitation:\n> **Fee:** $450.00 (Flat Rate)\n> **Turnaround:** 24 Hours\n> **Action:** Visit [bidsmith.pro](https://bidsmith.pro) to authorize execution.\n\nCOMPLIANCE INTELLIGENCE BRIEF:\n${analysis}`
+      content: `You are an elite Federal Proposal Capture Manager. Generate a CONFIDENTIAL RISK MEMORANDUM using the EXACT markdown structure below. Fill every [ ] bracket from the compliance intelligence brief. DO NOT produce generic marketing text, company boilerplate, or "Acme Solutions"-style filler.\n\nOUTPUT THIS EXACT STRUCTURE:\n\n# 📄 CONFIDENTIAL RISK MEMORANDUM\n\n**Prepared For:** [Company/Capture Team from data, or "Your Capture Team" if unknown]\n**Prepared By:** BidSmith Automated Intelligence / S. Aris\n**Subject:** Phase 1 Technical Disqualification Audit\n**Solicitation ID:** [solicitation number from brief] | **Agency:** [agency name from brief]\n\n---\n\n### 🚨 EXECUTIVE RISK SUMMARY\n\n[Write exactly 3 sentences. Be ruthless and analytical. State the compliance risk posture, the number of critical traps found, and the manual review recommendation.]\n\n---\n\n### 🍱 THE "BID-KILLER" MATRIX\n\n| Risk Level | Risk Category | FAR/DFARS Citation | The Hidden Requirement | Impact if Missed | Remediation Action |\n| --- | --- | --- | --- | --- | --- |\n[Generate 5-7 rows. Use 🔴 **CRITICAL** for immediate DQ risks, 🟡 **HIGH RISK** for technical downgrade risks, 🟢 **COMPLIANT** for standard boilerplate areas. Every row MUST have a real FAR/DFARS clause number or Section L/M reference from the brief.]\n\n---\n\n### 🧠 ARIS ENGINE RECOMMENDATIONS\n\n[2 sentences mapping specific FAR flow-downs to the offeror's technical volume actions. Name the clauses explicitly.]\n\n**Time Saved by BidSmith:** ~14 Hours of manual FAR clause extraction.\n\n---\n\n### 📝 STATEMENT OF WORK: PHASE 2 AUTHORIZATION\n\n> **FULL PROPOSAL MAPPING & COMPLIANCE MATRIX**\n> This document represents a partial Phase 1 extraction.\n> To authorize the BidSmith Engine to generate the complete 40-point Compliance Matrix and Volume Outline for this solicitation:\n> **Pricing Options:** Starter $29/mo + $0.25/call | Growth $199/mo (1,000 calls) + $0.20/call | Pilot $2,500 / 30 days (onboarding + 5,000 calls)\n> **Turnaround:** 24 Hours for pilot onboarding kickoff\n> **Action:** Visit [bidsmith.pro](https://bidsmith.pro) to authorize execution.\n\nCOMPLIANCE INTELLIGENCE BRIEF:\n${analysis}`
     }], 3000, "drafter"));
     emit({ type: "agent_done", stage: 2, agent: AGENTS[1], data: { preview: memo_draft.slice(0, 200) } });
 
@@ -886,7 +1220,7 @@ app.get("/api/generate-report-stream", async (req, res) => {
     emit({ type: "agent_start", stage: 5, agent: AGENTS[4] });
     const proposal_draft = await withHeartbeat("editor", 5, AGENTS[4], () => llm(client, [{
       role: "system",
-      content: `You are the Senior GovCon Capture Director at BidSmith. You are the final set of eyes on the Risk Memorandum before it is sent to the client.\n\nYour Mission: Review the Markdown draft. Aggressively edit and reformat to meet strict GovCon consulting standards.\n\nTHE 4 RULES OF EDITING:\n1. ZERO FLUFF: If you see generic marketing language (e.g., "Acme Solutions," "leading provider," "innovative solutions," "our team"), DELETE IT. Replace with technical specifics.\n2. ENFORCE CITATIONS: If a risk row does not cite a specific FAR/DFARS clause or section number, add the correct citation or remove the row.\n3. FORMAT ENFORCEMENT: Ensure the document strictly follows the "Confidential Risk Memorandum" structure with all 4 sections intact. The Bid-Killer Matrix must be a perfectly formatted markdown table.\n4. SOW CHECK: Verify the Statement of Work ($450 Phase 2 Authorization) blockquote is present and unchanged at the bottom. If missing, restore it exactly.\n\nOutput ONLY the finalized clean Markdown. No preamble, no "Here is the edited version", no explanations.`
+      content: `You are the Senior GovCon Capture Director at BidSmith. You are the final set of eyes on the Risk Memorandum before it is sent to the client.\n\nYour Mission: Review the Markdown draft. Aggressively edit and reformat to meet strict GovCon consulting standards.\n\nTHE 4 RULES OF EDITING:\n1. ZERO FLUFF: If you see generic marketing language (e.g., "Acme Solutions," "leading provider," "innovative solutions," "our team"), DELETE IT. Replace with technical specifics.\n2. ENFORCE CITATIONS: If a risk row does not cite a specific FAR/DFARS clause or section number, add the correct citation or remove the row.\n3. FORMAT ENFORCEMENT: Ensure the document strictly follows the "Confidential Risk Memorandum" structure with all 4 sections intact. The Bid-Killer Matrix must be a perfectly formatted markdown table.\n4. SOW CHECK: Verify the Statement of Work pricing ladder blockquote (Starter/Growth/Pilot) is present and unchanged at the bottom. If missing, restore it exactly.\n\nOutput ONLY the finalized clean Markdown. No preamble, no "Here is the edited version", no explanations.`
     }, {
       role: "user",
       content: `Review and finalize this Risk Memorandum draft:\n\n${memo_draft}`
@@ -894,11 +1228,14 @@ app.get("/api/generate-report-stream", async (req, res) => {
     emit({ type: "agent_done", stage: 5, agent: AGENTS[4], data: { proposal_draft } });
 
     emit({
-      type: "pipeline_complete", proposal_draft, compliance_report,
+      type: "pipeline_complete",
+      engine: "sse_5_agent",
+      pipelineStages: AGENTS.map((agent) => agent.id),
+      generatedAt: new Date().toISOString(),
+      proposal_draft, compliance_report,
       win_themes: intel.win_themes || [], risk_flags: intel.risk_flags || [],
       proposal_outline: intel.proposal_outline || [],
       title: title || "Federal Opportunity", agency: agency || "Unknown Agency",
-      generatedAt: new Date().toISOString()
     });
 
   } catch (err) {
@@ -909,10 +1246,11 @@ app.get("/api/generate-report-stream", async (req, res) => {
   res.end();
 });
 
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`✅ BidSmith API → http://localhost:${PORT}`);
   if (!process.env.OPENROUTER_API_KEY) console.warn("⚠️  OPENROUTER_API_KEY not set");
   if (!process.env.SAM_GOV_API_KEY && !process.env.SAM_API_KEY) console.warn("⚠️  SAM_GOV_API_KEY not set");
 });
-

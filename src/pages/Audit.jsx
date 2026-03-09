@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 
+const API_URL = import.meta.env.VITE_API_URL || "";
+const API_BASE = API_URL.replace(/\/$/, "");
+
 const LOADING_STEPS = [
   "Connecting to SAM.gov...",
   "Fetching opportunity data...",
@@ -330,7 +333,10 @@ export default function Audit({ onProceed }) {
     });
     const ctx = btoa(unescape(encodeURIComponent(json)));
 
-    const es = new EventSource(`https://api.bidsmith.pro/api/generate-report-stream?ctx=${ctx}`);
+    const streamUrl = API_BASE
+      ? `${API_BASE}/api/generate-report-stream?ctx=${encodeURIComponent(ctx)}`
+      : `/api/generate-report-stream?ctx=${encodeURIComponent(ctx)}`;
+    const es = new EventSource(streamUrl);
     esRef.current = es;
 
     es.onmessage = (e) => {
@@ -370,7 +376,8 @@ export default function Audit({ onProceed }) {
     if (!samUrl.trim()) return;
     setLoadingUrl(true); setError(""); setResult(null); setReport(null); setAgents([]); setAgentSteps({}); setShowUpload(false);
     try {
-      const res = await fetch("https://api.bidsmith.pro/api/analyze-link", {
+      const endpoint = API_BASE ? `${API_BASE}/api/analyze-link` : "/api/analyze-link";
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: samUrl.trim() }),
@@ -393,7 +400,8 @@ export default function Audit({ onProceed }) {
     try {
       const formData = new FormData();
       formData.append("file", selectedFile.file);
-      const res = await fetch("https://api.bidsmith.pro/api/audit", { method: "POST", body: formData });
+      const endpoint = API_BASE ? `${API_BASE}/api/audit` : "/api/audit";
+      const res = await fetch(endpoint, { method: "POST", body: formData });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Compliance evaluation failed");
       setResult(data);
