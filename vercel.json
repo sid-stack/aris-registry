@@ -52,6 +52,20 @@
       "dest": "https://api.bidsmith.pro/api/$1"
     },
     {
+      "src": "/docs",
+      "status": 308,
+      "headers": {
+        "Location": "https://arislabs.mintlify.app"
+      }
+    },
+    {
+      "src": "/docs/(.*)",
+      "status": 308,
+      "headers": {
+        "Location": "https://arislabs.mintlify.app/$1"
+      }
+    },
+    {
       "handle": "filesystem"
     },
     {
