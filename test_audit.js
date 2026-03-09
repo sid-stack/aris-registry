@@ -8,8 +8,11 @@ async function test() {
    const form = new FormData();
    form.append('file', fs.createReadStream('dummy.pdf'));
 
+   const url = process.argv[2] || 'http://localhost:8080/api/audit';
+   console.log(`🚀 Testing target: ${url}`);
+
    try {
-       const res = await fetch('http://localhost:8080/api/audit', {
+       const res = await fetch(url, {
            method: 'POST',
            body: form,
            headers: form.getHeaders(),
