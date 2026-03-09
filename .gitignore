@@ -12,7 +12,7 @@ env/
 .venv/
 bin/
 include/
-lib/
+/lib/
 share/
 pyvenv.cfg
 *.pyc
