@@ -50,6 +50,13 @@
     {
       "src": "/api/(.*)",
       "dest": "https://api.bidsmith.pro/api/$1"
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/"
     }
   ]
 }
