@@ -189,7 +189,7 @@ export default function Landing({ onEnterApp }) {
         <div style={styles.heroInner}>
           <p style={styles.heroKicker}>AI capture engine for federal bid teams</p>
           <img
-            src="/favicon.png"
+            src="/aris-logo.png"
             alt="BidSmith logo"
             style={styles.logo}
           />

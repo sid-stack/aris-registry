@@ -4,7 +4,7 @@ export default function Start({ onOpenLanding, onOpenTemplates, onOpenWorkspace 
   return (
     <main style={styles.page}>
       <section style={styles.card}>
-        <img src="/favicon.png" alt="Bidsmith logo" style={styles.logo} />
+        <img src="/aris-logo.png" alt="Bidsmith logo" style={styles.logo} />
         <h1 style={styles.title}>Bidsmith Entry</h1>
         <p style={styles.subtitle}>
           Choose where you want to start: product landing, templates playground, or analyst workspace.

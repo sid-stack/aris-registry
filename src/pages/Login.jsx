@@ -33,10 +33,7 @@ export default function Login({ onLogin }) {
         {/* Logo */}
         <div style={{ textAlign: "center", marginBottom: "36px" }}>
           <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "52px", height: "52px", background: "rgba(59,130,246,0.1)", border: "1px solid rgba(59,130,246,0.25)", borderRadius: "12px", marginBottom: "16px" }}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <path d="M12 2L4 6v6c0 5.25 3.5 10.15 8 11.35C16.5 22.15 20 17.25 20 12V6L12 2z" stroke="#3b82f6" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M9 12l2 2 4-4" stroke="#3b82f6" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            <img src="/aris-logo.png" alt="BidSmith logo" style={{ width: 30, height: 30, objectFit: "contain" }} />
           </div>
           <div style={{ fontSize: "22px", fontWeight: 800, color: "#f1f5f9", letterSpacing: "-0.02em", marginBottom: "4px" }}>BidSmith</div>
           <div style={{ fontSize: "12px", color: "#475569", letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 500 }}>Federal Bid Intelligence</div>
@@ -109,5 +106,4 @@ export default function Login({ onLogin }) {
     </div>
   );
 }
-
 
