@@ -1,26 +1,14 @@
-import { failResponse } from "../utils/response.js";
+export const notFoundHandler = (req, res, next) => {
+  const error = new Error(`Not Found - ${req.originalUrl}`);
+  res.status(404);
+  next(error);
+};
 
-export function notFoundHandler(req, res) {
-  res.status(404).json(failResponse("not_found", `Route not found: ${req.method} ${req.originalUrl}`));
-}
-
-export function errorHandler(err, req, res, _next) {
-  const requestId = req.id || "unknown";
-  const status = err.status || err.statusCode || 500;
-  const code = err.code || "internal_error";
-  const message = err.message || "Unexpected error";
-
-  console.error(
-    JSON.stringify({
-      level: "error",
-      requestId,
-      route: req.originalUrl,
-      method: req.method,
-      status,
-      code,
-      message,
-    }),
-  );
-
-  res.status(status).json(failResponse(code, message));
-}
+export const errorHandler = (err, req, res, next) => {
+  const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
+  res.status(statusCode);
+  res.json({
+    error: err.message,
+    stack: process.env.NODE_ENV === 'production' ? '🥞' : err.stack,
+  });
+};
