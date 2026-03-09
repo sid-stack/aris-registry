@@ -1465,6 +1465,10 @@ app.get("/api/generate-report-stream", async (req, res) => {
   res.end();
 });
 
+app.get("/", (req, res) => {
+  res.json({ status: "ok", service: "BidSmith API", version: "3.0.0" });
+});
+
 app.use(notFoundHandler);
 app.use(errorHandler);
 
