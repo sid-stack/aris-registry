@@ -51,6 +51,71 @@ const STRIPE_PREMIUM_PRODUCTS = {
 };
 const STRIPE_ARIS_CALL_PRICE_ID = process.env.STRIPE_PRICE_ARIS_CALL;
 
+const PRICING_TIERS = [
+  {
+    id: "starter",
+    name: "Starter",
+    monthlyPriceUSD: 29,
+    credits: 200,
+    description: "Core agents with 200 free calls, then $0.25/call.",
+    features: [
+      "Bid intelligence core pipeline",
+      "200 included calls/month",
+      "Usage overage at $0.25/call",
+    ],
+  },
+  {
+    id: "growth",
+    name: "Growth",
+    monthlyPriceUSD: 199,
+    credits: 1000,
+    description: "Includes 1,000 calls/month, then $0.20/call overage.",
+    features: [
+      "Everything in Starter",
+      "1,000 included calls/month",
+      "Usage overage at $0.20/call",
+      "Priority support",
+    ],
+  },
+  {
+    id: "pilot",
+    name: "Pilot",
+    monthlyPriceUSD: 2500,
+    credits: 5000,
+    description: "30-day done-with-you onboarding plus 5,000 calls.",
+    features: [
+      "Implementation onboarding",
+      "5,000 included calls",
+      "Capture + compliance setup",
+      "Weekly delivery reviews",
+    ],
+  },
+  {
+    id: "enterprise",
+    name: "Enterprise",
+    monthlyPriceUSD: null,
+    credits: -1,
+    description: "Unlimited calls, private endpoints, SLA, and private support.",
+    features: [
+      "Custom commercial terms",
+      "Private infrastructure options",
+      "SLA-backed uptime",
+      "Dedicated account management",
+    ],
+  },
+];
+
+function formatPricingTier(tier) {
+  return {
+    id: tier.id,
+    name: tier.name,
+    price: tier.monthlyPriceUSD,
+    credits: tier.credits,
+    description: tier.description,
+    features: tier.features,
+  };
+}
+
 const app = express();
 const PORT = process.env.PORT || 8080;
 const allowedOrigins = new Set([
@@ -695,6 +760,23 @@ function enforceDisqualification(compliance, text) {
   }
   return compliance;
 }
+
+function registerPricingRoutes(routeBase) {
+  app.get(`${routeBase}`, (_req, res) => {
+    res.json(PRICING_TIERS.map(formatPricingTier));
+  });
+
+  app.get(`${routeBase}/:id`, (req, res) => {
+    const tier = PRICING_TIERS.find((t) => t.id === String(req.params.id || "").toLowerCase());
+    if (!tier) {
+      return res.status(404).json({ error: "Tier not found" });
+    }
+    return res.json(formatPricingTier(tier));
+  });
+}
+
+registerPricingRoutes("/pricing");
+registerPricingRoutes("/api/pricing");
 
 // ─── /api/audit ───────────────────────────────────────────────────────────────
 app.post("/api/audit", upload.single("file"), async (req, res) => {
