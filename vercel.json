@@ -15,10 +15,6 @@
       "destination": "https://api.bidsmith.pro/api/$1"
     },
     {
-      "source": "/docs/:path*",
-      "destination": "https://arislabs.mintlify.dev/docs/:path*"
-    },
-    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
