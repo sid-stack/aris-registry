@@ -1604,16 +1604,16 @@ OUTPUT THIS EXACT STRUCTURE:
 > **Pricing:** Starter $29/mo | Growth $199/mo | Pilot $2,500/30days
 > **Action:** Visit bidsmith.pro to authorize
 
-Return ONLY valid Markdown. No preamble, no explanations, no LaTeX, no HTML.`
-    }], 3000, "drafter"));
+Return ONLY valid Markdown. No preamble, no explanations, no LaTeX, no HTML.`,
+    }], 3000, "drafter")));
     emit({ type: "agent_done", stage: 2, agent: AGENTS[1], data: { preview: memo_draft.slice(0, 200) } });
 
     // Stage 3: Reviewer — compliance matrix
     emit({ type: "agent_start", stage: 3, agent: AGENTS[2] });
     const compliance_report = sanitizeMarkdown(await withHeartbeat("reviewer", 3, AGENTS[2], () => llm(client, [{
       role: "user",
-      content: `You are a Federal Compliance Officer. Generate a **Federal RFP Compliance Risk Matrix Report** using the EXACT markdown structure below.\n\n# 📄 Executive Summary\n\n**Client:** [Company Name or "Prospective Client"]\n**RFP:** [Title] – **Agency:** [Agency]\n**Date:** [Current Date]\n\n## 1️⃣ Solicitation Overview\n\n| Item | Detail |\n|---|---|\n| **Solicitation ID** | [Solicitation ID] |\n| **Title** | [Title] |\n| **Agency** | [Agency] |\n| **Due Date** | [Deadline] |\n| **Key Compliance Regimes** | [List regimes like FAR, DFARS, NIST, etc.] |\n\n## 2️⃣ Methodology\n\n1. **Download & Normalize** – Solicitation documents fetched and converted to searchable text.\n2. **Clause Extraction** – AI analysis of federal compliance clauses.\n3. **Validation** – Cross-check against mandatory checklists (FedRAMP, CMMC, etc.).\n4. **Scoring** – Risk-weighted compliance score calculation.\n\n## 3️⃣ Compliance Risk Matrix\n\n| Regime/Category | Clause | Found? | Risk Weight (1-10) | Comments / Issues |\n|---|---|---|---|---|\n[Generate 10-12 rows covering: Set-Aside, Past Performance, Bonding, Security Clearance, Insurance, Certifications, Subcontracting. Use ✅/❌/⚠️ in "Found?" column.]\n\n**Overall Compliance Score:** [Calculate % based on findings]\n\n## 4️⃣ Findings & Recommendations\n\n| # | Finding | Impact | Recommended Action |\n|---|---|---|---|\n[List top 3-5 high-risk findings]\n\n## 5️⃣ Appendices\n\n- **Appendix A** – Full Clause Extraction Log\n- **Appendix B** – Solicitation Documents\n\nReturn ONLY the markdown. No preamble.\n\nOPPORTUNITY:\n${ctx}\n\nBRIEF:\n${analysis.slice(0, 2000)}`
-    }], 2048, "reviewer"));
+      content: `You are a Federal Compliance Officer. Generate a **Federal RFP Compliance Risk Matrix Report** using the EXACT markdown structure below.\n\n# 📄 Executive Summary\n\n**Client:** [Company Name or "Prospective Client"]\n**RFP:** [Title] – **Agency:** [Agency]\n**Date:** [Current Date]\n\n## 1️⃣ Solicitation Overview\n\n| Item | Detail |\n|---|---|\n| **Solicitation ID** | [Solicitation ID] |\n| **Title** | [Title] |\n| **Agency** | [Agency] |\n| **Due Date** | [Deadline] |\n| **Key Compliance Regimes** | [List regimes like FAR, DFARS, NIST, etc.] |\n\n## 2️⃣ Methodology\n\n1. **Download & Normalize** – Solicitation documents fetched and converted to searchable text.\n2. **Clause Extraction** – AI analysis of federal compliance clauses.\n3. **Validation** – Cross-check against mandatory checklists (FedRAMP, CMMC, etc.).\n4. **Scoring** – Risk-weighted compliance score calculation.\n\n## 3️⃣ Compliance Risk Matrix\n\n| Regime/Category | Clause | Found? | Risk Weight (1-10) | Comments / Issues |\n|---|---|---|---|---|\n[Generate 10-12 rows covering: Set-Aside, Past Performance, Bonding, Security Clearance, Insurance, Certifications, Subcontracting. Use ✅/❌/⚠️ in "Found?" column.]\n\n**Overall Compliance Score:** [Calculate % based on findings]\n\n## 4️⃣ Findings & Recommendations\n\n| # | Finding | Impact | Recommended Action |\n|---|---|---|---|\n[List top 3-5 high-risk findings]\n\n## 5️⃣ Appendices\n\n- **Appendix A** – Full Clause Extraction Log\n- **Appendix B** – Solicitation Documents\n\nReturn ONLY the markdown. No preamble.\n\nOPPORTUNITY:\n${ctx}\n\nBRIEF:\n${analysis.slice(0, 2000)}`,
+    }], 2048, "reviewer")));
     emit({ type: "agent_done", stage: 3, agent: AGENTS[2], data: { compliance_report } });
 
     // Stage 4: Intel — win themes + risk flags
@@ -1669,8 +1669,8 @@ CRITICAL RULES - FINAL FORMAT CHECK:
 Output ONLY finalized clean Markdown. No preamble, no explanations. VERIFY: No LaTeX, no HTML, valid Markdown tables only.`
     }, {
       role: "user",
-      content: `Review and finalize this Risk Memorandum draft:\n\n${memo_draft}`
-    }], 3000, "reviewer"));
+      content: `Review and finalize this Risk Memorandum draft:\n\n${memo_draft}`,
+    }], 3000, "reviewer")));
     emit({ type: "agent_done", stage: 5, agent: AGENTS[4], data: { proposal_draft } });
 
     emit({
