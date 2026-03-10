@@ -169,7 +169,7 @@ export default function Landing({ onEnterApp }) {
             <a href="#features" style={styles.navLink}>Features</a>
             <a href="#workflow" style={styles.navLink}>Workflow</a>
             <a href="#pricing" style={styles.navLink}>Pricing</a>
-            <a href="https://arislabs.mintlify.app" target="_blank" rel="noopener noreferrer" style={styles.navLink}>Docs</a>
+            <a href="/docs" target="_blank" rel="noopener noreferrer" style={styles.navLink}>Docs</a>
             <a href="#contact" style={styles.navLink}>Contact</a>
           </nav>
           <button
@@ -367,7 +367,7 @@ export default function Landing({ onEnterApp }) {
             <a href="/privacy" style={styles.footerLink}>Privacy Policy</a>
             <a href="/terms" style={styles.footerLink}>Terms of Service</a>
             <a href="/cookies" style={styles.footerLink}>Cookie Policy</a>
-            <a href="https://arislabs.mintlify.app" target="_blank" rel="noopener noreferrer" style={styles.footerLink}>Developer Docs</a>
+            <a href="/docs" target="_blank" rel="noopener noreferrer" style={styles.footerLink}>Developer Docs</a>
           </div>
           <div>
             <p style={styles.footerHeading}>Template Library</p>
