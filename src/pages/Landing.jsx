@@ -161,21 +161,8 @@ export default function Landing({ onEnterApp }) {
     <div style={styles.page}>
       <header style={styles.navbar}>
         <div style={styles.navInner}>
-          <a
-            href="/"
-            style={styles.brand}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = "translateY(-2px)";
-              e.currentTarget.style.boxShadow = "0 6px 16px rgba(15, 23, 42, 0.15)";
-              e.currentTarget.style.background = "#1e293b";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = "translateY(0)";
-              e.currentTarget.style.boxShadow = "none";
-              e.currentTarget.style.background = "#0f172a";
-            }}
-          >
-            <img src="/aris-labs.png" alt="Aris Labs" style={{ height: 20, width: "auto", objectFit: "contain" }} />
+          <a href="/" style={styles.brand}>
+            <BriefcaseBusiness size={20} />
             <span>BidSmith</span>
           </a>
           <nav style={styles.navLinksDesktop}>
@@ -425,16 +412,11 @@ const styles = {
   brand: {
     display: "inline-flex",
     alignItems: "center",
-    gap: 10,
-    background: "#0f172a",
-    color: "#ffffff",
+    gap: 8,
+    color: "#0f172a",
     fontWeight: 800,
-    fontSize: "1.1rem",
     textDecoration: "none",
     marginRight: "auto",
-    padding: "8px 14px",
-    borderRadius: "8px",
-    transition: "all 0.2s ease",
   },
   navLinksDesktop: {
     display: "flex",
