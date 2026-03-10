@@ -1,40 +1,114 @@
 import { useState } from "react";
 
 const QuestionIcon = () => (
-  <img
-    src="https://unpkg.com/lucide-static@latest/icons/help-circle.svg"
-    alt="Question"
-    className="lucide w-5 h-5"
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
     width="20"
     height="20"
-  />
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="12" cy="12" r="10" />
+    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+    <line x1="12" y1="17" x2="12.01" y2="17" />
+  </svg>
 );
 
 function FaqItem({ question, answer, open, onToggle }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white shadow-sm transition-all duration-200 hover:shadow-md">
+    <div
+      style={{
+        background: "#ffffff",
+        border: "1px solid #e2e8f0",
+        borderRadius: "12px",
+        boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)",
+        overflow: "hidden",
+        marginBottom: "12px",
+        transition: "all 0.2s ease-in-out",
+      }}
+    >
       <button
         type="button"
-        className="w-full flex items-start gap-3 text-left px-4 py-4 md:px-5"
         onClick={onToggle}
         aria-expanded={open}
+        style={{
+          width: "100%",
+          display: "flex",
+          alignItems: "flex-start",
+          gap: "14px",
+          textAlign: "left",
+          padding: "18px 20px",
+          background: "transparent",
+          border: "none",
+          cursor: "pointer",
+        }}
       >
-        <span className="mt-0.5 inline-flex h-7 w-7 items-center justify-center rounded-full bg-indigo-50 text-indigo-600 shrink-0">
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: "28px",
+            height: "28px",
+            borderRadius: "50%",
+            background: "#eef2ff",
+            color: "#4f46e5",
+            flexShrink: 0,
+            marginTop: "2px",
+          }}
+        >
           <QuestionIcon />
         </span>
-        <span className="flex-1 font-semibold text-slate-800 leading-6">{question}</span>
         <span
-          className={`text-slate-400 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+          style={{
+            flex: 1,
+            fontWeight: 700,
+            color: "#0f172a",
+            fontSize: "1.05rem",
+            lineHeight: 1.4,
+            fontFamily: "'Inter', sans-serif"
+          }}
+        >
+          {question}
+        </span>
+        <span
+          style={{
+            color: "#94a3b8",
+            fontSize: "1.2rem",
+            transform: open ? "rotate(180deg)" : "rotate(0deg)",
+            transition: "transform 0.3s ease",
+          }}
           aria-hidden="true"
         >
           ▾
         </span>
       </button>
+
       <div
-        className={`grid transition-all duration-200 ${open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}
+        style={{
+          display: "grid",
+          gridTemplateRows: open ? "1fr" : "0fr",
+          opacity: open ? 1 : 0,
+          transition: "all 0.3s ease-in-out",
+        }}
       >
-        <div className="overflow-hidden">
-          <p className="px-4 pb-4 md:px-5 md:pb-5 text-sm leading-6 text-slate-600">{answer}</p>
+        <div style={{ overflow: "hidden" }}>
+          <p
+            style={{
+              padding: "0 20px 20px 62px",
+              margin: 0,
+              fontSize: "0.95rem",
+              lineHeight: 1.6,
+              color: "#475569",
+              fontFamily: "'Inter', sans-serif"
+            }}
+          >
+            {answer}
+          </p>
         </div>
       </div>
     </div>
@@ -46,48 +120,80 @@ export default function FaqSection() {
 
   const items = [
     {
-      q: "How does Bidsmith Lite make my RFP bids faster?",
-      a: "The discovery engine routes to the best-fit agent in seconds and removes repetitive bid-prep steps. Teams usually move from intake to first compliant draft in minutes.",
+      q: "How does the Aris Protocol accelerate RFP responses?",
+      a: "The discovery engine routes your query to the best-fit agent in milliseconds. Instead of manual document review, teams move from opportunity identification to a highly compliant first draft in under 10 minutes.",
     },
     {
       q: "Will my bids be compliant with SAM.gov requirements?",
-      a: "Requests pass through schema-level validation before submission. Missing fields and malformed payloads are blocked early, reducing preventable rework.",
+      a: "Yes. Every request passes through a rigorous semantic validation against FAR/DFARS thresholds before the proposal is stitched together. Missing clauses or risk factors are flagged immediately.",
     },
     {
-      q: "How predictable is pricing as my volume grows?",
-      a: "The pricing ladder is usage-transparent: Starter and Growth have clear call economics, Pilot includes a fixed credit block, and Enterprise is contract-based.",
+      q: "What is the pricing model?",
+      a: "We offer transparent commercial tiers: a $29/mo Starter plan (200 calls), a $199/mo Growth plan (1,000 calls), a $2,500 30-day Pilot, and Custom Enterprise options for high-volume integrators.",
     },
     {
-      q: "How does this improve win rate, not just speed?",
-      a: "Win-rate lift comes from higher throughput plus cleaner compliance output. Better response quality under deadline pressure increases competitive coverage.",
+      q: "Does this actually improve win rates?",
+      a: "Win-rate lift is derived from two factors: pipeline coverage (you can bid on more contracts) and compliance purity (you are less likely to be disqualified on technicalities).",
     },
     {
-      q: "Can we run this with custom capabilities?",
-      a: "Yes. You can register custom capabilities and still use the same discovery, handshake, and settlement flow without changing the operational model.",
+      q: "Can we run this with our own proprietary agents or data?",
+      a: "Absolutely. The Aris SDK allows you to register custom agent capabilities while continuing to use our standard discovery and payload delivery rails.",
     },
     {
-      q: "Is my data safe through the agent flow?",
-      a: "The handshake uses signed intent tokens and direct agent-to-agent payload transfer. Sensitive content stays out of intermediary surfaces by design.",
+      q: "Is my proprietary data secure?",
+      a: "Yes. The Aris Protocol utilizes a zero-knowledge execution environment. Handshakes use signed intent tokens, and payloads are delivered directly between secure endpoints without being stored by intermediaries.",
     },
     {
-      q: "How quickly can we prove ROI?",
-      a: "Most teams can measure cycle-time compression in week one, then validate compliance and conversion improvements over a 30-day pilot window.",
+      q: "How fast can we see ROI?",
+      a: "Most teams experience significant cycle-time compression within the first week. The 30-day pilot is specifically designed to validate compliance lift and throughput improvements before moving to production.",
     },
   ];
 
   return (
-    <section className="bg-gradient-to-b from-white to-slate-50 py-14 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-indigo-600">Objection Handling</p>
-          <h2 className="text-2xl md:text-3xl font-bold text-slate-900 mt-2">
-            Frequently Asked Questions
+    <section style={{ padding: "80px 20px", background: "#f8fafc", borderTop: "1px solid #e2e8f0" }}>
+      <div style={{ maxWidth: "800px", margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: "40px" }}>
+          <p
+            style={{
+              margin: "0 0 10px",
+              color: "#4f46e5",
+              fontSize: "0.8rem",
+              fontWeight: 700,
+              textTransform: "uppercase",
+              letterSpacing: "0.12em",
+              fontFamily: "'Inter', sans-serif"
+            }}
+          >
+            Common Questions
+          </p>
+          <h2
+            style={{
+              margin: 0,
+              fontSize: "clamp(1.75rem, 4vw, 2.5rem)",
+              fontWeight: 800,
+              color: "#0f172a",
+              fontFamily: "'Inter', sans-serif",
+              letterSpacing: "-0.02em"
+            }}
+          >
+            Built for Scale and Security
           </h2>
-          <p className="text-slate-600 mt-3 text-sm md:text-base">
-            Every answer is designed to map to buyer outcomes: speed, compliance, and measurable ROI.
+          <p
+            style={{
+              marginTop: "12px",
+              fontSize: "1.05rem",
+              color: "#64748b",
+              lineHeight: 1.6,
+              maxWidth: "600px",
+              margin: "12px auto 0",
+              fontFamily: "'Inter', sans-serif"
+            }}
+          >
+            Learn how the Aris Protocol transforms federal capture management.
           </p>
         </div>
-        <div className="space-y-3">
+
+        <div>
           {items.map((item, idx) => (
             <FaqItem
               key={item.q}
