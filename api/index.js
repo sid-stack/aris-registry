@@ -1,6 +1,7 @@
 import express from "express";
 import rateLimit from "express-rate-limit";
 import cors from "cors";
+import helmet from "helmet";
 import multer from "multer";
 import OpenAI from "openai";
 import { readFileSync } from "fs";
@@ -9,6 +10,7 @@ import { dirname, join } from "path";
 import { requestId } from "./middleware/requestId.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { asyncHandler } from "./utils/asyncHandler.js";
+import { buildRiskMemoPrompt } from "./src/promptBuilder.js";
 import { okResponse, failResponse } from "./utils/response.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -236,13 +238,7 @@ app.use((req, res, next) => {
   });
   next();
 });
-app.use((req, res, next) => {
-  res.setHeader("X-Content-Type-Options", "nosniff");
-  res.setHeader("X-Frame-Options", "DENY");
-  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
-  res.setHeader("Permissions-Policy", "geolocation=(), microphone=(), camera=()");
-  next();
-});
+app.use(helmet());
 app.use(express.json({ limit: "2mb" }));
 
 
@@ -1528,11 +1524,10 @@ app.get("/api/generate-report-stream", async (req, res) => {
 
     // Stage 2: Drafter — CONFIDENTIAL RISK MEMORANDUM
     emit({ type: "agent_start", stage: 2, agent: AGENTS[1] });
-    const memo_draft = await withHeartbeat("drafter", 2, AGENTS[1], () => llm(client, [{
-      role: "user",
-      content: `You are an elite Federal Proposal Capture Manager. Generate a CONFIDENTIAL RISK MEMORANDUM using the EXACT markdown structure below. Fill every [ ] bracket from the compliance intelligence brief. DO NOT produce generic marketing text, company boilerplate, or "Acme Solutions"-style filler.\n\nEnsure all table content is concise to prevent layout overflow. Do not use LaTeX formatting (e.g. $...$) for standard text.\n\nOUTPUT THIS EXACT STRUCTURE:\n\n# 📄 CONFIDENTIAL RISK MEMORANDUM\n\n**Prepared For:** [Company/Capture Team from data, or "Your Capture Team" if unknown]\n**Prepared By:** BidSmith Automated Intelligence / S. Aris\n**Subject:** Phase 1 Technical Disqualification Audit\n**Solicitation ID:** [solicitation number from brief] | **Agency:** [agency name from brief]\n\n---\n\n### 🚨 EXECUTIVE RISK SUMMARY\n\n[Write exactly 3 sentences. Be ruthless and analytical. State the compliance risk posture, the number of critical traps found, and the manual review recommendation.]\n\n---\n\n### 🍱 THE "BID-KILLER" MATRIX\n\n| Risk Level | Risk Category | FAR/DFARS Citation | The Hidden Requirement | Impact if Missed | Remediation Action |\n| --- | --- | --- | --- | --- | --- |\n[Generate 5-7 rows. Use 🔴 **CRITICAL** for immediate DQ risks, 🟡 **HIGH RISK** for technical downgrade risks, 🟢 **COMPLIANT** for standard boilerplate areas. Every row MUST have a real FAR/DFARS clause number or Section L/M reference from the brief. Keep descriptions concise.]\n\n---\n\n### 🧠 ARIS ENGINE RECOMMENDATIONS\n\n[2 sentences mapping specific FAR flow-downs to the offeror's technical volume actions. Name the clauses explicitly.]\n\n**Time Saved by BidSmith:** ~14 Hours of manual FAR clause extraction.\n\n---\n\n### 📝 STATEMENT OF WORK: PHASE 2 AUTHORIZATION\n\n> **FULL PROPOSAL MAPPING & COMPLIANCE MATRIX**\n> This document represents a partial Phase 1 extraction.\n> To authorize the BidSmith Engine to generate the complete 40-point Compliance Matrix and Volume Outline for this solicitation:\n> **Pricing Options:** Starter $29/mo + $0.25/call | Growth $199/mo (1,000 calls) + $0.20/call | Pilot $2,500 / 30 days (onboarding + 5,000 calls)\n> **Turnaround:** 24 Hours for pilot onboarding kickoff\n> **Action:** Visit bidsmith.pro to authorize execution.\n\nCOMPLIANCE INTELLIGENCE BRIEF:\n${analysis}`
-      content: `You are an elite Federal Proposal Capture Manager. Generate a CONFIDENTIAL RISK MEMORANDUM using the EXACT markdown structure below. Fill every [ ] bracket from the compliance intelligence brief. DO NOT produce generic marketing text, company boilerplate, or "Acme Solutions"-style filler.\n\nEnsure all table content is concise to prevent layout overflow. Do not use LaTeX formatting (e.g. $...$) for standard text.\n\nOUTPUT THIS EXACT STRUCTURE:\n\n# 📄 CONFIDENTIAL RISK MEMORANDUM\n\n**Prepared For:** [Company/Capture Team from data, or "Your Capture Team" if unknown]\n**Prepared By:** BidSmith Automated Intelligence / S. Aris\n**Subject:** Phase 1 Technical Disqualification Audit\n**Solicitation ID:** [solicitation number from brief] | **Agency:** [agency name from brief]\n\n---\n\n### 🚨 EXECUTIVE RISK SUMMARY\n\n[Write exactly 3 sentences. Be ruthless and analytical. State the compliance risk posture, the number of critical traps found, and the manual review recommendation.]\n\n---\n\n### 🍱 THE "BID-KILLER" MATRIX\n\n| Risk Level | Risk Category | FAR/DFARS Citation | The Hidden Requirement | Impact if Missed | Remediation Action |\n| --- | --- | --- | --- | --- | --- |\n[Generate 5-7 rows. Use 🔴 **CRITICAL** for immediate DQ risks, 🟡 **HIGH RISK** for technical downgrade risks, 🟢 **COMPLIANT** for standard boilerplate areas. Every row MUST have a real FAR/DFARS clause number or Section L/M reference from the brief. Keep descriptions concise. For example:\n| 🔴 **CRITICAL** | Cybersecurity | DFARS 252.204-7012 | Must have a NIST SP 800-171 assessment score posted in SPRS. | Immediate disqualification. | Post score to SPRS before submission. |\n]\n\n---\n\n### 🧠 ARIS ENGINE RECOMMENDATIONS\n\n[2 sentences mapping specific FAR flow-downs to the offeror's technical volume actions. Name the clauses explicitly.]\n\n**Time Saved by BidSmith:** ~14 Hours of manual FAR clause extraction.\n\n---\n\n### 📝 STATEMENT OF WORK: PHASE 2 AUTHORIZATION\n\n> **FULL PROPOSAL MAPPING & COMPLIANCE MATRIX**\n> This document represents a partial Phase 1 extraction.\n> To authorize the BidSmith Engine to generate the complete 40-point Compliance Matrix and Volume Outline for this solicitation:\n> **Pricing Options:** Starter $29/mo + $0.25/call | Growth $199/mo (1,000 calls) + $0.20/call | Pilot $2,500 / 30 days (onboarding + 5,000 calls)\n> **Turnaround:** 24 Hours for pilot onboarding kickoff\n> **Action:** Visit bidsmith.pro to authorize execution.\n\nCOMPLIANCE INTELLIGENCE BRIEF:\n${analysis}`
-    }], 3000, "drafter"));
+    const memo_draft = await withHeartbeat("drafter", 2, AGENTS[1], async () => {
+      const prompt = await buildRiskMemoPrompt(analysis);
+      return llm(client, [{ role: "user", content: prompt }], 3000, "drafter");
+    });
     emit({ type: "agent_done", stage: 2, agent: AGENTS[1], data: { preview: memo_draft.slice(0, 200) } });
 
     // Stage 3: Reviewer — compliance matrix
@@ -1638,8 +1633,19 @@ app.get("/favicon.ico", (req, res) => res.status(204).end());
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`✅ BidSmith API → http://localhost:${PORT}`);
   if (!process.env.OPENROUTER_API_KEY) console.warn("⚠️  OPENROUTER_API_KEY not set");
   if (!process.env.SAM_GOV_API_KEY && !process.env.SAM_API_KEY) console.warn("⚠️  SAM_GOV_API_KEY not set");
 });
+
+function shutdown() {
+  console.log("🔌 Received shutdown signal – closing server");
+  server.close(() => {
+    console.log("🛑 Server closed");
+    process.exit(0);
+  });
+}
+
+process.on("SIGTERM", shutdown);
+process.on("SIGINT", shutdown);
