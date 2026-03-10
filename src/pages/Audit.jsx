@@ -919,11 +919,11 @@ export default function Audit({ onProceed }) {
                             </button>
                           </div>
                         </div>
-                        <div id="risk-memo-print" style={{ padding: "32px 36px", fontSize: "14px", lineHeight: 1.8, color: "#1e293b", fontFamily: "'Inter', sans-serif" }}>
+                        <div id="risk-memo-print" style={{ padding: "32px 36px", fontSize: "14px", lineHeight: 1.8, color: "#1e293b", fontFamily: "'Inter', sans-serif", overflowX: "auto", maxWidth: "100%", wordBreak: "break-word" }}>
                           <ReactMarkdown components={{
                             h1: ({ children }) => <h1 style={{ fontSize: "22px", fontWeight: 900, color: "#0f172a", marginBottom: "4px", letterSpacing: "-0.02em", fontFamily: "'Inter', sans-serif" }}>{children}</h1>,
                             h2: ({ children }) => <h2 style={{ fontSize: "16px", fontWeight: 800, color: "#1e40af", marginTop: "28px", marginBottom: "12px", letterSpacing: "-0.01em", fontFamily: "'Inter', sans-serif", borderBottom: "1px solid #e0f2fe", paddingBottom: "8px" }}>{children}</h2>,
-                            p: ({ children }) => <p style={{ marginBottom: "14px", lineHeight: 1.8, color: "#334155" }}>{children}</p>,
+                            p: ({ children }) => <p style={{ marginBottom: "14px", lineHeight: 1.8, color: "#334155", wordBreak: "break-word" }}>{children}</p>,
                             blockquote: ({ children }) => <blockquote style={{ margin: "16px 0", padding: "12px 20px", background: "#eff6ff", borderLeft: "3px solid #3b82f6", borderRadius: "0 6px 6px 0", color: "#1e40af", fontStyle: "italic", fontSize: "13px", lineHeight: 1.6 }}>{children}</blockquote>,
                             strong: ({ children }) => <strong style={{ fontWeight: 700, color: "#0f172a" }}>{children}</strong>,
                             li: ({ children }) => <li style={{ marginBottom: "6px", lineHeight: 1.7, color: "#334155" }}>{children}</li>,
@@ -932,7 +932,7 @@ export default function Audit({ onProceed }) {
                             code: ({ children }) => <code style={{ background: "#f1f5f9", padding: "2px 6px", borderRadius: "4px", fontSize: "12px", fontFamily: "'IBM Plex Mono', monospace", color: "#334155" }}>{children}</code>,
                             table: ({ children }) => (<div style={{ overflowX: "auto", marginBottom: "16px", borderRadius: "6px", border: "1px solid #e2e8f0" }}><table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px", minWidth: "640px" }}>{children}</table></div>),
                             th: ({ children }) => <th style={{ padding: "8px 12px", background: "#f8fafc", border: "1px solid #e2e8f0", fontWeight: 700, color: "#475569", textAlign: "left", fontFamily: "'IBM Plex Mono', monospace", fontSize: "10px", letterSpacing: "0.06em", textTransform: "uppercase" }}>{children}</th>,
-                            td: ({ children }) => <td style={{ padding: "8px 12px", border: "1px solid #e2e8f0", color: "#334155", verticalAlign: "top", minWidth: "80px", maxWidth: "220px", wordBreak: "break-word", lineHeight: 1.5 }}>{children}</td>,
+                            td: ({ children }) => <td style={{ padding: "8px 12px", border: "1px solid #e2e8f0", color: "#334155", verticalAlign: "top", minWidth: "80px", maxWidth: "220px", wordBreak: "break-word", lineHeight: 1.5, overflowWrap: "break-word" }}>{children}</td>,
                           }}>{report.proposal_draft}</ReactMarkdown>
                         </div>
                       </div>
