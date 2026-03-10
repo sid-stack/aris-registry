@@ -1275,57 +1275,57 @@ ${analysis}`
     console.log(`[/api/generate-report] Stage 3: Compliance Matrix`);
     const compliance_report = await llm(client, [{
       role: "user",
-      content: `You are a Federal Compliance Officer. Generate a **Federal RFP Compliance Risk Matrix Report** using the EXACT markdown structure below.
+      content: `You are a Federal Compliance Officer. Generate a **Federal RFP Compliance Risk Matrix Report** using ONLY valid Markdown format.
+
+CRITICAL RULES:
+1. Use ONLY Markdown syntax - NO LaTeX, NO HTML
+2. Tables MUST use proper pipe syntax with | --- | separators
+3. Each table row MUST start and end with |
+4. Keep cell content concise (under 60 chars)
+5. Use ✅ ❌ ⚠️ emojis in "Found?" column
+
+OUTPUT THIS STRUCTURE:
 
 # 📄 Executive Summary
 
-**Client:** [Company Name or "Prospective Client"]
+**Client:** [Company]
 **RFP:** [Title] – **Agency:** [Agency]
 **Date:** [Current Date]
 
 ## 1️⃣ Solicitation Overview
 
 | Item | Detail |
-|---|---|
-| **Solicitation ID** | [Solicitation ID] |
+| --- | --- |
+| **Solicitation ID** | [ID] |
 | **Title** | [Title] |
 | **Agency** | [Agency] |
 | **Due Date** | [Deadline] |
-| **Key Compliance Regimes** | [List regimes like FAR, DFARS, NIST, etc.] |
+| **Key Compliance Regimes** | [FAR, DFARS, NIST, etc.] |
 
 ## 2️⃣ Methodology
 
-1. **Download & Normalize** – Solicitation documents fetched and converted to searchable text.
-2. **Clause Extraction** – AI analysis of federal compliance clauses.
-3. **Validation** – Cross-check against mandatory checklists (FedRAMP, CMMC, etc.).
-4. **Scoring** – Risk-weighted compliance score calculation.
+1. Download & Normalize
+2. Clause Extraction  
+3. Validation
+4. Scoring
 
 ## 3️⃣ Compliance Risk Matrix
 
-| Regime/Category | Clause | Found? | Risk Weight (1-10) | Comments / Issues |
-|---|---|---|---|---|
-[Generate 10-12 rows covering: Set-Aside, Past Performance, Bonding, Security Clearance, Insurance, Certifications, Subcontracting. Use ✅/❌/⚠️ in "Found?" column.]
+| Regime/Category | Clause | Found? | Risk Weight | Comments |
+| --- | --- | --- | --- | --- |
+| [Category] | [FAR/DFARS] | ✅/❌/⚠️ | [1-10] | [Brief note] |
+[10-12 rows]
 
-**Overall Compliance Score:** [Calculate % based on findings (e.g. 78%)]
+**Overall Compliance Score:** [XX]%
 
 ## 4️⃣ Findings & Recommendations
 
 | # | Finding | Impact | Recommended Action |
-|---|---|---|---|
-[List top 3-5 high-risk findings]
+| --- | --- | --- | --- |
+| 1 | [Finding] | [Impact] | [Action] |
+[3-5 rows]
 
-## 5️⃣ Appendices
-
-- **Appendix A** – Full Clause Extraction Log
-- **Appendix B** – Solicitation Documents
-
-Return ONLY the markdown. No preamble.
-
-OPPORTUNITY DATA:
-${ctx}
-
-COMPLIANCE BRIEF:
-${analysis.slice(0, 2000)}`
+Return ONLY valid Markdown. No preamble, no LaTeX, no HTML.`
     }], 2048, "reviewer");
 
     // ── Stage 4: Intel — win themes + risk flags ──────────────────────────────
@@ -1530,7 +1530,62 @@ app.get("/api/generate-report-stream", async (req, res) => {
     emit({ type: "agent_start", stage: 2, agent: AGENTS[1] });
     const memo_draft = await withHeartbeat("drafter", 2, AGENTS[1], () => llm(client, [{
       role: "user",
-      content: `You are an elite Federal Proposal Capture Manager. Generate a CONFIDENTIAL RISK MEMORANDUM using the EXACT markdown structure below. Fill every [ ] bracket from the compliance intelligence brief. DO NOT produce generic marketing text, company boilerplate, or "Acme Solutions"-style filler.\n\nEnsure all table content is concise to prevent layout overflow. Do not use LaTeX formatting (e.g. $...$) for standard text.\n\nOUTPUT THIS EXACT STRUCTURE:\n\n# 📄 CONFIDENTIAL RISK MEMORANDUM\n\n**Prepared For:** [Company/Capture Team from data, or "Your Capture Team" if unknown]\n**Prepared By:** BidSmith Automated Intelligence / S. Aris\n**Subject:** Phase 1 Technical Disqualification Audit\n**Solicitation ID:** [solicitation number from brief] | **Agency:** [agency name from brief]\n\n---\n\n### 🚨 EXECUTIVE RISK SUMMARY\n\n[Write exactly 3 sentences. Be ruthless and analytical. State the compliance risk posture, the number of critical traps found, and the manual review recommendation.]\n\n---\n\n### 🍱 THE "BID-KILLER" MATRIX\n\n| Risk Level | Risk Category | FAR/DFARS Citation | The Hidden Requirement | Impact if Missed | Remediation Action |\n| --- | --- | --- | --- | --- | --- |\n[Generate 5-7 rows. Use 🔴 **CRITICAL** for immediate DQ risks, 🟡 **HIGH RISK** for technical downgrade risks, 🟢 **COMPLIANT** for standard boilerplate areas. Every row MUST have a real FAR/DFARS clause number or Section L/M reference from the brief. Keep descriptions concise.]\n\n---\n\n### 🧠 ARIS ENGINE RECOMMENDATIONS\n\n[2 sentences mapping specific FAR flow-downs to the offeror's technical volume actions. Name the clauses explicitly.]\n\n**Time Saved by BidSmith:** ~14 Hours of manual FAR clause extraction.\n\n---\n\n### 📝 STATEMENT OF WORK: PHASE 2 AUTHORIZATION\n\n> **FULL PROPOSAL MAPPING & COMPLIANCE MATRIX**\n> This document represents a partial Phase 1 extraction.\n> To authorize the BidSmith Engine to generate the complete 40-point Compliance Matrix and Volume Outline for this solicitation:\n> **Pricing Options:** Starter $29/mo + $0.25/call | Growth $199/mo (1,000 calls) + $0.20/call | Pilot $2,500 / 30 days (onboarding + 5,000 calls)\n> **Turnaround:** 24 Hours for pilot onboarding kickoff\n> **Action:** Visit bidsmith.pro to authorize execution.\n\nCOMPLIANCE INTELLIGENCE BRIEF:\n${analysis}`
+      content: `You are an elite Federal Proposal Capture Manager. Generate a CONFIDENTIAL RISK MEMORANDUM using ONLY valid Markdown format. DO NOT use LaTeX, HTML tags, or any other formatting - STRICTLY Markdown only.
+
+CRITICAL FORMATTING RULES:
+1. Use ONLY standard Markdown syntax (headers, bold, tables, blockquotes)
+2. Tables MUST use proper Markdown pipe syntax: | Header | Header |
+3. Each table row MUST start and end with | 
+4. Use | --- | --- | separator lines between header and data rows
+5. NO LaTeX commands ($...$, \\command, \begin, etc.)
+6. NO HTML tags (<div>, <table>, etc.)
+7. Keep table cell content concise (under 80 chars per cell)
+8. Use line breaks between sections
+
+OUTPUT THIS EXACT STRUCTURE:
+
+# 📄 CONFIDENTIAL RISK MEMORANDUM
+
+**Prepared For:** [Company/Capture Team]
+**Prepared By:** BidSmith Automated Intelligence / S. Aris  
+**Subject:** Phase 1 Technical Disqualification Audit
+**Solicitation ID:** [ID] | **Agency:** [Agency]
+
+---
+
+### 🚨 EXECUTIVE RISK SUMMARY
+
+[3 sentences only - compliance risk posture, critical traps count, manual review needed]
+
+---
+
+### 🍱 THE "BID-KILLER" MATRIX
+
+| Risk Level | Risk Category | FAR/DFARS Citation | Hidden Requirement | Impact if Missed | Remediation Action |
+| --- | --- | --- | --- | --- | --- |
+| 🔴 CRITICAL | [Category] | [FAR/DFARS clause] | [Specific requirement] | [DQ consequence] | [Specific action] |
+| 🟡 HIGH RISK | [Category] | [FAR/DFARS clause] | [Specific requirement] | [Technical downgrade] | [Specific action] |
+[5-7 rows total]
+
+---
+
+### 🧠 ARIS ENGINE RECOMMENDATIONS
+
+[2 sentences with specific FAR citations]
+
+**Time Saved by BidSmith:** ~14 Hours
+
+---
+
+### 📝 STATEMENT OF WORK: PHASE 2 AUTHORIZATION
+
+> **FULL PROPOSAL MAPPING & COMPLIANCE MATRIX**
+> This document represents a partial Phase 1 extraction.
+> To authorize Phase 2 execution:
+> **Pricing:** Starter $29/mo | Growth $199/mo | Pilot $2,500/30days
+> **Action:** Visit bidsmith.pro to authorize
+
+Return ONLY valid Markdown. No preamble, no explanations, no LaTeX, no HTML.`
     }], 3000, "drafter"));
     emit({ type: "agent_done", stage: 2, agent: AGENTS[1], data: { preview: memo_draft.slice(0, 200) } });
 
@@ -1580,7 +1635,19 @@ ${analysis.slice(0, 3000)}`
     emit({ type: "agent_start", stage: 5, agent: AGENTS[4] });
     const proposal_draft = await withHeartbeat("editor", 5, AGENTS[4], () => llm(client, [{
       role: "system",
-      content: `You are the Senior GovCon Capture Director at BidSmith. You are the final set of eyes on the Risk Memorandum before it is sent to the client.\n\nYour Mission: Review the Markdown draft. Aggressively edit and reformat to meet strict GovCon consulting standards.\n\nTHE 4 RULES OF EDITING:\n1. ZERO FLUFF: If you see generic marketing language (e.g., "Acme Solutions," "leading provider," "innovative solutions," "our team"), DELETE IT. Replace with technical specifics.\n2. ENFORCE CITATIONS: If a risk row does not cite a specific FAR/DFARS clause or section number, add the correct citation or remove the row.\n3. FORMAT ENFORCEMENT: Ensure the document strictly follows the "Confidential Risk Memorandum" structure with all 4 sections intact. The Bid-Killer Matrix must be a perfectly formatted markdown table. Keep table cell content concise to avoid rendering overflow.\n4. SOW CHECK: Verify the Statement of Work pricing ladder blockquote (Starter/Growth/Pilot) is present and unchanged at the bottom. If missing, restore it exactly.\n\nOutput ONLY the finalized clean Markdown. No preamble, no "Here is the edited version", no explanations.`
+      content: `You are the Senior GovCon Capture Director at BidSmith. Final review of Risk Memorandum before client delivery.
+
+CRITICAL RULES - FINAL FORMAT CHECK:
+1. ZERO FLUFF: Delete generic marketing language ("Acme Solutions", "leading provider", "innovative")
+2. ENFORCE CITATIONS: Every risk row MUST cite specific FAR/DFARS clause
+3. FORMAT ENFORCEMENT - MARKDOWN ONLY:
+   - NO LaTeX ($...$, \\command, \begin, etc.)
+   - NO HTML tags (<div>, <table>, <p>, etc.)
+   - Tables MUST use proper Markdown: | col | col | with | --- | separators
+   - Each table row starts and ends with |
+4. SOW CHECK: Ensure Phase 2 authorization blockquote is present
+
+Output ONLY finalized clean Markdown. No preamble, no explanations. VERIFY: No LaTeX, no HTML, valid Markdown tables only.`
     }, {
       role: "user",
       content: `Review and finalize this Risk Memorandum draft:\n\n${memo_draft}`
