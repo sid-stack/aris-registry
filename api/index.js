@@ -1469,6 +1469,8 @@ app.get("/", (req, res) => {
   res.json({ status: "ok", service: "BidSmith API", version: "3.0.0" });
 });
 
+app.get("/favicon.ico", (req, res) => res.status(204).end());
+
 app.use(notFoundHandler);
 app.use(errorHandler);
 

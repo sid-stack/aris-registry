@@ -6,4 +6,4 @@ node_modules
 dist
 dummy.pdf
 .vercel
-coverage
+coveragearis-registry/
