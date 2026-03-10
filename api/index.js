@@ -218,7 +218,7 @@ app.use(cors({
 app.set('trust proxy', 1); // Required for Railway/Heroku reverse proxy — fixes express-rate-limit X-Forwarded-For
 app.use(requestId);
 app.use((req, res, next) => {
-  const isProd = process.env.NODE_ENV === 'production';
+  const isProd = process.env.NODE_ENV === 'production' && process.env.RAILWAY_ENVIRONMENT_NAME !== 'Staging';
   req.log = {
     info(message, extra = {}) {
       const logObject = { level: "info", requestId: req.id, message, ...extra };
