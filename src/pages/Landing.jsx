@@ -7,6 +7,8 @@ import {
   KeyRound,
   BadgeCheck,
   BriefcaseBusiness,
+  FileText,
+  ArrowLeft,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import FaqSection from "../components/FaqSection";
@@ -15,6 +17,7 @@ import PricingCard from "../components/PricingCard";
 import { trackKPI } from "../lib/analytics";
 import { GTM_PRICING_PLANS } from "../lib/pricing";
 import { createCheckoutSession } from "../lib/stripe";
+import Proposal from "./Proposal";
 
 const benefits = [
   {
@@ -86,6 +89,31 @@ function IconCard({ title, description, icon }) {
 export default function Landing({ onEnterApp }) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [contactEmail, setContactEmail] = useState("");
+  const [viewingSample, setViewingSample] = useState(false);
+  const [sampleReport, setSampleReport] = useState(null);
+  const [loadingSample, setLoadingSample] = useState(false);
+
+  const fetchSampleReport = async () => {
+    setLoadingSample(true);
+    trackEvent("view_sample_report_click", { source: "landing_hero" });
+    try {
+      const response = await fetch("https://api.bidsmith.pro/api/sample-report");
+      if (!response.ok) throw new Error("Failed to fetch sample report");
+      const data = await response.json();
+      setSampleReport(data);
+      setViewingSample(true);
+    } catch (error) {
+      console.error("Error fetching sample report:", error);
+      alert("Unable to load demo report. Please try again.");
+    } finally {
+      setLoadingSample(false);
+    }
+  };
+
+  const handleBackToLanding = () => {
+    setViewingSample(false);
+    setSampleReport(null);
+  };
 
   const openCheckout = async (source, plan) => {
     if (isProcessing) return;
@@ -159,7 +187,83 @@ export default function Landing({ onEnterApp }) {
 
   return (
     <div style={styles.page}>
-      <header style={styles.navbar}>
+      {viewingSample && sampleReport ? (
+        <div style={{ minHeight: "100vh", background: "#f8fafc" }}>
+          <div style={{ ...styles.navbar, position: "relative" }}>
+            <div style={styles.navInner}>
+              <button
+                onClick={handleBackToLanding}
+                style={{
+                  ...styles.secondaryCta,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <ArrowLeft size={16} />
+                Back to Home
+              </button>
+              <span style={{ marginLeft: "auto", color: "#4f46e5", fontWeight: 600 }}>
+                Demo: DLA Energy Solicitation
+              </span>
+            </div>
+          </div>
+          <Proposal
+            proposal={{
+              document_metadata: {
+                agency: sampleReport.agency,
+                solicitation_number: sampleReport.pillars?.solicitation_id?.value,
+                naics_code: sampleReport.pillars?.naics_code?.value,
+                set_aside_type: sampleReport.pillars?.set_aside_type?.value,
+              },
+              submission_details: {
+                deadline: sampleReport.pillars?.deadline_date?.value,
+                days_until_deadline: null,
+                page_limit: null,
+              },
+              evaluation_summary: {
+                evaluation_factors: [],
+                lowest_price_technically_acceptable: false,
+              },
+              compliance_summary: {
+                bid_score: 85,
+                high_risk_count: 2,
+                mandatory_requirements: 12,
+                review_required_count: 1,
+              },
+              requirements: [],
+              gaps: sampleReport.risk_flags?.map((flag, i) => ({
+                severity: "Medium",
+                gap_reason: flag,
+                recommended_action: "Review in compliance matrix",
+              })) || [],
+              far_clauses_detected: [],
+              confidence_metrics: {
+                validator_flagged: false,
+                extraction_confidence: 0.95,
+                possible_missed_mandatory: 0,
+              },
+            }}
+            onReset={handleBackToLanding}
+          />
+          <div style={{ maxWidth: 1060, margin: "0 auto", padding: "0 24px 40px" }}>
+            <div style={{ background: "#ffffff", border: "1px solid #e5e5e5", borderRadius: 8, padding: "24px", marginBottom: 20 }}>
+              <h3 style={{ margin: "0 0 16px", fontSize: 18, fontWeight: 600 }}>Sample Compliance Report</h3>
+              <div style={{ fontFamily: "monospace", fontSize: 13, whiteSpace: "pre-wrap", lineHeight: 1.6 }}>
+                {sampleReport.compliance_report}
+              </div>
+            </div>
+            <div style={{ background: "#ffffff", border: "1px solid #e5e5e5", borderRadius: 8, padding: "24px" }}>
+              <h3 style={{ margin: "0 0 16px", fontSize: 18, fontWeight: 600 }}>Risk Memorandum</h3>
+              <div style={{ fontFamily: "monospace", fontSize: 13, whiteSpace: "pre-wrap", lineHeight: 1.6 }}>
+                {sampleReport.proposal_draft}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <>
+          <header style={styles.navbar}>
         <div style={styles.navInner}>
           <a href="/" style={styles.brand}>
             <img src="/aris-logo.png" alt="Aris" style={{ height: 22, width: 22, objectFit: "contain" }} />
@@ -219,6 +323,20 @@ export default function Landing({ onEnterApp }) {
               disabled={isProcessing}
             >
               Open Analyst Workspace
+            </button>
+            <button
+              type="button"
+              aria-label="View demo sample report"
+              onClick={fetchSampleReport}
+              style={styles.demoCta}
+              disabled={isProcessing || loadingSample}
+            >
+              {loadingSample ? "Loading Demo..." : (
+                <>
+                  <FileText size={16} style={{ marginRight: 6 }} />
+                  View Demo Report
+                </>
+              )}
             </button>
             <a href="#workflow" style={styles.heroTextLink} aria-label="Jump to workflow section">
               Watch How It Works
@@ -387,6 +505,8 @@ export default function Landing({ onEnterApp }) {
           </div>
         </div>
       </footer>
+      </>
+      )}
     </div>
   );
 }
@@ -519,6 +639,17 @@ const styles = {
     padding: "12px 22px",
     border: "1px solid #cbd5e1",
     cursor: "pointer",
+  },
+  demoCta: {
+    background: "#ffffff",
+    color: "#4f46e5",
+    fontWeight: 600,
+    borderRadius: 10,
+    padding: "12px 22px",
+    border: "1px solid #4f46e5",
+    cursor: "pointer",
+    display: "inline-flex",
+    alignItems: "center",
   },
   heroTextLink: {
     color: "#0f172a",
