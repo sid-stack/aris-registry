@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { createCheckoutSession } from "../lib/stripe";
 import { createArisCallSession } from "../lib/stripe";
 
@@ -920,7 +921,7 @@ export default function Audit({ onProceed }) {
                           </div>
                         </div>
                         <div id="risk-memo-print" style={{ padding: "32px 36px", fontSize: "14px", lineHeight: 1.8, color: "#1e293b", fontFamily: "'Inter', sans-serif", overflowX: "auto", maxWidth: "100%", wordBreak: "break-word" }}>
-                          <ReactMarkdown components={{
+                          <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
                             h1: ({ children }) => <h1 style={{ fontSize: "22px", fontWeight: 900, color: "#0f172a", marginBottom: "4px", letterSpacing: "-0.02em", fontFamily: "'Inter', sans-serif" }}>{children}</h1>,
                             h2: ({ children }) => <h2 style={{ fontSize: "16px", fontWeight: 800, color: "#1e40af", marginTop: "28px", marginBottom: "12px", letterSpacing: "-0.01em", fontFamily: "'Inter', sans-serif", borderBottom: "1px solid #e0f2fe", paddingBottom: "8px" }}>{children}</h2>,
                             p: ({ children }) => <p style={{ marginBottom: "14px", lineHeight: 1.8, color: "#334155", wordBreak: "break-word" }}>{children}</p>,
