@@ -15,7 +15,7 @@ const LEGAL_CONTENT = {
       },
       {
         heading: "User Rights",
-        body: "You can request access, correction, or deletion of personal data by contacting support@bidsmith.io.",
+        body: "You can request access, correction, or deletion of personal data by contacting sid@bidsmith.pro.",
       },
       {
         heading: "Cookies",

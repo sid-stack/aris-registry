@@ -35,7 +35,7 @@ export const GTM_PRICING_PLANS = [
     price: "Custom",
     description: "Unlimited calls, private endpoints, SLA, and private support.",
     buttonLabel: "Contact Sales",
-    buttonLink: "mailto:support@bidsmith.pro?subject=Enterprise%20Plan%20Inquiry",
+    buttonLink: "mailto:sid@bidsmith.pro?subject=Enterprise%20Plan%20Inquiry",
     callout: "Enterprise - Custom (no fixed price)",
   },
 ];
