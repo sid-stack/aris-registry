@@ -18,14 +18,14 @@ const QuestionIcon = () => (
   </svg>
 );
 
-function FaqItem({ question, answer, open, onToggle }) {
+function FaqItem({ question, answer, open, onToggle, isDark }) {
   return (
     <div
       style={{
-        background: "#ffffff",
-        border: "1px solid #e2e8f0",
+        background: isDark ? "#1e293b" : "#ffffff",
+        border: `1px solid ${isDark ? "#334155" : "#e2e8f0"}`,
         borderRadius: "12px",
-        boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)",
+        boxShadow: isDark ? "0 4px 6px -1px rgba(0,0,0,0.3)" : "0 4px 6px -1px rgba(0,0,0,0.05)",
         overflow: "hidden",
         marginBottom: "12px",
         transition: "all 0.2s ease-in-out",
@@ -55,8 +55,8 @@ function FaqItem({ question, answer, open, onToggle }) {
             width: "28px",
             height: "28px",
             borderRadius: "50%",
-            background: "#eef2ff",
-            color: "#4f46e5",
+            background: isDark ? "#312e81" : "#eef2ff",
+            color: isDark ? "#818cf8" : "#4f46e5",
             flexShrink: 0,
             marginTop: "2px",
           }}
@@ -67,7 +67,7 @@ function FaqItem({ question, answer, open, onToggle }) {
           style={{
             flex: 1,
             fontWeight: 700,
-            color: "#0f172a",
+            color: isDark ? "#f8fafc" : "#0f172a",
             fontSize: "1.05rem",
             lineHeight: 1.4,
             fontFamily: "'Inter', sans-serif"
@@ -77,7 +77,7 @@ function FaqItem({ question, answer, open, onToggle }) {
         </span>
         <span
           style={{
-            color: "#94a3b8",
+            color: isDark ? "#94a3b8" : "#94a3b8",
             fontSize: "1.2rem",
             transform: open ? "rotate(180deg)" : "rotate(0deg)",
             transition: "transform 0.3s ease",
@@ -103,7 +103,7 @@ function FaqItem({ question, answer, open, onToggle }) {
               margin: 0,
               fontSize: "0.95rem",
               lineHeight: 1.6,
-              color: "#475569",
+              color: isDark ? "#cbd5e1" : "#475569",
               fontFamily: "'Inter', sans-serif"
             }}
           >
@@ -115,7 +115,7 @@ function FaqItem({ question, answer, open, onToggle }) {
   );
 }
 
-export default function FaqSection() {
+export default function FaqSection({ isDark = false }) {
   const [openIndex, setOpenIndex] = useState(0);
 
   const items = [
@@ -150,13 +150,13 @@ export default function FaqSection() {
   ];
 
   return (
-    <section style={{ padding: "80px 20px", background: "#f8fafc", borderTop: "1px solid #e2e8f0" }}>
+    <section style={{ padding: "80px 20px", background: isDark ? "#0f172a" : "#f8fafc", borderTop: `1px solid ${isDark ? "#1e293b" : "#e2e8f0"}` }}>
       <div style={{ maxWidth: "800px", margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: "40px" }}>
           <p
             style={{
               margin: "0 0 10px",
-              color: "#4f46e5",
+              color: isDark ? "#818cf8" : "#4f46e5",
               fontSize: "0.8rem",
               fontWeight: 700,
               textTransform: "uppercase",
@@ -171,7 +171,7 @@ export default function FaqSection() {
               margin: 0,
               fontSize: "clamp(1.75rem, 4vw, 2.5rem)",
               fontWeight: 800,
-              color: "#0f172a",
+              color: isDark ? "#f8fafc" : "#0f172a",
               fontFamily: "'Inter', sans-serif",
               letterSpacing: "-0.02em"
             }}
@@ -182,7 +182,7 @@ export default function FaqSection() {
             style={{
               marginTop: "12px",
               fontSize: "1.05rem",
-              color: "#64748b",
+              color: isDark ? "#94a3b8" : "#64748b",
               lineHeight: 1.6,
               maxWidth: "600px",
               margin: "12px auto 0",
@@ -201,10 +201,11 @@ export default function FaqSection() {
               answer={item.a}
               open={openIndex === idx}
               onToggle={() => setOpenIndex((prev) => (prev === idx ? -1 : idx))}
+              isDark={isDark}
             />
           ))}
         </div>
-      </div>
-    </section>
+      </div >
+    </section >
   );
 }

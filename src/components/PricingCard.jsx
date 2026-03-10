@@ -17,12 +17,33 @@ export default function PricingCard({
   buttonLink,
   onButtonClick,
   disabled = false,
+  isDark = false,
 }) {
+  const dynamicStyles = {
+    card: {
+      ...styles.card,
+      background: isDark ? "#1e293b" : "#ffffff",
+      borderColor: isDark ? "#334155" : "#e2e8f0",
+      boxShadow: isDark ? "0 8px 18px rgba(0,0,0,0.2)" : "0 8px 18px rgba(15,23,42,0.03)",
+    },
+    title: {
+      ...styles.title,
+      color: isDark ? "#f8fafc" : "#0f172a",
+    },
+    price: {
+      ...styles.price,
+      color: isDark ? "#818cf8" : "#4f46e5",
+    },
+    description: {
+      ...styles.description,
+      color: isDark ? "#94a3b8" : "#64748b",
+    },
+  };
   return (
-    <div style={styles.card}>
-      <h3 style={styles.title}>{title}</h3>
-      <p style={styles.price}>{price}</p>
-      <p style={styles.description}>{description}</p>
+    <div style={dynamicStyles.card}>
+      <h3 style={dynamicStyles.title}>{title}</h3>
+      <p style={dynamicStyles.price}>{price}</p>
+      <p style={dynamicStyles.description}>{description}</p>
       <button
         type="button"
         onClick={onButtonClick}

@@ -7,6 +7,8 @@ import {
   KeyRound,
   BadgeCheck,
   BriefcaseBusiness,
+  Moon,
+  Sun,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import FaqSection from "../components/FaqSection";
@@ -63,27 +65,30 @@ const heroStats = [
   { label: "Implementation window", value: "30 days" },
 ];
 
-function IconCard({ title, description, icon }) {
+function IconCard({ title, description, icon, isDark }) {
+  const s = getStyles(isDark);
   return (
     <div
-      style={styles.card}
+      style={s.card}
       onMouseEnter={(event) => {
         event.currentTarget.style.transform = "translateY(-4px)";
         event.currentTarget.style.boxShadow = "0 14px 34px rgba(15,23,42,0.10)";
       }}
       onMouseLeave={(event) => {
         event.currentTarget.style.transform = "translateY(0)";
-        event.currentTarget.style.boxShadow = styles.card.boxShadow;
+        event.currentTarget.style.boxShadow = s.card.boxShadow;
       }}
     >
       {icon}
-      <h3 style={styles.cardTitle}>{title}</h3>
-      <p style={styles.cardCopy}>{description}</p>
+      <h3 style={s.cardTitle}>{title}</h3>
+      <p style={s.cardCopy}>{description}</p>
     </div>
   );
 }
 
 export default function Landing({ onEnterApp }) {
+  const [isDark, setIsDark] = useState(true);
+  const s = getStyles(isDark);
   const [isProcessing, setIsProcessing] = useState(false);
   const [contactEmail, setContactEmail] = useState("");
 
@@ -158,24 +163,35 @@ export default function Landing({ onEnterApp }) {
   }, []);
 
   return (
-    <div style={styles.page}>
-      <header style={styles.navbar}>
-        <div style={styles.navInner}>
-          <a href="/" style={styles.brand}>
+    <div style={s.page}>
+      <header style={s.navbar}>
+        <div style={s.navInner}>
+          <a href="/" style={s.brand}>
             <BriefcaseBusiness size={20} />
             <span>BidSmith</span>
           </a>
-          <nav style={styles.navLinksDesktop}>
-            <a href="#features" style={styles.navLink}>Features</a>
-            <a href="#workflow" style={styles.navLink}>Workflow</a>
-            <a href="#pricing" style={styles.navLink}>Pricing</a>
-            <a href="/docs" style={styles.navLink}>Docs</a>
-            <a href="#contact" style={styles.navLink}>Contact</a>
+          <nav style={s.navLinksDesktop}>
+            <a href="#features" style={s.navLink}>Features</a>
+            <a href="#workflow" style={s.navLink}>Workflow</a>
+            <a href="#pricing" style={s.navLink}>Pricing</a>
+            <a href="/docs" style={s.navLink}>Docs</a>
+            <a href="#contact" style={s.navLink}>Contact</a>
           </nav>
           <button
             type="button"
+            onClick={() => setIsDark(!isDark)}
+            style={{
+              background: "transparent", border: "none", cursor: "pointer",
+              color: isDark ? "#f8fafc" : "#334155", padding: "8px",
+              display: "flex", alignItems: "center", justifyContent: "center"
+            }}
+          >
+            {isDark ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
+          <button
+            type="button"
             aria-label="Start free trial checkout"
-            style={styles.navCta}
+            style={s.navCta}
             onClick={handleStartTrial}
             disabled={isProcessing}
           >
@@ -183,28 +199,28 @@ export default function Landing({ onEnterApp }) {
           </button>
         </div>
       </header>
-      <section style={styles.hero}>
-        <div style={styles.heroGlowTop} />
-        <div style={styles.heroGlowBottom} />
-        <div style={styles.heroInner}>
-          <p style={styles.heroKicker}>AI capture engine for federal bid teams</p>
-          <img
-            src="/aris-logo.png"
-            alt="BidSmith logo"
-            style={styles.logo}
-          />
-          <h1 style={styles.title}>AI‑Powered RFP and Government Contract Bidding</h1>
-          <p style={styles.subtitle}>
+      <section style={s.hero}>
+        <div style={s.heroGlowTop} />
+        <div style={s.heroGlowBottom} />
+        <div style={s.heroInner}>
+          <p style={s.heroKicker}>AI capture engine for federal bid teams</p>
+          <div
+            style={s.cssLogo}
+          >
+            BidSmith
+          </div>
+          <h1 style={s.title}>AI‑Powered RFP and Government Contract Bidding</h1>
+          <p style={s.subtitle}>
             Build compliant bids faster, reduce disqualification risk, and move from
             solicitation to submission with a repeatable AI-assisted workflow.
           </p>
-          <div style={styles.heroActions}>
+          <div style={s.heroActions}>
             <button
               type="button"
               aria-label="Start free seven day trial"
               style={{
-                ...styles.primaryCta,
-                ...(isProcessing ? styles.disabledButton : {}),
+                ...s.primaryCta,
+                ...(isProcessing ? s.disabledButton : {}),
               }}
               onClick={handleStartTrial}
               disabled={isProcessing}
@@ -215,68 +231,70 @@ export default function Landing({ onEnterApp }) {
               type="button"
               aria-label="Open analyst workspace"
               onClick={handleWorkspaceOpen}
-              style={styles.secondaryCta}
+              style={s.secondaryCta}
               disabled={isProcessing}
             >
               Open Analyst Workspace
             </button>
-            <a href="#workflow" style={styles.heroTextLink} aria-label="Jump to workflow section">
+            <a href="#workflow" style={s.heroTextLink} aria-label="Jump to workflow section">
               Watch How It Works
             </a>
           </div>
-          <div style={styles.heroStatsGrid}>
+          <div style={s.heroStatsGrid}>
             {heroStats.map((stat) => (
-              <div key={stat.label} style={styles.heroStatCard}>
-                <p style={styles.heroStatValue}>{stat.value}</p>
-                <p style={styles.heroStatLabel}>{stat.label}</p>
+              <div key={stat.label} style={s.heroStatCard}>
+                <p style={s.heroStatValue}>{stat.value}</p>
+                <p style={s.heroStatLabel}>{stat.label}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <section id="features" style={styles.sectionMuted} data-reveal>
-        <div style={styles.sectionInner}>
-          <p style={styles.sectionEyebrow}>Why teams switch from manual workflows</p>
-          <h2 style={styles.sectionTitle}>Why Bidsmith Lite?</h2>
-          <div style={styles.gridFour}>
+      <section id="features" style={s.sectionMuted} data-reveal>
+        <div style={s.sectionInner}>
+          <p style={s.sectionEyebrow}>Why teams switch from manual workflows</p>
+          <h2 style={s.sectionTitle}>Why Bidsmith Lite?</h2>
+          <div style={s.gridFour}>
             {benefits.map((benefit) => (
               <IconCard
                 key={benefit.title}
                 title={benefit.title}
                 description={benefit.description}
                 icon={benefit.icon}
+                isDark={isDark}
               />
             ))}
           </div>
         </div>
       </section>
 
-      <section id="workflow" style={styles.section} data-reveal>
-        <div style={styles.sectionInner}>
-          <p style={styles.sectionEyebrow}>Execution model</p>
-          <h2 style={styles.sectionTitle}>How It Works</h2>
-          <div style={styles.gridThree}>
+      <section id="workflow" style={s.section} data-reveal>
+        <div style={s.sectionInner}>
+          <p style={s.sectionEyebrow}>Execution model</p>
+          <h2 style={s.sectionTitle}>How It Works</h2>
+          <div style={s.gridThree}>
             {steps.map((step) => (
               <IconCard
                 key={step.title}
                 title={step.title}
                 description={step.description}
                 icon={step.icon}
+                isDark={isDark}
               />
             ))}
           </div>
         </div>
       </section>
 
-      <section id="pricing" style={styles.sectionMuted} data-reveal>
-        <div style={styles.sectionInnerNarrow}>
-          <p style={styles.sectionEyebrow}>Commercial model</p>
-          <h2 style={styles.sectionTitle}>Simple, Transparent Pricing</h2>
-          <p style={styles.subtitleSmall}>No contracts, no hidden fees, and a clear plan progression.</p>
-          <div style={styles.pricingGrid}>
+      <section id="pricing" style={s.sectionMuted} data-reveal>
+        <div style={s.sectionInnerNarrow}>
+          <p style={s.sectionEyebrow}>Commercial model</p>
+          <h2 style={s.sectionTitle}>Simple, Transparent Pricing</h2>
+          <p style={s.subtitleSmall}>No contracts, no hidden fees, and a clear plan progression.</p>
+          <div style={s.pricingGrid}>
             {GTM_PRICING_PLANS.map((plan) => (
-              <PricingCard
+              <PricingCard isDark={isDark}
                 key={plan.key}
                 title={plan.title}
                 price={plan.price}
@@ -300,22 +318,22 @@ export default function Landing({ onEnterApp }) {
               />
             ))}
           </div>
-          <div style={styles.pilotBanner}>
-            <p style={styles.pilotText}>
+          <div style={s.pilotBanner}>
+            <p style={s.pilotText}>
               Pilot package: <strong>$2,500 / 30 days</strong> with onboarding and 5,000 calls.
             </p>
             <button
               type="button"
               aria-label="Request pilot plan"
-              style={styles.secondaryCta}
+              style={s.secondaryCta}
               onClick={handlePilotCta}
               disabled={isProcessing}
             >
               Request Pilot
             </button>
           </div>
-          <form onSubmit={handleEnterpriseContact} style={styles.enterpriseForm}>
-            <label htmlFor="enterprise-email" style={styles.enterpriseLabel}>Enterprise: contact sales</label>
+          <form onSubmit={handleEnterpriseContact} style={s.enterpriseForm}>
+            <label htmlFor="enterprise-email" style={s.enterpriseLabel}>Enterprise: contact sales</label>
             <input
               id="enterprise-email"
               type="email"
@@ -323,19 +341,19 @@ export default function Landing({ onEnterApp }) {
               value={contactEmail}
               onChange={(event) => setContactEmail(event.target.value)}
               placeholder="you@company.com"
-              style={styles.enterpriseInput}
+              style={s.enterpriseInput}
             />
-            <button type="submit" style={styles.planButton} aria-label="Contact enterprise sales">
+            <button type="submit" style={s.planButton} aria-label="Contact enterprise sales">
               Contact Sales
             </button>
           </form>
-          <p style={styles.proposalCopy}>
+          <p style={s.proposalCopy}>
             Need a client-ready pilot deck? See{" "}
             <a
               href="/pilot-proposal-outline.md"
               target="_blank"
               rel="noreferrer"
-              style={styles.inlineLink}
+              style={s.inlineLink}
               onClick={() =>
                 trackEvent("pilot_outline_open_click", { source: "landing_pricing" })
               }
@@ -347,43 +365,43 @@ export default function Landing({ onEnterApp }) {
         </div>
       </section>
 
-      <FaqSection />
+      <FaqSection isDark={isDark} />
 
-      <footer id="contact" style={styles.footer}>
-        <div style={styles.footerInner}>
+      <footer id="contact" style={s.footer}>
+        <div style={s.footerInner}>
           <div>
-            <p style={styles.footerBrand}>BidSmith</p>
-            <p style={styles.footerText}>Copyright 2026 Bidsmith Ltd. All rights reserved.</p>
+            <p style={s.footerBrand}>BidSmith</p>
+            <p style={s.footerText}>Copyright 2026 Bidsmith Ltd. All rights reserved.</p>
             <a
               href="mailto:support@bidsmith.io"
-              style={styles.footerLink}
+              style={s.footerLink}
               onClick={() => trackEvent("support_email_click", { source: "landing_footer" })}
             >
               support@bidsmith.io
             </a>
           </div>
           <div>
-            <p style={styles.footerHeading}>Company</p>
-            <a href="/privacy" style={styles.footerLink}>Privacy Policy</a>
-            <a href="/terms" style={styles.footerLink}>Terms of Service</a>
-            <a href="/cookies" style={styles.footerLink}>Cookie Policy</a>
-            <a href="/docs" style={styles.footerLink}>Developer Docs</a>
+            <p style={s.footerHeading}>Company</p>
+            <a href="/privacy" style={s.footerLink}>Privacy Policy</a>
+            <a href="/terms" style={s.footerLink}>Terms of Service</a>
+            <a href="/cookies" style={s.footerLink}>Cookie Policy</a>
+            <a href="/docs" style={s.footerLink}>Developer Docs</a>
           </div>
           <div>
-            <p style={styles.footerHeading}>Template Library</p>
+            <p style={s.footerHeading}>Template Library</p>
             <a
               href="/templates"
               target="_blank"
               rel="noopener noreferrer"
-              style={styles.footerLink}
+              style={s.footerLink}
               onClick={() => trackEvent("templates_link_click", { source: "landing_footer" })}
             >
               Outreach & Agreement Templates
             </a>
-            <a href="/pilot-proposal-outline.md" target="_blank" rel="noreferrer" style={styles.footerLink}>
+            <a href="/pilot-proposal-outline.md" target="_blank" rel="noreferrer" style={s.footerLink}>
               Pilot Proposal Outline
             </a>
-            <a href="#pricing" style={styles.footerLink}>Pricing Plans</a>
+            <a href="#pricing" style={s.footerLink}>Pricing Plans</a>
           </div>
         </div>
       </footer>
@@ -391,14 +409,28 @@ export default function Landing({ onEnterApp }) {
   );
 }
 
-const styles = {
+const getStyles = (isDark) => ({
+  cssLogo: {
+    background: '#0f172a',
+    color: '#ffffff',
+    fontWeight: 900,
+    fontSize: '32px',
+    letterSpacing: '-0.04em',
+    padding: '16px 36px',
+    borderRadius: '12px',
+    display: 'inline-block',
+    margin: '0 auto 18px',
+    cursor: 'pointer',
+    boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
+    transition: 'all 0.2s ease',
+  },
   navbar: {
     position: "sticky",
     top: 0,
     zIndex: 30,
     background: "rgba(255,255,255,0.92)",
     backdropFilter: "blur(10px)",
-    borderBottom: "1px solid #e2e8f0",
+    borderBottom: `1px solid ${isDark ? '#1e293b' : '#e2e8f0'}`,
   },
   navInner: {
     maxWidth: 1120,
@@ -413,7 +445,7 @@ const styles = {
     display: "inline-flex",
     alignItems: "center",
     gap: 8,
-    color: "#0f172a",
+    color: isDark ? '#f8fafc' : '#0f172a',
     fontWeight: 800,
     textDecoration: "none",
     marginRight: "auto",
@@ -425,7 +457,7 @@ const styles = {
     flexWrap: "wrap",
   },
   navLink: {
-    color: "#334155",
+    color: isDark ? '#e2e8f0' : '#334155',
     textDecoration: "none",
     fontSize: "0.95rem",
     fontWeight: 600,
@@ -441,14 +473,14 @@ const styles = {
   },
   page: {
     minHeight: "100vh",
-    background: "#f8fafc",
-    color: "#0f172a",
+    background: isDark ? '#0f172a' : '#f8fafc',
+    color: isDark ? '#f8fafc' : '#0f172a',
     fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
   },
   hero: {
     padding: "72px 20px 56px",
     background: "linear-gradient(160deg, #f8fafc 0%, #ecfeff 42%, #eff6ff 100%)",
-    borderBottom: "1px solid #e2e8f0",
+    borderBottom: `1px solid ${isDark ? '#1e293b' : '#e2e8f0'}`,
     position: "relative",
     overflow: "hidden",
   },
@@ -493,8 +525,8 @@ const styles = {
     margin: "0 auto 14px",
     display: "block",
   },
-  subtitle: { margin: "18px auto 0", maxWidth: 760, color: "#475569", fontSize: "clamp(1rem, 2.3vw, 1.25rem)", lineHeight: 1.6 },
-  subtitleSmall: { margin: "10px 0 0", color: "#64748b", fontSize: "1rem" },
+  subtitle: { margin: "18px auto 0", maxWidth: 760, color: isDark ? '#cbd5e1' : '#475569', fontSize: "clamp(1rem, 2.3vw, 1.25rem)", lineHeight: 1.6 },
+  subtitleSmall: { margin: "10px 0 0", color: isDark ? '#94a3b8' : '#64748b', fontSize: "1rem" },
   heroActions: {
     marginTop: 32,
     display: "flex",
@@ -512,8 +544,8 @@ const styles = {
     cursor: "pointer",
   },
   secondaryCta: {
-    background: "#ffffff",
-    color: "#334155",
+    background: isDark ? '#1e293b' : '#ffffff',
+    color: isDark ? '#e2e8f0' : '#334155',
     fontWeight: 600,
     borderRadius: 10,
     padding: "12px 22px",
@@ -521,13 +553,13 @@ const styles = {
     cursor: "pointer",
   },
   heroTextLink: {
-    color: "#0f172a",
+    color: isDark ? '#f8fafc' : '#0f172a',
     textDecoration: "underline",
     fontWeight: 600,
     padding: "12px 6px",
   },
-  section: { padding: "56px 20px", background: "#ffffff" },
-  sectionMuted: { padding: "56px 20px", background: "#f1f5f9" },
+  section: { padding: "56px 20px", background: isDark ? '#1e293b' : '#ffffff' },
+  sectionMuted: { padding: "56px 20px", background: isDark ? '#0b1120' : '#f1f5f9' },
   sectionInner: { maxWidth: 1080, margin: "0 auto" },
   sectionInnerNarrow: { maxWidth: 860, margin: "0 auto", textAlign: "center" },
   sectionEyebrow: {
@@ -553,8 +585,8 @@ const styles = {
     gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
   },
   card: {
-    background: "#ffffff",
-    border: "1px solid #e2e8f0",
+    background: isDark ? '#1e293b' : '#ffffff',
+    border: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`,
     borderRadius: 14,
     padding: "24px 20px",
     textAlign: "center",
@@ -562,7 +594,7 @@ const styles = {
     transition: "transform 180ms ease, box-shadow 180ms ease",
   },
   cardTitle: { margin: "12px 0 8px", fontSize: "1.05rem" },
-  cardCopy: { margin: 0, color: "#64748b", fontSize: "0.95rem", lineHeight: 1.5 },
+  cardCopy: { margin: 0, color: isDark ? '#94a3b8' : '#64748b', fontSize: "0.95rem", lineHeight: 1.5 },
   pricingGrid: {
     marginTop: 28,
     display: "grid",
@@ -570,8 +602,8 @@ const styles = {
     gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
   },
   planCard: {
-    background: "#ffffff",
-    border: "1px solid #e2e8f0",
+    background: isDark ? '#1e293b' : '#ffffff',
+    border: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`,
     borderRadius: 14,
     padding: 24,
     boxShadow: "0 8px 18px rgba(15,23,42,0.03)",
@@ -598,7 +630,7 @@ const styles = {
   },
   heroStatCard: {
     background: "rgba(255,255,255,0.88)",
-    border: "1px solid #e2e8f0",
+    border: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`,
     borderRadius: 12,
     padding: "12px 10px",
     boxShadow: "0 8px 22px rgba(15,23,42,0.05)",
@@ -612,12 +644,12 @@ const styles = {
   },
   heroStatLabel: {
     margin: "4px 0 0",
-    color: "#475569",
+    color: isDark ? '#cbd5e1' : '#475569',
     fontSize: "0.76rem",
     letterSpacing: "0.03em",
     textTransform: "uppercase",
   },
-  proposalCopy: { marginTop: 18, color: "#64748b" },
+  proposalCopy: { marginTop: 18, color: isDark ? '#94a3b8' : '#64748b' },
   pilotBanner: {
     marginTop: 20,
     background: "#e0e7ff",
@@ -641,7 +673,7 @@ const styles = {
   },
   enterpriseLabel: {
     fontSize: "0.85rem",
-    color: "#334155",
+    color: isDark ? '#e2e8f0' : '#334155',
     fontWeight: 600,
   },
   enterpriseInput: {
@@ -653,7 +685,7 @@ const styles = {
   inlineLink: { color: "#4338ca", textDecoration: "none", fontWeight: 600 },
   footer: {
     background: "#0f172a",
-    borderTop: "1px solid #1e293b",
+    borderTop: `1px solid ${isDark ? '#334155' : '#1e293b'}`,
     padding: "34px 20px",
   },
   footerInner: {
@@ -673,4 +705,4 @@ const styles = {
     display: "block",
     marginBottom: 8,
   },
-};
+});
