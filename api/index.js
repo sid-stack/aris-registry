@@ -203,7 +203,7 @@ const stripePublicKey = process.env.VITE_STRIPE_PUBLIC_KEY || process.env.NEXT_P
 if (!process.env.STRIPE_SECRET_KEY) stripeMissingVars.push("STRIPE_SECRET_KEY");
 if (!stripePublicKey) stripeMissingVars.push("VITE_STRIPE_PUBLIC_KEY (or NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)");
 if (stripeMissingVars.length > 0) {
-  throw new Error(`[STRIPE_CONFIG] Missing required env vars: ${stripeMissingVars.join(", ")}`);
+  console.warn(`[STRIPE_CONFIG] Missing env vars: ${stripeMissingVars.join(", ")} — Stripe checkout routes will fail`);
 }
 
 app.use(cors({
