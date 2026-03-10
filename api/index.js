@@ -116,11 +116,84 @@ function formatPricingTier(tier) {
   };
 }
 
+const TEST_LINKS = [
+  {
+    id: "test-1",
+    title: "DLA Energy Solicitation",
+    url: "https://sam.gov/opp/2eaf9eb1d9194206aa1e6bd744edcce3/view",
+    description: "Defense Logistics Agency fuel storage requirements."
+  },
+  {
+    id: "test-2",
+    title: "Army IT Services",
+    url: "https://sam.gov/opp/a9f8bd642d3343bb887cd28d7d441167/view",
+    description: "Army Corps of Engineers IT support services."
+  }
+];
+
+const SAMPLE_REPORT = {
+  success: true,
+  envelope: {
+    success: true,
+    generatedAt: new Date().toISOString(),
+    engine: "static_sample",
+    pipelineStages: ["analyst", "drafter", "reviewer", "intel", "editor"]
+  },
+  engine: "static_sample",
+  pipelineStages: ["analyst", "drafter", "reviewer", "intel", "editor"],
+  title: "DLA Energy Solicitation (Sample)",
+  agency: "Defense Logistics Agency",
+  generatedAt: new Date().toISOString(),
+  pillars: {
+    solicitation_id: { value: "SPE603-23-R-0500", confidence: "HIGH" },
+    deadline_date: { value: "2023-11-15", confidence: "HIGH" },
+    set_aside_type: { value: "Small Business Set-Aside", confidence: "HIGH" },
+    naics_code: { value: "493190", confidence: "HIGH" }
+  },
+  executiveSummary: "This solicitation is a 100% Small Business Set-Aside for fuel storage services. Key risks include a strict 30-day mobilization period and required DLA Energy experience.",
+  compliance_report: `
+# 📄 Executive Summary
+
+**Client:** Sample Client
+**RFP:** DLA Energy Fuel Storage – **Agency:** Defense Logistics Agency
+**Date:** 2023-10-27
+
+## 1️⃣ Solicitation Overview
+
+| Item | Detail |
+|---|---|
+| **Solicitation ID** | SPE603-23-R-0500 |
+| **Title** | Fuel Storage & Distribution |
+| **Agency** | DLA Energy |
+| **Due Date** | 2023-11-15 |
+| **Key Compliance Regimes** | FAR, DFARS, NIST SP 800-171 |
+
+## 3️⃣ Compliance Risk Matrix
+
+| Regime/Category | Clause | Found? | Risk Weight (1-10) | Comments / Issues |
+|---|---|---|---|---|
+| Set-Aside | FAR 52.219-6 | ✅ | 1 | Total Small Business Set-Aside confirmed. |
+| Cybersecurity | DFARS 252.204-7012 | ⚠️ | 9 | NIST 800-171 score must be in SPRS. |
+| Past Performance | Section L | ❌ | 8 | Requires 3 references >$5M in last 5 years. |
+
+**Overall Compliance Score:** 82%`.trim(),
+  proposal_draft: `# 📄 CONFIDENTIAL RISK MEMORANDUM\n\n**Subject:** Phase 1 Technical Disqualification Audit\n**Solicitation ID:** SPE603-23-R-0500\n\n---\n\n### 🚨 EXECUTIVE RISK SUMMARY\n\nThe solicitation contains **one critical compliance trap** regarding cybersecurity and **two high-risk technical gaps**. Manual review is estimated to take **12 hours**. We recommend immediate verification of SPRS scores.\n\n---\n\n### 🍱 THE "BID-KILLER" MATRIX\n\n| Risk Level | Risk Category | FAR/DFARS Citation | The Hidden Requirement | Impact if Missed | Remediation Action |\n| --- | --- | --- | --- | --- | --- |\n| 🔴 **CRITICAL** | Cybersecurity | DFARS 252.204-7012 | Must have a NIST SP 800-171 assessment score posted in SPRS. | Immediate disqualification. | Post score to SPRS before submission. |\n| 🟡 **HIGH RISK** | Past Performance | Section L.4.2 | Contracts must be >$5M value. | Technical Unacceptability. | Verify reference contract values. |`.trim(),
+  win_themes: ["Proven DLA Energy Past Performance", "100% Small Business Compliance", "Automated Inventory Management", "Safety First Culture"],
+  risk_flags: ["Short Mobilization Timeline", "Environmental Liability Clauses", "Key Personnel Availability"],
+  proposal_outline: [
+    { volume: "Volume I: Technical", sections: ["1.0 Technical Approach", "1.1 Operations", "1.2 Quality Control"] },
+    { volume: "Volume II: Past Performance", sections: ["2.0 Recent Contracts", "2.1 Questionnaires"] },
+    { volume: "Volume III: Price", sections: ["3.0 Pricing Schedule", "3.1 Narrative"] }
+  ]
+};
+
 const app = express();
 const PORT = process.env.PORT || 8080;
 const allowedOrigins = new Set([
   "https://www.bidsmith.pro",
   "https://bidsmith.pro",
+  "https://app.bidsmith.pro",
+  "https://docs.bidsmith.pro",
   "http://localhost:5173",
   "http://localhost:3000",
 ]);
@@ -143,12 +216,15 @@ app.use(cors({
 app.set('trust proxy', 1); // Required for Railway/Heroku reverse proxy — fixes express-rate-limit X-Forwarded-For
 app.use(requestId);
 app.use((req, res, next) => {
+  const isProd = process.env.NODE_ENV === 'production';
   req.log = {
     info(message, extra = {}) {
-      console.log(JSON.stringify({ level: "info", requestId: req.id, message, ...extra }));
+      const logObject = { level: "info", requestId: req.id, message, ...extra };
+      isProd ? console.log(JSON.stringify(logObject)) : console.info(`[INFO] ${req.id} - ${message}`, extra);
     },
     error(message, extra = {}) {
-      console.error(JSON.stringify({ level: "error", requestId: req.id, message, ...extra }));
+      const logObject = { level: "error", requestId: req.id, message, ...extra };
+      isProd ? console.error(JSON.stringify(logObject)) : console.error(`[ERROR] ${req.id} - ${message}`, extra);
     },
   };
   res.on("finish", () => {
@@ -231,13 +307,19 @@ async function llm(client, messages, maxTokens = 4096, agentKey = "audit", retri
   const model = AGENT_MODELS[agentKey] || "google/gemini-2.0-flash-001";
   for (let attempt = 0; attempt < retries; attempt++) {
     try {
-      const res = await client.chat.completions.create({
+      const completionParams = {
         model,
         max_tokens: maxTokens,
         temperature: options.temperature ?? 0,
         top_p: options.topP ?? 0.1,
         messages
-      });
+      };
+
+      if (options.response_format) {
+        completionParams.response_format = options.response_format;
+      }
+
+      const res = await client.chat.completions.create(completionParams);
       return res.choices[0]?.message?.content || "";
     } catch (e) {
       const isRetryable = e?.status === 429 || e?.status >= 500;
@@ -263,6 +345,14 @@ function stripCodeFences(raw = "") {
 app.get("/api/health", asyncHandler(async (_req, res) => {
   res.json(okResponse({ status: "ok", version: "3.0.0" }));
 }));
+
+app.get("/api/examples", (_req, res) => {
+  res.json(TEST_LINKS);
+});
+
+app.get("/api/sample-report", (_req, res) => {
+  res.json(SAMPLE_REPORT);
+});
 
 function parseCookies(cookieHeader = "") {
   return cookieHeader
@@ -1131,7 +1221,7 @@ ${ctx}`
     console.log(`[/api/generate-report] Stage 2: Drafter`);
     const memo_draft = await llm(client, [{
       role: "user",
-      content: `You are an elite Federal Proposal Capture Manager. Generate a CONFIDENTIAL RISK MEMORANDUM using the EXACT markdown structure below. Fill every [ ] bracket from the compliance intelligence brief. DO NOT produce generic marketing text, company boilerplate, or "Acme Solutions"-style filler.
+      content: `You are an elite Federal Proposal Capture Manager. Generate a CONFIDENTIAL RISK MEMORANDUM using the EXACT markdown structure below. Fill every [ ] bracket from the compliance intelligence brief. DO NOT produce generic marketing text, company boilerplate, or "Acme Solutions"-style filler. Ensure all table content is concise to prevent layout overflow. Do not use LaTeX formatting (e.g. $...$) for standard text.
 
 OUTPUT THIS EXACT STRUCTURE:
 
@@ -1154,7 +1244,9 @@ OUTPUT THIS EXACT STRUCTURE:
 
 | Risk Level | Risk Category | FAR/DFARS Citation | The Hidden Requirement | Impact if Missed | Remediation Action |
 | --- | --- | --- | --- | --- | --- |
-[Generate 5-7 rows. Use 🔴 **CRITICAL** for immediate DQ risks, 🟡 **HIGH RISK** for technical downgrade risks, 🟢 **COMPLIANT** for standard boilerplate areas. Every row MUST have a real FAR/DFARS clause number or Section L/M reference from the brief. No generic clauses — use only what the brief extracted.]
+[Generate 5-7 rows. Use 🔴 **CRITICAL** for immediate DQ risks, 🟡 **HIGH RISK** for technical downgrade risks, 🟢 **COMPLIANT** for standard boilerplate areas. Every row MUST have a real FAR/DFARS clause number or Section L/M references from the brief. No generic clauses — use only what the brief extracted. Keep descriptions concise. For example:
+| 🔴 **CRITICAL** | Cybersecurity | DFARS 252.204-7012 | Must have a NIST SP 800-171 assessment score posted in SPRS. | Immediate disqualification. | Post score to SPRS before submission. |
+]
 
 ---
 
@@ -1183,15 +1275,51 @@ ${analysis}`
     console.log(`[/api/generate-report] Stage 3: Compliance Matrix`);
     const compliance_report = await llm(client, [{
       role: "user",
-      content: `You are a federal compliance officer. Generate ONLY a markdown compliance matrix table based on this opportunity.
+      content: `You are a Federal Compliance Officer. Generate a **Federal RFP Compliance Risk Matrix Report** using the EXACT markdown structure below.
 
-Exact columns:
-| Requirement | Category | FAR Reference | Bidder Status | Risk Level | Action Required |
+# 📄 Executive Summary
 
-10-12 rows. Cover: set-aside eligibility, past performance, bonding, deadline, NAICS, security clearance, insurance, certifications, subcontracting plan.
-Bidder Status: ✅ Compliant | ⚠️ Conditional | ❌ Non-Compliant | 🔍 Review Required
+**Client:** [Company Name or "Prospective Client"]
+**RFP:** [Title] – **Agency:** [Agency]
+**Date:** [Current Date]
 
-Return ONLY the markdown table. No preamble.
+## 1️⃣ Solicitation Overview
+
+| Item | Detail |
+|---|---|
+| **Solicitation ID** | [Solicitation ID] |
+| **Title** | [Title] |
+| **Agency** | [Agency] |
+| **Due Date** | [Deadline] |
+| **Key Compliance Regimes** | [List regimes like FAR, DFARS, NIST, etc.] |
+
+## 2️⃣ Methodology
+
+1. **Download & Normalize** – Solicitation documents fetched and converted to searchable text.
+2. **Clause Extraction** – AI analysis of federal compliance clauses.
+3. **Validation** – Cross-check against mandatory checklists (FedRAMP, CMMC, etc.).
+4. **Scoring** – Risk-weighted compliance score calculation.
+
+## 3️⃣ Compliance Risk Matrix
+
+| Regime/Category | Clause | Found? | Risk Weight (1-10) | Comments / Issues |
+|---|---|---|---|---|
+[Generate 10-12 rows covering: Set-Aside, Past Performance, Bonding, Security Clearance, Insurance, Certifications, Subcontracting. Use ✅/❌/⚠️ in "Found?" column.]
+
+**Overall Compliance Score:** [Calculate % based on findings (e.g. 78%)]
+
+## 4️⃣ Findings & Recommendations
+
+| # | Finding | Impact | Recommended Action |
+|---|---|---|---|
+[List top 3-5 high-risk findings]
+
+## 5️⃣ Appendices
+
+- **Appendix A** – Full Clause Extraction Log
+- **Appendix B** – Solicitation Documents
+
+Return ONLY the markdown. No preamble.
 
 OPPORTUNITY DATA:
 ${ctx}
@@ -1218,7 +1346,7 @@ ${analysis.slice(0, 2000)}`
 
 BRIEF:
 ${analysis.slice(0, 3000)}`
-    }], 1500, "extractor");
+    }], 1500, "extractor", 3, { response_format: { type: "json_object" } });
 
     let intel = { win_themes: [], risk_flags: [], proposal_outline: [] };
     try {
@@ -1246,7 +1374,7 @@ Your Mission: Review the provided Markdown draft generated by the Analyst Agent.
 THE 4 RULES OF EDITING:
 1. ZERO FLUFF: If you see generic marketing language (e.g., "Acme Solutions," "leading provider," "innovative solutions," "our team"), DELETE IT. Replace with technical specifics.
 2. ENFORCE CITATIONS: If a risk is mentioned but does not cite a specific FAR/DFARS clause or section number, either add the correct citation or remove the row entirely.
-3. FORMAT ENFORCEMENT: Ensure the document strictly follows the "Confidential Risk Memorandum" structure with all 4 sections intact. Ensure the Bid-Killer Matrix (Red/Yellow/Green) is perfectly formatted as a markdown table.
+3. FORMAT ENFORCEMENT: Ensure the document strictly follows the "Confidential Risk Memorandum" structure with all 4 sections intact. Ensure the Bid-Killer Matrix (Red/Yellow/Green) is perfectly formatted as a markdown table. Keep table cell content concise to avoid rendering overflow.
 4. SOW CHECK: Verify that the Statement of Work pricing ladder blockquote (Starter/Growth/Pilot) is present and unchanged at the bottom. If missing, restore it exactly.
 
 Output ONLY the finalized clean Markdown. No preamble, no "Here is the edited version", no explanations.`
@@ -1402,7 +1530,8 @@ app.get("/api/generate-report-stream", async (req, res) => {
     emit({ type: "agent_start", stage: 2, agent: AGENTS[1] });
     const memo_draft = await withHeartbeat("drafter", 2, AGENTS[1], () => llm(client, [{
       role: "user",
-      content: `You are an elite Federal Proposal Capture Manager. Generate a CONFIDENTIAL RISK MEMORANDUM using the EXACT markdown structure below. Fill every [ ] bracket from the compliance intelligence brief. DO NOT produce generic marketing text, company boilerplate, or "Acme Solutions"-style filler.\n\nOUTPUT THIS EXACT STRUCTURE:\n\n# 📄 CONFIDENTIAL RISK MEMORANDUM\n\n**Prepared For:** [Company/Capture Team from data, or "Your Capture Team" if unknown]\n**Prepared By:** BidSmith Automated Intelligence / S. Aris\n**Subject:** Phase 1 Technical Disqualification Audit\n**Solicitation ID:** [solicitation number from brief] | **Agency:** [agency name from brief]\n\n---\n\n### 🚨 EXECUTIVE RISK SUMMARY\n\n[Write exactly 3 sentences. Be ruthless and analytical. State the compliance risk posture, the number of critical traps found, and the manual review recommendation.]\n\n---\n\n### 🍱 THE "BID-KILLER" MATRIX\n\n| Risk Level | Risk Category | FAR/DFARS Citation | The Hidden Requirement | Impact if Missed | Remediation Action |\n| --- | --- | --- | --- | --- | --- |\n[Generate 5-7 rows. Use 🔴 **CRITICAL** for immediate DQ risks, 🟡 **HIGH RISK** for technical downgrade risks, 🟢 **COMPLIANT** for standard boilerplate areas. Every row MUST have a real FAR/DFARS clause number or Section L/M reference from the brief.]\n\n---\n\n### 🧠 ARIS ENGINE RECOMMENDATIONS\n\n[2 sentences mapping specific FAR flow-downs to the offeror's technical volume actions. Name the clauses explicitly.]\n\n**Time Saved by BidSmith:** ~14 Hours of manual FAR clause extraction.\n\n---\n\n### 📝 STATEMENT OF WORK: PHASE 2 AUTHORIZATION\n\n> **FULL PROPOSAL MAPPING & COMPLIANCE MATRIX**\n> This document represents a partial Phase 1 extraction.\n> To authorize the BidSmith Engine to generate the complete 40-point Compliance Matrix and Volume Outline for this solicitation:\n> **Pricing Options:** Starter $29/mo + $0.25/call | Growth $199/mo (1,000 calls) + $0.20/call | Pilot $2,500 / 30 days (onboarding + 5,000 calls)\n> **Turnaround:** 24 Hours for pilot onboarding kickoff\n> **Action:** Visit [bidsmith.pro](https://bidsmith.pro) to authorize execution.\n\nCOMPLIANCE INTELLIGENCE BRIEF:\n${analysis}`
+      content: `You are an elite Federal Proposal Capture Manager. Generate a CONFIDENTIAL RISK MEMORANDUM using the EXACT markdown structure below. Fill every [ ] bracket from the compliance intelligence brief. DO NOT produce generic marketing text, company boilerplate, or "Acme Solutions"-style filler.\n\nEnsure all table content is concise to prevent layout overflow. Do not use LaTeX formatting (e.g. $...$) for standard text.\n\nOUTPUT THIS EXACT STRUCTURE:\n\n# 📄 CONFIDENTIAL RISK MEMORANDUM\n\n**Prepared For:** [Company/Capture Team from data, or "Your Capture Team" if unknown]\n**Prepared By:** BidSmith Automated Intelligence / S. Aris\n**Subject:** Phase 1 Technical Disqualification Audit\n**Solicitation ID:** [solicitation number from brief] | **Agency:** [agency name from brief]\n\n---\n\n### 🚨 EXECUTIVE RISK SUMMARY\n\n[Write exactly 3 sentences. Be ruthless and analytical. State the compliance risk posture, the number of critical traps found, and the manual review recommendation.]\n\n---\n\n### 🍱 THE "BID-KILLER" MATRIX\n\n| Risk Level | Risk Category | FAR/DFARS Citation | The Hidden Requirement | Impact if Missed | Remediation Action |\n| --- | --- | --- | --- | --- | --- |\n[Generate 5-7 rows. Use 🔴 **CRITICAL** for immediate DQ risks, 🟡 **HIGH RISK** for technical downgrade risks, 🟢 **COMPLIANT** for standard boilerplate areas. Every row MUST have a real FAR/DFARS clause number or Section L/M reference from the brief. Keep descriptions concise.]\n\n---\n\n### 🧠 ARIS ENGINE RECOMMENDATIONS\n\n[2 sentences mapping specific FAR flow-downs to the offeror's technical volume actions. Name the clauses explicitly.]\n\n**Time Saved by BidSmith:** ~14 Hours of manual FAR clause extraction.\n\n---\n\n### 📝 STATEMENT OF WORK: PHASE 2 AUTHORIZATION\n\n> **FULL PROPOSAL MAPPING & COMPLIANCE MATRIX**\n> This document represents a partial Phase 1 extraction.\n> To authorize the BidSmith Engine to generate the complete 40-point Compliance Matrix and Volume Outline for this solicitation:\n> **Pricing Options:** Starter $29/mo + $0.25/call | Growth $199/mo (1,000 calls) + $0.20/call | Pilot $2,500 / 30 days (onboarding + 5,000 calls)\n> **Turnaround:** 24 Hours for pilot onboarding kickoff\n> **Action:** Visit bidsmith.pro to authorize execution.\n\nCOMPLIANCE INTELLIGENCE BRIEF:\n${analysis}`
+      content: `You are an elite Federal Proposal Capture Manager. Generate a CONFIDENTIAL RISK MEMORANDUM using the EXACT markdown structure below. Fill every [ ] bracket from the compliance intelligence brief. DO NOT produce generic marketing text, company boilerplate, or "Acme Solutions"-style filler.\n\nEnsure all table content is concise to prevent layout overflow. Do not use LaTeX formatting (e.g. $...$) for standard text.\n\nOUTPUT THIS EXACT STRUCTURE:\n\n# 📄 CONFIDENTIAL RISK MEMORANDUM\n\n**Prepared For:** [Company/Capture Team from data, or "Your Capture Team" if unknown]\n**Prepared By:** BidSmith Automated Intelligence / S. Aris\n**Subject:** Phase 1 Technical Disqualification Audit\n**Solicitation ID:** [solicitation number from brief] | **Agency:** [agency name from brief]\n\n---\n\n### 🚨 EXECUTIVE RISK SUMMARY\n\n[Write exactly 3 sentences. Be ruthless and analytical. State the compliance risk posture, the number of critical traps found, and the manual review recommendation.]\n\n---\n\n### 🍱 THE "BID-KILLER" MATRIX\n\n| Risk Level | Risk Category | FAR/DFARS Citation | The Hidden Requirement | Impact if Missed | Remediation Action |\n| --- | --- | --- | --- | --- | --- |\n[Generate 5-7 rows. Use 🔴 **CRITICAL** for immediate DQ risks, 🟡 **HIGH RISK** for technical downgrade risks, 🟢 **COMPLIANT** for standard boilerplate areas. Every row MUST have a real FAR/DFARS clause number or Section L/M reference from the brief. Keep descriptions concise. For example:\n| 🔴 **CRITICAL** | Cybersecurity | DFARS 252.204-7012 | Must have a NIST SP 800-171 assessment score posted in SPRS. | Immediate disqualification. | Post score to SPRS before submission. |\n]\n\n---\n\n### 🧠 ARIS ENGINE RECOMMENDATIONS\n\n[2 sentences mapping specific FAR flow-downs to the offeror's technical volume actions. Name the clauses explicitly.]\n\n**Time Saved by BidSmith:** ~14 Hours of manual FAR clause extraction.\n\n---\n\n### 📝 STATEMENT OF WORK: PHASE 2 AUTHORIZATION\n\n> **FULL PROPOSAL MAPPING & COMPLIANCE MATRIX**\n> This document represents a partial Phase 1 extraction.\n> To authorize the BidSmith Engine to generate the complete 40-point Compliance Matrix and Volume Outline for this solicitation:\n> **Pricing Options:** Starter $29/mo + $0.25/call | Growth $199/mo (1,000 calls) + $0.20/call | Pilot $2,500 / 30 days (onboarding + 5,000 calls)\n> **Turnaround:** 24 Hours for pilot onboarding kickoff\n> **Action:** Visit bidsmith.pro to authorize execution.\n\nCOMPLIANCE INTELLIGENCE BRIEF:\n${analysis}`
     }], 3000, "drafter"));
     emit({ type: "agent_done", stage: 2, agent: AGENTS[1], data: { preview: memo_draft.slice(0, 200) } });
 
@@ -1410,7 +1539,7 @@ app.get("/api/generate-report-stream", async (req, res) => {
     emit({ type: "agent_start", stage: 3, agent: AGENTS[2] });
     const compliance_report = await withHeartbeat("reviewer", 3, AGENTS[2], () => llm(client, [{
       role: "user",
-      content: `Generate ONLY a markdown compliance matrix table:\n| Requirement | Category | FAR Reference | Bidder Status | Risk Level | Action Required |\n10-12 rows. Bidder Status: ✅ Compliant | ⚠️ Conditional | ❌ Non-Compliant | 🔍 Review Required\nReturn ONLY the table.\n\nOPPORTUNITY:\n${ctx}\n\nBRIEF:\n${analysis.slice(0, 2000)}`
+      content: `You are a Federal Compliance Officer. Generate a **Federal RFP Compliance Risk Matrix Report** using the EXACT markdown structure below.\n\n# 📄 Executive Summary\n\n**Client:** [Company Name or "Prospective Client"]\n**RFP:** [Title] – **Agency:** [Agency]\n**Date:** [Current Date]\n\n## 1️⃣ Solicitation Overview\n\n| Item | Detail |\n|---|---|\n| **Solicitation ID** | [Solicitation ID] |\n| **Title** | [Title] |\n| **Agency** | [Agency] |\n| **Due Date** | [Deadline] |\n| **Key Compliance Regimes** | [List regimes like FAR, DFARS, NIST, etc.] |\n\n## 2️⃣ Methodology\n\n1. **Download & Normalize** – Solicitation documents fetched and converted to searchable text.\n2. **Clause Extraction** – AI analysis of federal compliance clauses.\n3. **Validation** – Cross-check against mandatory checklists (FedRAMP, CMMC, etc.).\n4. **Scoring** – Risk-weighted compliance score calculation.\n\n## 3️⃣ Compliance Risk Matrix\n\n| Regime/Category | Clause | Found? | Risk Weight (1-10) | Comments / Issues |\n|---|---|---|---|---|\n[Generate 10-12 rows covering: Set-Aside, Past Performance, Bonding, Security Clearance, Insurance, Certifications, Subcontracting. Use ✅/❌/⚠️ in "Found?" column.]\n\n**Overall Compliance Score:** [Calculate % based on findings]\n\n## 4️⃣ Findings & Recommendations\n\n| # | Finding | Impact | Recommended Action |\n|---|---|---|---|\n[List top 3-5 high-risk findings]\n\n## 5️⃣ Appendices\n\n- **Appendix A** – Full Clause Extraction Log\n- **Appendix B** – Solicitation Documents\n\nReturn ONLY the markdown. No preamble.\n\nOPPORTUNITY:\n${ctx}\n\nBRIEF:\n${analysis.slice(0, 2000)}`
     }], 2048, "reviewer"));
     emit({ type: "agent_done", stage: 3, agent: AGENTS[2], data: { compliance_report } });
 
@@ -1418,8 +1547,21 @@ app.get("/api/generate-report-stream", async (req, res) => {
     emit({ type: "agent_start", stage: 4, agent: AGENTS[3] });
     const intelRaw = await withHeartbeat("intel", 4, AGENTS[3], () => llm(client, [{
       role: "user",
-      content: `Return ONLY valid JSON: {"win_themes":["<4 themes>"],"risk_flags":["<4 risks>"],"proposal_outline":[{"volume":"Volume I: Technical","sections":["1.1","1.2","1.3"]},{"volume":"Volume II: Management","sections":["2.1","2.2","2.3"]},{"volume":"Volume III: Past Perf","sections":["3.1","3.2","3.3"]},{"volume":"Volume IV: Price","sections":["4.1","4.2","4.3"]}]}\n\nBRIEF:\n${analysis.slice(0, 3000)}`
-    }], 1500, "extractor"));
+      content: `Based on this federal opportunity brief, return ONLY valid JSON:
+{
+  "win_themes": ["<4 specific win themes>"],
+  "risk_flags": ["<4 specific pre-submission risks>"],
+  "proposal_outline": [
+    { "volume": "Volume I: Technical Approach", "sections": ["1.1 ...","1.2 ...","1.3 ..."] },
+    { "volume": "Volume II: Management Plan", "sections": ["2.1 ...","2.2 ...","2.3 ..."] },
+    { "volume": "Volume III: Past Performance", "sections": ["3.1 ...","3.2 ...","3.3 ..."] },
+    { "volume": "Volume IV: Price/Cost", "sections": ["4.1 ...","4.2 ...","4.3 ..."] }
+  ]
+}
+
+BRIEF:
+${analysis.slice(0, 3000)}`
+    }], 1500, "extractor", 3, { response_format: { type: "json_object" } }));
 
     let intel = { win_themes: [], risk_flags: [], proposal_outline: [] };
     try {
@@ -1439,7 +1581,7 @@ app.get("/api/generate-report-stream", async (req, res) => {
     emit({ type: "agent_start", stage: 5, agent: AGENTS[4] });
     const proposal_draft = await withHeartbeat("editor", 5, AGENTS[4], () => llm(client, [{
       role: "system",
-      content: `You are the Senior GovCon Capture Director at BidSmith. You are the final set of eyes on the Risk Memorandum before it is sent to the client.\n\nYour Mission: Review the Markdown draft. Aggressively edit and reformat to meet strict GovCon consulting standards.\n\nTHE 4 RULES OF EDITING:\n1. ZERO FLUFF: If you see generic marketing language (e.g., "Acme Solutions," "leading provider," "innovative solutions," "our team"), DELETE IT. Replace with technical specifics.\n2. ENFORCE CITATIONS: If a risk row does not cite a specific FAR/DFARS clause or section number, add the correct citation or remove the row.\n3. FORMAT ENFORCEMENT: Ensure the document strictly follows the "Confidential Risk Memorandum" structure with all 4 sections intact. The Bid-Killer Matrix must be a perfectly formatted markdown table.\n4. SOW CHECK: Verify the Statement of Work pricing ladder blockquote (Starter/Growth/Pilot) is present and unchanged at the bottom. If missing, restore it exactly.\n\nOutput ONLY the finalized clean Markdown. No preamble, no "Here is the edited version", no explanations.`
+      content: `You are the Senior GovCon Capture Director at BidSmith. You are the final set of eyes on the Risk Memorandum before it is sent to the client.\n\nYour Mission: Review the Markdown draft. Aggressively edit and reformat to meet strict GovCon consulting standards.\n\nTHE 4 RULES OF EDITING:\n1. ZERO FLUFF: If you see generic marketing language (e.g., "Acme Solutions," "leading provider," "innovative solutions," "our team"), DELETE IT. Replace with technical specifics.\n2. ENFORCE CITATIONS: If a risk row does not cite a specific FAR/DFARS clause or section number, add the correct citation or remove the row.\n3. FORMAT ENFORCEMENT: Ensure the document strictly follows the "Confidential Risk Memorandum" structure with all 4 sections intact. The Bid-Killer Matrix must be a perfectly formatted markdown table. Keep table cell content concise to avoid rendering overflow.\n4. SOW CHECK: Verify the Statement of Work pricing ladder blockquote (Starter/Growth/Pilot) is present and unchanged at the bottom. If missing, restore it exactly.\n\nOutput ONLY the finalized clean Markdown. No preamble, no "Here is the edited version", no explanations.`
     }, {
       role: "user",
       content: `Review and finalize this Risk Memorandum draft:\n\n${memo_draft}`
@@ -1466,7 +1608,29 @@ app.get("/api/generate-report-stream", async (req, res) => {
 });
 
 app.get("/", (req, res) => {
-  res.json({ status: "ok", service: "BidSmith API", version: "3.0.0" });
+  // Google-Lite: Redirect browsers to docs, serve Discovery JSON to machines
+  const ua = req.get("User-Agent") || "";
+  const isBrowser = /Mozilla|Chrome|Safari|Firefox|Edge/.test(ua) && !/curl|wget|postman|insomnia/i.test(ua);
+
+  if (isBrowser) {
+    return res.redirect("https://docs.bidsmith.pro");
+  }
+
+  res.setHeader("Content-Type", "application/json; charset=UTF-8");
+  res.json({
+    kind: "discovery#restDescription",
+    name: "bidsmith",
+    version: "v1",
+    title: "Bidsmith Compliance API",
+    description: "Automated RFP compliance and risk matrix extraction.",
+    rootUrl: "https://api.bidsmith.pro/",
+    servicePath: "v1/",
+    documentationLink: "https://docs.bidsmith.pro",
+    icons: {
+      x16: "https://bidsmith.pro/icon16.png",
+      x32: "https://bidsmith.pro/icon32.png"
+    }
+  });
 });
 
 app.get("/favicon.ico", (req, res) => res.status(204).end());
