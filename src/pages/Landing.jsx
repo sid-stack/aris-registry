@@ -130,7 +130,7 @@ export default function Landing({ onEnterApp }) {
     if (!contactEmail.trim()) return;
 
     trackKPI("enterprise_contact", { source: "landing_enterprise_form" });
-    window.location.href = `mailto:support@bidsmith.pro?subject=Enterprise%20Plan%20Inquiry&body=Contact%20email:%20${encodeURIComponent(contactEmail.trim())}`;
+    window.location.href = `mailto:sid@bidsmith.pro?subject=Enterprise%20Plan%20Inquiry&body=Contact%20email:%20${encodeURIComponent(contactEmail.trim())}`;
   };
 
   useEffect(() => {
@@ -162,14 +162,14 @@ export default function Landing({ onEnterApp }) {
       <header style={styles.navbar}>
         <div style={styles.navInner}>
           <a href="/" style={styles.brand}>
-            <BriefcaseBusiness size={20} />
+            <img src="/aris-logo.png" alt="Aris" style={{ height: 22, width: 22, objectFit: "contain" }} />
             <span>BidSmith</span>
           </a>
           <nav style={styles.navLinksDesktop}>
             <a href="#features" style={styles.navLink}>Features</a>
             <a href="#workflow" style={styles.navLink}>Workflow</a>
             <a href="#pricing" style={styles.navLink}>Pricing</a>
-            <a href="/docs" style={styles.navLink}>Docs</a>
+            <a href="https://arislabs.mintlify.app" target="_blank" rel="noopener noreferrer" style={styles.navLink}>Docs</a>
             <a href="#contact" style={styles.navLink}>Contact</a>
           </nav>
           <button
@@ -292,7 +292,7 @@ export default function Landing({ onEnterApp }) {
                   trackKPI("upgrade_intent", { plan: plan.key, source: "landing_pricing" });
                   if (plan.key === "enterprise") {
                     trackKPI("enterprise_contact", { source: "landing_pricing_card" });
-                    window.location.href = "mailto:support@bidsmith.pro?subject=Enterprise%20Plan%20Inquiry";
+                    window.location.href = "mailto:sid@bidsmith.pro?subject=Enterprise%20Plan%20Inquiry";
                     return;
                   }
                   openCheckout("landing_pricing", plan);
@@ -355,11 +355,11 @@ export default function Landing({ onEnterApp }) {
             <p style={styles.footerBrand}>BidSmith</p>
             <p style={styles.footerText}>Copyright 2026 Bidsmith Ltd. All rights reserved.</p>
             <a
-              href="mailto:support@bidsmith.io"
+              href="mailto:sid@bidsmith.pro"
               style={styles.footerLink}
               onClick={() => trackEvent("support_email_click", { source: "landing_footer" })}
             >
-              support@bidsmith.io
+              sid@bidsmith.pro
             </a>
           </div>
           <div>
@@ -367,7 +367,7 @@ export default function Landing({ onEnterApp }) {
             <a href="/privacy" style={styles.footerLink}>Privacy Policy</a>
             <a href="/terms" style={styles.footerLink}>Terms of Service</a>
             <a href="/cookies" style={styles.footerLink}>Cookie Policy</a>
-            <a href="/docs" style={styles.footerLink}>Developer Docs</a>
+            <a href="https://arislabs.mintlify.app" target="_blank" rel="noopener noreferrer" style={styles.footerLink}>Developer Docs</a>
           </div>
           <div>
             <p style={styles.footerHeading}>Template Library</p>

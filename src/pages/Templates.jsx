@@ -25,7 +25,7 @@ If you are interested, just reply "Yes" and I will send over the short agreement
 
 Looking forward to helping [Client Name] win more SAM.gov opportunities.
 
-- [Your Name] | Bidsmith Ltd. | support@bidsmith.pro`;
+- [Your Name] | Bidsmith Ltd. | sid@bidsmith.pro`;
 
 const pilotAgreementTemplate = `# Bidsmith Lite - Pilot Agreement
 
