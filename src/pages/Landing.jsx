@@ -11,6 +11,8 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import FaqSection from "../components/FaqSection";
 import { trackEvent } from "../utils/analytics";
 import PricingCard from "../components/PricingCard";
@@ -241,7 +243,6 @@ export default function Landing({ onEnterApp }) {
               confidence_metrics: {
                 validator_flagged: false,
                 extraction_confidence: 0.95,
-                possible_missed_mandatory: 0,
               },
             }}
             onReset={handleBackToLanding}
@@ -249,15 +250,31 @@ export default function Landing({ onEnterApp }) {
           <div style={{ maxWidth: 1060, margin: "0 auto", padding: "0 24px 40px" }}>
             <div style={{ background: "#ffffff", border: "1px solid #e5e5e5", borderRadius: 8, padding: "24px", marginBottom: 20 }}>
               <h3 style={{ margin: "0 0 16px", fontSize: 18, fontWeight: 600 }}>Sample Compliance Report</h3>
-              <div style={{ fontFamily: "monospace", fontSize: 13, whiteSpace: "pre-wrap", lineHeight: 1.6 }}>
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
+                p: ({ children }) => <p style={{ marginBottom: 14, lineHeight: 1.6, color: "#334155" }}>{children}</p>,
+                h1: ({ children }) => <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 12, color: "#0f172a" }}>{children}</h1>,
+                h2: ({ children }) => <h2 style={{ fontSize: 18, fontWeight: 600, marginTop: 20, marginBottom: 10, color: "#1e40af" }}>{children}</h2>,
+                table: ({ children }) => <div style={{ overflowX: "auto" }}><table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, marginBottom: 16 }}>{children}</table></div>,
+                th: ({ children }) => <th style={{ background: "#f8fafc", padding: "10px 12px", border: "1px solid #e2e8f0", fontWeight: 600, textAlign: "left" }}>{children}</th>,
+                td: ({ children }) => <td style={{ padding: "10px 12px", border: "1px solid #e2e8f0", color: "#334155" }}>{children}</td>,
+                blockquote: ({ children }) => <blockquote style={{ margin: "12px 0", padding: "12px 16px", background: "#eff6ff", borderLeft: "3px solid #3b82f6", color: "#1e40af", fontStyle: "italic" }}>{children}</blockquote>,
+              }}>
                 {sampleReport.compliance_report}
-              </div>
+              </ReactMarkdown>
             </div>
             <div style={{ background: "#ffffff", border: "1px solid #e5e5e5", borderRadius: 8, padding: "24px" }}>
               <h3 style={{ margin: "0 0 16px", fontSize: 18, fontWeight: 600 }}>Risk Memorandum</h3>
-              <div style={{ fontFamily: "monospace", fontSize: 13, whiteSpace: "pre-wrap", lineHeight: 1.6 }}>
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
+                p: ({ children }) => <p style={{ marginBottom: 14, lineHeight: 1.6, color: "#334155" }}>{children}</p>,
+                h1: ({ children }) => <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 12, color: "#0f172a" }}>{children}</h1>,
+                h2: ({ children }) => <h2 style={{ fontSize: 18, fontWeight: 600, marginTop: 20, marginBottom: 10, color: "#1e40af" }}>{children}</h2>,
+                table: ({ children }) => <div style={{ overflowX: "auto" }}><table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, marginBottom: 16 }}>{children}</table></div>,
+                th: ({ children }) => <th style={{ background: "#f8fafc", padding: "10px 12px", border: "1px solid #e2e8f0", fontWeight: 600, textAlign: "left" }}>{children}</th>,
+                td: ({ children }) => <td style={{ padding: "10px 12px", border: "1px solid #e2e8f0", color: "#334155" }}>{children}</td>,
+                blockquote: ({ children }) => <blockquote style={{ margin: "12px 0", padding: "12px 16px", background: "#eff6ff", borderLeft: "3px solid #3b82f6", color: "#1e40af", fontStyle: "italic" }}>{children}</blockquote>,
+              }}>
                 {sampleReport.proposal_draft}
-              </div>
+              </ReactMarkdown>
             </div>
           </div>
         </div>
