@@ -11,6 +11,25 @@ import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { asyncHandler } from "./utils/asyncHandler.js";
 import { okResponse, failResponse } from "./utils/response.js";
 
+// -------------------------------------------------------------
+// Markdown Sanitizer - Post-process LLM responses to ensure clean markdown
+// -------------------------------------------------------------
+function sanitizeMarkdown(md) {
+  if (!md || typeof md !== "string") return "";
+
+  // Strip any stray HTML tags that somehow slipped through
+  const noHtml = md.replace(/<\/?[^>]+(>|$)/g, "");
+
+  // Remove LaTeX delimiters (the LLM is instructed not to use them,
+  // but we guard against accidental leaks)
+  const noLatex = noHtml.replace(/\$\$?([^$]+)\$?\$/g, (_, expr) => `\`${expr.trim()}\``);
+
+  // Collapse multiple blank lines to a single blank line
+  const cleaned = noLatex.replace(/\n{3,}/g, "\n\n");
+
+  return cleaned;
+}
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROMPTS = join(__dirname, "llm");
 const SYS_PROMPT = readFileSync(join(PROMPTS, "system_prompt.txt"), "utf8").trim();
@@ -1528,7 +1547,7 @@ app.get("/api/generate-report-stream", async (req, res) => {
 
     // Stage 2: Drafter — CONFIDENTIAL RISK MEMORANDUM
     emit({ type: "agent_start", stage: 2, agent: AGENTS[1] });
-    const memo_draft = await withHeartbeat("drafter", 2, AGENTS[1], () => llm(client, [{
+    const memo_draft = sanitizeMarkdown(await withHeartbeat("drafter", 2, AGENTS[1], () => llm(client, [{
       role: "user",
       content: `You are an elite Federal Proposal Capture Manager. Generate a CONFIDENTIAL RISK MEMORANDUM using ONLY valid Markdown format. DO NOT use LaTeX, HTML tags, or any other formatting - STRICTLY Markdown only.
 
@@ -1591,7 +1610,7 @@ Return ONLY valid Markdown. No preamble, no explanations, no LaTeX, no HTML.`
 
     // Stage 3: Reviewer — compliance matrix
     emit({ type: "agent_start", stage: 3, agent: AGENTS[2] });
-    const compliance_report = await withHeartbeat("reviewer", 3, AGENTS[2], () => llm(client, [{
+    const compliance_report = sanitizeMarkdown(await withHeartbeat("reviewer", 3, AGENTS[2], () => llm(client, [{
       role: "user",
       content: `You are a Federal Compliance Officer. Generate a **Federal RFP Compliance Risk Matrix Report** using the EXACT markdown structure below.\n\n# 📄 Executive Summary\n\n**Client:** [Company Name or "Prospective Client"]\n**RFP:** [Title] – **Agency:** [Agency]\n**Date:** [Current Date]\n\n## 1️⃣ Solicitation Overview\n\n| Item | Detail |\n|---|---|\n| **Solicitation ID** | [Solicitation ID] |\n| **Title** | [Title] |\n| **Agency** | [Agency] |\n| **Due Date** | [Deadline] |\n| **Key Compliance Regimes** | [List regimes like FAR, DFARS, NIST, etc.] |\n\n## 2️⃣ Methodology\n\n1. **Download & Normalize** – Solicitation documents fetched and converted to searchable text.\n2. **Clause Extraction** – AI analysis of federal compliance clauses.\n3. **Validation** – Cross-check against mandatory checklists (FedRAMP, CMMC, etc.).\n4. **Scoring** – Risk-weighted compliance score calculation.\n\n## 3️⃣ Compliance Risk Matrix\n\n| Regime/Category | Clause | Found? | Risk Weight (1-10) | Comments / Issues |\n|---|---|---|---|---|\n[Generate 10-12 rows covering: Set-Aside, Past Performance, Bonding, Security Clearance, Insurance, Certifications, Subcontracting. Use ✅/❌/⚠️ in "Found?" column.]\n\n**Overall Compliance Score:** [Calculate % based on findings]\n\n## 4️⃣ Findings & Recommendations\n\n| # | Finding | Impact | Recommended Action |\n|---|---|---|---|\n[List top 3-5 high-risk findings]\n\n## 5️⃣ Appendices\n\n- **Appendix A** – Full Clause Extraction Log\n- **Appendix B** – Solicitation Documents\n\nReturn ONLY the markdown. No preamble.\n\nOPPORTUNITY:\n${ctx}\n\nBRIEF:\n${analysis.slice(0, 2000)}`
     }], 2048, "reviewer"));
@@ -1633,7 +1652,7 @@ ${analysis.slice(0, 3000)}`
 
     // Stage 5: Editor-in-Chief — QA Final Review
     emit({ type: "agent_start", stage: 5, agent: AGENTS[4] });
-    const proposal_draft = await withHeartbeat("editor", 5, AGENTS[4], () => llm(client, [{
+    const proposal_draft = sanitizeMarkdown(await withHeartbeat("editor", 5, AGENTS[4], () => llm(client, [{
       role: "system",
       content: `You are the Senior GovCon Capture Director at BidSmith. Final review of Risk Memorandum before client delivery.
 
