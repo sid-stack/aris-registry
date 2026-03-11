@@ -34,7 +34,7 @@ const benefits = [
   },
   {
     title: "Cost Effective",
-    description: "Fixed INR 20 per transaction with transparent usage pricing.",
+    description: "Fixed $0.25 per transaction with transparent usage pricing.",
     icon: <PiggyBank size={42} color="#4f46e5" />,
   },
   {
@@ -57,7 +57,7 @@ const steps = [
   },
   {
     title: "Settle",
-    description: "Every transaction is logged, marked SUCCESS, and billed at INR 20.",
+    description: "Every transaction is logged, marked SUCCESS, and billed at $0.25.",
     icon: <BadgeCheck size={42} color="#4f46e5" />,
   },
 ];
