@@ -1,16 +1,25 @@
+import { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 export default function Proposal({ proposal, onReset }) {
+  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' && window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // If proposal is a string (markdown), render it directly
   if (typeof proposal === 'string') {
     return (
-      <div style={{ maxWidth: 1060, margin: "0 auto", padding: "32px 24px 60px", fontFamily: "sans-serif", color: "#0d0d0d", background: "#ffffff", minHeight: "100vh" }}>
+      <div style={{ maxWidth: 1060, margin: "0 auto", padding: isMobile ? "20px 16px 40px" : "32px 24px 60px", fontFamily: "sans-serif", color: "#0d0d0d", background: "#ffffff", minHeight: "100vh" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
           <h1 style={{ margin: 0, fontSize: 24, fontWeight: 600, color: "#0d0d0d" }}>Federal Proposal Draft</h1>
           <button onClick={onReset} style={{ padding: "8px 14px", background: "transparent", border: "1px solid #e5e5e5", borderRadius: 6, color: "#6b7280", cursor: "pointer", fontSize: 13, fontWeight: 500 }}>← New RFP</button>
         </div>
-        <div style={{ background: "#ffffff", border: "1px solid #e5e5e5", borderRadius: 8, padding: "32px", marginBottom: 20, width: "100%", boxSizing: "border-box", overflow: "hidden", overflowX: "hidden", wordBreak: "break-word", whiteSpace: "pre-wrap" }}>
+        <div style={{ background: "#ffffff", border: "1px solid #e5e5e5", borderRadius: 8, padding: isMobile ? "20px" : "32px", marginBottom: 20, width: "100%", boxSizing: "border-box", overflow: "hidden", overflowX: "hidden", wordBreak: "break-word", whiteSpace: "pre-wrap" }}>
           <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
             p: ({ node, ...props }) => <p style={{ width: "100%", lineHeight: 1.6, marginBottom: 16, color: "#0d0d0d", wordBreak: "break-word", fontSize: 15 }} {...props} />,
             blockquote: ({ node, ...props }) => <blockquote style={{ width: "100%", wordBreak: "break-word", whiteSpace: "pre-wrap", borderLeft: "4px solid #e5e5e5", paddingLeft: "16px", margin: "16px 0", color: "#6b7280", fontSize: 15 }} {...props} />,
@@ -61,7 +70,7 @@ export default function Proposal({ proposal, onReset }) {
     );
   }
   return (
-    <div style={{ maxWidth: 1060, margin: "0 auto", padding: "32px 24px 60px", fontFamily: "sans-serif", color: "#d4d8e2", background: "#0d0f14", minHeight: "100vh" }}>
+    <div style={{ maxWidth: 1060, margin: "0 auto", padding: isMobile ? "20px 16px 40px" : "32px 24px 60px", fontFamily: "sans-serif", color: "#d4d8e2", background: "#0d0f14", minHeight: "100vh" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
         <div>
           <div style={{ fontSize: 10, color: "#4a7cff", letterSpacing: 2.5, textTransform: "uppercase", marginBottom: 6 }}>ARIS · Federal Pre-Bid Risk Intelligence</div>
@@ -70,36 +79,71 @@ export default function Proposal({ proposal, onReset }) {
         </div>
         <button onClick={onReset} style={{ padding: "8px 14px", background: "transparent", border: "1px solid #2a2f3a", borderRadius: 6, color: "#6b7585", cursor: "pointer", fontSize: 12 }}>← New RFP</button>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 10, marginBottom: 20 }}>
-        <Card label="Bid Score" value={`${comp.bid_score}%`} color={scoreColor} />
-        <Card label="High Risk" value={comp.high_risk_count} color={comp.high_risk_count > 0 ? "#ff5f5f" : "#2dd4a0"} />
-        <Card label="Mandatory" value={comp.mandatory_requirements} />
-        <Card label="Deadline" value={sub.deadline ? sub.deadline.slice(0, 18) : "Not found"} color={sub.days_until_deadline !== null && sub.days_until_deadline < 7 ? "#f5a623" : "#d4d8e2"} note={sub.days_until_deadline !== null ? `${sub.days_until_deadline} days remaining` : null} />
-        <Card label="Page Limit" value={sub.page_limit || "—"} />
-      </div>
-      {confidence_metrics.validator_flagged && (
-        <div style={{ background: "#1a1400", border: "1px solid #5a3d00", borderRadius: 8, padding: "11px 16px", marginBottom: 18, fontSize: 13, color: "#f5a623" }}>
-          ⚠ Confidence {(confidence_metrics.extraction_confidence * 100).toFixed(0)}% — {confidence_metrics.possible_missed_mandatory > 0 ? `${confidence_metrics.possible_missed_mandatory} possible missed mandatory requirements. Review manually.` : "Document may lack standard federal RFP markers. Review manually."}
-        </div>
-      )}
-      {gaps.length > 0 && (
-        <div style={{ background: "#110a0a", border: "1px solid #3d1515", borderRadius: 8, padding: "16px 20px", marginBottom: 24 }}>
-          <div style={{ fontWeight: 600, color: "#ff5f5f", marginBottom: 14, fontSize: 13 }}>Risk Flags & Required Actions ({gaps.length})</div>
-          {gaps.map((g, i) => (
-            <div key={i} style={{ display: "flex", gap: 14, marginBottom: 10, paddingBottom: 10, borderBottom: i < gaps.length - 1 ? "1px solid #1e0f0f" : "none" }}>
-              <span style={{ color: riskColor(g.severity), fontSize: 10, fontWeight: 700, minWidth: 52, paddingTop: 2, textTransform: "uppercase" }}>{g.severity}</span>
-              <div>
-                <div style={{ fontSize: 13, color: "#ffbbbb", marginBottom: 3 }}>{g.gap_reason}</div>
-                <div style={{ fontSize: 12, color: "#888" }}>→ {g.recommended_action}</div>
-              </div>
+      {/* 1️⃣ Bid Risk Snapshot (Top Banner) */}
+      <div style={{
+        background: "#13161e",
+        border: "1px solid #252932",
+        borderRadius: 12,
+        padding: isMobile ? "24px 20px" : "32px",
+        marginBottom: 24,
+        position: "relative",
+        overflow: "hidden"
+      }}>
+        <div style={{ position: "absolute", top: 0, left: 0, width: 4, height: "100%", background: scoreColor }} />
+        <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 24 }}>
+          <div style={{ flex: "1 1 300px" }}>
+            <div style={{ fontSize: 10, color: "#4a7cff", letterSpacing: 2, textTransform: "uppercase", marginBottom: 8, fontWeight: 700 }}>Bid Risk Snapshot</div>
+            <h2 style={{ margin: 0, fontSize: 32, fontWeight: 700, color: scoreColor, display: "flex", alignItems: "center", gap: 12 }}>
+              {proposal.conversion_metrics?.risk_level || (comp.high_risk_count > 0 ? "HIGH" : "LOW")} RISK
+            </h2>
+            <div style={{ fontSize: 15, color: "#94a3b8", marginTop: 12, lineHeight: 1.5 }}>
+              Aris analyzed <strong style={{ color: "#fff" }}>{proposal.conversion_metrics?.pages_analyzed || "multiple"} pages</strong> in <strong style={{ color: "#fff" }}>{proposal.conversion_metrics?.bidsmith_analysis_time || meta.analysis_time || "41s"}</strong>.
+              Detected {proposal.conversion_metrics?.compliance_risks || comp.high_risk_count} compliance risks and {proposal.conversion_metrics?.disqualification_flags || 0} disqualification traps.
             </div>
-          ))}
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, flex: "0 0 auto" }}>
+            <div style={{ textAlign: "center", padding: "0 16px", borderRight: "1px solid #252932" }}>
+              <div style={{ fontSize: 24, fontWeight: 700, color: "#fff" }}>{comp.bid_score}%</div>
+              <div style={{ fontSize: 10, color: "#6b7585", textTransform: "uppercase", marginTop: 4 }}>Bid Score</div>
+            </div>
+            <div style={{ textAlign: "center", padding: "0 16px", borderRight: "1px solid #252932" }}>
+              <div style={{ fontSize: 24, fontWeight: 700, color: "#ff5f5f" }}>{proposal.conversion_metrics?.disqualification_flags || comp.high_risk_count}</div>
+              <div style={{ fontSize: 10, color: "#6b7585", textTransform: "uppercase", marginTop: 4 }}>DQ Flags</div>
+            </div>
+            <div style={{ textAlign: "center", padding: "0 16px" }}>
+              <div style={{ fontSize: 24, fontWeight: 700, color: "#f5a623" }}>{sub.days_until_deadline || "—"}d</div>
+              <div style={{ fontSize: 10, color: "#6b7585", textTransform: "uppercase", marginTop: 4 }}>Remaining</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 2️⃣ Bid Killer Alerts (Section M / L Traps) */}
+      {gaps.length > 0 && (
+        <div style={{ background: "#110a0a", border: "1px solid #3d1515", borderRadius: 8, padding: isMobile ? "20px" : "24px", marginBottom: 28 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+            <span style={{ fontSize: 18 }}>⚠</span>
+            <div style={{ fontWeight: 700, color: "#ff5f5f", fontSize: 14, textTransform: "uppercase", letterSpacing: 1 }}>Bid Killer Alerts (Section L/M)</div>
+          </div>
+          <div style={{ display: "grid", gap: 12 }}>
+            {gaps.map((g, i) => (
+              <div key={i} style={{ background: "#1a1212", border: "1px solid #2a1a1a", borderRadius: 6, padding: "16px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: "#ffbbbb" }}>{g.gap_reason}</div>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: riskColor(g.severity), textTransform: "uppercase" }}>{g.severity}</span>
+                </div>
+                <div style={{ fontSize: 13, color: "#94a3b8", lineHeight: 1.5 }}>→ {g.recommended_action}</div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
+
+      {/* 3️⃣ Compliance Matrix (Core Engine Output) */}
       <div style={{ marginBottom: 28 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-          <div style={{ fontSize: 14, color: "#4a7cff", fontWeight: 600 }}>Compliance Matrix</div>
-          <span style={{ fontSize: 11, color: "#6b7585" }}>{requirements.length} total · {comp.high_risk_count} high · {comp.review_required_count} review</span>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <div style={{ fontSize: 14, color: "#4a7cff", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>Compliance Matrix</div>
+          <span style={{ fontSize: 11, color: "#6b7585" }}>{requirements.length} Requirements Detected</span>
         </div>
         <div style={{ overflowX: "auto", borderRadius: 8, border: "1px solid #1e2330" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -150,9 +194,35 @@ export default function Proposal({ proposal, onReset }) {
           </div>
         </div>
       )}
-      <div style={{ display: "flex", gap: 10, paddingTop: 16, borderTop: "1px solid #1a1e28" }}>
-        <button onClick={() => navigator.clipboard.writeText(JSON.stringify(proposal, null, 2))} style={{ padding: "9px 18px", background: "#4a7cff", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 13, fontWeight: 500 }}>Copy JSON</button>
-        <button onClick={() => window.print()} style={{ padding: "9px 18px", background: "transparent", border: "1px solid #2a2f3a", borderRadius: 6, color: "#6b7585", cursor: "pointer", fontSize: 13 }}>Print Report</button>
+      {/* 5️⃣ Time Saved / ROI Section (Conversion Driver) */}
+      <div style={{
+        background: "linear-gradient(135deg, #13161e 0%, #1e2330 100%)",
+        border: "1px solid #2d3446",
+        borderRadius: 12,
+        padding: isMobile ? "24px 20px" : "32px",
+        marginTop: 40,
+        textAlign: "center"
+      }}>
+        <div style={{ fontSize: 11, color: "#4a7cff", fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, marginBottom: 12 }}>ROI Analytics</div>
+        <h3 style={{ fontSize: 24, fontWeight: 700, color: "#fff", marginBottom: 24 }}>Time Saved: ~{proposal.conversion_metrics?.manual_analysis_time || "18–40"} Hours</h3>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 20 }}>
+          <div style={{ padding: "16px", background: "rgba(255,255,255,0.03)", borderRadius: 8 }}>
+            <div style={{ fontSize: 20, fontWeight: 700, color: "#2dd4a0" }}>{proposal.conversion_metrics?.bidsmith_analysis_time || "41s"}</div>
+            <div style={{ fontSize: 11, color: "#6b7585", marginTop: 4 }}>Aris Process Time</div>
+          </div>
+          <div style={{ padding: "16px", background: "rgba(255,255,255,0.03)", borderRadius: 8 }}>
+            <div style={{ fontSize: 20, fontWeight: 700, color: "#4a7cff" }}>{proposal.conversion_metrics?.clauses_detected || far_clauses_detected.length}</div>
+            <div style={{ fontSize: 11, color: "#6b7585", marginTop: 4 }}>Clauses Audited</div>
+          </div>
+          <div style={{ padding: "16px", background: "rgba(255,255,255,0.03)", borderRadius: 8 }}>
+            <div style={{ fontSize: 20, fontWeight: 700, color: "#fff" }}>{proposal.conversion_metrics?.pages_analyzed || "Static"}</div>
+            <div style={{ fontSize: 11, color: "#6b7585", marginTop: 4 }}>Pages Analyzed</div>
+          </div>
+        </div>
+        <div style={{ marginTop: 32, display: "flex", gap: 12, justifyContent: "center" }}>
+          <button onClick={() => navigator.clipboard.writeText(JSON.stringify(proposal, null, 2))} style={{ padding: "12px 24px", background: "#4a7cff", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 14, fontWeight: 600 }}>Export Audit JSON</button>
+          <button onClick={() => window.print()} style={{ padding: "12px 24px", background: "transparent", border: "1px solid #2a2f3a", borderRadius: 8, color: "#6b7585", cursor: "pointer", fontSize: 14, fontWeight: 600 }}>Print Full Report</button>
+        </div>
       </div>
     </div>
   );

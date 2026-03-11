@@ -192,7 +192,7 @@ export default function Landing({ onEnterApp }) {
       {viewingSample && sampleReport ? (
         <div style={{ minHeight: "100vh", background: "#f8fafc" }}>
           <div style={{ ...styles.navbar, position: "relative" }}>
-            <div style={styles.navInner}>
+            <div style={{ ...styles.navInner, justifyContent: isMobile ? "center" : "space-between" }}>
               <button
                 onClick={handleBackToLanding}
                 style={{
@@ -200,14 +200,18 @@ export default function Landing({ onEnterApp }) {
                   display: "inline-flex",
                   alignItems: "center",
                   gap: 6,
+                  fontSize: isMobile ? 12 : undefined,
+                  padding: isMobile ? "6px 10px" : undefined
                 }}
               >
                 <ArrowLeft size={16} />
-                Back to Home
+                {isMobile ? "Back" : "Back to Home"}
               </button>
-              <span style={{ marginLeft: "auto", color: "#4f46e5", fontWeight: 600 }}>
-                Demo: DLA Energy Solicitation
-              </span>
+              {!isMobile && (
+                <span style={{ marginLeft: "auto", color: "#4f46e5", fontWeight: 600 }}>
+                  Demo: DLA Energy Solicitation
+                </span>
+              )}
             </div>
           </div>
           <Proposal
@@ -247,8 +251,8 @@ export default function Landing({ onEnterApp }) {
             }}
             onReset={handleBackToLanding}
           />
-          <div style={{ maxWidth: 1060, margin: "0 auto", padding: "0 24px 40px" }}>
-            <div style={{ background: "#ffffff", border: "1px solid #e5e5e5", borderRadius: 8, padding: "24px", marginBottom: 20 }}>
+          <div style={{ maxWidth: 1060, margin: "0 auto", padding: isMobile ? "0 16px 32px" : "0 24px 40px" }}>
+            <div style={{ background: "#ffffff", border: "1px solid #e5e5e5", borderRadius: 8, padding: isMobile ? "16px" : "24px", marginBottom: 20 }}>
               <h3 style={{ margin: "0 0 16px", fontSize: 18, fontWeight: 600 }}>Sample Compliance Report</h3>
               <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
                 p: ({ children }) => <p style={{ marginBottom: 14, lineHeight: 1.6, color: "#334155" }}>{children}</p>,
@@ -262,7 +266,7 @@ export default function Landing({ onEnterApp }) {
                 {sampleReport.compliance_report}
               </ReactMarkdown>
             </div>
-            <div style={{ background: "#ffffff", border: "1px solid #e5e5e5", borderRadius: 8, padding: "24px" }}>
+            <div style={{ background: "#ffffff", border: "1px solid #e5e5e5", borderRadius: 8, padding: isMobile ? "16px" : "24px" }}>
               <h3 style={{ margin: "0 0 16px", fontSize: 18, fontWeight: 600 }}>Risk Memorandum</h3>
               <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
                 p: ({ children }) => <p style={{ marginBottom: 14, lineHeight: 1.6, color: "#334155" }}>{children}</p>,
@@ -281,248 +285,248 @@ export default function Landing({ onEnterApp }) {
       ) : (
         <>
           <header style={styles.navbar}>
-        <div style={styles.navInner}>
-          <a href="/" style={styles.brand}>
-            <img src="/aris-logo.png" alt="Aris" style={{ height: 22, width: 22, objectFit: "contain" }} />
-            <span>BidSmith</span>
-          </a>
-          <nav style={styles.navLinksDesktop}>
-            <a href="#features" style={styles.navLink}>Features</a>
-            <a href="#workflow" style={styles.navLink}>Workflow</a>
-            <a href="#pricing" style={styles.navLink}>Pricing</a>
-            <a href="/docs" target="_blank" rel="noopener noreferrer" style={styles.navLink}>Docs</a>
-            <a href="#contact" style={styles.navLink}>Contact</a>
-          </nav>
-          <button
-            type="button"
-            aria-label="Start free trial checkout"
-            style={styles.navCta}
-            onClick={handleStartTrial}
-            disabled={isProcessing}
-          >
-            Start Free
-          </button>
-        </div>
-      </header>
-      <section style={styles.hero}>
-        <div style={styles.heroGlowTop} />
-        <div style={styles.heroGlowBottom} />
-        <div style={styles.heroInner}>
-          <p style={styles.heroKicker}>AI capture engine for federal bid teams</p>
-          <img
-            src="/aris-logo.png"
-            alt="BidSmith logo"
-            style={styles.logo}
-          />
-          <h1 style={styles.title}>AI‑Powered RFP and Government Contract Bidding</h1>
-          <p style={styles.subtitle}>
-            Build compliant bids faster, reduce disqualification risk, and move from
-            solicitation to submission with a repeatable AI-assisted workflow.
-          </p>
-          <div style={styles.heroActions}>
-            <button
-              type="button"
-              aria-label="Start free seven day trial"
-              style={{
-                ...styles.primaryCta,
-                ...(isProcessing ? styles.disabledButton : {}),
-              }}
-              onClick={handleStartTrial}
-              disabled={isProcessing}
-            >
-              {isProcessing ? "Processing..." : "Start Free 7-Day Trial"}
-            </button>
-            <button
-              type="button"
-              aria-label="Open analyst workspace"
-              onClick={handleWorkspaceOpen}
-              style={styles.secondaryCta}
-              disabled={isProcessing}
-            >
-              Open Analyst Workspace
-            </button>
-            <button
-              type="button"
-              aria-label="View demo sample report"
-              onClick={fetchSampleReport}
-              style={styles.demoCta}
-              disabled={isProcessing || loadingSample}
-            >
-              {loadingSample ? "Loading Demo..." : (
-                <>
-                  <FileText size={16} style={{ marginRight: 6 }} />
-                  View Demo Report
-                </>
-              )}
-            </button>
-            <a href="#workflow" style={styles.heroTextLink} aria-label="Jump to workflow section">
-              Watch How It Works
-            </a>
-          </div>
-          <div style={styles.heroStatsGrid}>
-            {heroStats.map((stat) => (
-              <div key={stat.label} style={styles.heroStatCard}>
-                <p style={styles.heroStatValue}>{stat.value}</p>
-                <p style={styles.heroStatLabel}>{stat.label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section id="features" style={styles.sectionMuted} data-reveal>
-        <div style={styles.sectionInner}>
-          <p style={styles.sectionEyebrow}>Why teams switch from manual workflows</p>
-          <h2 style={styles.sectionTitle}>Why Bidsmith Lite?</h2>
-          <div style={styles.gridFour}>
-            {benefits.map((benefit) => (
-              <IconCard
-                key={benefit.title}
-                title={benefit.title}
-                description={benefit.description}
-                icon={benefit.icon}
-              />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section id="workflow" style={styles.section} data-reveal>
-        <div style={styles.sectionInner}>
-          <p style={styles.sectionEyebrow}>Execution model</p>
-          <h2 style={styles.sectionTitle}>How It Works</h2>
-          <div style={styles.gridThree}>
-            {steps.map((step) => (
-              <IconCard
-                key={step.title}
-                title={step.title}
-                description={step.description}
-                icon={step.icon}
-              />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section id="pricing" style={styles.sectionMuted} data-reveal>
-        <div style={styles.sectionInnerNarrow}>
-          <p style={styles.sectionEyebrow}>Commercial model</p>
-          <h2 style={styles.sectionTitle}>Simple, Transparent Pricing</h2>
-          <p style={styles.subtitleSmall}>No contracts, no hidden fees, and a clear plan progression.</p>
-          <div style={styles.pricingGrid}>
-            {GTM_PRICING_PLANS.map((plan) => (
-              <PricingCard
-                key={plan.key}
-                title={plan.title}
-                price={plan.price}
-                description={plan.description}
-                buttonLabel={plan.buttonLabel}
-                buttonLink={plan.buttonLink}
+            <div style={styles.navInner}>
+              <a href="/" style={styles.brand}>
+                <img src="/aris-logo.png" alt="Aris" style={{ height: 22, width: 22, objectFit: "contain" }} />
+                <span>BidSmith</span>
+              </a>
+              <nav style={styles.navLinksDesktop}>
+                <a href="#features" style={styles.navLink}>Features</a>
+                <a href="#workflow" style={styles.navLink}>Workflow</a>
+                <a href="#pricing" style={styles.navLink}>Pricing</a>
+                <a href="/docs" target="_blank" rel="noopener noreferrer" style={styles.navLink}>Docs</a>
+                <a href="#contact" style={styles.navLink}>Contact</a>
+              </nav>
+              <button
+                type="button"
+                aria-label="Start free trial checkout"
+                style={styles.navCta}
+                onClick={handleStartTrial}
                 disabled={isProcessing}
-                onButtonClick={() => {
-                  trackEvent("pricing_cta_click", {
-                    source: "landing_pricing",
-                    plan_name: plan.title,
-                  });
-                  trackKPI("upgrade_intent", { plan: plan.key, source: "landing_pricing" });
-                  if (plan.key === "enterprise") {
-                    trackKPI("enterprise_contact", { source: "landing_pricing_card" });
-                    window.location.href = "mailto:sid@bidsmith.pro?subject=Enterprise%20Plan%20Inquiry";
-                    return;
-                  }
-                  openCheckout("landing_pricing", plan);
-                }}
+              >
+                Start Free
+              </button>
+            </div>
+          </header>
+          <section style={styles.hero}>
+            <div style={styles.heroGlowTop} />
+            <div style={styles.heroGlowBottom} />
+            <div style={styles.heroInner}>
+              <p style={styles.heroKicker}>AI capture engine for federal bid teams</p>
+              <img
+                src="/aris-logo.png"
+                alt="BidSmith logo"
+                style={styles.logo}
               />
-            ))}
-          </div>
-          <div style={styles.pilotBanner}>
-            <p style={styles.pilotText}>
-              Pilot package: <strong>$2,500 / 30 days</strong> with onboarding and 5,000 calls.
-            </p>
-            <button
-              type="button"
-              aria-label="Request pilot plan"
-              style={styles.secondaryCta}
-              onClick={handlePilotCta}
-              disabled={isProcessing}
-            >
-              Request Pilot
-            </button>
-          </div>
-          <form onSubmit={handleEnterpriseContact} style={styles.enterpriseForm}>
-            <label htmlFor="enterprise-email" style={styles.enterpriseLabel}>Enterprise: contact sales</label>
-            <input
-              id="enterprise-email"
-              type="email"
-              required
-              value={contactEmail}
-              onChange={(event) => setContactEmail(event.target.value)}
-              placeholder="you@company.com"
-              style={styles.enterpriseInput}
-            />
-            <button type="submit" style={styles.planButton} aria-label="Contact enterprise sales">
-              Contact Sales
-            </button>
-          </form>
-          <p style={styles.proposalCopy}>
-            Need a client-ready pilot deck? See{" "}
-            <a
-              href="/pilot-proposal-outline.md"
-              target="_blank"
-              rel="noreferrer"
-              style={styles.inlineLink}
-              onClick={() =>
-                trackEvent("pilot_outline_open_click", { source: "landing_pricing" })
-              }
-            >
-              pilot proposal outline
-            </a>
-            .
-          </p>
-        </div>
-      </section>
+              <h1 style={styles.title}>AI‑Powered RFP and Government Contract Bidding</h1>
+              <p style={styles.subtitle}>
+                Build compliant bids faster, reduce disqualification risk, and move from
+                solicitation to submission with a repeatable AI-assisted workflow.
+              </p>
+              <div style={styles.heroActions}>
+                <button
+                  type="button"
+                  aria-label="Start free seven day trial"
+                  style={{
+                    ...styles.primaryCta,
+                    ...(isProcessing ? styles.disabledButton : {}),
+                  }}
+                  onClick={handleStartTrial}
+                  disabled={isProcessing}
+                >
+                  {isProcessing ? "Processing..." : "Start Free 7-Day Trial"}
+                </button>
+                <button
+                  type="button"
+                  aria-label="Open analyst workspace"
+                  onClick={handleWorkspaceOpen}
+                  style={styles.secondaryCta}
+                  disabled={isProcessing}
+                >
+                  Open Analyst Workspace
+                </button>
+                <button
+                  type="button"
+                  aria-label="View demo sample report"
+                  onClick={fetchSampleReport}
+                  style={styles.demoCta}
+                  disabled={isProcessing || loadingSample}
+                >
+                  {loadingSample ? "Loading Demo..." : (
+                    <>
+                      <FileText size={16} style={{ marginRight: 6 }} />
+                      View Demo Report
+                    </>
+                  )}
+                </button>
+                <a href="#workflow" style={styles.heroTextLink} aria-label="Jump to workflow section">
+                  Watch How It Works
+                </a>
+              </div>
+              <div style={styles.heroStatsGrid}>
+                {heroStats.map((stat) => (
+                  <div key={stat.label} style={styles.heroStatCard}>
+                    <p style={styles.heroStatValue}>{stat.value}</p>
+                    <p style={styles.heroStatLabel}>{stat.label}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
 
-      <FaqSection />
+          <section id="features" style={styles.sectionMuted} data-reveal>
+            <div style={styles.sectionInner}>
+              <p style={styles.sectionEyebrow}>Why teams switch from manual workflows</p>
+              <h2 style={styles.sectionTitle}>Why Bidsmith Lite?</h2>
+              <div style={styles.gridFour}>
+                {benefits.map((benefit) => (
+                  <IconCard
+                    key={benefit.title}
+                    title={benefit.title}
+                    description={benefit.description}
+                    icon={benefit.icon}
+                  />
+                ))}
+              </div>
+            </div>
+          </section>
 
-      <footer id="contact" style={styles.footer}>
-        <div style={styles.footerInner}>
-          <div>
-            <p style={styles.footerBrand}>BidSmith</p>
-            <p style={styles.footerText}>Copyright 2026 Bidsmith Ltd. All rights reserved.</p>
-            <a
-              href="mailto:sid@bidsmith.pro"
-              style={styles.footerLink}
-              onClick={() => trackEvent("support_email_click", { source: "landing_footer" })}
-            >
-              sid@bidsmith.pro
-            </a>
-          </div>
-          <div>
-            <p style={styles.footerHeading}>Company</p>
-            <a href="/privacy" style={styles.footerLink}>Privacy Policy</a>
-            <a href="/terms" style={styles.footerLink}>Terms of Service</a>
-            <a href="/cookies" style={styles.footerLink}>Cookie Policy</a>
-            <a href="/docs" target="_blank" rel="noopener noreferrer" style={styles.footerLink}>Developer Docs</a>
-          </div>
-          <div>
-            <p style={styles.footerHeading}>Template Library</p>
-            <a
-              href="/templates"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={styles.footerLink}
-              onClick={() => trackEvent("templates_link_click", { source: "landing_footer" })}
-            >
-              Outreach & Agreement Templates
-            </a>
-            <a href="/pilot-proposal-outline.md" target="_blank" rel="noreferrer" style={styles.footerLink}>
-              Pilot Proposal Outline
-            </a>
-            <a href="#pricing" style={styles.footerLink}>Pricing Plans</a>
-          </div>
-        </div>
-      </footer>
-      </>
+          <section id="workflow" style={styles.section} data-reveal>
+            <div style={styles.sectionInner}>
+              <p style={styles.sectionEyebrow}>Execution model</p>
+              <h2 style={styles.sectionTitle}>How It Works</h2>
+              <div style={styles.gridThree}>
+                {steps.map((step) => (
+                  <IconCard
+                    key={step.title}
+                    title={step.title}
+                    description={step.description}
+                    icon={step.icon}
+                  />
+                ))}
+              </div>
+            </div>
+          </section>
+
+          <section id="pricing" style={styles.sectionMuted} data-reveal>
+            <div style={styles.sectionInnerNarrow}>
+              <p style={styles.sectionEyebrow}>Commercial model</p>
+              <h2 style={styles.sectionTitle}>Simple, Transparent Pricing</h2>
+              <p style={styles.subtitleSmall}>No contracts, no hidden fees, and a clear plan progression.</p>
+              <div style={styles.pricingGrid}>
+                {GTM_PRICING_PLANS.map((plan) => (
+                  <PricingCard
+                    key={plan.key}
+                    title={plan.title}
+                    price={plan.price}
+                    description={plan.description}
+                    buttonLabel={plan.buttonLabel}
+                    buttonLink={plan.buttonLink}
+                    disabled={isProcessing}
+                    onButtonClick={() => {
+                      trackEvent("pricing_cta_click", {
+                        source: "landing_pricing",
+                        plan_name: plan.title,
+                      });
+                      trackKPI("upgrade_intent", { plan: plan.key, source: "landing_pricing" });
+                      if (plan.key === "enterprise") {
+                        trackKPI("enterprise_contact", { source: "landing_pricing_card" });
+                        window.location.href = "mailto:sid@bidsmith.pro?subject=Enterprise%20Plan%20Inquiry";
+                        return;
+                      }
+                      openCheckout("landing_pricing", plan);
+                    }}
+                  />
+                ))}
+              </div>
+              <div style={styles.pilotBanner}>
+                <p style={styles.pilotText}>
+                  Pilot package: <strong>$2,500 / 30 days</strong> with onboarding and 5,000 calls.
+                </p>
+                <button
+                  type="button"
+                  aria-label="Request pilot plan"
+                  style={styles.secondaryCta}
+                  onClick={handlePilotCta}
+                  disabled={isProcessing}
+                >
+                  Request Pilot
+                </button>
+              </div>
+              <form onSubmit={handleEnterpriseContact} style={styles.enterpriseForm}>
+                <label htmlFor="enterprise-email" style={styles.enterpriseLabel}>Enterprise: contact sales</label>
+                <input
+                  id="enterprise-email"
+                  type="email"
+                  required
+                  value={contactEmail}
+                  onChange={(event) => setContactEmail(event.target.value)}
+                  placeholder="you@company.com"
+                  style={styles.enterpriseInput}
+                />
+                <button type="submit" style={styles.planButton} aria-label="Contact enterprise sales">
+                  Contact Sales
+                </button>
+              </form>
+              <p style={styles.proposalCopy}>
+                Need a client-ready pilot deck? See{" "}
+                <a
+                  href="/pilot-proposal-outline.md"
+                  target="_blank"
+                  rel="noreferrer"
+                  style={styles.inlineLink}
+                  onClick={() =>
+                    trackEvent("pilot_outline_open_click", { source: "landing_pricing" })
+                  }
+                >
+                  pilot proposal outline
+                </a>
+                .
+              </p>
+            </div>
+          </section>
+
+          <FaqSection />
+
+          <footer id="contact" style={styles.footer}>
+            <div style={styles.footerInner}>
+              <div>
+                <p style={styles.footerBrand}>BidSmith</p>
+                <p style={styles.footerText}>Copyright 2026 Bidsmith Ltd. All rights reserved.</p>
+                <a
+                  href="mailto:sid@bidsmith.pro"
+                  style={styles.footerLink}
+                  onClick={() => trackEvent("support_email_click", { source: "landing_footer" })}
+                >
+                  sid@bidsmith.pro
+                </a>
+              </div>
+              <div>
+                <p style={styles.footerHeading}>Company</p>
+                <a href="/privacy" style={styles.footerLink}>Privacy Policy</a>
+                <a href="/terms" style={styles.footerLink}>Terms of Service</a>
+                <a href="/cookies" style={styles.footerLink}>Cookie Policy</a>
+                <a href="/docs" target="_blank" rel="noopener noreferrer" style={styles.footerLink}>Developer Docs</a>
+              </div>
+              <div>
+                <p style={styles.footerHeading}>Template Library</p>
+                <a
+                  href="/templates"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={styles.footerLink}
+                  onClick={() => trackEvent("templates_link_click", { source: "landing_footer" })}
+                >
+                  Outreach & Agreement Templates
+                </a>
+                <a href="/pilot-proposal-outline.md" target="_blank" rel="noreferrer" style={styles.footerLink}>
+                  Pilot Proposal Outline
+                </a>
+                <a href="#pricing" style={styles.footerLink}>Pricing Plans</a>
+              </div>
+            </div>
+          </footer>
+        </>
       )}
     </div>
   );
