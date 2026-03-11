@@ -6,6 +6,7 @@ import Audit from "./pages/Audit";
 import Landing from "./pages/Landing";
 import Templates from "./pages/Templates";
 import Legal from "./pages/Legal";
+import SamRep from "./pages/SamRep";
 import NotFound from "./pages/NotFound";
 import ConsentBanner from "./components/ConsentBanner";
 import { trackPageView } from "./utils/analytics";
@@ -22,17 +23,19 @@ export default function App() {
       ? "templates"
       : path === "/privacy"
         ? "privacy"
-      : path === "/terms"
-        ? "terms"
-      : path === "/cookies"
-        ? "cookies"
-      : path === "/app"
-        ? "app"
-      : window.location.search.includes("app=true")
-        ? "app"
-        : path !== "/"
-          ? "404"
-        : "landing",
+        : path === "/terms"
+          ? "terms"
+          : path === "/cookies"
+            ? "cookies"
+            : path === "/sam-rep"
+              ? "sam-rep"
+              : path === "/app"
+                ? "app"
+                : window.location.search.includes("app=true")
+                  ? "app"
+                  : path !== "/"
+                    ? "404"
+                    : "landing",
   );
 
   useEffect(() => {
@@ -44,6 +47,8 @@ export default function App() {
       logicalPath = `/${view}`;
     } else if (view === "404") {
       logicalPath = "/404";
+    } else if (view === "sam-rep") {
+      logicalPath = "/sam-rep";
     } else if (view === "landing") {
       logicalPath = "/";
     } else if (!authenticated) {
@@ -64,6 +69,8 @@ export default function App() {
     content = <Legal type={view} />;
   } else if (view === "404") {
     content = <NotFound />;
+  } else if (view === "sam-rep") {
+    content = <SamRep onBack={() => setView("landing")} />;
   } else if (view === "landing") {
     content = <Landing onEnterApp={() => setView("app")} />;
   } else if (!authenticated) {

@@ -161,83 +161,103 @@ const SAMPLE_REPORT = {
   },
   engine: "static_sample",
   pipelineStages: ["analyst", "drafter", "reviewer", "intel", "editor"],
-  title: "DLA Energy Fuel Storage & Distribution (Sample)",
-  agency: "Defense Logistics Agency (DLA)",
+  title: "DHA Video Imaging Archive",
+  agency: "Defense Health Agency (DHA)",
   generatedAt: new Date().toISOString(),
   pillars: {
-    solicitation_id: { value: "SPE603-23-R-0500", confidence: "HIGH" },
-    deadline_date: { value: "2023-11-15", confidence: "HIGH" },
-    set_aside_type: { value: "Small Business Set-Aside", confidence: "HIGH" },
-    naics_code: { value: "493190", confidence: "HIGH" }
+    solicitation_id: { value: "HT9402-24-R-0012", confidence: "HIGH" },
+    deadline_date: { value: "2024-05-20", confidence: "HIGH" },
+    set_aside_type: { value: "Total Small Business", confidence: "HIGH" },
+    naics_code: { value: "541512", confidence: "HIGH" }
   },
-  executiveSummary: "ARIS LABS | EXEC AUDIT: Critical cybersecurity (NIST 800-171) and past performance ($5M+) traps identified. Disqualification risk: 🔴 CRITICAL.",
+  conversion_metrics: {
+    manual_analysis_time: "18–40 hours",
+    bidsmith_analysis_time: "41 seconds",
+    clauses_detected: 127,
+    pages_analyzed: 284,
+    risk_level: "HIGH",
+    compliance_risks: 3,
+    disqualification_flags: 1
+  },
+  executiveSummary: "ARIS LABS | EXEC AUDIT: 3 Compliance Risks, 1 Potential Techncial Disqualification Detected out of 284 pages analyzed in 41s.",
   compliance_report: `
 # 📄 Executive Compliance Audit
 
 **Client:** Sample Acquisition Team
-**RFP:** DLA Energy Fuel Storage – **Agency:** Defense Logistics Agency
+**RFP:** DHA Video Imaging Archive – **Agency:** Defense Health Agency
 **Date:** ${new Date().toLocaleDateString()}
 
-## 1️⃣ Solicitation Overview
+## 1️⃣ Bid Risk Snapshot
 
-| Item | Detail |
+| Metric | Value |
 |---|---|
-| **Solicitation ID** | SPE603-23-R-0500 |
-| **Title** | Fuel Storage & Distribution |
-| **Agency** | DLA Energy |
-| **Due Date** | Nov 15, 2023 |
-| **Key Compliance Regimes** | FAR, DFARS, NIST SP 800-171 |
+| **Overall Bid Risk** | **🔴 HIGH** |
+| **Compliance Risks** | 3 |
+| **Disqualification Flags** | 1 |
+| **Total Pages Analyzed** | 284 |
+| **Processing Time** | 41 seconds |
 
-## 2️⃣ Compliance Risk Matrix
+## 2️⃣ Bid Killer Alerts (Section M)
 
-| Regime/Category | Clause | Found? | Risk Weight (1-10) | Comments / Issues |
-|---|---|---|---|---|
-| Set-Aside | FAR 52.219-6 | ✅ | 1 | Total Small Business Set-Aside confirmed. |
-| Cybersecurity | DFARS 252.204-7012 | ❌ | 10 | **🔴 IMMEDIATE DQ:** NIST 800-171 score must be in SPRS *before* submission. |
-| Past Performance | Section L.2.1 | ⚠️ | 8 | Requires 3 references >$5M value in last 5 years. |
-| Insurance | FAR 52.228-5 | ✅ | 2 | Standard liability coverage applies. |
-
-**Overall Compliance Score: 78%**`.trim(),
-  proposal_draft: `
-# ARIS LABS | EXECUTIVE AUDIT
+- **⚠ RMF / ATO Requirement:** Contractor must demonstrate Authority to Operate (ATO) for legacy imaging systems. **Risk Level: HIGH**.
+- **⚠ NIST 800-171 Compliance:** SPRS score must be submitted before proposal. Current status: **NOT DETECTED**. **Risk Level: MEDIUM**.
+- **⚠ Facility Clearance:** Handling Controlled Unclassified Information (CUI) required. Audit found no mention of FCL in provided team bios. **Risk Level: HIGH**.
 
 ---
 
-### 1️⃣ COMPLIANCE MATRIX (Section L)
-| Requirement | Status | Risk Level |
-| :--- | :--- | :--- |
-| **SAM.gov Registration** | ✅ | Low |
-| **NIST 800-171 Cybersecurity** | ❌ | 🔴 **CRITICAL** |
-| **Small Business Set-Aside** | ✅ | Low |
-| **VETS-4212 Filing** | ⚠️ | Medium |
+## 3️⃣ Compliance Matrix (Section L)
+
+| Requirement | Source | Risk | Notes |
+| :--- | :--- | :--- | :--- |
+| **ATO Required** | Section L | **🔴 HIGH** | RMF inheritance unclear |
+| **NIST 800-171** | Clause H.5 | **🟡 MEDIUM** | SPRS score needed |
+| **On-site staff** | Section C | **🟢 LOW** | 2 engineers required |
 
 ---
 
-### 2️⃣ BID-KILLER ALERTS (Section M)
-- **Technical Disqualification:** Section M.3 explicitly mandates that any offeror without a current NIST SP 800-171 score posted in the **Supplier Performance Risk System (SPRS)** will be deemed "Technically Unacceptable" without further evaluation.
-- **Evaluation Factor 1 (Technical Approach):** The agency uses an **LPTA (Lowest Price Technically Acceptable)** model. Exceeding technical requirements adds no value to the bid score and may inflate price unnecessarily.
+## 4️⃣ Suggested Response Outline
+
+**Volume I – Technical Approach**
+- RMF Compliance Strategy
+- Imaging System Integration
+
+**Volume II – Management**
+- Program Governance
+- Staffing Plan
+
+**Volume III – Past Performance**
+- Healthcare Imaging Systems
 
 ---
 
-### 3️⃣ FORMATTING CONSTRAINTS (Section L)
-| Item | Requirement |
-| :--- | :--- |
-| **Font** | Calibri or Times New Roman, 11pt Min. |
-| **Margins** | 1-inch (Top, Bottom, Left, Right) |
-| **Page Limit** | 20 Pages (Technical Volume) |
-| **Submission** | Electronic via Procurement Integrated Enterprise Environment (PIEE). |
+## 5️⃣ Time Saved / ROI
 
----
-
-**Audit Note:** This report was generated by the Aris Intelligence Engine. Zero Fluff. High Conviction. 
-**Time Saved:** ~14 Hours of manual FAR extraction logic.
+- **Manual RFP analysis time:** 18–40 hours
+- **BidSmith analysis time:** 41 seconds
+- **Clauses detected:** 127
+- **Attachments analyzed:** 16 PDFs
 `.trim(),
-  win_themes: ["Verified DLA Fuel Performance", "NIST-Compliant Infrastructure", "Competitive LPTA Pricing Model", "ISO-9001 Safety Protocol"],
-  risk_flags: ["Cybersecurity (SPRS Check Required)", "Reference Value Threshold ($5M+)", "PIEE Portal Submission Window"],
+  proposal_draft: `
+# ARIS LABS | EXECUTIVE AUDIT: DHA Video Imaging Archive
+
+---
+
+### 1️⃣ BID-KILLER ALERTS
+- **⚠ NIST 800-171 Certification:** Critical disqualifier if not in SPRS.
+- **⚠ RMF Inheritance:** Lack of specific legacy system documentation.
+
+### 2️⃣ TIME SAVED / ROI
+- **Manual RFP analysis time:** 18–40 hours
+- **BidSmith analysis time:** 41 seconds
+- **Clauses detected:** 127
+- **Attachments analyzed:** 16 PDFs
+`.trim(),
+  win_themes: ["Legacy System Expertise", "RMF Compliance Readiness", "Proven Healthcare Data Integration"],
+  risk_flags: ["Cybersecurity (SPRS Check Required)", "Facility Clearance (CUI)", "ATO Legacy Inheritance"],
   proposal_outline: [
-    { volume: "Volume I: Technical Approach", sections: ["1.1 Fuel Management Plan", "1.2 Quality & Safety", "1.3 Environmental Compliance"] },
-    { volume: "Volume II: Past Performance", sections: ["2.1 Relevant Contracts", "2.2 Performance Questionnaires"] },
-    { volume: "Volume III: Price Proposal", sections: ["3.1 CLIN Breakdown", "3.2 Basis of Estimate"] }
+    { volume: "Volume I: Technical Approach", sections: ["1.1 RMF Compliance", "1.2 Imaging Integration", "1.3 Data Migration"] },
+    { volume: "Volume II: Management", sections: ["2.1 Governance", "2.2 Staffing Plan"] },
+    { volume: "Volume III: Past Performance", sections: ["3.1 Healthcare Systems", "3.2 Federal Case Studies"] }
   ]
 };
 
