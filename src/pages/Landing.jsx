@@ -367,6 +367,27 @@ export default function Landing({ onEnterApp, onViewSample }) {
             </div>
           </section>
 
+          <section id="activity" style={styles.sectionMuted} data-reveal>
+            <div style={styles.sectionInner}>
+              <p style={styles.sectionEyebrow}>Platform Activity</p>
+              <h2 style={styles.sectionTitle}>BidSmith Activity</h2>
+              <div style={styles.activityGrid}>
+                <div style={styles.activityStat}>
+                  <h3 style={styles.activityNumber}>17</h3>
+                  <p style={styles.activityLabel}>Reports Generated Today</p>
+                </div>
+                <div style={styles.activityStat}>
+                  <h3 style={styles.activityNumber}>83s</h3>
+                  <p style={styles.activityLabel}>Average Analysis Time</p>
+                </div>
+                <div style={styles.activityStat}>
+                  <h3 style={styles.activityNumber}>12</h3>
+                  <p style={styles.activityLabel}>Solicitations Processed</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
           <section id="features" style={styles.sectionMuted} data-reveal>
             <div style={styles.sectionInner}>
               <p style={styles.sectionEyebrow}>Why teams switch from manual workflows</p>
@@ -747,6 +768,32 @@ const styles = {
     fontSize: "0.76rem",
     letterSpacing: "0.03em",
     textTransform: "uppercase",
+  },
+  activityGrid: {
+    display: "flex",
+    justifyContent: "center",
+    gap: "60px",
+    padding: "40px 20px",
+  },
+  activityStat: {
+    textAlign: "center",
+    padding: "20px",
+    borderRadius: 12,
+    background: "rgba(255,255,255,0.88)",
+    border: "1px solid #e2e8f0",
+    minWidth: "120px",
+  },
+  activityNumber: {
+    fontSize: "2.5rem",
+    fontWeight: 700,
+    color: "#1e1b4b",
+    margin: "0 0 8px",
+  },
+  activityLabel: {
+    fontSize: "0.85rem",
+    color: "#64748b",
+    margin: "8px 0 0",
+    fontWeight: 500,
   },
   proposalCopy: { marginTop: 18, color: "#64748b" },
   pilotBanner: {
