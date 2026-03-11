@@ -23,24 +23,24 @@ import Proposal from "./Proposal";
 
 const benefits = [
   {
-    title: "Speed",
-    description: "Generate a compliant bid draft in seconds, not hours.",
-    icon: <Rocket size={42} color="#4f46e5" />,
+    title: "Risk Mitigation",
+    description: "Identify technically unacceptable traps before proposal submission.",
+    icon: <BadgeCheck size={42} color="#4338ca" />,
   },
   {
-    title: "Accuracy",
-    description: "Validation checks keep submissions aligned with SAM.gov requirements.",
-    icon: <CheckCircle2 size={42} color="#4f46e5" />,
+    title: "Compliance Speed",
+    description: "Build an exact compliance matrix in seconds, not 40 manual hours.",
+    icon: <Rocket size={42} color="#4338ca" />,
   },
   {
-    title: "Cost Effective",
-    description: "Fixed $0.25 per transaction with transparent usage pricing.",
-    icon: <PiggyBank size={42} color="#4f46e5" />,
+    title: "Audit Rigor",
+    description: "Far/DFARS extraction and risk weighting using Aris audit protocols.",
+    icon: <FileText size={42} color="#4338ca" />,
   },
   {
-    title: "Easy Integration",
-    description: "One-line aris-sdk usage for Python, Node, or Rust workflows.",
-    icon: <PlugZap size={42} color="#4f46e5" />,
+    title: "Capture Intel",
+    description: "Independent audit data to drive your bid/no-bid decisions.",
+    icon: <Search size={42} color="#4338ca" />,
   },
 ];
 
@@ -88,7 +88,7 @@ function IconCard({ title, description, icon }) {
   );
 }
 
-export default function Landing({ onEnterApp }) {
+export default function Landing({ onEnterApp, onViewSample }) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [contactEmail, setContactEmail] = useState("");
   const [viewingSample, setViewingSample] = useState(false);
@@ -312,16 +312,16 @@ export default function Landing({ onEnterApp }) {
             <div style={styles.heroGlowTop} />
             <div style={styles.heroGlowBottom} />
             <div style={styles.heroInner}>
-              <p style={styles.heroKicker}>AI capture engine for federal bid teams</p>
+              <p style={styles.heroKicker}>Independent Federal Compliance Audit</p>
               <img
                 src="/aris-logo.png"
                 alt="BidSmith logo"
                 style={styles.logo}
               />
-              <h1 style={styles.title}>AI‑Powered RFP and Government Contract Bidding</h1>
+              <h1 style={styles.title}>Secure the Win with a Professional Compliance Audit</h1>
               <p style={styles.subtitle}>
-                Build compliant bids faster, reduce disqualification risk, and move from
-                solicitation to submission with a repeatable AI-assisted workflow.
+                Before you spend $50k writing the proposal, run a BidSmith audit.
+                Identify disqualification traps and build an exact compliance matrix instantly.
               </p>
               <div style={styles.heroActions}>
                 <button
@@ -348,20 +348,13 @@ export default function Landing({ onEnterApp }) {
                 <button
                   type="button"
                   aria-label="View demo sample report"
-                  onClick={fetchSampleReport}
+                  onClick={() => window.open("https://www.bidsmith.pro/sam-rep", "_blank", "noopener,noreferrer")}
                   style={styles.demoCta}
-                  disabled={isProcessing || loadingSample}
+                  disabled={isProcessing}
                 >
-                  {loadingSample ? "Loading Demo..." : (
-                    <>
-                      <FileText size={16} style={{ marginRight: 6 }} />
-                      View Demo Report
-                    </>
-                  )}
+                  <FileText size={16} style={{ marginRight: 6 }} />
+                  View Demo Report
                 </button>
-                <a href="#workflow" style={styles.heroTextLink} aria-label="Jump to workflow section">
-                  Watch How It Works
-                </a>
               </div>
               <div style={styles.heroStatsGrid}>
                 {heroStats.map((stat) => (
@@ -438,20 +431,6 @@ export default function Landing({ onEnterApp }) {
                     }}
                   />
                 ))}
-              </div>
-              <div style={styles.pilotBanner}>
-                <p style={styles.pilotText}>
-                  Pilot package: <strong>$2,500 / 30 days</strong> with onboarding and 5,000 calls.
-                </p>
-                <button
-                  type="button"
-                  aria-label="Request pilot plan"
-                  style={styles.secondaryCta}
-                  onClick={handlePilotCta}
-                  disabled={isProcessing}
-                >
-                  Request Pilot
-                </button>
               </div>
               <form onSubmit={handleEnterpriseContact} style={styles.enterpriseForm}>
                 <label htmlFor="enterprise-email" style={styles.enterpriseLabel}>Enterprise: contact sales</label>
