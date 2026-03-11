@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { FileText, FileCode, Loader } from 'lucide-react';
 
 const mdContent = () => `# BidSmith Intelligence Report
@@ -88,24 +88,38 @@ Requires 3 references >$5M in last 5 years. Only 2 identified.
 *Zero Fluff. High Conviction. Time Saved: ~14 hours.*
 `;
 
-// Exported so NavBar can call it directly
 export const triggerPDFExport = async () => {
+  const element = document.getElementById('dashboard-content');
+  if (!element) return;
+
+  // Force background before capture so html2canvas doesn't get transparent
+  const prevBg = element.style.background;
+  element.style.background = '#0b1220';
+
   try {
     const html2pdf = (await import('html2pdf.js')).default;
-    const element  = document.getElementById('dashboard-content');
     await html2pdf()
       .set({
-        margin:      [10, 10, 10, 10],
+        margin:      [8, 8, 8, 8],
         filename:    'BidSmith-Intelligence-Report.pdf',
-        image:       { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#0b1220' },
-        jsPDF:       { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        image:       { type: 'jpeg', quality: 1 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: '#0b1220',
+          windowWidth: 1400,
+          logging: false,
+        },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
       })
       .from(element)
       .save();
   } catch (err) {
     console.error('PDF export failed:', err);
     window.print();
+  } finally {
+    element.style.background = prevBg;
   }
 };
 
