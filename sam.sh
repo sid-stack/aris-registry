@@ -4,7 +4,11 @@
 # --------------------------------------------------------------
 
 # ---- USER SETTINGS -------------------------------------------------
-API_KEY="${SAM_GOV_API_KEY}"   # <-- your key
+API_KEY="${SAM_GOV_API_KEY}"   # <-- set this in your environment or .env.local
+if [[ -z "$API_KEY" ]]; then
+  echo "❌ Error: SAM_GOV_API_KEY environment variable is not set."
+  exit 1
+fi
 BASE_URL="https://api.sam.gov/prod/fbo/v1"
 PAGE_SIZE=100                                        # max per request
 
