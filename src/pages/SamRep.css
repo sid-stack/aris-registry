@@ -1,0 +1,65 @@
+/* src/pages/SamRep.css */
+
+.sam-rep-masthead {
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.sam-rep-main {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.sam-rep-grid {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+/* Default to single column for mobile-first approach */
+.grid-overview { grid-template-columns: 1fr; }
+.grid-intelligence,
+.grid-verification,
+.grid-bid,
+.grid-win-themes {
+  grid-template-columns: 1fr;
+}
+.solicitation-risk-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+
+/* Larger screens */
+@media (min-width: 992px) {
+  .grid-overview {
+    grid-template-columns: 1fr; /* This can remain as is or be adjusted */
+  }
+  .solicitation-risk-grid {
+    grid-template-columns: 1fr 340px;
+  }
+  .grid-intelligence,
+  .grid-verification,
+  .grid-bid,
+  .grid-win-themes {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.sam-rep-footer {
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
