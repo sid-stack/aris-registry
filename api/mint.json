@@ -29,11 +29,22 @@
   "navigation": [
     {
       "group": "Get Started",
-      "pages": ["introduction", "quickstart"]
+      "pages": [
+        "introduction",
+        "quickstart"
+      ]
     },
     {
       "group": "API Reference",
-      "pages": ["api-reference/introduction", "api-reference/authentication"]
+      "pages": [
+        "api-reference/introduction",
+        "api-reference/authentication"
+      ]
     }
-  ]
+  ],
+  "footer": {
+    "socials": {
+      "linkedin": "https://www.linkedin.com/company/bidsmith"
+    }
+  }
 }

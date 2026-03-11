@@ -72,7 +72,7 @@ export default function App() {
   } else if (view === "sam-rep") {
     content = <SamRep onBack={() => setView("landing")} />;
   } else if (view === "landing") {
-    content = <Landing onEnterApp={() => setView("app")} />;
+    content = <Landing onEnterApp={() => setView("app")} onViewSample={() => setView("sam-rep")} />;
   } else if (!authenticated) {
     content = <Login onLogin={() => setAuthenticated(true)} />;
   } else {
