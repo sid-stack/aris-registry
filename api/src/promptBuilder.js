@@ -46,9 +46,75 @@ export function sanitizeMarkdown(md) {
 }
 
 // -------------------------------------------------------------
+// 2️⃣b  Missing field suppression logic
+// -------------------------------------------------------------
+export function suppressEmptyFields(data) {
+  if (!data || typeof data !== "object") return data;
+  
+  const clean = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (value === null || value === undefined || value === "") {
+      continue; // Skip empty fields
+    }
+    if (Array.isArray(value)) {
+      if (value.length > 0) {
+        clean[key] = value.filter(item => item !== null && item !== undefined && item !== "");
+      }
+    } else if (typeof value === "object") {
+      const nested = suppressEmptyFields(value);
+      if (Object.keys(nested).length > 0) {
+        clean[key] = nested;
+      }
+    } else {
+      clean[key] = value;
+    }
+  }
+  return clean;
+}
+
+// -------------------------------------------------------------
 // 3️⃣  Stage‑specific prompts
 // -------------------------------------------------------------
 export const STAGE_PROMPTS = {
+  executive_auditor: `You are the ARIS Protocol Auditor. Your task is to generate a ONE-PAGE high-conviction 
+Executive Summary for an RFP. Do NOT write the proposal. Audit the risks.
+
+Focus specifically on:
+- Section L: Formatting, Submission Instructions, Mandatory Attachments.
+- Section M: How they will score the bid (e.g., 'Technically Acceptable' vs 'Best Value').
+
+Return STRICT JSON ONLY with this structure:
+{
+  "header": {
+    "title": "ARIS LABS - Executive Audit Summary",
+    "solicitation_number": "",
+    "agency": "",
+    "date": ""
+  },
+  "compliance_matrix": [
+    {
+      "requirement": "",
+      "status": "✅ | ⚠️ | ❌",
+      "risk_level": "High | Medium | Low"
+    }
+  ],
+  "bid_killer_alerts": [
+    {
+      "alert": "",
+      "section": "Section M",
+      "impact": "Immediate DQ | Technical Downgrade"
+    }
+  ],
+  "formatting_constraints": {
+    "font": "",
+    "margins": "",
+    "page_limit": "",
+    "submission_method": ""
+  }
+}
+
+Full RFP Text:`,
+  
   drafter: `You are an elite Federal Proposal Capture Manager. Generate a CONFIDENTIAL RISK MEMORANDUM using ONLY valid Markdown format. DO NOT use LaTeX, HTML tags, or any other formatting - STRICTLY Markdown only.
 
 CRITICAL FORMATTING RULES:
