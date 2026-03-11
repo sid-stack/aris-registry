@@ -10,6 +10,7 @@ import { requestId } from "./middleware/requestId.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { asyncHandler } from "./utils/asyncHandler.js";
 import { okResponse, failResponse } from "./utils/response.js";
+import { STAGE_PROMPTS, suppressEmptyFields } from "./src/promptBuilder.js";
 
 // -------------------------------------------------------------
 // Markdown Sanitizer - Post-process LLM responses to ensure clean markdown
@@ -160,8 +161,8 @@ const SAMPLE_REPORT = {
   },
   engine: "static_sample",
   pipelineStages: ["analyst", "drafter", "reviewer", "intel", "editor"],
-  title: "DLA Energy Solicitation (Sample)",
-  agency: "Defense Logistics Agency",
+  title: "DLA Energy Fuel Storage & Distribution (Sample)",
+  agency: "Defense Logistics Agency (DLA)",
   generatedAt: new Date().toISOString(),
   pillars: {
     solicitation_id: { value: "SPE603-23-R-0500", confidence: "HIGH" },
@@ -169,13 +170,13 @@ const SAMPLE_REPORT = {
     set_aside_type: { value: "Small Business Set-Aside", confidence: "HIGH" },
     naics_code: { value: "493190", confidence: "HIGH" }
   },
-  executiveSummary: "This solicitation is a 100% Small Business Set-Aside for fuel storage services. Key risks include a strict 30-day mobilization period and required DLA Energy experience.",
+  executiveSummary: "ARIS LABS | EXEC AUDIT: Critical cybersecurity (NIST 800-171) and past performance ($5M+) traps identified. Disqualification risk: 🔴 CRITICAL.",
   compliance_report: `
-# 📄 Executive Summary
+# 📄 Executive Compliance Audit
 
-**Client:** Sample Client
+**Client:** Sample Acquisition Team
 **RFP:** DLA Energy Fuel Storage – **Agency:** Defense Logistics Agency
-**Date:** 2023-10-27
+**Date:** ${new Date().toLocaleDateString()}
 
 ## 1️⃣ Solicitation Overview
 
@@ -184,25 +185,59 @@ const SAMPLE_REPORT = {
 | **Solicitation ID** | SPE603-23-R-0500 |
 | **Title** | Fuel Storage & Distribution |
 | **Agency** | DLA Energy |
-| **Due Date** | 2023-11-15 |
+| **Due Date** | Nov 15, 2023 |
 | **Key Compliance Regimes** | FAR, DFARS, NIST SP 800-171 |
 
-## 3️⃣ Compliance Risk Matrix
+## 2️⃣ Compliance Risk Matrix
 
 | Regime/Category | Clause | Found? | Risk Weight (1-10) | Comments / Issues |
 |---|---|---|---|---|
 | Set-Aside | FAR 52.219-6 | ✅ | 1 | Total Small Business Set-Aside confirmed. |
-| Cybersecurity | DFARS 252.204-7012 | ⚠️ | 9 | NIST 800-171 score must be in SPRS. |
-| Past Performance | Section L | ❌ | 8 | Requires 3 references >$5M in last 5 years. |
+| Cybersecurity | DFARS 252.204-7012 | ❌ | 10 | **🔴 IMMEDIATE DQ:** NIST 800-171 score must be in SPRS *before* submission. |
+| Past Performance | Section L.2.1 | ⚠️ | 8 | Requires 3 references >$5M value in last 5 years. |
+| Insurance | FAR 52.228-5 | ✅ | 2 | Standard liability coverage applies. |
 
-**Overall Compliance Score:** 82%`.trim(),
-  proposal_draft: `# 📄 CONFIDENTIAL RISK MEMORANDUM\n\n**Subject:** Phase 1 Technical Disqualification Audit\n**Solicitation ID:** SPE603-23-R-0500\n\n---\n\n### 🚨 EXECUTIVE RISK SUMMARY\n\nThe solicitation contains **one critical compliance trap** regarding cybersecurity and **two high-risk technical gaps**. Manual review is estimated to take **12 hours**. We recommend immediate verification of SPRS scores.\n\n---\n\n### 🍱 THE "BID-KILLER" MATRIX\n\n| Risk Level | Risk Category | FAR/DFARS Citation | The Hidden Requirement | Impact if Missed | Remediation Action |\n| --- | --- | --- | --- | --- | --- |\n| 🔴 **CRITICAL** | Cybersecurity | DFARS 252.204-7012 | Must have a NIST SP 800-171 assessment score posted in SPRS. | Immediate disqualification. | Post score to SPRS before submission. |\n| 🟡 **HIGH RISK** | Past Performance | Section L.4.2 | Contracts must be >$5M value. | Technical Unacceptability. | Verify reference contract values. |`.trim(),
-  win_themes: ["Proven DLA Energy Past Performance", "100% Small Business Compliance", "Automated Inventory Management", "Safety First Culture"],
-  risk_flags: ["Short Mobilization Timeline", "Environmental Liability Clauses", "Key Personnel Availability"],
+**Overall Compliance Score: 78%**`.trim(),
+  proposal_draft: `
+# ARIS LABS | EXECUTIVE AUDIT
+
+---
+
+### 1️⃣ COMPLIANCE MATRIX (Section L)
+| Requirement | Status | Risk Level |
+| :--- | :--- | :--- |
+| **SAM.gov Registration** | ✅ | Low |
+| **NIST 800-171 Cybersecurity** | ❌ | 🔴 **CRITICAL** |
+| **Small Business Set-Aside** | ✅ | Low |
+| **VETS-4212 Filing** | ⚠️ | Medium |
+
+---
+
+### 2️⃣ BID-KILLER ALERTS (Section M)
+- **Technical Disqualification:** Section M.3 explicitly mandates that any offeror without a current NIST SP 800-171 score posted in the **Supplier Performance Risk System (SPRS)** will be deemed "Technically Unacceptable" without further evaluation.
+- **Evaluation Factor 1 (Technical Approach):** The agency uses an **LPTA (Lowest Price Technically Acceptable)** model. Exceeding technical requirements adds no value to the bid score and may inflate price unnecessarily.
+
+---
+
+### 3️⃣ FORMATTING CONSTRAINTS (Section L)
+| Item | Requirement |
+| :--- | :--- |
+| **Font** | Calibri or Times New Roman, 11pt Min. |
+| **Margins** | 1-inch (Top, Bottom, Left, Right) |
+| **Page Limit** | 20 Pages (Technical Volume) |
+| **Submission** | Electronic via Procurement Integrated Enterprise Environment (PIEE). |
+
+---
+
+**Audit Note:** This report was generated by the Aris Intelligence Engine. Zero Fluff. High Conviction. 
+**Time Saved:** ~14 Hours of manual FAR extraction logic.
+`.trim(),
+  win_themes: ["Verified DLA Fuel Performance", "NIST-Compliant Infrastructure", "Competitive LPTA Pricing Model", "ISO-9001 Safety Protocol"],
+  risk_flags: ["Cybersecurity (SPRS Check Required)", "Reference Value Threshold ($5M+)", "PIEE Portal Submission Window"],
   proposal_outline: [
-    { volume: "Volume I: Technical", sections: ["1.0 Technical Approach", "1.1 Operations", "1.2 Quality Control"] },
-    { volume: "Volume II: Past Performance", sections: ["2.0 Recent Contracts", "2.1 Questionnaires"] },
-    { volume: "Volume III: Price", sections: ["3.0 Pricing Schedule", "3.1 Narrative"] }
+    { volume: "Volume I: Technical Approach", sections: ["1.1 Fuel Management Plan", "1.2 Quality & Safety", "1.3 Environmental Compliance"] },
+    { volume: "Volume II: Past Performance", sections: ["2.1 Relevant Contracts", "2.2 Performance Questionnaires"] },
+    { volume: "Volume III: Price Proposal", sections: ["3.1 CLIN Breakdown", "3.2 Basis of Estimate"] }
   ]
 };
 
@@ -320,6 +355,42 @@ const AGENT_MODELS = {
   audit: "google/gemini-2.0-flash-001",
   audit_codegen: process.env.GEMINI_CODE_MODEL || "google/gemini-3-pro-coding",
 };
+
+/**
+ * Targeted extraction for Sections L and M
+ * Prioritizes the start of the document and specific sections to avoid losing focus/buffer limits.
+ */
+function extractTargetedSections(text) {
+  if (!text || text.length < 20000) return text;
+
+  // Header/General extraction (First 5k)
+  const header = text.slice(0, 5000);
+
+  // Helper to find chunk around keyword
+  const getChunk = (keyword, size = 10000) => {
+    const idx = text.toUpperCase().indexOf(keyword.toUpperCase());
+    if (idx === -1) return "";
+    const start = Math.max(0, idx - 500); // Small prefix for context
+    return text.slice(start, start + size);
+  };
+
+  const sectionL = getChunk("SECTION L");
+  const sectionM = getChunk("SECTION M");
+
+  // Fallback if L/M not found using keywords, just take the end of the doc
+  const suffix = (!sectionL && !sectionM) ? text.slice(-10000) : "";
+
+  return [
+    "--- GENERAL/HEADER ---",
+    header,
+    sectionL ? "--- SECTION L (INSTRUCTIONS) ---" : "",
+    sectionL,
+    sectionM ? "--- SECTION M (EVALUATION) ---" : "",
+    sectionM,
+    suffix ? "--- DOCUMENT END ---" : "",
+    suffix
+  ].filter(Boolean).join("\n\n");
+}
 
 // LLM with exponential backoff retry — ported from money/main.py run_llm()
 async function llm(client, messages, maxTokens = 4096, agentKey = "audit", retries = 3, options = {}) {
@@ -700,7 +771,7 @@ app.post("/api/audit/code", async (req, res) => {
 
     const cleaned = stripCodeFences(raw);
     let structured = null;
-    try { structured = JSON.parse(cleaned); } catch {}
+    try { structured = JSON.parse(cleaned); } catch { }
 
     if (structured?.status === "FAIL") return res.status(422).json(structured);
 
@@ -715,6 +786,44 @@ app.post("/api/audit/code", async (req, res) => {
   }
 });
 
+// ─── /api/executive-summary ───────────────────────────────────────────────────────
+app.post("/api/executive-summary", upload.single("rfp"), async (req, res) => {
+  const client = makeClient();
+  if (!client) return res.status(500).json({ error: "Server configuration incomplete" });
+  try {
+    if (!req.file) return res.status(400).json({ error: "No PDF uploaded" });
+
+    console.log(`[/api/executive-summary] Processing PDF: ${req.file.originalname}`);
+    const pdfText = await parsePDF(req.file.buffer);
+    const targetedText = extractTargetedSections(pdfText);
+
+    // Use executive auditor prompt for 1-page summary
+    const executiveSummary = await llm(client, [{
+      role: "user",
+      content: `${STAGE_PROMPTS.executive_auditor}\n\nRFP Text Extract (Targeted Sections):\n${targetedText}`
+    }], 2000, "executive_auditor", 3, { response_format: { type: "json_object" } });
+
+    let summary = {};
+    try {
+      const stripped = executiveSummary.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/i, "").trim();
+      summary = JSON.parse(stripped);
+      // Apply missing field suppression
+      summary = suppressEmptyFields(summary);
+    } catch (err) {
+      console.error("[/api/executive-summary] JSON parse error:", err);
+      return res.status(500).json({ error: "Failed to parse executive summary" });
+    }
+
+    res.json({
+      executive_summary: summary,
+      metadata: { file: req.file.originalname, size: req.file.size }
+    });
+  } catch (err) {
+    console.error("[/api/executive-summary] ERROR:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── /api/generate ────────────────────────────────────────────────────────────
 app.post("/api/generate", upload.single("rfp"), async (req, res) => {
   const client = makeClient();
@@ -725,11 +834,12 @@ app.post("/api/generate", upload.single("rfp"), async (req, res) => {
 
     console.log(`[/api/generate] Processing PDF: ${req.file.originalname}`);
     const pdfText = await parsePDF(req.file.buffer);
+    const targetedText = extractTargetedSections(pdfText);
 
     const proposal = await llm(client, [{
       role: "user",
-      content: `You are a federal RFP compliance expert. Analyze this company profile against the provided Federal RFP and generate a professional federal proposal draft in markdown format.\n\nCompany Profile: ${req.body.companyProfile}\n\nRFP Text Extract (first 20000 chars):\n${pdfText.slice(0, 20000)}\n\nGenerate a comprehensive proposal that includes:\n1. Executive Summary\n2. Technical Approach\n3. Management Plan\n4. Past Performance\n5. Risk Mitigation\n6. Compliance Certification\n\nFormat as markdown. Be specific and professional.`
-    }], 2048);
+      content: `You are a federal RFP compliance expert. Analyze this company profile against the provided Federal RFP and generate a professional federal proposal draft in markdown format.\n\nCompany Profile: ${req.body.companyProfile}\n\nRFP Text Extract (Targeted Sections):\n${targetedText}\n\nGenerate a comprehensive proposal that includes:\n1. Executive Summary\n2. Technical Approach\n3. Management Plan\n4. Past Performance\n5. Risk Mitigation\n6. Compliance Certification\n\nFormat as markdown. Be specific and professional.`
+    }], 2400);
 
     res.json({
       proposal,
@@ -742,9 +852,8 @@ app.post("/api/generate", upload.single("rfp"), async (req, res) => {
   }
 });
 
-// ─── Audit Prompt (4-Pass Deep Inference) ────────────────────────────────────
-const AUDIT_PROMPT = `You are a federal contract compliance auditor and disqualification gatekeeper for a government contracting intelligence platform. Your output is a premium-grade bid/no-bid intelligence report.
-
+// ─── Audit Prompt (Legacy Reference - supports detailed extraction) ──────────
+const DETAILED_AUDIT_PROMPT = `You are a federal contract compliance auditor and disqualification gatekeeper.
 Perform a strict FOUR-PASS analysis.
 
 PASS 1 — Primary Extraction:
@@ -788,34 +897,33 @@ Return a JSON object FIRST with EXACTLY this structure:
   ],
   "far_clauses_detected": ["<FAR clause numbers found in text>"],
   "disqualification_assessment": {
-    "disqualified": <true or false>,
-    "risk_level": "<HIGH/MEDIUM/LOW>",
-    "trigger_category": "<SET_ASIDE/CLEARANCE/BONDING/PAST_PERFORMANCE or NONE>",
-    "matched_phrase": "<exact phrase or ''>",
-    "confidence": "<HIGH/MEDIUM/LOW or NONE>",
-    "reason": "<explicit barrier or ''>"
+    "disqualified": false,
+    "risk_level": "LOW",
+    "trigger_category": "NONE",
+    "matched_phrase": "",
+    "confidence": "NONE",
+    "reason": ""
   }
 }
 
 After the JSON write a BID/NO-BID EXECUTIVE SUMMARY:
+...`;
 
----
-## BID/NO-BID EXECUTIVE SUMMARY
+// The Executive Auditor Prompt provided by the user
+const AUDIT_PROMPT = `You are the ARIS Protocol Auditor. Your task is to generate a ONE-PAGE high-conviction 
+Executive Summary for an RFP. Do NOT write the proposal. Audit the risks.
 
-**Overall Recommendation**: [BID / NO-BID / CONDITIONAL BID]
+Structure:
+1. HEADER: Branding - ARIS LABS [STRICT MINIMALISM]
+2. COMPLIANCE MATRIX (Sample): Extract 3-4 critical requirements from Section L (Instructions).
+   - Format: | Requirement | Status | Risk Level |
+3. BID-KILLER ALERTS (Section M): Identify 2 high-level technical risks or 'Evaluation trade-offs' 
+   found in the Evaluation Criteria that could disqualify the bidder.
+4. FORMATTING CONSTRAINTS: Extract Font, Margins, and Page Limits from Section L.
 
-**Strategic Rationale** (2-3 sentences referencing the pillars)
-
-**Go/No-Go Factors**:
-- ✅ [Favorable factor]
-- ⚠️ [Risk or gap]
-- ❌ [Disqualifying factor if applicable]
-
-**Immediate Action Items**:
-1. [Action]
-2. [Action]
-3. [Action]
----`;
+Focus specifically on:
+- Section L: Formatting, Submission Instructions, Mandatory Attachments.
+- Section M: How they will score the bid (e.g., 'Technically Acceptable' vs 'Best Value').`;
 
 // ─── Disqualification Enforcer ────────────────────────────────────────────────
 function enforceDisqualification(compliance, text) {
@@ -846,7 +954,7 @@ function enforceDisqualification(compliance, text) {
     },
     {
       category: "BONDING",
-      rgx: /(Bonding\s+capacity\s+.*?\$?\d{1,3}(,\d{3})*(\.\d+)?|Performance\s+bond\s+.*?\$?\d{1,3}(,\d{3})*(\.\d+)?|Payment\s+bond\s+.*?\$?\d{1,3}(,\d{3})*(\.\d+)?|Minimum\s+bonding\s+.*?\$?\d{1,3}(,\d{3})*(\.\d+)?)/i,
+      rgx: /(Bonding\s+capacity\s+.*?\$?\d{1, 3}(,\d{3})*(\.\d+)?|Performance\s+bond\s+.*?\$?\d{1, 3}(,\d{3})*(\.\d+)?|Payment\s+bond\s+.*?\$?\d{1, 3}(,\d{3})*(\.\d+)?|Minimum\s+bonding\s+.*?\$?\d{1, 3}(,\d{3})*(\.\d+)?)/i,
       reason: "Requires massive bonding capacity."
     },
     {
@@ -900,10 +1008,11 @@ app.post("/api/audit", upload.single("file"), async (req, res) => {
       return res.status(422).json({ error: "Could not extract text from PDF. Try a non-scanned document." });
 
     console.log(`[/api/audit] ${req.file.originalname} — ${text.length} chars`);
+    const targetedText = extractTargetedSections(text);
 
     const raw = await llm(client, [
       { role: "system", content: AUDIT_PROMPT },
-      { role: "user", content: `Audit this solicitation:\n\n---\n${text.slice(0, 20000)}\n---` }
+      { role: "user", content: `Audit this solicitation:\n\n---\n${targetedText}\n---` }
     ], 3000);
 
     let compliance = null;
@@ -1168,9 +1277,11 @@ app.post("/api/analyze-link", analyzeLinkLimiter, async (req, res) => {
   if (!auditText || auditText.trim().length < 50)
     return res.status(422).json({ error: "Insufficient solicitation text found.", instruction: "Manual upload required" });
 
+  const targetedText = extractTargetedSections(auditText);
+
   const raw = await llm(client, [
     { role: "system", content: AUDIT_PROMPT },
-    { role: "user", content: `Audit this solicitation:\n\n---\n${auditText.slice(0, 20000)}\n---` }
+    { role: "user", content: `Audit this solicitation:\n\n---\n${targetedText}\n---` }
   ], 3000);
 
   let compliance = null;
@@ -1220,73 +1331,45 @@ app.post("/api/generate-report", async (req, res) => {
       role: "user",
       content: `You are an elite Federal Proposal Capture Manager and Compliance Auditor (BidSmith Intelligence Engine).
 
-Analyze this solicitation data and produce a COMPLIANCE INTELLIGENCE BRIEF covering:
-1. Document type and confirmed solicitation number
-2. Agency, contracting office, and mission context
-3. Contract value, period of performance, and NAICS code
-4. Core technical requirements that have FAR/DFARS compliance hooks
-5. Set-aside type and the exact FAR clause governing it
-6. Top 3 "Bid-Killer" hidden compliance traps — cite exact FAR/DFARS clause numbers AND Section L/M references where visible
-7. For each trap: the exact hidden requirement, the Phase 1 disqualification impact if missed, and the specific remediation action
-8. Top 3 risk flags for pre-submission review
+                              Analyze this solicitation data and produce a COMPLIANCE INTELLIGENCE BRIEF covering:
+                              1. Document type and confirmed solicitation number
+                              2. Agency, contracting office, and mission context
+                              3. Contract value, period of performance, and NAICS code
+                              4. Core technical requirements that have FAR/DFARS compliance hooks
+                              5. Set-aside type and the exact FAR clause governing it
+                              6. Top 3 "Bid-Killer" hidden compliance traps — cite exact FAR/DFARS clause numbers AND Section L/M references where visible
+                              7. For each trap: the exact hidden requirement, the Phase 1 disqualification impact if missed, and the specific remediation action
+                              8. Top 3 risk flags for pre-submission review
 
-Be ruthless and technical. Cite clause numbers such as DFARS 252.204-7012, FAR 52.219-18, NIST SP 800-171, etc.
+                              Be ruthless and technical. Cite clause numbers such as DFARS 252.204-7012, FAR 52.219-18, NIST SP 800-171, etc.
 
-Opportunity Data:
-${ctx}`
+                              Opportunity Data:
+                              ${ctx}`
     }], 2048, "analyst");
 
-    // ── Stage 2: Drafter — CONFIDENTIAL RISK MEMORANDUM ─────────────────────
+    // Stage 2: Drafter — ONE-PAGE EXECUTIVE AUDIT SUMMARY
     console.log(`[/api/generate-report] Stage 2: Drafter`);
     const memo_draft = await llm(client, [{
       role: "user",
-      content: `You are an elite Federal Proposal Capture Manager. Generate a CONFIDENTIAL RISK MEMORANDUM using the EXACT markdown structure below. Fill every [ ] bracket from the compliance intelligence brief. DO NOT produce generic marketing text, company boilerplate, or "Acme Solutions"-style filler. Ensure all table content is concise to prevent layout overflow. Do not use LaTeX formatting (e.g. $...$) for standard text.
+      content: `You are the ARIS Protocol Auditor. Your task is to generate a ONE-PAGE high-conviction
+Executive Summary for an RFP. Do NOT write the proposal. Audit the risks.
 
-OUTPUT THIS EXACT STRUCTURE:
+Structure:
+1. HEADER: Branding - ARIS LABS [STRICT MINIMALISM]
+2. COMPLIANCE MATRIX (Sample): Extract 3-4 critical requirements from Section L (Instructions).
+   - Format: | Requirement | Status | Risk Level |
+3. BID-KILLER ALERTS (Section M): Identify 2 high-level technical risks or 'Evaluation trade-offs'
+   found in the Evaluation Criteria that could disqualify the bidder.
+4. FORMATTING CONSTRAINTS: Extract Font, Margins, and Page Limits from Section L.
 
-# 📄 CONFIDENTIAL RISK MEMORANDUM
+Focus specifically on:
+- Section L: Formatting, Submission Instructions, Mandatory Attachments.
+- Section M: How they will score the bid (e.g., 'Technically Acceptable' vs 'Best Value').
 
-**Prepared For:** [Company/Capture Team from data, or "Your Capture Team" if unknown]
-**Prepared By:** BidSmith Automated Intelligence / S. Aris
-**Subject:** Phase 1 Technical Disqualification Audit
-**Solicitation ID:** [solicitation number from brief] | **Agency:** [agency name from brief]
+Use the compliance intelligence brief below to populate this structure.
+Strict Minimalism. Zero Fluff.
 
----
-
-### 🚨 EXECUTIVE RISK SUMMARY
-
-[Write exactly 3 sentences. Be ruthless and analytical — no fluff. State the compliance risk posture, the number of critical traps found, and the manual review recommendation.]
-
----
-
-### 🍱 THE "BID-KILLER" MATRIX
-
-| Risk Level | Risk Category | FAR/DFARS Citation | The Hidden Requirement | Impact if Missed | Remediation Action |
-| --- | --- | --- | --- | --- | --- |
-[Generate 5-7 rows. Use 🔴 **CRITICAL** for immediate DQ risks, 🟡 **HIGH RISK** for technical downgrade risks, 🟢 **COMPLIANT** for standard boilerplate areas. Every row MUST have a real FAR/DFARS clause number or Section L/M references from the brief. No generic clauses — use only what the brief extracted. Keep descriptions concise. For example:
-| 🔴 **CRITICAL** | Cybersecurity | DFARS 252.204-7012 | Must have a NIST SP 800-171 assessment score posted in SPRS. | Immediate disqualification. | Post score to SPRS before submission. |
-]
-
----
-
-### 🧠 ARIS ENGINE RECOMMENDATIONS
-
-[2 sentences mapping specific FAR flow-downs to the offeror's technical volume actions. Name the clauses explicitly.]
-
-**Time Saved by BidSmith:** ~14 Hours of manual FAR clause extraction.
-
----
-
-### 📝 STATEMENT OF WORK: PHASE 2 AUTHORIZATION
-
-> **FULL PROPOSAL MAPPING & COMPLIANCE MATRIX**
-> This document represents a partial Phase 1 extraction.
-> To authorize the BidSmith Engine to generate the complete 40-point Compliance Matrix and Volume Outline for this solicitation:
-> **Pricing Options:** Starter $29/mo + $0.25/call | Growth $199/mo (1,000 calls) + $0.20/call | Pilot $2,500 / 30 days (onboarding + 5,000 calls)
-> **Turnaround:** 24 Hours for pilot onboarding kickoff
-> **Action:** Visit [bidsmith.pro](https://bidsmith.pro) to authorize execution.
-
-COMPLIANCE INTELLIGENCE BRIEF:
+BRIEF:
 ${analysis}`
     }], 3000, "drafter");
 
@@ -1296,55 +1379,55 @@ ${analysis}`
       role: "user",
       content: `You are a Federal Compliance Officer. Generate a **Federal RFP Compliance Risk Matrix Report** using ONLY valid Markdown format.
 
-CRITICAL RULES:
-1. Use ONLY Markdown syntax - NO LaTeX, NO HTML
-2. Tables MUST use proper pipe syntax with | --- | separators
-3. Each table row MUST start and end with |
-4. Keep cell content concise (under 60 chars)
-5. Use ✅ ❌ ⚠️ emojis in "Found?" column
+                              CRITICAL RULES:
+                              1. Use ONLY Markdown syntax - NO LaTeX, NO HTML
+                              2. Tables MUST use proper pipe syntax with | --- | separators
+                              3. Each table row MUST start and end with |
+                              4. Keep cell content concise (under 60 chars)
+                              5. Use ✅ ❌ ⚠️ emojis in "Found?" column
 
-OUTPUT THIS STRUCTURE:
+                              OUTPUT THIS STRUCTURE:
 
-# 📄 Executive Summary
+                              # 📄 Executive Summary
 
-**Client:** [Company]
-**RFP:** [Title] – **Agency:** [Agency]
-**Date:** [Current Date]
+                              **Client:** [Company]
+                              **RFP:** [Title] – **Agency:** [Agency]
+                              **Date:** [Current Date]
 
-## 1️⃣ Solicitation Overview
+                              ## 1️⃣ Solicitation Overview
 
-| Item | Detail |
-| --- | --- |
-| **Solicitation ID** | [ID] |
-| **Title** | [Title] |
-| **Agency** | [Agency] |
-| **Due Date** | [Deadline] |
-| **Key Compliance Regimes** | [FAR, DFARS, NIST, etc.] |
+                              | Item | Detail |
+                              | --- | --- |
+                              | **Solicitation ID** | [ID] |
+                              | **Title** | [Title] |
+                              | **Agency** | [Agency] |
+                              | **Due Date** | [Deadline] |
+                              | **Key Compliance Regimes** | [FAR, DFARS, NIST, etc.] |
 
-## 2️⃣ Methodology
+                              ## 2️⃣ Methodology
 
-1. Download & Normalize
-2. Clause Extraction  
-3. Validation
-4. Scoring
+                              1. Download & Normalize
+                              2. Clause Extraction
+                              3. Validation
+                              4. Scoring
 
-## 3️⃣ Compliance Risk Matrix
+                              ## 3️⃣ Compliance Risk Matrix
 
-| Regime/Category | Clause | Found? | Risk Weight | Comments |
-| --- | --- | --- | --- | --- |
-| [Category] | [FAR/DFARS] | ✅/❌/⚠️ | [1-10] | [Brief note] |
-[10-12 rows]
+                              | Regime/Category | Clause | Found? | Risk Weight | Comments |
+                              | --- | --- | --- | --- | --- |
+                              | [Category] | [FAR/DFARS] | ✅/❌/⚠️ | [1-10] | [Brief note] |
+                              [10-12 rows]
 
-**Overall Compliance Score:** [XX]%
+                              **Overall Compliance Score:** [XX]%
 
-## 4️⃣ Findings & Recommendations
+                              ## 4️⃣ Findings & Recommendations
 
-| # | Finding | Impact | Recommended Action |
-| --- | --- | --- | --- |
-| 1 | [Finding] | [Impact] | [Action] |
-[3-5 rows]
+                              | # | Finding | Impact | Recommended Action |
+                              | --- | --- | --- | --- |
+                              | 1 | [Finding] | [Impact] | [Action] |
+                              [3-5 rows]
 
-Return ONLY valid Markdown. No preamble, no LaTeX, no HTML.`
+                              Return ONLY valid Markdown. No preamble, no LaTeX, no HTML.`
     }], 2048, "reviewer");
 
     // ── Stage 4: Intel — win themes + risk flags ──────────────────────────────
@@ -1352,19 +1435,19 @@ Return ONLY valid Markdown. No preamble, no LaTeX, no HTML.`
     const intelRaw = await llm(client, [{
       role: "user",
       content: `Based on this federal opportunity brief, return ONLY valid JSON:
-{
-  "win_themes": ["<4 specific win themes>"],
-  "risk_flags": ["<4 specific pre-submission risks>"],
-  "proposal_outline": [
-    { "volume": "Volume I: Technical Approach", "sections": ["1.1 ...","1.2 ...","1.3 ..."] },
-    { "volume": "Volume II: Management Plan", "sections": ["2.1 ...","2.2 ...","2.3 ..."] },
-    { "volume": "Volume III: Past Performance", "sections": ["3.1 ...","3.2 ...","3.3 ..."] },
-    { "volume": "Volume IV: Price/Cost", "sections": ["4.1 ...","4.2 ...","4.3 ..."] }
-  ]
+                              {
+                                "win_themes": ["<4 specific win themes>"],
+                              "risk_flags": ["<4 specific pre-submission risks>"],
+                              "proposal_outline": [
+                              {"volume": "Volume I: Technical Approach", "sections": ["1.1 ...","1.2 ...","1.3 ..."] },
+                              {"volume": "Volume II: Management Plan", "sections": ["2.1 ...","2.2 ...","2.3 ..."] },
+                              {"volume": "Volume III: Past Performance", "sections": ["3.1 ...","3.2 ...","3.3 ..."] },
+                              {"volume": "Volume IV: Price/Cost", "sections": ["4.1 ...","4.2 ...","4.3 ..."] }
+                              ]
 }
 
-BRIEF:
-${analysis.slice(0, 3000)}`
+                              BRIEF:
+                              ${analysis.slice(0, 3000)}`
     }], 1500, "extractor", 3, { response_format: { type: "json_object" } });
 
     let intel = { win_themes: [], risk_flags: [], proposal_outline: [] };
@@ -1386,20 +1469,20 @@ ${analysis.slice(0, 3000)}`
     console.log(`[/api/generate-report] Stage 5: Editor-in-Chief QA`);
     const proposal_draft = await llm(client, [{
       role: "system",
-      content: `You are the Senior GovCon Capture Director at BidSmith. You are the final set of eyes on the Risk Memorandum before it is sent to the client.
+      content: `You are the Senior GovCon Capture Director at BidSmith.
+Your mission is to enforce STRICT MINIMALISM on the Executive Audit Summary.
 
-Your Mission: Review the provided Markdown draft generated by the Analyst Agent. Aggressively edit and reformat to meet strict GovCon consulting standards.
+Rules:
+1. Ensure the HEADER says "ARIS LABS | EXECUTIVE AUDIT".
+2. Verify the 4-part structure (Header, Compliance Matrix, Bid-Killer Alerts, Formatting Constraints).
+3. Delete all preamble, generic marketing language, and fluff.
+4. Ensure all risks cite specific Section L/M references or FAR clauses.
+5. KEEP IT TO ONE PAGE.
 
-THE 4 RULES OF EDITING:
-1. ZERO FLUFF: If you see generic marketing language (e.g., "Acme Solutions," "leading provider," "innovative solutions," "our team"), DELETE IT. Replace with technical specifics.
-2. ENFORCE CITATIONS: If a risk is mentioned but does not cite a specific FAR/DFARS clause or section number, either add the correct citation or remove the row entirely.
-3. FORMAT ENFORCEMENT: Ensure the document strictly follows the "Confidential Risk Memorandum" structure with all 4 sections intact. Ensure the Bid-Killer Matrix (Red/Yellow/Green) is perfectly formatted as a markdown table. Keep table cell content concise to avoid rendering overflow.
-4. SOW CHECK: Verify that the Statement of Work pricing ladder blockquote (Starter/Growth/Pilot) is present and unchanged at the bottom. If missing, restore it exactly.
-
-Output ONLY the finalized clean Markdown. No preamble, no "Here is the edited version", no explanations.`
+Output ONLY the finalized clean Markdown.`
     }, {
       role: "user",
-      content: `Review and finalize this Risk Memorandum draft:\n\n${memo_draft}`
+      content: `Finalize this Executive Audit Summary:\n\n${memo_draft}`
     }], 3000, "reviewer");
 
     console.log(`[/api/generate-report] Pipeline complete`);
@@ -1435,7 +1518,7 @@ Output ONLY the finalized clean Markdown. No preamble, no "Here is the edited ve
 
 // ─── /api/generate-report-stream — SSE Agentic Pipeline ─────────────────────
 // Streams real-time agent events as each stage completes (like money/ websocket)
-// Events: { type, stage, agent, status, data }
+// Events: {type, stage, agent, status, data}
 
 app.get("/api/generate-report-stream", async (req, res) => {
   const client = makeClient();
@@ -1545,66 +1628,30 @@ app.get("/api/generate-report-stream", async (req, res) => {
     }], 2048, "analyst"));
     emit({ type: "agent_done", stage: 1, agent: AGENTS[0], data: { preview: analysis.slice(0, 200) } });
 
-    // Stage 2: Drafter — CONFIDENTIAL RISK MEMORANDUM
+    // Stage 2: Drafter — ONE-PAGE EXECUTIVE AUDIT SUMMARY
     emit({ type: "agent_start", stage: 2, agent: AGENTS[1] });
     const memo_draft = sanitizeMarkdown(await withHeartbeat("drafter", 2, AGENTS[1], () => llm(client, [{
       role: "user",
-      content: `You are an elite Federal Proposal Capture Manager. Generate a CONFIDENTIAL RISK MEMORANDUM using ONLY valid Markdown format. DO NOT use LaTeX, HTML tags, or any other formatting - STRICTLY Markdown only.
+      content: `You are the ARIS Protocol Auditor. Your task is to generate a ONE-PAGE high-conviction 
+Executive Summary for an RFP. Do NOT write the proposal. Audit the risks.
 
-CRITICAL FORMATTING RULES:
-1. Use ONLY standard Markdown syntax (headers, bold, tables, blockquotes)
-2. Tables MUST use proper Markdown pipe syntax: | Header | Header |
-3. Each table row MUST start and end with | 
-4. Use | --- | --- | separator lines between header and data rows
-5. NO LaTeX commands ($...$, \\command, \begin, etc.)
-6. NO HTML tags (<div>, <table>, etc.)
-7. Keep table cell content concise (under 80 chars per cell)
-8. Use line breaks between sections
+Structure:
+1. HEADER: Branding - ARIS LABS [STRICT MINIMALISM]
+2. COMPLIANCE MATRIX (Sample): Extract 3-4 critical requirements from Section L (Instructions).
+   - Format: | Requirement | Status | Risk Level |
+3. BID-KILLER ALERTS (Section M): Identify 2 high-level technical risks or 'Evaluation trade-offs' 
+   found in the Evaluation Criteria that could disqualify the bidder.
+4. FORMATTING CONSTRAINTS: Extract Font, Margins, and Page Limits from Section L.
 
-OUTPUT THIS EXACT STRUCTURE:
+Focus specifically on:
+- Section L: Formatting, Submission Instructions, Mandatory Attachments.
+- Section M: How they will score the bid (e.g., 'Technically Acceptable' vs 'Best Value').
 
-# 📄 CONFIDENTIAL RISK MEMORANDUM
+Use the compliance intelligence brief below to populate this structure.
+Strict Minimalism. Zero Fluff.
 
-**Prepared For:** [Company/Capture Team]
-**Prepared By:** BidSmith Automated Intelligence / S. Aris  
-**Subject:** Phase 1 Technical Disqualification Audit
-**Solicitation ID:** [ID] | **Agency:** [Agency]
-
----
-
-### 🚨 EXECUTIVE RISK SUMMARY
-
-[3 sentences only - compliance risk posture, critical traps count, manual review needed]
-
----
-
-### 🍱 THE "BID-KILLER" MATRIX
-
-| Risk Level | Risk Category | FAR/DFARS Citation | Hidden Requirement | Impact if Missed | Remediation Action |
-| --- | --- | --- | --- | --- | --- |
-| 🔴 CRITICAL | [Category] | [FAR/DFARS clause] | [Specific requirement] | [DQ consequence] | [Specific action] |
-| 🟡 HIGH RISK | [Category] | [FAR/DFARS clause] | [Specific requirement] | [Technical downgrade] | [Specific action] |
-[5-7 rows total]
-
----
-
-### 🧠 ARIS ENGINE RECOMMENDATIONS
-
-[2 sentences with specific FAR citations]
-
-**Time Saved by BidSmith:** ~14 Hours
-
----
-
-### 📝 STATEMENT OF WORK: PHASE 2 AUTHORIZATION
-
-> **FULL PROPOSAL MAPPING & COMPLIANCE MATRIX**
-> This document represents a partial Phase 1 extraction.
-> To authorize Phase 2 execution:
-> **Pricing:** Starter $29/mo | Growth $199/mo | Pilot $2,500/30days
-> **Action:** Visit bidsmith.pro to authorize
-
-Return ONLY valid Markdown. No preamble, no explanations, no LaTeX, no HTML.`,
+BRIEF:
+${analysis}`
     }], 3000, "drafter")));
     emit({ type: "agent_done", stage: 2, agent: AGENTS[1], data: { preview: memo_draft.slice(0, 200) } });
 
@@ -1621,19 +1668,19 @@ Return ONLY valid Markdown. No preamble, no explanations, no LaTeX, no HTML.`,
     const intelRaw = await withHeartbeat("intel", 4, AGENTS[3], () => llm(client, [{
       role: "user",
       content: `Based on this federal opportunity brief, return ONLY valid JSON:
-{
-  "win_themes": ["<4 specific win themes>"],
-  "risk_flags": ["<4 specific pre-submission risks>"],
-  "proposal_outline": [
-    { "volume": "Volume I: Technical Approach", "sections": ["1.1 ...","1.2 ...","1.3 ..."] },
-    { "volume": "Volume II: Management Plan", "sections": ["2.1 ...","2.2 ...","2.3 ..."] },
-    { "volume": "Volume III: Past Performance", "sections": ["3.1 ...","3.2 ...","3.3 ..."] },
-    { "volume": "Volume IV: Price/Cost", "sections": ["4.1 ...","4.2 ...","4.3 ..."] }
-  ]
+                                {
+                                  "win_themes": ["<4 specific win themes>"],
+                                "risk_flags": ["<4 specific pre-submission risks>"],
+                                "proposal_outline": [
+                                {"volume": "Volume I: Technical Approach", "sections": ["1.1 ...","1.2 ...","1.3 ..."] },
+                                {"volume": "Volume II: Management Plan", "sections": ["2.1 ...","2.2 ...","2.3 ..."] },
+                                {"volume": "Volume III: Past Performance", "sections": ["3.1 ...","3.2 ...","3.3 ..."] },
+                                {"volume": "Volume IV: Price/Cost", "sections": ["4.1 ...","4.2 ...","4.3 ..."] }
+                                ]
 }
 
-BRIEF:
-${analysis.slice(0, 3000)}`
+                                BRIEF:
+                                ${analysis.slice(0, 3000)}`
     }], 1500, "extractor", 3, { response_format: { type: "json_object" } }));
 
     let intel = { win_themes: [], risk_flags: [], proposal_outline: [] };
@@ -1654,22 +1701,20 @@ ${analysis.slice(0, 3000)}`
     emit({ type: "agent_start", stage: 5, agent: AGENTS[4] });
     const proposal_draft = sanitizeMarkdown(await withHeartbeat("editor", 5, AGENTS[4], () => llm(client, [{
       role: "system",
-      content: `You are the Senior GovCon Capture Director at BidSmith. Final review of Risk Memorandum before client delivery.
+      content: `You are the Senior GovCon Capture Director at BidSmith. 
+Your mission is to enforce STRICT MINIMALISM on the Executive Audit Summary.
 
-CRITICAL RULES - FINAL FORMAT CHECK:
-1. ZERO FLUFF: Delete generic marketing language ("Acme Solutions", "leading provider", "innovative")
-2. ENFORCE CITATIONS: Every risk row MUST cite specific FAR/DFARS clause
-3. FORMAT ENFORCEMENT - MARKDOWN ONLY:
-   - NO LaTeX ($...$, \\command, \begin, etc.)
-   - NO HTML tags (<div>, <table>, <p>, etc.)
-   - Tables MUST use proper Markdown: | col | col | with | --- | separators
-   - Each table row starts and ends with |
-4. SOW CHECK: Ensure Phase 2 authorization blockquote is present
+Rules:
+1. Ensure the HEADER says "ARIS LABS | EXECUTIVE AUDIT".
+2. Verify the 4-part structure (Header, Compliance Matrix, Bid-Killer Alerts, Formatting Constraints).
+3. Delete all preamble, generic marketing language, and fluff.
+4. Ensure all risks cite specific Section L/M references or FAR clauses.
+5. KEEP IT TO ONE PAGE.
 
-Output ONLY finalized clean Markdown. No preamble, no explanations. VERIFY: No LaTeX, no HTML, valid Markdown tables only.`
+Output ONLY finalized clean Markdown.`
     }, {
       role: "user",
-      content: `Review and finalize this Risk Memorandum draft:\n\n${memo_draft}`,
+      content: `Finalize this Executive Audit Summary:\n\n${memo_draft}`,
     }], 3000, "reviewer")));
     emit({ type: "agent_done", stage: 5, agent: AGENTS[4], data: { proposal_draft } });
 
