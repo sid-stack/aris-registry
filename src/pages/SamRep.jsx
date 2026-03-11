@@ -17,24 +17,24 @@ export default function SamRep({ onBack }) {
 
 | Section | Must-have elements | Typical sub-headings / bullet points |
 |---------|-------------------|--------------------------------------|
-| **1. Header** | • Company name  <br>• CAGE code <br>• UEI (or DUNS) <br>• NAICS codes (optional) <br>• Point-of-contact (name, email, phone) | **CAGE CODE:** \`XXXX\` | **UEI:** \`YYYY\`<br>**Contact:** John Doe – john@example.com – (555) 123-4567 |
-| **2. Executive Summary** | • One-sentence value proposition <br>• Business status (SDVOSB, VOSB, HUBZone, etc.) <br>• Key differentiators (AI-capture, speed, cost) <br>• High-level benefit to the agency | • **Mission fit** <br>• **Quantified impact** (e.g., "drafts proposals in < 10 min") |
-| **3. Technical Approach** | • Overview of solution architecture <br>• Core capabilities (capture, analysis, report generation) <br>• Integration points (SAM.gov API, internal ERP, other data sources) <br>• Security & data-privacy controls | **3.1 Architecture Diagram** (optional) <br>**3.2 AI-Capture Engine** <br>**3.3 Data-Ingestion & Normalization** <br>**3.4 Output Formats (PDF, CSV, JSON)** <br>**3.5 Scalability & Performance** |
-| **4. Management Plan** | • Project governance (PMO, steering committee) <br>• Roles & responsibilities <br>• Schedule milestones (Kick-off, Demo, Pilot, Full-scale rollout) <br>• Communication plan (status reports, meetings) <br>• Quality-assurance & testing procedures | **4.1 Team Structure** <br>**4.2 Milestone Timeline** (Gantt-style or table) <br>**4.3 Risk-Based QA** |
-| **5. Past Performance / Case Studies** | • At least two relevant contracts (value, scope, outcome) <br>• Metrics that map to the current solicitation (time-to-draft, cost-savings, compliance) | **5.1 Client A – "AI-Capture Pilot"** (e.g., $2.5 M pilot, 30 days, 100% satisfaction) <br>**5.2 Client B – "Rapid Report Generation"** (e.g., 5 PB data processed, 40% faster) |
-| **6. Risk Mitigation** | • Identify top 3-5 risks (schedule, security, integration, compliance) <br>• Concrete mitigation actions (contingency resources, automated audits) | Table format: <br>| Risk | Likelihood | Impact | Mitigation | |
-| **7. Compliance & Certifications** | • List all federal certifications you hold (NIST 800-53, CMMC, FedRAMP, FISMA, HIPAA, etc.) <br>• Mention any cleared personnel (TS/SCI) if relevant | **7.1 Security Certifications** <br>**7.2 Government-Approved Standards** |
-| **8. Pricing & Commercial Terms** | • Pilot fee (e.g., $2,500 flat) <br>• Subscription tiers (Starter $29/mo, Growth $299/mo, Enterprise custom) <br>• Payment terms (Stripe checkout, PO-based invoicing) <br>• Optional services (training, support) | **8.1 Pilot Package** <br>**8.2 Subscription Model** <br>**8.3 Discount / Referral Incentive** |
-| **9. Appendices (optional)** | • Detailed technical specifications <br>• Sample screenshots / UI mock-ups <br>• Full API request/response schema <br>• Glossary of acronyms | **A. API Specification** <br>**B. UI Flow Diagram** |
+| **1. Header** | • Company name  • CAGE code  • UEI (or DUNS)  • NAICS codes (optional)  • Point-of-contact (name, email, phone) | **CAGE CODE:** \`XXXX\` | **UEI:** \`YYYY\` | **Contact:** John Doe – john@example.com – (555) 123-4567 |
+| **2. Executive Summary** | • One-sentence value proposition  • Business status (SDVOSB, VOSB, HUBZone, etc.)  • Key differentiators (AI-capture, speed, cost)  • High-level benefit to the Agency | • **Mission fit**  • **Quantified impact** (e.g., "drafts proposals in < 10 min") |
+| **3. Technical Approach** | • Overview of solution architecture  • Core capabilities (capture, analysis, report generation)  • Integration points (SAM.gov API, internal ERP, other data sources)  • Security & data-privacy controls | **3.1 Architecture Diagram** (optional)  **3.2 AI-Capture Engine**  **3.3 Data-Ingestion & Normalization**  **3.4 Output Formats (PDF, CSV, JSON)**  **3.5 Scalability & Performance** |
+| **4. Management Plan** | • Project governance (PMO, steering committee)  • Roles & responsibilities  • Schedule milestones (Kick-off, Demo, Pilot, Full-scale rollout)  • Communication plan (status reports, meetings)  • Quality-assurance & testing procedures | **4.1 Team Structure**  **4.2 Milestone Timeline** (Gantt-style or table)  **4.3 Risk-Based QA** |
+| **5. Past Performance / Case Studies** | • At least two relevant contracts (value, scope, outcome)  • Metrics that map to the current solicitation (time-to-draft, cost-savings, compliance) | **5.1 Client A – "AI-Capture Pilot"** (e.g., $2.5 M pilot, 30 days, 100% satisfaction)  **5.2 Client B – "Rapid Report Generation"** (e.g., 5 PB data processed, 40% faster) |
+| **6. Risk Mitigation** | • Identify top 3-5 risks (schedule, security, integration, compliance)  • Concrete mitigation actions (contingency resources, automated audits) | Table format:  | Risk | Likelihood | Impact | Mitigation | |
+| **7. Compliance & Certifications** | • List all federal certifications you hold (NIST 800-53, CMMC, FedRAMP, FISMA, HIPAA, etc.)  • Mention any cleared personnel (TS/SCI) if relevant | **7.1 Security Certifications**  **7.2 Government-Approved Standards** |
+| **8. Pricing & Commercial Terms** | • Pilot fee (e.g., $2,500 flat)  • Subscription tiers (Starter $29/mo, Growth $299/mo, Enterprise custom)  • Payment terms (Stripe checkout, PO-based invoicing)  • Optional services (training, support) | **8.1 Pilot Package**  **8.2 Subscription Model**  **8.3 Discount / Referral Incentive** |
+| **9. Appendices (optional)** | • Detailed technical specifications  • Sample screenshots / UI mock-ups  • Full API request/response schema  • Glossary of acronyms | **A. API Specification**  **B. UI Flow Diagram** |
 
 ---
 
-### How to use the template
+### How to use template
 
 1. **Copy the Markdown skeleton** into your document generator (e.g., a Jinja2 template, a Python script, or a simple copy-paste).  
-2. **Populate the placeholders** ({{company_name}}, {{award_id}}, {{pilot_fee}}, etc.) from the CSV you generated via the SAM.gov API.  
-3. **Add a live-demo link** (e.g., https://demo.bidsmith.com?company={{uei}}) in the Executive Summary or Technical Approach so the prospect can click and see a customized walkthrough.  
-4. **Export to PDF** (using a Markdown-to-PDF tool like pandoc or an HTML-to-PDF service) and attach it to your outreach email.  
+2. **Populate placeholders** ({{company_name}}, {{award_id}}, {{pilot_fee}}, etc.) from CSV you generated via SAM.gov API.  
+3. **Add a live-demo link** (e.g., https://demo.bidsmith.com?company={{uei}}) in Executive Summary or Technical Approach so the prospect can click and see a customized walkthrough.  
+4. **Export to PDF** (using a Markdown-to-PDF tool like pandoc or an HTML-to-PDF service) and attach it to your outreach email.
 
 ---
 
