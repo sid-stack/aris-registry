@@ -24,13 +24,13 @@ import Proposal from "./Proposal";
 
 const benefits = [
   {
-    title: "Risk Mitigation",
-    description: "Identify technically unacceptable traps before proposal submission.",
+    title: "Zero Token Trust",
+    description: "Built on ARIS Zero Token. We never save your data or store your contract bids—ever.",
     icon: <BadgeCheck size={42} color="#4338ca" />,
   },
   {
-    title: "Compliance Speed",
-    description: "Build an exact compliance matrix in seconds, not 40 manual hours.",
+    title: "Stateless Bridge",
+    description: "Your competitive intel runs via a stateless bridge. No caching, no leak surface.",
     icon: <Rocket size={42} color="#4338ca" />,
   },
   {
@@ -40,25 +40,25 @@ const benefits = [
   },
   {
     title: "Capture Intel",
-    description: "Independent audit data to drive your bid/no-bid decisions.",
+    description: "The ARIS-SDK was built for this: independent audit data without the data liability.",
     icon: <Search size={42} color="#4338ca" />,
   },
 ];
 
 const steps = [
   {
-    title: "Discover",
-    description: "Call /discover?capability=... and get healthy, low-latency agents.",
-    icon: <Search size={42} color="#4f46e5" />,
-  },
-  {
     title: "Handshake",
-    description: "Aris issues a short-lived JWT so agents connect without exposing payloads.",
+    description: "Aris issues a short-lived Zero Token so you connect without exposing your full payload.",
     icon: <KeyRound size={42} color="#4f46e5" />,
   },
   {
-    title: "Settle",
-    description: "Every transaction is logged, marked SUCCESS, and billed at $0.25.",
+    title: "Bridge",
+    description: "Analyzes occur over a stateless bridge—we route the request but never store a byte.",
+    icon: <Rocket size={42} color="#4f46e5" />,
+  },
+  {
+    title: "Purge",
+    description: "Upon SUCCESS, all session data is purged. Your bid stays private, local, and secure.",
     icon: <BadgeCheck size={42} color="#4f46e5" />,
   },
 ];
@@ -322,7 +322,7 @@ export default function Landing({ onEnterApp, onViewSample }) {
             <div style={styles.heroGlowTop} />
             <div style={styles.heroGlowBottom} />
             <div style={styles.heroInner}>
-              <p style={styles.heroKicker}>Independent Federal Compliance Audit</p>
+              <p style={styles.heroKicker}>Zero Token Security · Stateless Bridge</p>
               <img
                 src="/aris-logo.png"
                 alt="BidSmith logo"
@@ -330,8 +330,8 @@ export default function Landing({ onEnterApp, onViewSample }) {
               />
               <h1 style={styles.title}>We get you Contracts</h1>
               <p style={styles.subtitle}>
-                Before you spend $50k writing the proposal, run a BidSmith audit.
-                Identify disqualification traps and build an exact compliance matrix instantly.
+                Trust built on the ARIS Zero Token architecture. We don't save your data or store your contract bids. 
+                Everything runs via a stateless bridge—this is the moat that powers the BidSmith audit.
               </p>
               <div style={styles.heroActions}>
                 <button
@@ -851,7 +851,7 @@ const styles = {
   footer: {
     background: "#0f172a",
     borderTop: "1px solid #1e293b",
-    padding: "34px 20px",
+    padding: "34px 20px 80px", /* Extra bottom padding for readability */
   },
   footerInner: {
     maxWidth: 1120,

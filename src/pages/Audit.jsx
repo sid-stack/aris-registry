@@ -246,7 +246,7 @@ function FileRow({ ranked, index, isSelected, onSelect }) {
   );
 }
 
-export default function Audit({ onProceed }) {
+export default function Audit({ onProceed, onBack }) {
   const [samUrl, setSamUrl] = useState("");
   const [rankedFiles, setRankedFiles] = useState([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -549,21 +549,40 @@ export default function Audit({ onProceed }) {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f8fafc", color: "#0f172a", fontFamily: "'IBM Plex Mono', 'Courier New', monospace", padding: "40px 24px" }}>
+    <div style={{ minHeight: "100vh", background: "#f8fafc", color: "#0f172a", fontFamily: "'IBM Plex Mono', 'Courier New', monospace", padding: "40px 24px 100px" }}>
       <div style={{ maxWidth: "800px", margin: "0 auto" }}>
 
         <div style={{ marginBottom: "36px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
-            <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "36px", height: "36px", background: "rgba(59,130,246,0.1)", border: "1px solid rgba(59,130,246,0.25)", borderRadius: "8px", flexShrink: 0 }}>
-              <img src="/aris-logo.png" alt="BidSmith logo" style={{ width: 22, height: 22, objectFit: "contain" }} />
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "20px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "36px", height: "36px", background: "rgba(59,130,246,0.1)", border: "1px solid rgba(59,130,246,0.25)", borderRadius: "8px", flexShrink: 0 }}>
+                <img src="/aris-logo.png" alt="BidSmith logo" style={{ width: 22, height: 22, objectFit: "contain" }} />
+              </div>
+              <div>
+                <div style={{ fontSize: "16px", fontWeight: 800, color: "#0f172a", letterSpacing: "-0.01em", fontFamily: "'Inter', sans-serif" }}>BidSmith</div>
+                <div style={{ fontSize: "10px", color: "#64748b", letterSpacing: "0.1em", textTransform: "uppercase", fontFamily: "monospace", fontWeight: 600 }}>Aris Protocol · Bid Intelligence</div>
+              </div>
             </div>
-            <div>
-              <div style={{ fontSize: "16px", fontWeight: 800, color: "#0f172a", letterSpacing: "-0.01em", fontFamily: "'Inter', sans-serif" }}>BidSmith</div>
-              <div style={{ fontSize: "10px", color: "#64748b", letterSpacing: "0.1em", textTransform: "uppercase", fontFamily: "monospace", fontWeight: 600 }}>Aris Protocol · Bid Intelligence</div>
-            </div>
+            {onBack && (
+              <button 
+                onClick={onBack}
+                style={{
+                  background: "transparent",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "6px",
+                  padding: "6px 12px",
+                  fontSize: "12px",
+                  color: "#64748b",
+                  cursor: "pointer",
+                  fontFamily: "monospace"
+                }}
+              >
+                ← Home
+              </button>
+            )}
           </div>
           <h1 style={{ fontSize: "28px", fontWeight: 900, color: "#0f172a", margin: "0 0 8px", letterSpacing: "-0.02em", fontFamily: "'Inter', sans-serif" }}>Federal Bid Compliance Check</h1>
-          <p style={{ fontSize: "13px", color: "#64748b", margin: 0, letterSpacing: "0.02em", fontFamily: "monospace" }}>Instant disqualification filtering. Execute semantic audits on live solicitations.</p>
+          <p style={{ fontSize: "13px", color: "#64748b", margin: 0, letterSpacing: "0.02em", fontFamily: "monospace" }}>Zero Token Security · Stateless Bridge. We don't save your data or store your contract bids.</p>
         </div>
 
         {/* SAM.gov URL */}
@@ -1027,46 +1046,50 @@ export default function Audit({ onProceed }) {
                         )}
                       </div>
                     )}
+                    <div style={{ marginTop: "32px", borderTop: "1px solid #e2e8f0", paddingTop: "12px", textAlign: "center" }}>
+                      <span style={{ fontSize: "10px", color: "#64748b", fontFamily: "monospace", letterSpacing: "0.05em" }}>
+                        Audit Note: This report was generated via the <strong style={{ color: "#2563eb" }}>ARIS Stateless Bridge</strong>. Zero Storage. High Conviction.
+                      </span>
+                    </div>
                   </>
                 )}
               </div>
             )}
           </div>
         )}
-      </div>
+        <style>{`
+          @keyframes spin { to { transform: rotate(360deg); } }
+          @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+          @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(59,130,246,0.4); } 50% { box-shadow: 0 0 0 6px rgba(59,130,246,0); } }
+          @keyframes ping { 0% { transform: scale(0.8); opacity: 1; } 100% { transform: scale(1); opacity: 0.6; } }
+          button:hover:not(:disabled) { filter: brightness(1.05); }
+          input::placeholder { color: #94a3b8; }
 
-      <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(59,130,246,0.4); } 50% { box-shadow: 0 0 0 6px rgba(59,130,246,0); } }
-        @keyframes ping { 0% { transform: scale(0.8); opacity: 1; } 100% { transform: scale(1); opacity: 0.6; } }
-        button:hover:not(:disabled) { filter: brightness(1.05); }
-        input::placeholder { color: #94a3b8; }
-
-        @media print {
-          body * { visibility: hidden !important; }
-          #risk-memo-print, #risk-memo-print * { visibility: visible !important; }
-          #risk-memo-print {
-            position: fixed !important;
-            top: 0; left: 0;
-            width: 100% !important;
-            padding: 48px 56px !important;
-            font-family: 'Times New Roman', Times, serif !important;
-            font-size: 12pt !important;
-            line-height: 1.7 !important;
-            color: #000 !important;
-            background: #fff !important;
+          @media print {
+            body * { visibility: hidden !important; }
+            #risk-memo-print, #risk-memo-print * { visibility: visible !important; }
+            #risk-memo-print {
+              position: fixed !important;
+              top: 0; left: 0;
+              width: 100% !important;
+              padding: 48px 56px !important;
+              font-family: 'Times New Roman', Times, serif !important;
+              font-size: 12pt !important;
+              line-height: 1.7 !important;
+              color: #000 !important;
+              background: #fff !important;
+            }
+            #risk-memo-print h1 { font-size: 16pt !important; font-weight: 900 !important; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 16px; }
+            #risk-memo-print h3 { font-size: 13pt !important; font-weight: 700 !important; margin-top: 24px !important; }
+            #risk-memo-print table { width: 100% !important; border-collapse: collapse !important; font-size: 10pt !important; page-break-inside: avoid; }
+            #risk-memo-print th { background: #f0f0f0 !important; border: 1px solid #999 !important; padding: 6px 8px !important; font-weight: 700 !important; text-align: left !important; }
+            #risk-memo-print td { border: 1px solid #ccc !important; padding: 5px 8px !important; vertical-align: top !important; }
+            #risk-memo-print blockquote { border-left: 3px solid #000 !important; padding: 10px 16px !important; margin: 16px 0 !important; background: #f8f8f8 !important; page-break-inside: avoid; }
+            #risk-memo-print hr { border: none !important; border-top: 1px solid #ccc !important; margin: 20px 0 !important; }
+            @page { margin: 0.75in; size: letter; }
           }
-          #risk-memo-print h1 { font-size: 16pt !important; font-weight: 900 !important; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 16px; }
-          #risk-memo-print h3 { font-size: 13pt !important; font-weight: 700 !important; margin-top: 24px !important; }
-          #risk-memo-print table { width: 100% !important; border-collapse: collapse !important; font-size: 10pt !important; page-break-inside: avoid; }
-          #risk-memo-print th { background: #f0f0f0 !important; border: 1px solid #999 !important; padding: 6px 8px !important; font-weight: 700 !important; text-align: left !important; }
-          #risk-memo-print td { border: 1px solid #ccc !important; padding: 5px 8px !important; vertical-align: top !important; }
-          #risk-memo-print blockquote { border-left: 3px solid #000 !important; padding: 10px 16px !important; margin: 16px 0 !important; background: #f8f8f8 !important; page-break-inside: avoid; }
-          #risk-memo-print hr { border: none !important; border-top: 1px solid #ccc !important; margin: 20px 0 !important; }
-          @page { margin: 0.75in; size: letter; }
-        }
-      `}</style>
+        `}</style>
+      </div>
     </div>
   );
 }

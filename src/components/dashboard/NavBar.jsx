@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { FileText, Share2, Link, Shield, Sun, Moon, Check } from 'lucide-react';
+import { FileText, Share2, Link, Shield, Sun, Moon, Check, ArrowLeft } from 'lucide-react';
 import { triggerPDFExport } from './ExportToolbar';
 
-const NavBar = ({ theme, onToggleTheme }) => {
+const NavBar = ({ theme, onToggleTheme, onBack }) => {
   const isDark = theme === 'dark';
   const [copied, setCopied] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
@@ -80,6 +80,26 @@ const NavBar = ({ theme, onToggleTheme }) => {
 
       {/* Brand */}
       <div className="navbar-brand">
+        {onBack && (
+          <button 
+            onClick={onBack}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#d4e4f7',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              padding: '0 8px 0 0',
+              marginRight: '8px',
+              borderRight: '1px solid var(--nav-border)',
+              minHeight: '44px'
+            }}
+            aria-label="Back to home"
+          >
+            <ArrowLeft size={18} />
+          </button>
+        )}
         <Shield size={15} color="#1e7fff" style={{ flexShrink: 0 }} />
         <span style={{
           fontFamily: "'Space Mono', monospace",

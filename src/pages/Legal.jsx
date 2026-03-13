@@ -7,7 +7,7 @@ const LEGAL_CONTENT = {
     sections: [
       {
         heading: "Data Collection",
-        body: "BidSmith collects account information, usage telemetry, and operational diagnostics required to deliver proposal-audit functionality.",
+        body: "BidSmith collects account information, usage telemetry, and operational diagnostics required to deliver proposal-audit functionality. Crucially, we do not store contract bids or sensitive proposal payloads; these are processed via a stateless bridge architecture.",
       },
       {
         heading: "Use of Data",

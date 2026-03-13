@@ -5,6 +5,7 @@
   margin: 0 auto;
   background: #09090b;   /* Deep Zinc-950 UI container */
   min-height: 100vh;
+  padding-bottom: 80px; /* Add breathing room at the end */
   box-shadow: 0 0 40px rgba(0,0,0,0.8);
   overflow-x: hidden;    /* HARD MARGIN: Cuts off any broken tables or text */
   box-sizing: border-box;
