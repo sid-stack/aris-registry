@@ -36,24 +36,26 @@ const ComplianceTable = () => {
             <h2 style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--border)', paddingBottom: '10px', marginBottom: '15px' }}>
                 Compliance Risk Table
             </h2>
-            <table style={tableStyles}>
-                <thead>
-                    <tr>
-                        <th style={thStyles}>Category</th>
-                        <th style={thStyles}>Risk</th>
-                        <th style={thStyles}>Notes</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {risks.map((item, index) => (
-                        <tr key={index}>
-                            <td style={tdStyles}>{item.category}</td>
-                            <td style={{ ...tdStyles, color: getRiskColor(item.risk), fontWeight: 'bold' }}>{item.risk}</td>
-                            <td style={tdStyles}>{item.notes}</td>
+            <div style={{ overflowX: 'auto', borderRadius: '4px' }}>
+                <table style={tableStyles}>
+                    <thead>
+                        <tr>
+                            <th style={thStyles}>Category</th>
+                            <th style={thStyles}>Risk</th>
+                            <th style={thStyles}>Notes</th>
                         </tr>
-                    ))}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        {risks.map((item, index) => (
+                            <tr key={index}>
+                                <td style={tdStyles}>{item.category}</td>
+                                <td style={{ ...tdStyles, color: getRiskColor(item.risk), fontWeight: 'bold' }}>{item.risk}</td>
+                                <td style={tdStyles}>{item.notes}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
         </div>
     );
 };

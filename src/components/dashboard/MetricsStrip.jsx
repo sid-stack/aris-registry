@@ -58,9 +58,9 @@ const MetricsStrip = () => {
 
   return (
     <div className="dashboard-card grid-col-span-2 animate-in" style={{ padding: '0' }}>
-      <div style={{
+      <div className="metrics-strip-grid" style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(3, 1fr)',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
       }}>
         {metrics.map((m, i) => (
           <div key={m.label} style={{
