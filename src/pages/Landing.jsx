@@ -437,7 +437,7 @@ export default function Landing({ onEnterApp, onViewSample }) {
               <p style={styles.sectionEyebrow}>Commercial model</p>
               <h2 style={styles.sectionTitle}>Simple, Transparent Pricing</h2>
               <p style={styles.subtitleSmall}>No contracts, no hidden fees, and a clear plan progression.</p>
-              <div style={styles.pricingGrid}>
+              <div style={{ ...styles.pricingGrid, gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)" }}>
                 {GTM_PRICING_PLANS.map((plan) => (
                   <PricingCard
                     key={plan.key}
@@ -463,21 +463,24 @@ export default function Landing({ onEnterApp, onViewSample }) {
                   />
                 ))}
               </div>
-              <form onSubmit={handleEnterpriseContact} style={styles.enterpriseForm}>
-                <label htmlFor="enterprise-email" style={styles.enterpriseLabel}>Enterprise: contact sales</label>
-                <input
-                  id="enterprise-email"
-                  type="email"
-                  required
-                  value={contactEmail}
-                  onChange={(event) => setContactEmail(event.target.value)}
-                  placeholder="you@company.com"
-                  style={styles.enterpriseInput}
-                />
-                <button type="submit" style={styles.planButton} aria-label="Contact enterprise sales">
-                  Contact Sales
-                </button>
-              </form>
+              <div style={styles.enterpriseContainer}>
+                <p style={styles.enterpriseSubheading}>Enterprise: Custom Registry & Private Cloud</p>
+                <form onSubmit={handleEnterpriseContact} style={styles.premiumEmailCard}>
+                  <input
+                    id="enterprise-email"
+                    type="email"
+                    required
+                    value={contactEmail}
+                    onChange={(event) => setContactEmail(event.target.value)}
+                    placeholder="Work email (e.g. you@company.com)"
+                    style={styles.premiumEmailInput}
+                  />
+                  <button type="submit" style={styles.premiumEmailButton} aria-label="Contact enterprise sales">
+                    Contact Sales
+                  </button>
+                </form>
+                <p style={styles.enterpriseTrustNote}>Trusted by 12+ Federal Prime Contractors</p>
+              </div>
               <p style={styles.proposalCopy}>
                 Need a client-ready pilot deck? See{" "}
                 <a
@@ -736,8 +739,8 @@ const styles = {
   pricingGrid: {
     marginTop: 28,
     display: "grid",
-    gap: 16,
-    gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+    gap: 20,
+    gridTemplateColumns: "repeat(3, 1fr)",
   },
   planCard: {
     background: "#ffffff",
@@ -828,24 +831,56 @@ const styles = {
     flexWrap: "wrap",
   },
   pilotText: { margin: 0, color: "#312e81", fontSize: "0.95rem" },
-  enterpriseForm: {
-    marginTop: 16,
-    display: "flex",
-    gap: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    flexWrap: "wrap",
+  enterpriseContainer: {
+    marginTop: 48,
+    textAlign: "center",
   },
-  enterpriseLabel: {
-    fontSize: "0.85rem",
-    color: "#334155",
+  enterpriseSubheading: {
+    fontSize: "0.95rem",
+    color: "#64748b",
+    marginBottom: 20,
     fontWeight: 600,
   },
-  enterpriseInput: {
-    border: "1px solid #cbd5e1",
-    borderRadius: 10,
-    padding: "9px 12px",
-    minWidth: 220,
+  premiumEmailCard: {
+    display: "flex",
+    background: "#ffffff",
+    border: "1px solid #e2e8f0",
+    borderRadius: "999px",
+    padding: "6px 6px 6px 20px",
+    maxWidth: 500,
+    margin: "0 auto",
+    boxShadow: "0 10px 15px -3px rgba(0,0,0,0.05), 0 4px 6px -2px rgba(0,0,0,0.03)",
+    alignItems: "center",
+    transition: "transform 0.2s ease, box-shadow 0.2s ease",
+  },
+  premiumEmailInput: {
+    flex: 1,
+    border: "none",
+    padding: "12px 0",
+    fontSize: "0.95rem",
+    color: "#1e293b",
+    background: "transparent",
+    outline: "none",
+    width: "100%",
+  },
+  premiumEmailButton: {
+    background: "#0f172a",
+    color: "#ffffff",
+    border: "none",
+    borderRadius: "999px",
+    padding: "12px 24px",
+    fontSize: "0.95rem",
+    fontWeight: 700,
+    cursor: "pointer",
+    transition: "background 0.2s ease",
+    whiteSpace: "nowrap",
+  },
+  enterpriseTrustNote: {
+    marginTop: 16,
+    fontSize: "0.75rem",
+    color: "#94a3b8",
+    textTransform: "uppercase",
+    letterSpacing: "0.05em",
   },
   inlineLink: { color: "#4338ca", textDecoration: "none", fontWeight: 600 },
   footer: {
