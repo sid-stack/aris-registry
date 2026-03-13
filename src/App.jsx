@@ -77,10 +77,10 @@ export default function App() {
     content = <Login onLogin={() => setAuthenticated(true)} />;
   } else {
     content = route === "audit"
-      ? <Audit />
+      ? <Audit onBack={() => setView("landing")} />
       : !proposal
-        ? <Upload onProposalGenerated={setProposal} />
-        : <Proposal proposal={proposal} onReset={() => setProposal(null)} />;
+        ? <Upload onProposalGenerated={setProposal} onBack={() => setView("landing")} />
+        : <Proposal proposal={proposal} onReset={() => setProposal(null)} onBack={() => setView("landing")} />;
   }
 
   return (

@@ -22,3 +22,21 @@ coveragearis-registry/
 
 # Added by ggshield
 .cache_ggshield
+
+# Added by ggshield
+.cache_ggshield
+
+# Added by ggshield
+.cache_ggshield
+
+# Python
+venv/
+__pycache__/
+*.py[cod]
+*.class
+
+# Added by ggshield
+.cache_ggshield
+
+# Added by ggshield
+.cache_ggshield

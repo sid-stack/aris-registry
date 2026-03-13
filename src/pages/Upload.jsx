@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.bidsmith.pro';
 
-export default function Upload({ preLoadedFile, onProposalGenerated }) {
+export default function Upload({ preLoadedFile, onProposalGenerated, onBack }) {
   const [file, setFile] = useState(preLoadedFile || null);
   const [companyProfile, setCompanyProfile] = useState("");
   const [loading, setLoading] = useState(false);
@@ -37,9 +37,32 @@ export default function Upload({ preLoadedFile, onProposalGenerated }) {
   }
 
   return (
-    <div style={{ maxWidth: 680, margin: "60px auto", padding: "0 24px" }}>
+    <div style={{ maxWidth: 680, margin: "40px auto", padding: "0 24px 100px" }}>
+      {onBack && (
+        <button 
+          onClick={onBack}
+          style={{ 
+            background: "transparent", 
+            border: "none", 
+            color: "#6b7280", 
+            cursor: "pointer", 
+            fontSize: 14, 
+            display: "flex", 
+            alignItems: "center", 
+            gap: 4,
+            padding: 0,
+            marginBottom: 20
+          }}
+        >
+          ← Back to Home
+        </button>
+      )}
       <h1>Generate Proposal Draft</h1>
-      <p style={{ color: "#888", margin: "8px 0 32px" }}>Upload a federal RFP and your company profile to generate a structured proposal draft.</p>
+      <p style={{ color: "#888", margin: "8px 0 16px" }}>Upload a federal RFP and your company profile to generate a structured proposal draft.</p>
+      <div style={{ background: "rgba(59,130,246,0.05)", border: "1px solid rgba(59,130,246,0.1)", borderRadius: 8, padding: "12px 16px", marginBottom: 32, fontSize: 13, display: "flex", gap: 8, alignItems: "center", color: "#60a5fa" }}>
+        <span>🛡️</span>
+        <span><strong>Zero Token Security:</strong> Built on ARIS Stateless Bridge. We don't save your data or store your bids—ever.</span>
+      </div>
 
       <div style={{ marginBottom: 24 }}>
         <label style={{ display: "block", marginBottom: 8, fontWeight: 500 }}>RFP Document (PDF)</label>
@@ -72,6 +95,12 @@ export default function Upload({ preLoadedFile, onProposalGenerated }) {
       </button>
 
       {error && <div style={{ marginTop: 16, color: "#ff5f5f" }}>Error: {error}</div>}
+
+      <div style={{ marginTop: 60, borderTop: "1px solid #333", paddingTop: 16 }}>
+        <span style={{ fontSize: 10, color: "#666", fontFamily: "monospace" }}>
+          Audit Note: This report was generated via the <strong style={{ color: "#4a7cff" }}>ARIS Stateless Bridge</strong>. Zero Storage. High Conviction.
+        </span>
+      </div>
     </div>
   );
 }

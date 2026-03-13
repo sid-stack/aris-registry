@@ -79,7 +79,7 @@ const MobileComplianceCard = ({ req }) => {
   );
 };
 
-export default function Proposal({ proposal, onReset }) {
+export default function Proposal({ proposal, onReset, onBack }) {
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' && window.innerWidth < 768);
 
   useEffect(() => {
@@ -94,7 +94,10 @@ export default function Proposal({ proposal, onReset }) {
       <div style={{ maxWidth: 1060, margin: "0 auto", padding: isMobile ? "20px 16px 40px" : "32px 24px 60px", fontFamily: "sans-serif", color: "#0d0d0d", background: "#ffffff", minHeight: "100vh" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
           <h1 style={{ margin: 0, fontSize: 24, fontWeight: 600, color: "#0d0d0d" }}>Federal Proposal Draft</h1>
-          <button onClick={onReset} style={{ padding: "8px 14px", background: "transparent", border: "1px solid #e5e5e5", borderRadius: 6, color: "#6b7280", cursor: "pointer", fontSize: 13, fontWeight: 500 }}>← New RFP</button>
+          <div style={{ display: "flex", gap: 8 }}>
+            {onBack && <button onClick={onBack} style={{ padding: "8px 14px", background: "transparent", border: "1px solid #e5e5e5", borderRadius: 6, color: "#6b7280", cursor: "pointer", fontSize: 13, fontWeight: 500 }}>Home</button>}
+            <button onClick={onReset} style={{ padding: "8px 14px", background: "transparent", border: "1px solid #e5e5e5", borderRadius: 6, color: "#6b7280", cursor: "pointer", fontSize: 13, fontWeight: 500 }}>← New RFP</button>
+          </div>
         </div>
         <div style={{ background: "#ffffff", border: "1px solid #e5e5e5", borderRadius: 8, padding: isMobile ? "20px" : "32px", marginBottom: 20, width: "100%", boxSizing: "border-box", overflow: "hidden", overflowX: "hidden", wordBreak: "break-word", whiteSpace: "pre-wrap" }}>
           <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
@@ -145,76 +148,7 @@ export default function Proposal({ proposal, onReset }) {
     );
   }
 
-  function MobileComplianceCard({ req }) {
-    const [expanded, setExpanded] = useState(false);
-    return (
-      <div style={{
-        background: "#09090b",
-        border: "1px solid #27272a",
-        borderRadius: "8px",
-        padding: "16px",
-        marginBottom: "12px",
-        display: "flex",
-        flexDirection: "column",
-        gap: "12px"
-      }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span style={{ fontSize: "16px" }}>{riskIcon(req.risk_level)}</span>
-            <span style={{ fontFamily: "monospace", fontSize: "13px", color: "#a1a1aa", fontWeight: 600 }}>
-              {req.requirement_id || "REQ-UNK"}
-            </span>
-          </div>
-          <div style={{ 
-            fontSize: "10px", 
-            fontWeight: 700, 
-            color: req.is_disqualifying_if_missing ? "#ef4444" : "#52525b",
-            border: `1px solid ${req.is_disqualifying_if_missing ? '#451a1a' : '#27272a'}`,
-            background: req.is_disqualifying_if_missing ? "rgba(239, 68, 68, 0.1)" : "transparent",
-            padding: "4px 8px",
-            borderRadius: "4px",
-            textTransform: "uppercase",
-            letterSpacing: "0.5px"
-          }}>
-            Disqualifying: {req.is_disqualifying_if_missing ? "YES" : "NO"}
-          </div>
-        </div>
-        <div style={{ 
-          fontSize: "15px", 
-          color: "#e4e4e7", 
-          lineHeight: "1.6",
-          wordBreak: "break-word",
-          display: expanded ? "block" : "-webkit-box",
-          WebkitLineClamp: expanded ? "unset" : 2,
-          WebkitBoxOrient: "vertical",
-          overflow: "hidden"
-        }}>
-          {req.text}
-        </div>
-        <button 
-          onClick={() => setExpanded(!expanded)}
-          style={{
-            background: "transparent",
-            border: "none",
-            borderTop: "1px solid #27272a",
-            color: "#4a7cff",
-            fontSize: "13px",
-            fontWeight: "600",
-            padding: "16px 0 4px 0",
-            marginTop: "4px",
-            textAlign: "center",
-            textTransform: "uppercase",
-            letterSpacing: "1px",
-            cursor: "pointer",
-            minHeight: "44px",
-            width: "100%"
-          }}
-        >
-          {expanded ? "Hide Details ↑" : "View Full Requirement ↓"}
-        </button>
-      </div>
-    );
-  }
+
 
   return (
     <div style={{ maxWidth: 1060, margin: "0 auto", padding: isMobile ? "20px 16px 40px" : "32px 24px 60px", fontFamily: "sans-serif", color: "#d4d8e2", background: "#0d0f14", minHeight: "100vh" }}>
@@ -224,7 +158,10 @@ export default function Proposal({ proposal, onReset }) {
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 600 }}>{meta.agency || "Federal Agency"}{meta.solicitation_number ? ` · ${meta.solicitation_number}` : ""}</h1>
           <div style={{ fontSize: 12, color: "#6b7585", marginTop: 5 }}>{[meta.naics_code && `NAICS ${meta.naics_code}`, meta.set_aside_type, meta.contract_type].filter(Boolean).join(" · ")}</div>
         </div>
-        <button onClick={onReset} style={{ padding: "8px 14px", background: "transparent", border: "1px solid #2a2f3a", borderRadius: 6, color: "#6b7585", cursor: "pointer", fontSize: 12 }}>← New RFP</button>
+        <div style={{ display: "flex", gap: 8 }}>
+          {onBack && <button onClick={onBack} style={{ padding: "8px 14px", background: "transparent", border: "1px solid #2a2f3a", borderRadius: 6, color: "#6b7585", cursor: "pointer", fontSize: 12 }}>Home</button>}
+          <button onClick={onReset} style={{ padding: "8px 14px", background: "transparent", border: "1px solid #2a2f3a", borderRadius: 6, color: "#6b7585", cursor: "pointer", fontSize: 12 }}>← New RFP</button>
+        </div>
       </div>
       {/* 1️⃣ Bid Risk Snapshot (Top Banner) */}
       <div style={{
@@ -377,6 +314,11 @@ export default function Proposal({ proposal, onReset }) {
         <div style={{ marginTop: 32, display: "flex", gap: 12, justifyContent: "center" }}>
           <button onClick={() => navigator.clipboard.writeText(JSON.stringify(proposal, null, 2))} style={{ padding: "12px 24px", background: "#4a7cff", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 14, fontWeight: 600 }}>Export Audit JSON</button>
           <button onClick={() => window.print()} style={{ padding: "12px 24px", background: "transparent", border: "1px solid #2a2f3a", borderRadius: 8, color: "#6b7585", cursor: "pointer", fontSize: 14, fontWeight: 600 }}>Print Full Report</button>
+        </div>
+        <div style={{ marginTop: 32, borderTop: "1px solid #2d3446", paddingTop: 16, textAlign: "left" }}>
+          <span style={{ fontSize: 10, color: "#6b7585", fontFamily: "monospace" }}>
+            Audit Note: This report was generated via the <strong style={{ color: "#4a7cff" }}>ARIS Stateless Bridge</strong>. Zero Storage. High Conviction.
+          </span>
         </div>
       </div>
     </div>
