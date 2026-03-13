@@ -44,8 +44,67 @@ const SamRep = ({ onBack }) => {
     try { localStorage.setItem('bs-theme', theme); } catch {}
   }, [theme]);
 
+  const [isDemoMode, setIsDemoMode] = useState(true); // Default to your polished static data
+  const [loading, setLoading] = useState(false);
+  const [complianceData, setComplianceData] = useState(null);
+  const [metrics, setMetrics] = useState(null);
+
+  // The Recovery Script - Switch between static mockup and live output via CTRL+SHIFT+D
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'd') {
+        e.preventDefault();
+        setIsDemoMode(prev => {
+            const nextMode = !prev;
+            console.log(`[ARIS]: Switching to ${nextMode ? 'STATIC' : 'LIVE'} mode.`);
+            return nextMode;
+        });
+        setComplianceData(null); // Setting to null defaults back to static matrix
+        setMetrics(null);
+        setLoading(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');
 
+  const handleUpload = async (event) => {
+    if (isDemoMode) {
+        // Instant win: Set data to null to load the DHA Mock data
+        setComplianceData(null);
+        setMetrics(null);
+        setLoading(false);
+        console.log("Uploaded in Demo Mode (Static fallback loaded).");
+        return;
+    }
+
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('rfp', file);
+
+    setLoading(true); // Show that lovely af spinner
+    try {
+        // Assume API runs on port 8080 or same domain
+        const response = await fetch('http://localhost:8080/api/shred', { method: 'POST', body: formData });
+        const result = await response.json();
+        
+        if (result.success) {
+            // Populate your ComplianceMatrix with REAL data
+            setComplianceData(result.data.requirements || []); 
+            setMetrics(result.data.metadata || result.data.statistics);
+        } else {
+            console.error("Shred error:", result);
+        }
+    } catch (error) {
+        console.error("Shred failed:", error);
+    } finally {
+        setLoading(false);
+    }
+  };
   return (
     <div
       id="dashboard-content"
@@ -67,7 +126,21 @@ const SamRep = ({ onBack }) => {
             &nbsp;·&nbsp; Time saved <strong style={{ color: 'var(--success)' }}>~14 hrs</strong>
           </div>
         </div>
-        <ExportToolbar />
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <input type="file" id="rfp-upload" style={{ display: 'none' }} onChange={handleUpload} accept=".pdf,.txt" />
+          <label htmlFor="rfp-upload" style={{
+            background: 'var(--accent)', color: '#fff', padding: '6px 12px', borderRadius: '4px',
+            fontSize: '11px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px'
+          }}>
+            {loading ? (
+              <svg className="animate-spin h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            ) : "🚀 RUN SHRED"}
+          </label>
+          <ExportToolbar />
+        </div>
       </div>
 
       <main className="sam-rep-main">
@@ -107,7 +180,7 @@ const SamRep = ({ onBack }) => {
 
         <SectionDivider number="6" title="Compliance Matrix — FAR Referenced" />
         <div style={{ marginBottom: '8px' }}>
-          <ComplianceMatrix />
+          <ComplianceMatrix complianceData={complianceData} isLoading={loading} />
         </div>
 
         <SectionDivider number="7" title="Win Themes & Opportunities Radar" />

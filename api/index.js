@@ -3,9 +3,12 @@ import rateLimit from "express-rate-limit";
 import cors from "cors";
 import multer from "multer";
 import OpenAI from "openai";
-import { readFileSync } from "fs";
+import os from "os";
+import { readFileSync, writeFileSync, unlinkSync, existsSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
+import { spawn } from "child_process";
+import { randomUUID } from "crypto";
 import { requestId } from "./middleware/requestId.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { asyncHandler } from "./utils/asyncHandler.js";
@@ -1016,6 +1019,59 @@ function registerPricingRoutes(routeBase) {
 
 registerPricingRoutes("/pricing");
 registerPricingRoutes("/api/pricing");
+
+// ─── /api/shred (Phase 1 React Integration) ───────────────────────────────────
+app.post("/api/shred", upload.single("rfp"), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "No RFP file uploaded" });
+
+  const isTxt = req.file.originalname.toLowerCase().endsWith(".txt");
+  const ext = isTxt ? ".txt" : ".pdf";
+  const tempFilePath = join(os.tmpdir(), `rfp_${randomUUID()}${ext}`);
+  
+  writeFileSync(tempFilePath, req.file.buffer);
+
+  const pythonScript = join(__dirname, "../src/phase1/requirements_extractor_OPENROUTER.py");
+  const pythonProcess = spawn("python3", [pythonScript, tempFilePath, "-o", tempFilePath + ".json"]);
+
+  let resultData = "";
+  let errorData = "";
+
+  pythonProcess.stdout.on("data", (data) => {
+    resultData += data.toString();
+  });
+
+  pythonProcess.stderr.on("data", (data) => {
+    errorData += data.toString();
+  });
+
+  pythonProcess.on("close", (code) => {
+    try {
+      unlinkSync(tempFilePath); // Stateless Rule: Wipe the input file immediately
+      
+      // Read the output JSON directly from the file the python script saved to
+      const outPath = tempFilePath + ".json";
+      let jsonStr = "{}";
+      if (existsSync(outPath)) {
+        jsonStr = readFileSync(outPath, "utf8");
+        unlinkSync(outPath); // Cleanup output JSON
+      } else {
+        // Fallback to trying to parse stdout
+        const idx = resultData.indexOf("{");
+        if (idx !== -1) {
+          jsonStr = resultData.substring(idx);
+        } else {
+            throw new Error("No JSON output found.");
+        }
+      }
+
+      const jsonOutput = JSON.parse(jsonStr);
+      res.json({ success: true, data: jsonOutput });
+    } catch (err) {
+      console.error("[/api/shred] Error Parsing Output:", err, "Raw:", resultData, "Stderr:", errorData);
+      res.status(500).json({ error: "Extraction failed", details: err.message, status: code });
+    }
+  });
+});
 
 // ─── /api/audit ───────────────────────────────────────────────────────────────
 app.post("/api/audit", upload.single("file"), async (req, res) => {
