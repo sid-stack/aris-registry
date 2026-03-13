@@ -264,13 +264,15 @@ const SAMPLE_REPORT = {
 const app = express();
 const PORT = process.env.PORT || 8080;
 const allowedOrigins = new Set([
+  "https://bidsmith-production.vercel.app",
   "https://www.bidsmith.pro",
   "https://bidsmith.pro",
-  "https://app.bidsmith.pro",
-  "https://docs.bidsmith.pro",
-  "http://localhost:5173",
-  "http://localhost:3000",
 ]);
+
+if (process.env.NODE_ENV !== "production") {
+  allowedOrigins.add("http://localhost:5173");
+  allowedOrigins.add("http://localhost:3000");
+}
 
 const stripeMissingVars = [];
 const stripePublicKey = process.env.VITE_STRIPE_PUBLIC_KEY || process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
@@ -335,8 +337,8 @@ const analyzeLinkLimiter = rateLimit({
 });
 
 const apiLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 60,
+  windowMs: 1000, // 1 second
+  max: 5,         // limit each IP to 5 requests per windowMs
   message: failResponse("rate_limited", "Too many requests, try again later"),
   standardHeaders: true,
   legacyHeaders: false,

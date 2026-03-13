@@ -14,6 +14,7 @@ import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import FaqSection from "../components/FaqSection";
+import "./Landing.css";
 import { trackEvent } from "../utils/analytics";
 import PricingCard from "../components/PricingCard";
 import { trackKPI } from "../lib/analytics";
@@ -94,6 +95,15 @@ export default function Landing({ onEnterApp, onViewSample }) {
   const [viewingSample, setViewingSample] = useState(false);
   const [sampleReport, setSampleReport] = useState(null);
   const [loadingSample, setLoadingSample] = useState(false);
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== "undefined" && window.innerWidth < 768
+  );
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const fetchSampleReport = async () => {
     setLoadingSample(true);
@@ -251,8 +261,8 @@ export default function Landing({ onEnterApp, onViewSample }) {
             }}
             onReset={handleBackToLanding}
           />
-          <div style={{ maxWidth: 1060, margin: "0 auto", padding: isMobile ? "0 16px 32px" : "0 24px 40px" }}>
-            <div style={{ background: "#ffffff", border: "1px solid #e5e5e5", borderRadius: 8, padding: isMobile ? "16px" : "24px", marginBottom: 20 }}>
+          <div className="sample-report-container">
+            <div className="sample-report-panel" style={{ background: "#ffffff", border: "1px solid #e5e5e5", borderRadius: 8, marginBottom: 20 }}>
               <h3 style={{ margin: "0 0 16px", fontSize: 18, fontWeight: 600 }}>Sample Compliance Report</h3>
               <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
                 p: ({ children }) => <p style={{ marginBottom: 14, lineHeight: 1.6, color: "#334155" }}>{children}</p>,
@@ -266,7 +276,7 @@ export default function Landing({ onEnterApp, onViewSample }) {
                 {sampleReport.compliance_report}
               </ReactMarkdown>
             </div>
-            <div style={{ background: "#ffffff", border: "1px solid #e5e5e5", borderRadius: 8, padding: isMobile ? "16px" : "24px" }}>
+            <div className="sample-report-panel" style={{ background: "#ffffff", border: "1px solid #e5e5e5", borderRadius: 8 }}>
               <h3 style={{ margin: "0 0 16px", fontSize: 18, fontWeight: 600 }}>Risk Memorandum</h3>
               <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
                 p: ({ children }) => <p style={{ marginBottom: 14, lineHeight: 1.6, color: "#334155" }}>{children}</p>,
@@ -290,7 +300,7 @@ export default function Landing({ onEnterApp, onViewSample }) {
                 <img src="/aris-logo.png" alt="Aris" style={{ height: 22, width: 22, objectFit: "contain" }} />
                 <span>BidSmith</span>
               </a>
-              <nav style={styles.navLinksDesktop}>
+              <nav className="landing-nav-links">
                 <a href="#features" style={styles.navLink}>Features</a>
                 <a href="#workflow" style={styles.navLink}>Workflow</a>
                 <a href="#pricing" style={styles.navLink}>Pricing</a>
@@ -308,7 +318,7 @@ export default function Landing({ onEnterApp, onViewSample }) {
               </button>
             </div>
           </header>
-          <section style={styles.hero}>
+          <section className="landing-hero">
             <div style={styles.heroGlowTop} />
             <div style={styles.heroGlowBottom} />
             <div style={styles.heroInner}>
@@ -318,7 +328,7 @@ export default function Landing({ onEnterApp, onViewSample }) {
                 alt="BidSmith logo"
                 style={styles.logo}
               />
-              <h1 style={styles.title}>Secure the Win with a Professional Compliance Audit</h1>
+              <h1 style={styles.title}>We get you Contracts</h1>
               <p style={styles.subtitle}>
                 Before you spend $50k writing the proposal, run a BidSmith audit.
                 Identify disqualification traps and build an exact compliance matrix instantly.
@@ -348,7 +358,7 @@ export default function Landing({ onEnterApp, onViewSample }) {
                 <button
                   type="button"
                   aria-label="View demo sample report"
-                  onClick={() => window.open("https://www.bidsmith.pro/sam-rep", "_blank", "noopener,noreferrer")}
+                  onClick={() => window.open("/sam-rep", "_blank", "noopener,noreferrer")}
                   style={styles.demoCta}
                   disabled={isProcessing}
                 >
@@ -371,7 +381,7 @@ export default function Landing({ onEnterApp, onViewSample }) {
             <div style={styles.sectionInner}>
               <p style={styles.sectionEyebrow}>Platform Activity</p>
               <h2 style={styles.sectionTitle}>BidSmith Activity</h2>
-              <div style={styles.activityGrid}>
+              <div className="landing-activity-grid">
                 <div style={styles.activityStat}>
                   <h3 style={styles.activityNumber}>17</h3>
                   <p style={styles.activityLabel}>Reports Generated Today</p>
@@ -537,81 +547,87 @@ const styles = {
     position: "sticky",
     top: 0,
     zIndex: 30,
-    background: "rgba(255,255,255,0.92)",
+    background: "rgba(9,9,11,0.92)",
     backdropFilter: "blur(10px)",
-    borderBottom: "1px solid #e2e8f0",
+    borderBottom: "1px solid #27272a",
   },
   navInner: {
     maxWidth: 1120,
     margin: "0 auto",
-    padding: "12px 20px",
+    padding: "16px 20px",
     display: "flex",
     alignItems: "center",
+    justifyContent: "space-between",
     gap: 14,
-    flexWrap: "wrap",
+    flexWrap: "nowrap",
   },
   brand: {
     display: "inline-flex",
     alignItems: "center",
     gap: 8,
-    color: "#0f172a",
+    color: "#ffffff",
     fontWeight: 800,
     textDecoration: "none",
-    marginRight: "auto",
-  },
-  navLinksDesktop: {
-    display: "flex",
-    gap: 18,
-    alignItems: "center",
-    flexWrap: "wrap",
   },
   navLink: {
-    color: "#334155",
+    color: "#a1a1aa",
     textDecoration: "none",
     fontSize: "0.95rem",
     fontWeight: 600,
   },
   navCta: {
-    background: "#0f172a",
-    color: "#ffffff",
-    border: "1px solid #0f172a",
+    background: "#ffffff",
+    color: "#0f172a",
+    border: "1px solid #ffffff",
     borderRadius: 999,
-    padding: "8px 14px",
+    padding: "8px 16px",
     fontWeight: 700,
     cursor: "pointer",
+    whiteSpace: "nowrap",
+    marginLeft: "auto",
   },
   page: {
     minHeight: "100vh",
-    background: "#f8fafc",
-    color: "#0f172a",
+    background: "#09090b",
+    color: "#e4e4e7",
     fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
   },
   hero: {
     padding: "72px 20px 56px",
-    background: "linear-gradient(160deg, #f8fafc 0%, #ecfeff 42%, #eff6ff 100%)",
-    borderBottom: "1px solid #e2e8f0",
+    background: "radial-gradient(ellipse at top, #18181b 0%, #09090b 100%)",
+    borderBottom: "1px solid #27272a",
     position: "relative",
     overflow: "hidden",
   },
   heroGlowTop: {
     position: "absolute",
-    top: -80,
-    left: "12%",
-    width: 280,
-    height: 280,
-    background: "radial-gradient(circle, rgba(99,102,241,0.22) 0%, rgba(99,102,241,0) 70%)",
+    top: -100,
+    left: "15%",
+    width: 400,
+    height: 400,
+    background: "radial-gradient(circle, rgba(79,70,229,0.12) 0%, rgba(79,70,229,0) 60%)",
     pointerEvents: "none",
   },
   heroGlowBottom: {
     position: "absolute",
-    right: "8%",
-    bottom: -110,
-    width: 320,
-    height: 320,
-    background: "radial-gradient(circle, rgba(14,165,233,0.18) 0%, rgba(14,165,233,0) 70%)",
+    right: "10%",
+    bottom: -150,
+    width: 450,
+    height: 450,
+    background: "radial-gradient(circle, rgba(147,51,234,0.12) 0%, rgba(147,51,234,0) 60%)",
     pointerEvents: "none",
   },
-  heroInner: { maxWidth: 920, margin: "0 auto", textAlign: "center", position: "relative", zIndex: 1 },
+  heroInner: { 
+    maxWidth: 920, 
+    width: "100%", 
+    margin: "0 auto", 
+    textAlign: "center", 
+    position: "relative", 
+    zIndex: 1,
+    display: "flex", 
+    flexDirection: "column", 
+    alignItems: "center" 
+  },
   heroKicker: {
     margin: "0 auto 12px",
     display: "inline-flex",
@@ -627,15 +643,16 @@ const styles = {
     borderRadius: 999,
     padding: "6px 12px",
   },
-  title: { margin: 0, fontSize: "clamp(2rem, 6vw, 3.25rem)", lineHeight: 1.1, letterSpacing: "-0.02em" },
+  title: { margin: 0, fontSize: "clamp(2rem, 6vw, 3.25rem)", lineHeight: 1.1, letterSpacing: "-0.02em", color: "#ffffff" },
   logo: {
     height: 72,
     width: "auto",
+    maxWidth: "80%",
     margin: "0 auto 14px",
     display: "block",
   },
-  subtitle: { margin: "18px auto 0", maxWidth: 760, color: "#475569", fontSize: "clamp(1rem, 2.3vw, 1.25rem)", lineHeight: 1.6 },
-  subtitleSmall: { margin: "10px 0 0", color: "#64748b", fontSize: "1rem" },
+  subtitle: { margin: "18px auto 0", maxWidth: 760, color: "#a1a1aa", fontSize: "clamp(1rem, 2.3vw, 1.25rem)", lineHeight: 1.6 },
+  subtitleSmall: { margin: "10px 0 0", color: "#a1a1aa", fontSize: "1rem" },
   heroActions: {
     marginTop: 32,
     display: "flex",
@@ -653,12 +670,12 @@ const styles = {
     cursor: "pointer",
   },
   secondaryCta: {
-    background: "#ffffff",
-    color: "#334155",
+    background: "rgba(255,255,255,0.03)",
+    color: "#ffffff",
     fontWeight: 600,
     borderRadius: 10,
     padding: "12px 22px",
-    border: "1px solid #cbd5e1",
+    border: "1px solid rgba(255,255,255,0.1)",
     cursor: "pointer",
   },
   demoCta: {
@@ -678,10 +695,10 @@ const styles = {
     fontWeight: 600,
     padding: "12px 6px",
   },
-  section: { padding: "56px 20px", background: "#ffffff" },
-  sectionMuted: { padding: "56px 20px", background: "#f1f5f9" },
-  sectionInner: { maxWidth: 1080, margin: "0 auto" },
-  sectionInnerNarrow: { maxWidth: 860, margin: "0 auto", textAlign: "center" },
+  section: { padding: "56px 20px", background: "#09090b" },
+  sectionMuted: { padding: "56px 20px", background: "#000000" },
+  sectionInner: { maxWidth: 1080, width: "100%", margin: "0 auto" },
+  sectionInnerNarrow: { maxWidth: 860, width: "100%", margin: "0 auto", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" },
   sectionEyebrow: {
     margin: "0 0 8px",
     textAlign: "center",
@@ -705,16 +722,17 @@ const styles = {
     gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
   },
   card: {
-    background: "#ffffff",
-    border: "1px solid #e2e8f0",
+    background: "rgba(255,255,255,0.03)",
+    border: "1px solid rgba(255,255,255,0.1)",
     borderRadius: 14,
     padding: "24px 20px",
     textAlign: "center",
-    boxShadow: "0 10px 30px rgba(15,23,42,0.06)",
-    transition: "transform 180ms ease, box-shadow 180ms ease",
+    backdropFilter: "blur(12px)",
+    transition: "transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease",
+    color: "#e4e4e7"
   },
-  cardTitle: { margin: "12px 0 8px", fontSize: "1.05rem" },
-  cardCopy: { margin: 0, color: "#64748b", fontSize: "0.95rem", lineHeight: 1.5 },
+  cardTitle: { margin: "12px 0 8px", fontSize: "1.05rem", color: "#f4f4f5" },
+  cardCopy: { margin: 0, color: "#a1a1aa", fontSize: "0.95rem", lineHeight: 1.5 },
   pricingGrid: {
     marginTop: 28,
     display: "grid",
@@ -749,22 +767,22 @@ const styles = {
     gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
   },
   heroStatCard: {
-    background: "rgba(255,255,255,0.88)",
-    border: "1px solid #e2e8f0",
+    background: "rgba(255,255,255,0.03)",
+    border: "1px solid rgba(255,255,255,0.1)",
     borderRadius: 12,
     padding: "12px 10px",
-    boxShadow: "0 8px 22px rgba(15,23,42,0.05)",
-    backdropFilter: "blur(2px)",
+    backdropFilter: "blur(4px)",
   },
   heroStatValue: {
     margin: 0,
-    color: "#1e1b4b",
+    color: "#f4f4f5",
     fontWeight: 800,
     fontSize: "1.05rem",
+    fontFamily: "Space Mono, monospace",
   },
   heroStatLabel: {
     margin: "4px 0 0",
-    color: "#475569",
+    color: "#a1a1aa",
     fontSize: "0.76rem",
     letterSpacing: "0.03em",
     textTransform: "uppercase",
@@ -779,19 +797,20 @@ const styles = {
     textAlign: "center",
     padding: "20px",
     borderRadius: 12,
-    background: "rgba(255,255,255,0.88)",
-    border: "1px solid #e2e8f0",
+    background: "rgba(255,255,255,0.03)",
+    border: "1px solid rgba(255,255,255,0.1)",
     minWidth: "120px",
   },
   activityNumber: {
     fontSize: "2.5rem",
     fontWeight: 700,
-    color: "#1e1b4b",
+    color: "#f4f4f5",
     margin: "0 0 8px",
+    fontFamily: "Space Mono, monospace",
   },
   activityLabel: {
     fontSize: "0.85rem",
-    color: "#64748b",
+    color: "#a1a1aa",
     margin: "8px 0 0",
     fontWeight: 500,
   },

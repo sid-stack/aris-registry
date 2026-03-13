@@ -40,6 +40,9 @@ body {
   border-radius: 8px;
   padding: 20px;
   transition: background-color 0.2s, border-color 0.2s;
+  overflow: hidden; /* Prevent internal elements from pushing past right margin */
+  word-wrap: break-word;
+  white-space: normal;
 }
 
 .dashboard-grid {
