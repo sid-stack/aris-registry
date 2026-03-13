@@ -117,7 +117,7 @@ const MobileComplianceCard = ({ req }) => {
   );
 };
 
-const ComplianceMatrix = () => {
+const ComplianceMatrix = ({ complianceData, isLoading }) => {
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' && window.innerWidth < 768);
 
   useEffect(() => {
@@ -126,21 +126,46 @@ const ComplianceMatrix = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  const dataToRender = complianceData && complianceData.length > 0 ? complianceData : matrix;
+
   return (
     <div className="dashboard-card animate-in" style={{ animationDelay: '0.1s' }}>
     <div className="card-header">
       <TableProperties size={14} color="var(--accent)" />
       <span className="card-label">Compliance Matrix</span>
       <span style={{ marginLeft: 'auto', fontSize: '10px', color: 'var(--text-secondary)' }}>
-        {matrix.length} Requirements · FAR-Referenced
+        {dataToRender.length} Requirements
       </span>
     </div>
 
-    {isMobile ? (
-      <div className="compliance-mobile-stack" style={{ marginTop: '16px' }}>
-        {matrix.map((req, i) => (
-          <MobileComplianceCard key={req.id} req={req} />
+    {isLoading ? (
+      <div className="animate-pulse" style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '16px', padding: '16px' }}>
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '16px', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '16px' }}>
+            <div style={{ height: '16px', width: '16px', background: 'rgba(59,130,246,0.3)', borderRadius: '50%' }}></div>
+            <div style={{ height: '16px', width: '75%', background: 'rgba(255,255,255,0.05)', borderRadius: '4px' }}></div>
+            <div style={{ height: '16px', width: '20%', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', marginLeft: 'auto' }}></div>
+          </div>
         ))}
+        <p style={{ marginTop: '8px', fontSize: '11px', color: 'var(--accent)', fontFamily: 'monospace', animation: 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite' }}>
+          [ARIS_BRIDGE]: INGESTING_BITSTREAM... MAPPING_TO_NIST_800-171...
+        </p>
+      </div>
+    ) : isMobile ? (
+      <div className="compliance-mobile-stack" style={{ marginTop: '16px' }}>
+        {dataToRender.map((req, i) => {
+          const reqMapped = {
+              id: req.id,
+              requirement: req.text || req.requirement,
+              section: req.section || 'N/A',
+              category: req.type || req.category,
+              farRef: req.farRef || 'N/A',
+              status: req.status || 'review',
+              risk: (req.severity || req.risk || 'MEDIUM').toUpperCase(),
+              action: req.action || 'Extracted via ARIS.'
+          };
+          return <MobileComplianceCard key={reqMapped.id || i} req={reqMapped} />
+        })}
       </div>
     ) : (
       <div className="compliance-table-wrap">
@@ -157,10 +182,22 @@ const ComplianceMatrix = () => {
             </tr>
           </thead>
           <tbody>
-            {matrix.map(({ id, requirement, section, category, farRef, status, risk, action }, i) => {
-              const s = statusConfig[status];
+            {dataToRender.map((rawReq, i) => {
+              const reqObj = {
+                  id: rawReq.id,
+                  requirement: rawReq.text || rawReq.requirement,
+                  section: rawReq.section || 'N/A',
+                  category: rawReq.type || rawReq.category,
+                  farRef: rawReq.farRef || 'N/A',
+                  status: rawReq.status || 'review',
+                  risk: (rawReq.severity || rawReq.risk || 'MEDIUM').toUpperCase(),
+                  action: rawReq.action || 'Extracted via ARIS Engine Phase 1. Complete review required.'
+              };
+              const { id, requirement, section, category, farRef, status, risk, action } = reqObj;
+              const s = statusConfig[status] || statusConfig.review;
+              const rc = riskColor[risk] || riskColor.MEDIUM;
               return (
-                <tr key={id} style={{
+                <tr key={id || i} style={{
                   borderBottom: '1px solid rgba(31,41,55,0.6)',
                   background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)',
                 }}
@@ -176,7 +213,7 @@ const ComplianceMatrix = () => {
                     <span style={{ fontSize: '10px', fontWeight: 600, padding: '3px 8px', borderRadius: '3px', background: s.bg, color: s.color }}>{s.label}</span>
                   </td>
                   <td style={{ padding: '10px', whiteSpace: 'nowrap' }}>
-                    <span style={{ fontSize: '10px', fontWeight: 700, color: riskColor[risk] }}>{risk}</span>
+                    <span style={{ fontSize: '10px', fontWeight: 700, color: rc }}>{risk}</span>
                   </td>
                   <td style={{ padding: '10px', color: 'var(--text-secondary)', fontSize: '11px', minWidth: '200px', lineHeight: 1.4 }}>{action}</td>
                 </tr>
