@@ -1,0 +1,72 @@
+{
+  "metadata": {
+    "analysis_date": "2026-03-13T17:16:43.369495",
+    "total_contradictions": 0,
+    "total_ambiguities": 9,
+    "clarification_questions": 5
+  },
+  "contradictions": [],
+  "ambiguities": [
+    {
+      "word": "should",
+      "issue": "Weak language - unclear if mandatory",
+      "severity": "Medium",
+      "recommendation": "Request clarification"
+    },
+    {
+      "word": "may",
+      "issue": "Optional - unclear requirement",
+      "severity": "Medium",
+      "recommendation": "Request clarification"
+    },
+    {
+      "word": "could",
+      "issue": "Vague possibility",
+      "severity": "Medium",
+      "recommendation": "Request clarification"
+    },
+    {
+      "word": "might",
+      "issue": "Uncertain requirement",
+      "severity": "Medium",
+      "recommendation": "Request clarification"
+    },
+    {
+      "word": "roughly",
+      "issue": "Vague metric",
+      "severity": "Medium",
+      "recommendation": "Request clarification"
+    },
+    {
+      "word": "approximately",
+      "issue": "Imprecise measurement",
+      "severity": "Medium",
+      "recommendation": "Request clarification"
+    },
+    {
+      "word": "robust",
+      "issue": "Undefined term",
+      "severity": "Medium",
+      "recommendation": "Request clarification"
+    },
+    {
+      "word": "performant",
+      "issue": "Undefined term",
+      "severity": "Medium",
+      "recommendation": "Request clarification"
+    },
+    {
+      "word": "scalable",
+      "issue": "Undefined term",
+      "severity": "Medium",
+      "recommendation": "Request clarification"
+    }
+  ],
+  "clarification_questions": [
+    "Can you clarify the 9 ambiguous terms?",
+    "What is the exact budget available for this project?",
+    "Are there any firm deadlines for completion?",
+    "Which requirements are mandatory vs. nice-to-have?",
+    "Can you provide examples of acceptable solutions?"
+  ]
+}

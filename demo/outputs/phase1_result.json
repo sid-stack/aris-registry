@@ -1,0 +1,17 @@
+{
+  "metadata": {
+    "total_requirements": 1,
+    "extraction_date": "2026-03-13T17:16:33.546454"
+  },
+  "requirements": [
+    {
+      "requirement_text": "System shall implement AES-256 encryption",
+      "type": "Security",
+      "severity": "Critical",
+      "keywords": [
+        "shall"
+      ],
+      "id": "REQ-0001"
+    }
+  ]
+}

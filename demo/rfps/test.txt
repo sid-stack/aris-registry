@@ -1,0 +1,17 @@
+GOVERNMENT RFP - TEST
+
+REQUIREMENTS:
+- System shall implement AES-256 encryption
+- System shall maintain 99.9% uptime
+- Must achieve SOC 2 Type II certification
+- Should include disaster recovery procedures
+- System may scale horizontally
+- Shall support 1000 concurrent users
+- Response time should not exceed 2 seconds
+
+EVALUATION CRITERIA (100 points):
+1. TECHNICAL APPROACH (30 points) - MANDATORY
+2. PAST PERFORMANCE (20 points) - MANDATORY
+3. COST (25 points)
+4. MANAGEMENT (15 points)
+5. SECURITY (10 points)

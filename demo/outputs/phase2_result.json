@@ -1,0 +1,68 @@
+{
+  "metadata": {
+    "source_file": "test.txt",
+    "extraction_date": "2026-03-13T17:16:40.526236",
+    "total_pages": 1,
+    "total_criteria": 5,
+    "total_points": 100
+  },
+  "evaluation_criteria": [
+    {
+      "criteria_name": "TECHNICAL APPROACH",
+      "max_points": 30,
+      "description": "Evaluates the offeror's proposed technical solution to meet the requirements outlined in the RFP, including system capabilities, scalability, and performance.",
+      "mandatory": true,
+      "scoring_method": "points"
+    },
+    {
+      "criteria_name": "PAST PERFORMANCE",
+      "max_points": 20,
+      "description": "Assesses the offeror's demonstrated ability to successfully perform similar contracts, focusing on reliability, quality, and customer satisfaction.",
+      "mandatory": true,
+      "scoring_method": "points"
+    },
+    {
+      "criteria_name": "COST",
+      "max_points": 25,
+      "description": "Evaluates the overall cost proposed by the offeror, considering factors such as price, value, and potential for cost savings.",
+      "mandatory": false,
+      "scoring_method": "points"
+    },
+    {
+      "criteria_name": "MANAGEMENT",
+      "max_points": 15,
+      "description": "Assesses the offeror's management team, organizational structure, and proposed management approach for the contract.",
+      "mandatory": false,
+      "scoring_method": "points"
+    },
+    {
+      "criteria_name": "SECURITY",
+      "max_points": 10,
+      "description": "Evaluates the offeror's proposed security measures, including encryption, disaster recovery, and adherence to relevant security certifications.",
+      "mandatory": false,
+      "scoring_method": "points"
+    }
+  ],
+  "scoring_summary": {
+    "TECHNICAL APPROACH": {
+      "points": 30,
+      "percentage": 30.0
+    },
+    "PAST PERFORMANCE": {
+      "points": 20,
+      "percentage": 20.0
+    },
+    "COST": {
+      "points": 25,
+      "percentage": 25.0
+    },
+    "MANAGEMENT": {
+      "points": 15,
+      "percentage": 15.0
+    },
+    "SECURITY": {
+      "points": 10,
+      "percentage": 10.0
+    }
+  }
+}
