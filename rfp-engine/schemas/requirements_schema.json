@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Requirements Matrix",
+  "type": "object",
+  "properties": {
+    "requirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {"type":"string"},
+          "type": {"type":"string"},
+          "severity": {"type":"string","enum":["Critical","High","Medium","Low"]},
+          "text": {"type":"string"},
+          "source_page": {"type":"integer"},
+          "confidence": {"type":"number"}
+        },
+        "required": ["id","type","severity","text","source_page"]
+      }
+    }
+  },
+  "required": ["requirements"]
+}

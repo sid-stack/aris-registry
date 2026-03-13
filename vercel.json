@@ -16,11 +16,11 @@
     },
     {
       "source": "/docs",
-      "destination": "https://arislabs.mintlify.dev/docs"
+      "destination": "https://docs.bidsmith.pro"
     },
     {
       "source": "/docs/:match*",
-      "destination": "https://arislabs.mintlify.dev/docs/:match*"
+      "destination": "https://docs.bidsmith.pro/:match*"
     },
     {
       "source": "/(.*)",
