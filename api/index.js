@@ -1243,6 +1243,116 @@ app.post("/api/detect", upload.single("requirements"), async (req, res) => {
   });
 });
 
+// ─── /api/validate (Phase 4: Live Compliance Validator) ───────────────────
+app.post("/api/validate", upload.fields([
+  { name: "requirements", maxCount: 1 },
+  { name: "capability", maxCount: 1 }
+]), async (req, res) => {
+  let requirementsData = null;
+  let capabilityText = "";
+
+  // Handle Requirements
+  if (req.files?.requirements?.[0]) {
+    try { requirementsData = JSON.parse(req.files.requirements[0].buffer.toString()); } 
+    catch { return res.status(400).json({ error: "Invalid JSON for requirements" }); }
+  } else if (req.body?.requirements) {
+    try { requirementsData = typeof req.body.requirements === "string" ? JSON.parse(req.body.requirements) : req.body.requirements; } 
+    catch { return res.status(400).json({ error: "Invalid requirements JSON in body" }); }
+  } else {
+    return res.status(400).json({ error: "Phase 4 requires Phase 1 requirements as input" });
+  }
+
+  // Handle Capability Statement
+  if (req.files?.capability?.[0]) {
+    capabilityText = req.files.capability[0].buffer.toString();
+  } else if (req.body?.capability) {
+    capabilityText = req.body.capability;
+  } else {
+    return res.status(400).json({ error: "Phase 4 requires a capability statement (txt or string)" });
+  }
+
+  const reqsPath = join(os.tmpdir(), `val_reqs_${randomUUID()}.json`);
+  const capPath = join(os.tmpdir(), `val_cap_${randomUUID()}.txt`);
+  const outPath = join(os.tmpdir(), `val_out_${randomUUID()}.json`);
+  
+  writeFileSync(reqsPath, JSON.stringify(requirementsData));
+  writeFileSync(capPath, capabilityText);
+
+  const pythonScript = join(__dirname, "../src/phase4/phase4_compliance_validator.py");
+  const pythonProcess = spawn("python3", [pythonScript, reqsPath, capPath, "-o", outPath]);
+
+  let resultData = "";
+  let errorData = "";
+  pythonProcess.stdout.on("data", (d) => { resultData += d.toString(); });
+  pythonProcess.stderr.on("data", (d) => { errorData += d.toString(); });
+
+  pythonProcess.on("close", (code) => {
+    try {
+      if (existsSync(reqsPath)) unlinkSync(reqsPath);
+      if (existsSync(capPath)) unlinkSync(capPath);
+      let jsonStr = "{}";
+      if (existsSync(outPath)) {
+        jsonStr = readFileSync(outPath, "utf8");
+        unlinkSync(outPath);
+      } else {
+        const idx = resultData.indexOf("{");
+        if (idx !== -1) jsonStr = resultData.substring(idx);
+        else throw new Error("No JSON output from Phase 4.");
+      }
+      res.json({ success: true, phase: 4, data: JSON.parse(jsonStr) });
+    } catch (err) {
+      console.error("[/api/validate] Error:", err.message, "Stderr:", errorData);
+      res.status(500).json({ error: "Phase 4 validation failed", details: err.message });
+    }
+  });
+});
+
+// ─── /api/compete (Phase 5: Competitive Intelligence) ─────────────────────
+app.post("/api/compete", upload.single("requirements"), async (req, res) => {
+  let requirementsData = null;
+
+  if (req.file) {
+    try { requirementsData = JSON.parse(req.file.buffer.toString()); } 
+    catch { return res.status(400).json({ error: "Invalid JSON file for Phase 5" }); }
+  } else if (req.body?.requirements) {
+    try { requirementsData = typeof req.body.requirements === "string" ? JSON.parse(req.body.requirements) : req.body.requirements; } 
+    catch { return res.status(400).json({ error: "Invalid requirements JSON in body" }); }
+  } else {
+    return res.status(400).json({ error: "Phase 5 requires Phase 1 requirements as input" });
+  }
+
+  const reqsPath = join(os.tmpdir(), `comp_in_${randomUUID()}.json`);
+  const outPath = join(os.tmpdir(), `comp_out_${randomUUID()}.json`);
+  writeFileSync(reqsPath, JSON.stringify(requirementsData));
+
+  const pythonScript = join(__dirname, "../src/phase5/phase5_competitive_intelligence.py");
+  const pythonProcess = spawn("python3", [pythonScript, reqsPath, "-o", outPath]);
+
+  let resultData = "";
+  let errorData = "";
+  pythonProcess.stdout.on("data", (d) => { resultData += d.toString(); });
+  pythonProcess.stderr.on("data", (d) => { errorData += d.toString(); });
+
+  pythonProcess.on("close", (code) => {
+    try {
+      if (existsSync(reqsPath)) unlinkSync(reqsPath);
+      let jsonStr = "{}";
+      if (existsSync(outPath)) {
+        jsonStr = readFileSync(outPath, "utf8");
+        unlinkSync(outPath);
+      } else {
+        const idx = resultData.indexOf("{");
+        if (idx !== -1) jsonStr = resultData.substring(idx);
+        else throw new Error("No JSON output from Phase 5.");
+      }
+      res.json({ success: true, phase: 5, data: JSON.parse(jsonStr) });
+    } catch (err) {
+      console.error("[/api/compete] Error:", err.message, "Stderr:", errorData);
+      res.status(500).json({ error: "Phase 5 competitive analysis failed", details: err.message });
+    }
+  });
+});
+
 // ─── /api/audit ───────────────────────────────────────────────────────────────
 app.post("/api/audit", upload.single("file"), async (req, res) => {
   const client = makeClient();
