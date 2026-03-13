@@ -516,7 +516,7 @@ export default function Landing({ onEnterApp, onViewSample }) {
                 <a href="/privacy" style={styles.footerLink}>Privacy Policy</a>
                 <a href="/terms" style={styles.footerLink}>Terms of Service</a>
                 <a href="/cookies" style={styles.footerLink}>Cookie Policy</a>
-                <a href="/docs" target="_blank" rel="noopener noreferrer" style={styles.footerLink}>Developer Docs</a>
+                <a href="https://docs.bidsmith.pro" target="_blank" rel="noopener noreferrer" style={styles.footerLink}>Developer Docs</a>
               </div>
               <div>
                 <p style={styles.footerHeading}>Template Library</p>
