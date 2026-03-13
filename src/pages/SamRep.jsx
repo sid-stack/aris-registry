@@ -50,8 +50,9 @@ const SamRep = () => {
     <div
       id="dashboard-content"
       data-theme={theme}
-      style={{ backgroundColor: 'var(--background)', color: 'var(--text-primary)', minHeight: '100vh' }}
+      style={{ backgroundColor: '#000000', color: '#e4e4e7', minHeight: '100vh', width: '100%' }}
     >
+      <div className="samrep-container">
       <NavBar theme={theme} onToggleTheme={toggleTheme} />
 
       {/* ── Masthead ── */}
@@ -129,6 +130,7 @@ const SamRep = () => {
           </span>
         </div>
       </main>
+      </div>
     </div>
   );
 };
