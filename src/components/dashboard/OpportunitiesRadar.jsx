@@ -35,26 +35,28 @@ const OpportunitiesRadar = () => {
                     Live SAM.gov Feed
                 </span>
             </div>
-            <table style={tableStyles}>
-                <thead>
-                    <tr>
-                        <th style={thStyles}>Agency</th>
-                        <th style={thStyles}>Opportunity</th>
-                        <th style={thStyles}>Estimated Value</th>
-                        <th style={thStyles}>Deadline</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {opportunities.map((item, index) => (
-                        <tr key={index}>
-                            <td style={tdStyles}>{item.agency}</td>
-                            <td style={tdStyles}>{item.opportunity}</td>
-                            <td style={tdStyles}>{item.value}</td>
-                            <td style={tdStyles}>{item.deadline}</td>
+            <div style={{ overflowX: 'auto', borderRadius: '4px' }}>
+                <table style={tableStyles}>
+                    <thead>
+                        <tr>
+                            <th style={thStyles}>Agency</th>
+                            <th style={thStyles}>Opportunity</th>
+                            <th style={thStyles}>Estimated Value</th>
+                            <th style={thStyles}>Deadline</th>
                         </tr>
-                    ))}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        {opportunities.map((item, index) => (
+                            <tr key={index}>
+                                <td style={tdStyles}>{item.agency}</td>
+                                <td style={tdStyles}>{item.opportunity}</td>
+                                <td style={tdStyles}>{item.value}</td>
+                                <td style={tdStyles}>{item.deadline}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
         </div>
     );
 };

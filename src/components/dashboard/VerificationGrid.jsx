@@ -27,8 +27,8 @@ const VerificationGrid = () => (
 
     <div style={{
       display: 'grid',
-      gridTemplateColumns: 'repeat(2, 1fr)',
-      gap: '10px',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))',
+      gap: '12px',
     }}>
       {pillars.map(({ label, value, status, note }) => {
         const s = statusColors[status];
@@ -39,13 +39,13 @@ const VerificationGrid = () => (
             border: `1px solid ${s.border}`,
             borderRadius: '5px',
           }}>
-            <div style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.13em', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '4px' }}>
+            <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.13em', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '6px' }}>
               {label}
             </div>
-            <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>{value}</div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>{note}</span>
-              <span style={{ fontSize: '9px', fontWeight: 700, color: s.dot, letterSpacing: '0.08em' }}>{s.label}</span>
+            <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>{value}</div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto' }}>
+              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{note}</span>
+              <span style={{ fontSize: '11px', fontWeight: 700, color: s.dot, letterSpacing: '0.08em' }}>{s.label}</span>
             </div>
           </div>
         );

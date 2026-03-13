@@ -2,6 +2,83 @@ import { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
+const riskIcon = l => ({ High: "❌", Medium: "⚠️", Low: "✅", "Review Required": "🔍" }[l] || "–");
+const riskColor = l => ({ High: "#ff5f5f", Medium: "#f5a623", Low: "#2dd4a0", "Review Required": "#4a7cff" }[l] || "#888");
+
+const MobileComplianceCard = ({ req }) => {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div style={{
+      background: "#09090b",
+      border: "1px solid #27272a",
+      borderRadius: "8px",
+      padding: "16px",
+      marginBottom: "12px",
+      display: "flex",
+      flexDirection: "column",
+      gap: "12px"
+    }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <span style={{ fontSize: "16px" }}>{riskIcon(req.risk_level)}</span>
+          <span style={{ fontFamily: "monospace", fontSize: "13px", color: "#a1a1aa", fontWeight: 600 }}>
+            {req.requirement_id || "REQ-UNK"}
+          </span>
+        </div>
+        
+        <div style={{ 
+          fontSize: "10px", 
+          fontWeight: 700, 
+          color: req.is_disqualifying_if_missing ? "#ef4444" : "#52525b",
+          border: `1px solid ${req.is_disqualifying_if_missing ? '#451a1a' : '#27272a'}`,
+          background: req.is_disqualifying_if_missing ? "rgba(239, 68, 68, 0.1)" : "transparent",
+          padding: "4px 8px",
+          borderRadius: "4px",
+          textTransform: "uppercase",
+          letterSpacing: "0.5px"
+        }}>
+          Disqualifying: {req.is_disqualifying_if_missing ? "YES" : "NO"}
+        </div>
+      </div>
+
+      <div style={{ 
+        fontSize: "15px", 
+        color: "#e4e4e7", 
+        lineHeight: "1.6",
+        display: expanded ? "block" : "-webkit-box",
+        WebkitLineClamp: expanded ? "unset" : 2,
+        WebkitBoxOrient: "vertical",
+        overflow: "hidden"
+      }}>
+        {req.text}
+      </div>
+
+      <button 
+        onClick={() => setExpanded(!expanded)}
+        style={{
+          background: "transparent",
+          border: "none",
+          borderTop: "1px solid #27272a",
+          color: "#4a7cff",
+          fontSize: "13px",
+          fontWeight: "600",
+          padding: "16px 0 4px 0",
+          marginTop: "4px",
+          textAlign: "center",
+          textTransform: "uppercase",
+          letterSpacing: "1px",
+          cursor: "pointer",
+          minHeight: "44px",
+          width: "100%"
+        }}
+      >
+        {expanded ? "Hide Details ↑" : "View Full Requirement ↓"}
+      </button>
+    </div>
+  );
+};
+
 export default function Proposal({ proposal, onReset }) {
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' && window.innerWidth < 768);
 
@@ -56,8 +133,6 @@ export default function Proposal({ proposal, onReset }) {
   // Otherwise, render the old structured format (keep existing code)
   const { document_metadata: meta, submission_details: sub, evaluation_summary: evalSum, compliance_summary: comp, requirements, gaps, far_clauses_detected, confidence_metrics } = proposal;
   const scoreColor = comp.bid_score >= 75 ? "#2dd4a0" : comp.bid_score >= 50 ? "#f5a623" : "#ff5f5f";
-  const riskIcon = l => ({ High: "❌", Medium: "⚠️", Low: "✅", "Review Required": "🔍" }[l] || "–");
-  const riskColor = l => ({ High: "#ff5f5f", Medium: "#f5a623", Low: "#2dd4a0", "Review Required": "#4a7cff" }[l] || "#888");
   const th = { padding: "9px 12px", textAlign: "left", border: "1px solid #1e2330", color: "#6b7585", fontWeight: 500, fontSize: 12, whiteSpace: "nowrap" };
   const td = { padding: "9px 12px", border: "1px solid #1e2330", fontSize: 13, lineHeight: 1.5, verticalAlign: "top" };
   function Card({ label, value, color = "#d4d8e2", note }) {
@@ -69,6 +144,78 @@ export default function Proposal({ proposal, onReset }) {
       </div>
     );
   }
+
+  function MobileComplianceCard({ req }) {
+    const [expanded, setExpanded] = useState(false);
+    return (
+      <div style={{
+        background: "#09090b",
+        border: "1px solid #27272a",
+        borderRadius: "8px",
+        padding: "16px",
+        marginBottom: "12px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "12px"
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span style={{ fontSize: "16px" }}>{riskIcon(req.risk_level)}</span>
+            <span style={{ fontFamily: "monospace", fontSize: "13px", color: "#a1a1aa", fontWeight: 600 }}>
+              {req.requirement_id || "REQ-UNK"}
+            </span>
+          </div>
+          <div style={{ 
+            fontSize: "10px", 
+            fontWeight: 700, 
+            color: req.is_disqualifying_if_missing ? "#ef4444" : "#52525b",
+            border: `1px solid ${req.is_disqualifying_if_missing ? '#451a1a' : '#27272a'}`,
+            background: req.is_disqualifying_if_missing ? "rgba(239, 68, 68, 0.1)" : "transparent",
+            padding: "4px 8px",
+            borderRadius: "4px",
+            textTransform: "uppercase",
+            letterSpacing: "0.5px"
+          }}>
+            Disqualifying: {req.is_disqualifying_if_missing ? "YES" : "NO"}
+          </div>
+        </div>
+        <div style={{ 
+          fontSize: "15px", 
+          color: "#e4e4e7", 
+          lineHeight: "1.6",
+          wordBreak: "break-word",
+          display: expanded ? "block" : "-webkit-box",
+          WebkitLineClamp: expanded ? "unset" : 2,
+          WebkitBoxOrient: "vertical",
+          overflow: "hidden"
+        }}>
+          {req.text}
+        </div>
+        <button 
+          onClick={() => setExpanded(!expanded)}
+          style={{
+            background: "transparent",
+            border: "none",
+            borderTop: "1px solid #27272a",
+            color: "#4a7cff",
+            fontSize: "13px",
+            fontWeight: "600",
+            padding: "16px 0 4px 0",
+            marginTop: "4px",
+            textAlign: "center",
+            textTransform: "uppercase",
+            letterSpacing: "1px",
+            cursor: "pointer",
+            minHeight: "44px",
+            width: "100%"
+          }}
+        >
+          {expanded ? "Hide Details ↑" : "View Full Requirement ↓"}
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div style={{ maxWidth: 1060, margin: "0 auto", padding: isMobile ? "20px 16px 40px" : "32px 24px 60px", fontFamily: "sans-serif", color: "#d4d8e2", background: "#0d0f14", minHeight: "100vh" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
@@ -101,7 +248,7 @@ export default function Proposal({ proposal, onReset }) {
               Detected {proposal.conversion_metrics?.compliance_risks || comp.high_risk_count} compliance risks and {proposal.conversion_metrics?.disqualification_flags || 0} disqualification traps.
             </div>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, flex: "0 0 auto" }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 16, flex: "0 0 auto", width: isMobile ? "100%" : "auto" }}>
             <div style={{ textAlign: "center", padding: "0 16px", borderRight: "1px solid #252932" }}>
               <div style={{ fontSize: 24, fontWeight: 700, color: "#fff" }}>{comp.bid_score}%</div>
               <div style={{ fontSize: 10, color: "#6b7585", textTransform: "uppercase", marginTop: 4 }}>Bid Score</div>
@@ -145,25 +292,33 @@ export default function Proposal({ proposal, onReset }) {
           <div style={{ fontSize: 14, color: "#4a7cff", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>Compliance Matrix</div>
           <span style={{ fontSize: 11, color: "#6b7585" }}>{requirements.length} Requirements Detected</span>
         </div>
-        <div style={{ overflowX: "auto", borderRadius: 8, border: "1px solid #1e2330" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead><tr style={{ background: "#13161e" }}>{["", "ID", "Requirement", "Section", "Category", "Type", "Disq.", "Risk"].map((h, i) => <th key={i} style={th}>{h}</th>)}</tr></thead>
-            <tbody>
-              {requirements.map((r, i) => (
-                <tr key={i} style={{ background: i % 2 === 0 ? "#0d0f14" : "#0f1218" }}>
-                  <td style={{ ...td, textAlign: "center", fontSize: 15 }}>{riskIcon(r.risk_level)}</td>
-                  <td style={{ ...td, fontFamily: "monospace", fontSize: 11, color: "#6b7585", whiteSpace: "nowrap" }}>{r.requirement_id}</td>
-                  <td style={{ ...td, maxWidth: 360 }}>{r.text}</td>
-                  <td style={{ ...td, color: "#6b7585", fontSize: 12, whiteSpace: "nowrap" }}>{r.section || "—"}</td>
-                  <td style={{ ...td, fontSize: 12, color: "#8899bb", whiteSpace: "nowrap" }}>{r.category}</td>
-                  <td style={{ ...td, fontSize: 12, whiteSpace: "nowrap" }}>{r.type}</td>
-                  <td style={{ ...td, textAlign: "center", fontWeight: 700, fontSize: 12, color: r.is_disqualifying_if_missing ? "#ff5f5f" : "#3a4150" }}>{r.is_disqualifying_if_missing ? "YES" : "No"}</td>
-                  <td style={{ ...td, fontWeight: 600, color: riskColor(r.risk_level), whiteSpace: "nowrap" }}>{r.risk_level}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        {isMobile ? (
+          <div className="mobile-card-stack">
+            {requirements.map((r, i) => (
+              <MobileComplianceCard key={i} req={r} />
+            ))}
+          </div>
+        ) : (
+          <div style={{ overflowX: "auto", borderRadius: 8, border: "1px solid #1e2330" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead><tr style={{ background: "#13161e" }}>{["", "ID", "Requirement", "Section", "Category", "Type", "Disq.", "Risk"].map((h, i) => <th key={i} style={th}>{h}</th>)}</tr></thead>
+              <tbody>
+                {requirements.map((r, i) => (
+                  <tr key={i} style={{ background: i % 2 === 0 ? "#0d0f14" : "#0f1218" }}>
+                    <td style={{ ...td, textAlign: "center", fontSize: 15 }}>{riskIcon(r.risk_level)}</td>
+                    <td style={{ ...td, fontFamily: "monospace", fontSize: 11, color: "#6b7585", whiteSpace: "nowrap" }}>{r.requirement_id}</td>
+                    <td style={{ ...td, maxWidth: 360, wordBreak: "break-word" }}>{r.text}</td>
+                    <td style={{ ...td, color: "#6b7585", fontSize: 12, whiteSpace: "nowrap" }}>{r.section || "—"}</td>
+                    <td style={{ ...td, fontSize: 12, color: "#8899bb", whiteSpace: "nowrap" }}>{r.category}</td>
+                    <td style={{ ...td, fontSize: 12, whiteSpace: "nowrap" }}>{r.type}</td>
+                    <td style={{ ...td, textAlign: "center", fontWeight: 700, fontSize: 12, color: r.is_disqualifying_if_missing ? "#ff5f5f" : "#3a4150" }}>{r.is_disqualifying_if_missing ? "YES" : "No"}</td>
+                    <td style={{ ...td, fontWeight: 600, color: riskColor(r.risk_level), whiteSpace: "nowrap" }}>{r.risk_level}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
       {evalSum.evaluation_factors?.length > 0 && (
         <div style={{ marginBottom: 28 }}>

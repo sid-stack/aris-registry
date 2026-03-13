@@ -41,16 +41,17 @@ export default function PricingCard({
 
 const styles = {
   card: {
-    background: "#ffffff",
-    border: "1px solid #e2e8f0",
+    background: "rgba(255,255,255,0.03)",
+    border: "1px solid rgba(255,255,255,0.1)",
     borderRadius: 14,
     padding: 24,
-    boxShadow: "0 8px 18px rgba(15,23,42,0.03)",
+    boxShadow: "0 8px 30px rgba(0,0,0,0.2)",
     textAlign: "center",
+    backdropFilter: "blur(12px)",
   },
-  title: { margin: 0, fontSize: "1.2rem" },
-  price: { margin: "10px 0 12px", fontSize: "2rem", color: "#4f46e5", fontWeight: 700 },
-  description: { margin: 0, color: "#64748b", fontSize: "0.95rem", lineHeight: 1.5 },
+  title: { margin: 0, fontSize: "1.2rem", color: "#f4f4f5" },
+  price: { margin: "10px 0 12px", fontSize: "2rem", color: "#818cf8", fontWeight: 700 },
+  description: { margin: 0, color: "#a1a1aa", fontSize: "0.95rem", lineHeight: 1.5 },
   button: {
     marginTop: 16,
     display: "inline-block",

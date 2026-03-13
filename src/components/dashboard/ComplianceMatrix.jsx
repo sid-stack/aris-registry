@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { TableProperties } from 'lucide-react';
 import '../../pages/SamRep.css';
 
@@ -26,8 +26,108 @@ const statusConfig = {
 
 const riskColor = { HIGH: 'var(--risk-high)', MEDIUM: 'var(--risk-medium)', LOW: 'var(--success)' };
 
-const ComplianceMatrix = () => (
-  <div className="dashboard-card animate-in" style={{ animationDelay: '0.1s' }}>
+const MobileComplianceCard = ({ req }) => {
+  const [expanded, setExpanded] = useState(false);
+  const s = statusConfig[req.status];
+
+  return (
+    <div style={{
+      background: "#09090b",
+      border: "1px solid #27272a",
+      borderRadius: "8px",
+      padding: "16px",
+      marginBottom: "12px",
+      display: "flex",
+      flexDirection: "column",
+      gap: "12px"
+    }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <span style={{ fontFamily: "monospace", fontSize: "14px", color: "#a1a1aa", fontWeight: 600 }}>
+            {req.id}
+          </span>
+        </div>
+        
+        <div style={{ 
+          fontSize: "10px", 
+          fontWeight: 700, 
+          color: s.color,
+          border: `1px solid ${s.color}`,
+          background: s.bg,
+          padding: "4px 8px",
+          borderRadius: "4px",
+          textTransform: "uppercase",
+          letterSpacing: "0.5px"
+        }}>
+          {s.label}
+        </div>
+      </div>
+
+      <div style={{ 
+        fontSize: "15px", 
+        color: "#e4e4e7", 
+        lineHeight: "1.6",
+        wordBreak: "break-word",
+        display: expanded ? "block" : "-webkit-box",
+        WebkitLineClamp: expanded ? "unset" : 2,
+        WebkitBoxOrient: "vertical",
+        overflow: "hidden"
+      }}>
+        {req.requirement}
+      </div>
+
+      <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", fontSize: "12px", color: "#a1a1aa" }}>
+        <span><strong>Sec:</strong> {req.section}</span>
+        <span>•</span>
+        <span><strong>Cat:</strong> {req.category}</span>
+        <span>•</span>
+        <span><strong>FAR:</strong> {req.farRef}</span>
+        <span>•</span>
+        <span style={{ color: riskColor[req.risk] }}><strong>Risk:</strong> {req.risk}</span>
+      </div>
+
+      {expanded && (
+        <div style={{ marginTop: "8px", paddingTop: "8px", borderTop: "1px solid #27272a", fontSize: "13px", color: "#d4d4d8" }}>
+          <strong>Action: </strong>{req.action}
+        </div>
+      )}
+
+      <button 
+        onClick={() => setExpanded(!expanded)}
+        style={{
+          background: "transparent",
+          border: "none",
+          borderTop: "1px solid #27272a",
+          color: "#4a7cff",
+          fontSize: "13px",
+          fontWeight: "600",
+          padding: "16px 0 4px 0",
+          marginTop: "4px",
+          textAlign: "center",
+          textTransform: "uppercase",
+          letterSpacing: "1px",
+          cursor: "pointer",
+          minHeight: "44px",
+          width: "100%"
+        }}
+      >
+        {expanded ? "Hide Details ↑" : "View Full Requirement ↓"}
+      </button>
+    </div>
+  );
+};
+
+const ComplianceMatrix = () => {
+  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' && window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  return (
+    <div className="dashboard-card animate-in" style={{ animationDelay: '0.1s' }}>
     <div className="card-header">
       <TableProperties size={14} color="var(--accent)" />
       <span className="card-label">Compliance Matrix</span>
@@ -36,49 +136,58 @@ const ComplianceMatrix = () => (
       </span>
     </div>
 
-    <div className="compliance-table-wrap">
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', minWidth: '700px' }}>
-        <thead>
-          <tr style={{ borderBottom: '1px solid var(--border)' }}>
-            {['ID', 'Requirement', 'Section', 'Category', 'FAR Reference', 'Status', 'Risk', 'Action'].map(h => (
-              <th key={h} style={{
-                padding: '8px 10px', textAlign: 'left',
-                fontSize: '9px', fontWeight: 700, letterSpacing: '0.12em',
-                color: 'var(--text-secondary)', textTransform: 'uppercase', whiteSpace: 'nowrap',
-              }}>{h}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {matrix.map(({ id, requirement, section, category, farRef, status, risk, action }, i) => {
-            const s = statusConfig[status];
-            return (
-              <tr key={id} style={{
-                borderBottom: '1px solid rgba(31,41,55,0.6)',
-                background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)',
-              }}
-                onMouseEnter={e => e.currentTarget.style.background = 'rgba(59,130,246,0.04)'}
-                onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)'}
-              >
-                <td style={{ padding: '10px', color: 'var(--text-secondary)', fontFamily: 'monospace', fontSize: '10px', whiteSpace: 'nowrap' }}>{id}</td>
-                <td style={{ padding: '10px', color: 'var(--text-primary)', fontWeight: 500, minWidth: '160px' }}>{requirement}</td>
-                <td style={{ padding: '10px', color: 'var(--text-secondary)', whiteSpace: 'nowrap', fontFamily: 'monospace', fontSize: '10px' }}>{section}</td>
-                <td style={{ padding: '10px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{category}</td>
-                <td style={{ padding: '10px', color: 'var(--accent)', whiteSpace: 'nowrap', fontFamily: 'monospace', fontSize: '10px' }}>{farRef}</td>
-                <td style={{ padding: '10px', whiteSpace: 'nowrap' }}>
-                  <span style={{ fontSize: '10px', fontWeight: 600, padding: '3px 8px', borderRadius: '3px', background: s.bg, color: s.color }}>{s.label}</span>
-                </td>
-                <td style={{ padding: '10px', whiteSpace: 'nowrap' }}>
-                  <span style={{ fontSize: '10px', fontWeight: 700, color: riskColor[risk] }}>{risk}</span>
-                </td>
-                <td style={{ padding: '10px', color: 'var(--text-secondary)', fontSize: '11px', minWidth: '200px', lineHeight: 1.4 }}>{action}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+    {isMobile ? (
+      <div className="compliance-mobile-stack" style={{ marginTop: '16px' }}>
+        {matrix.map((req, i) => (
+          <MobileComplianceCard key={req.id} req={req} />
+        ))}
+      </div>
+    ) : (
+      <div className="compliance-table-wrap">
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', minWidth: '700px' }}>
+          <thead>
+            <tr style={{ borderBottom: '1px solid var(--border)' }}>
+              {['ID', 'Requirement', 'Section', 'Category', 'FAR Reference', 'Status', 'Risk', 'Action'].map(h => (
+                <th key={h} style={{
+                  padding: '8px 10px', textAlign: 'left',
+                  fontSize: '9px', fontWeight: 700, letterSpacing: '0.12em',
+                  color: 'var(--text-secondary)', textTransform: 'uppercase', whiteSpace: 'nowrap',
+                }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {matrix.map(({ id, requirement, section, category, farRef, status, risk, action }, i) => {
+              const s = statusConfig[status];
+              return (
+                <tr key={id} style={{
+                  borderBottom: '1px solid rgba(31,41,55,0.6)',
+                  background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)',
+                }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(59,130,246,0.04)'}
+                  onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)'}
+                >
+                  <td style={{ padding: '10px', color: 'var(--text-secondary)', fontFamily: 'monospace', fontSize: '10px', whiteSpace: 'nowrap' }}>{id}</td>
+                  <td style={{ padding: '10px', color: 'var(--text-primary)', fontWeight: 500, minWidth: '160px' }}>{requirement}</td>
+                  <td style={{ padding: '10px', color: 'var(--text-secondary)', whiteSpace: 'nowrap', fontFamily: 'monospace', fontSize: '10px' }}>{section}</td>
+                  <td style={{ padding: '10px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{category}</td>
+                  <td style={{ padding: '10px', color: 'var(--accent)', whiteSpace: 'nowrap', fontFamily: 'monospace', fontSize: '10px' }}>{farRef}</td>
+                  <td style={{ padding: '10px', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontSize: '10px', fontWeight: 600, padding: '3px 8px', borderRadius: '3px', background: s.bg, color: s.color }}>{s.label}</span>
+                  </td>
+                  <td style={{ padding: '10px', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontSize: '10px', fontWeight: 700, color: riskColor[risk] }}>{risk}</span>
+                  </td>
+                  <td style={{ padding: '10px', color: 'var(--text-secondary)', fontSize: '11px', minWidth: '200px', lineHeight: 1.4 }}>{action}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    )}
   </div>
-);
+  );
+};
 
 export default ComplianceMatrix;
