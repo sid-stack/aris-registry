@@ -155,10 +155,29 @@ export default function Landing({ onEnterApp, onViewSample }) {
     openCheckout("landing_hero", GTM_PRICING_PLANS[0]);
   };
 
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordInput, setPasswordInput] = useState('');
+  const [passwordError, setPasswordError] = useState(false);
+  const DEMO_PASSWORD = 'aris369';
+
   const handleWorkspaceOpen = () => {
     trackEvent("open_workspace_click", { source: "landing_hero" });
-    onEnterApp();
+    setShowPasswordModal(true);
+    setPasswordInput('');
+    setPasswordError(false);
   };
+
+  const handlePasswordSubmit = (e) => {
+    e?.preventDefault();
+    if (passwordInput === DEMO_PASSWORD) {
+      setShowPasswordModal(false);
+      onEnterApp();
+    } else {
+      setPasswordError(true);
+      setPasswordInput('');
+    }
+  };
+
 
   const handlePilotCta = () => {
     trackKPI("pilot_cta", { source: "landing_pricing_banner" });
@@ -562,6 +581,87 @@ export default function Landing({ onEnterApp, onViewSample }) {
             </div>
           </footer>
         </>
+      )}
+
+      {/* ── Password Gate Modal ── */}
+      {showPasswordModal && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9999,
+          background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '20px',
+        }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowPasswordModal(false); }}
+        >
+          <div style={{
+            background: '#09090b', border: '1px solid #27272a',
+            borderRadius: '20px', padding: '36px 32px', width: '100%', maxWidth: '380px',
+            boxShadow: '0 32px 80px rgba(0,0,0,0.8)',
+            animation: 'fadeInScale 0.2s ease',
+          }}>
+            <style>{`@keyframes fadeInScale { from { opacity:0; transform:scale(0.95); } to { opacity:1; transform:scale(1); } }`}</style>
+            <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+              <div style={{
+                width: '48px', height: '48px', borderRadius: '12px',
+                background: 'linear-gradient(135deg, #1d4ed8, #7c3aed)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                margin: '0 auto 14px', fontSize: '22px',
+              }}>⚡</div>
+              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#f4f4f5' }}>
+                ARIS Analyst Workspace
+              </h2>
+              <p style={{ margin: '8px 0 0', fontSize: '12px', color: '#71717a' }}>
+                Enter your access code to continue
+              </p>
+            </div>
+            <form onSubmit={handlePasswordSubmit}>
+              <input
+                autoFocus
+                type="password"
+                value={passwordInput}
+                onChange={e => { setPasswordInput(e.target.value); setPasswordError(false); }}
+                placeholder="Access code"
+                style={{
+                  width: '100%', boxSizing: 'border-box',
+                  background: '#18181b', border: `1px solid ${passwordError ? '#ef4444' : '#27272a'}`,
+                  borderRadius: '10px', color: '#e4e4e7',
+                  padding: '12px 14px', fontSize: '14px',
+                  outline: 'none', fontFamily: 'monospace', letterSpacing: '0.2em',
+                  transition: 'border-color 0.15s',
+                }}
+              />
+              {passwordError && (
+                <p style={{ margin: '8px 0 0', fontSize: '12px', color: '#ef4444', textAlign: 'center' }}>
+                  ✕ Incorrect access code. Try again.
+                </p>
+              )}
+              <button
+                type="submit"
+                style={{
+                  marginTop: '16px', width: '100%', padding: '12px',
+                  background: 'linear-gradient(135deg, #1d4ed8, #7c3aed)',
+                  color: '#fff', border: 'none', borderRadius: '10px',
+                  fontSize: '14px', fontWeight: 700, cursor: 'pointer',
+                  letterSpacing: '0.04em',
+                }}
+              >
+                Enter Workspace →
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowPasswordModal(false)}
+                style={{
+                  marginTop: '10px', width: '100%', padding: '10px',
+                  background: 'transparent', color: '#71717a',
+                  border: '1px solid #27272a', borderRadius: '10px',
+                  fontSize: '13px', cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -456,10 +456,84 @@ function stripCodeFences(raw = "") {
     .trim();
 }
 
-// ─── Health ───────────────────────────────────────────────────────────────────
 app.get("/api/health", asyncHandler(async (_req, res) => {
   res.json(okResponse({ status: "ok", version: "3.0.0" }));
 }));
+
+// ─── /api/chat (ARIS Intelligence Chat) ──────────────────────────────────────
+app.post("/api/chat", asyncHandler(async (req, res) => {
+  const client = makeClient();
+  if (!client) return res.status(500).json({ error: "OpenRouter not configured. Set OPENROUTER_API_KEY." });
+
+  const userMessage = String(req.body?.message || "").trim();
+  const history = Array.isArray(req.body?.history) ? req.body.history : [];
+
+  if (!userMessage) return res.status(400).json({ error: "Message is required." });
+
+  // Report context injected so the LLM always knows what we're talking about
+  const REPORT_CONTEXT = `
+You are ARIS — the AI Risk Intelligence System built by ARIS Labs.
+You are an expert RFP analyst and GovCon advisor embedded inside the BidSmith Intelligence Platform.
+You are helping a contractor analyze the following federal solicitation:
+
+SOLICITATION: DHA Video Imaging Archive
+AGENCY: Defense Health Agency (DHA)
+SOLICITATION ID: DHANOISS022426
+OVERALL RISK SCORE: 87/100 — HIGH RISK
+BID RECOMMENDATION: CONDITIONAL BID
+CONFIDENCE: 92% | CLAUSES FLAGGED: 14
+
+KEY RISK FLAGS:
+- [BID-KILLER] Authority to Operate (ATO): Must demonstrate ATO at IL4+. RMF inheritance unclear. (FAR N/A, Section M.3)
+- [BID-KILLER] NIST SP 800-171 / SPRS Score: Cybersecurity score must be posted in SPRS before submission. NOT DETECTED.
+- [MEDIUM] Past Performance: Need 3 references over $5M in last 5 years. Only 2 identified.
+- [MEDIUM] PIEE Portal Submission Window: Must register and confirm submission on PIEE.
+- [MEDIUM] PII/PHI Data Handling: No dedicated section in current Technical Volume.
+
+COMPLIANCE MATRIX (12 Requirements):
+- CM-01: SAM.gov Registration — COMPLIANT — LOW
+- CM-02: NIST SP 800-171 / SPRS Score — NON-COMPLIANT — HIGH
+- CM-03: Authority to Operate (ATO) — CONDITIONAL — HIGH
+- CM-04: Small Business Set-Aside — COMPLIANT — LOW
+- CM-05: Past Performance (3 refs $5M+) — CONDITIONAL — MEDIUM
+- CM-06: PII/PHI Data Handling — CONDITIONAL — HIGH
+- CM-07: NAICS Code Compliance (518210) — COMPLIANT — LOW
+- CM-08: PIEE Portal Submission — REVIEW REQUIRED — MEDIUM
+- CM-09: Bid Bond Requirements — COMPLIANT — LOW
+- CM-10: Security Clearance (Secret IL4) — CONDITIONAL — MEDIUM
+- CM-11: Subcontracting Plan — REVIEW REQUIRED — MEDIUM
+- CM-12: FAR Clause Compliance — COMPLIANT — LOW
+
+BIDSMITH INTELLIGENCE INDEX:
+- Opportunity Score: 78/100
+- Bid Probability: 63%
+- Est. Win Rate: 31% (without ATO)
+- Technical Alignment: 82
+- Competitive Position: 67
+- Compliance Readiness: 48
+- Past Performance Fit: 74
+
+WIN THEMES: Legacy System Expertise, RMF Compliance Readiness, Proven Healthcare Data Integration.
+
+Rules for your responses:
+- Be concise, direct, and specific — no fluff.
+- Always cite the specific flag, clause, or section when relevant.
+- Use plain language — the user may be a BD professional, not a lawyer.
+- If asked about something outside this report, say: "That's outside the current audit scope. Upload a new RFP to analyze."
+- Never hallucinate compliance claims or regulations.
+- Format key points as short bullet points where appropriate.
+`.trim();
+
+  const messages = [
+    { role: "system", content: REPORT_CONTEXT },
+    ...history.slice(-8), // Keep last 4 exchanges (8 messages) for context window efficiency
+    { role: "user", content: userMessage },
+  ];
+
+  const reply = await llm(client, messages, 512, "analyst", 2, { temperature: 0.3 });
+  res.json({ reply: sanitizeMarkdown(reply) });
+}));
+
 
 app.get("/api/examples", (_req, res) => {
   res.json(TEST_LINKS);
@@ -1069,6 +1143,102 @@ app.post("/api/shred", upload.single("rfp"), async (req, res) => {
     } catch (err) {
       console.error("[/api/shred] Error Parsing Output:", err, "Raw:", resultData, "Stderr:", errorData);
       res.status(500).json({ error: "Extraction failed", details: err.message, status: code });
+    }
+  });
+});
+
+// ─── /api/evaluate (Phase 2: Evaluation Criteria Analysis) ──────────────────
+app.post("/api/evaluate", upload.single("rfp"), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "No RFP file uploaded" });
+
+  const isTxt = req.file.originalname.toLowerCase().endsWith(".txt");
+  const ext = isTxt ? ".txt" : ".pdf";
+  const tempFilePath = join(os.tmpdir(), `eval_${randomUUID()}${ext}`);
+
+  writeFileSync(tempFilePath, req.file.buffer);
+
+  const pythonScript = join(__dirname, "../src/phase2/phase2_evaluation_analyzer.py");
+  const outPath = tempFilePath + ".json";
+  const pythonProcess = spawn("python3", [pythonScript, tempFilePath, "-o", outPath]);
+
+  let resultData = "";
+  let errorData = "";
+  pythonProcess.stdout.on("data", (d) => { resultData += d.toString(); });
+  pythonProcess.stderr.on("data", (d) => { errorData += d.toString(); });
+
+  pythonProcess.on("close", (code) => {
+    try {
+      if (existsSync(tempFilePath)) unlinkSync(tempFilePath);
+      let jsonStr = "{}";
+      if (existsSync(outPath)) {
+        jsonStr = readFileSync(outPath, "utf8");
+        unlinkSync(outPath);
+      } else {
+        const idx = resultData.indexOf("{");
+        if (idx !== -1) jsonStr = resultData.substring(idx);
+        else throw new Error("No JSON output from Phase 2.");
+      }
+      const jsonOutput = JSON.parse(jsonStr);
+      res.json({ success: true, phase: 2, data: jsonOutput });
+    } catch (err) {
+      console.error("[/api/evaluate] Error:", err.message, "Stderr:", errorData);
+      res.status(500).json({ error: "Phase 2 evaluation failed", details: err.message });
+    }
+  });
+});
+
+// ─── /api/detect (Phase 3: Contradiction Detection) ─────────────────────────
+app.post("/api/detect", upload.single("requirements"), async (req, res) => {
+  // Phase 3 takes a Phase 1 JSON output as input — accepts either a JSON body or file
+  let requirementsData = null;
+
+  if (req.file) {
+    try {
+      requirementsData = JSON.parse(req.file.buffer.toString());
+    } catch {
+      return res.status(400).json({ error: "Invalid JSON file for Phase 3" });
+    }
+  } else if (req.body?.requirements) {
+    try {
+      requirementsData = typeof req.body.requirements === "string"
+        ? JSON.parse(req.body.requirements)
+        : req.body.requirements;
+    } catch {
+      return res.status(400).json({ error: "Invalid requirements JSON in body" });
+    }
+  } else {
+    return res.status(400).json({ error: "Phase 3 requires Phase 1 requirements JSON as input" });
+  }
+
+  const tempInputPath = join(os.tmpdir(), `detect_in_${randomUUID()}.json`);
+  const outPath = join(os.tmpdir(), `detect_out_${randomUUID()}.json`);
+  writeFileSync(tempInputPath, JSON.stringify(requirementsData));
+
+  const pythonScript = join(__dirname, "../src/phase3/phase3_contradiction_detector.py");
+  const pythonProcess = spawn("python3", [pythonScript, tempInputPath, "-o", outPath]);
+
+  let resultData = "";
+  let errorData = "";
+  pythonProcess.stdout.on("data", (d) => { resultData += d.toString(); });
+  pythonProcess.stderr.on("data", (d) => { errorData += d.toString(); });
+
+  pythonProcess.on("close", (code) => {
+    try {
+      if (existsSync(tempInputPath)) unlinkSync(tempInputPath);
+      let jsonStr = "{}";
+      if (existsSync(outPath)) {
+        jsonStr = readFileSync(outPath, "utf8");
+        unlinkSync(outPath);
+      } else {
+        const idx = resultData.indexOf("{");
+        if (idx !== -1) jsonStr = resultData.substring(idx);
+        else throw new Error("No JSON output from Phase 3.");
+      }
+      const jsonOutput = JSON.parse(jsonStr);
+      res.json({ success: true, phase: 3, data: jsonOutput });
+    } catch (err) {
+      console.error("[/api/detect] Error:", err.message, "Stderr:", errorData);
+      res.status(500).json({ error: "Phase 3 contradiction detection failed", details: err.message });
     }
   });
 });

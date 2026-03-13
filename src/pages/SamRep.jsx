@@ -20,6 +20,7 @@ import RiskFlags from '../components/dashboard/RiskFlags';
 import VerificationGrid from '../components/dashboard/VerificationGrid';
 import WinThemes from '../components/dashboard/WinThemes';
 import ComplianceMatrix from '../components/dashboard/ComplianceMatrix';
+import ARISChat from '../components/dashboard/ARISChat';
 
 const SectionDivider = ({ number, title }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '8px 0 4px 0' }}>
@@ -126,18 +127,28 @@ const SamRep = ({ onBack }) => {
             &nbsp;·&nbsp; Time saved <strong style={{ color: 'var(--success)' }}>~14 hrs</strong>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
           <input type="file" id="rfp-upload" style={{ display: 'none' }} onChange={handleUpload} accept=".pdf,.txt" />
-          <label htmlFor="rfp-upload" style={{
-            background: 'var(--accent)', color: '#fff', padding: '6px 12px', borderRadius: '4px',
-            fontSize: '11px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px'
-          }}>
-            {loading ? (
-              <svg className="animate-spin h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-            ) : "🚀 RUN SHRED"}
+          <label
+            htmlFor="rfp-upload"
+            style={{
+              background: isDemoMode ? '#7c3aed' : 'var(--accent)',
+              color: '#fff',
+              padding: '7px 14px',
+              borderRadius: '5px',
+              fontSize: '11px',
+              fontWeight: 700,
+              letterSpacing: '0.06em',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              whiteSpace: 'nowrap',
+              border: '1px solid transparent',
+              flexShrink: 0,
+            }}
+          >
+            {loading ? '⏳ SHREDDING...' : isDemoMode ? '🎭 DEMO MODE' : '🚀 RUN SHRED'}
           </label>
           <ExportToolbar />
         </div>
@@ -204,6 +215,7 @@ const SamRep = ({ onBack }) => {
         </div>
       </main>
       </div>
+      <ARISChat />
     </div>
   );
 };
