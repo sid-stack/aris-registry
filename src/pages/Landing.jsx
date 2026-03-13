@@ -158,7 +158,8 @@ export default function Landing({ onEnterApp, onViewSample }) {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
   const [passwordError, setPasswordError] = useState(false);
-  const DEMO_PASSWORD = 'aris369';
+  // Password stored in .env.local (gitignored) as VITE_DEMO_PASSWORD
+  const DEMO_PASSWORD = import.meta.env.VITE_DEMO_PASSWORD;
 
   const handleWorkspaceOpen = () => {
     trackEvent("open_workspace_click", { source: "landing_hero" });
