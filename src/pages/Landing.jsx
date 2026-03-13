@@ -465,7 +465,18 @@ export default function Landing({ onEnterApp, onViewSample }) {
               </div>
               <div style={styles.enterpriseContainer}>
                 <p style={styles.enterpriseSubheading}>Enterprise: Custom Registry & Private Cloud</p>
-                <form onSubmit={handleEnterpriseContact} style={styles.premiumEmailCard}>
+                <form 
+                  onSubmit={handleEnterpriseContact} 
+                  style={{
+                    ...styles.premiumEmailCard,
+                    flexDirection: isMobile ? "column" : "row",
+                    borderRadius: isMobile ? "24px" : "999px",
+                    padding: isMobile ? "12px" : "6px 6px 6px 20px",
+                    gap: isMobile ? "12px" : "0",
+                    width: isMobile ? "100%" : "500px",
+                    maxWidth: "100%"
+                  }}
+                >
                   <input
                     id="enterprise-email"
                     type="email"
@@ -473,9 +484,20 @@ export default function Landing({ onEnterApp, onViewSample }) {
                     value={contactEmail}
                     onChange={(event) => setContactEmail(event.target.value)}
                     placeholder="Work email (e.g. you@company.com)"
-                    style={styles.premiumEmailInput}
+                    style={{
+                      ...styles.premiumEmailInput,
+                      textAlign: isMobile ? "center" : "left",
+                      padding: isMobile ? "14px 0" : "12px 0"
+                    }}
                   />
-                  <button type="submit" style={styles.premiumEmailButton} aria-label="Contact enterprise sales">
+                  <button 
+                    type="submit" 
+                    style={{
+                      ...styles.premiumEmailButton,
+                      width: isMobile ? "100%" : "auto"
+                    }} 
+                    aria-label="Contact enterprise sales"
+                  >
                     Contact Sales
                   </button>
                 </form>
