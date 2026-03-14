@@ -18,13 +18,13 @@ const matrix = [
 ];
 
 const statusConfig = {
-  compliant:    { label: '✅ Compliant',       color: 'var(--success)',     bg: 'rgba(34,197,94,0.1)' },
-  noncompliant: { label: '❌ Non-Compliant',   color: 'var(--risk-high)',   bg: 'rgba(239,68,68,0.1)' },
-  conditional:  { label: '⚠️ Conditional',     color: 'var(--risk-medium)', bg: 'rgba(245,158,11,0.1)' },
-  review:       { label: '🔍 Review Required', color: 'var(--accent)',      bg: 'rgba(59,130,246,0.1)' },
+  compliant:    { label: 'COMPLIANT',       color: '#a1a1aa',     bg: 'transparent' },
+  noncompliant: { label: 'NON-COMPLIANT',   color: '#ef4444',     bg: 'rgba(239,68,68,0.05)' },
+  conditional:  { label: 'CONDITIONAL',     color: '#f59e0b',     bg: 'rgba(245,158,11,0.05)' },
+  review:       { label: 'REVIEW REQ', color: '#52525b',      bg: 'transparent' },
 };
 
-const riskColor = { HIGH: 'var(--risk-high)', MEDIUM: 'var(--risk-medium)', LOW: 'var(--success)' };
+const riskColor = { HIGH: '#ef4444', MEDIUM: '#f59e0b', LOW: '#71717a' };
 
 const MobileComplianceCard = ({ req }) => {
   const [expanded, setExpanded] = useState(false);

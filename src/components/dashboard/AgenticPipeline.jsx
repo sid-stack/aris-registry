@@ -9,32 +9,28 @@ const agents = [
 ];
 
 const AgenticPipeline = () => (
-  <div className="dashboard-card animate-in" style={{ animationDelay: '0.05s' }}>
-    <div className="card-header">
-      <span className="card-label">⚙ Agentic Pipeline</span>
-      <span style={{
-        marginLeft: 'auto', fontSize: '10px', fontWeight: 700,
-        color: 'var(--success)', letterSpacing: '0.08em',
-      }}>ALL SYSTEMS COMPLETE</span>
+  <div className="dashboard-card animate-in" style={{ animationDelay: '0.05s', background: 'transparent', border: 'none', padding: '0' }}>
+    <div className="card-header" style={{ padding: '12px 0' }}>
+      <span className="card-label" style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#71717a' }}>Agentic Pipeline Status</span>
     </div>
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
       {agents.map(({ icon: Icon, label, desc, delay }) => (
         <div key={label} className="animate-in" style={{
           animationDelay: `${delay + 0.1}s`,
           display: 'flex', alignItems: 'center', gap: '12px',
-          padding: '10px 14px',
-          background: 'rgba(34,197,94,0.04)',
-          border: '1px solid rgba(34,197,94,0.12)',
-          borderRadius: '6px',
+          padding: '12px 0',
+          borderBottom: '1px solid #1a1a1a',
         }}>
-          <Icon size={14} color="var(--accent)" style={{ flexShrink: 0 }} />
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>{label}</div>
-            <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>{desc}</div>
+          <div style={{ padding: '8px', background: '#0c0c0e', borderRadius: '4px', border: '1px solid #1a1a1a' }}>
+            <Icon size={12} color="#71717a" style={{ flexShrink: 0 }} />
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <CheckCircle size={13} color="var(--success)" />
-            <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--success)', letterSpacing: '0.08em' }}>DONE</span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '11px', fontWeight: 600, color: '#e4e4e7' }}>{label}</div>
+            <div style={{ fontSize: '10px', color: '#52525b', marginTop: '2px' }}>{desc}</div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '9px', fontWeight: 700, color: '#a1a1aa', letterSpacing: '0.05em' }}>COMPLETE</span>
+            <CheckCircle size={10} color="#a1a1aa" />
           </div>
         </div>
       ))}
