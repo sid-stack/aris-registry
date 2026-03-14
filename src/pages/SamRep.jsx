@@ -92,14 +92,15 @@ const SamRep = ({ onBack }) => {
   });
 
   const [isConsoleOpen, setIsConsoleOpen] = useState(false);
+  const [isMobileChatOpen, setIsMobileChatOpen] = useState(false);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const [logs, setLogs] = useState([
     { timestamp: 'SYSTEM', message: 'MERCURY_2_DIFFUSION_ACTIVE // ZERO_KNOWLEDGE_READY', type: 'sec' },
     { timestamp: '09:21:04', message: 'INITIALIZING_ANALYSIS: DHA_VIDEO_ARCHIVE...', type: 'info' },
-    { timestamp: '09:21:08', message: 'PARSING_PDF: 142 clauses identified.', type: 'info' },
-    { timestamp: '09:21:12', message: 'EXTRACTING_RISKS: 14 critical deviations flagged.', type: 'info' },
-    { timestamp: '09:21:20', message: 'MATRIX_GENERATION_COMPLETE.', type: 'success' },
-    { timestamp: '09:21:25', message: 'AGENT_REVIEW: Evaluating Section M alignment.', type: 'info' },
+    { timestamp: '09:21:05', message: 'PARSING_SOURCE: 142 technical requirements detected.', type: 'info' },
+    { timestamp: '09:21:07', message: 'CROSS_SECTION_ANALYSIS: NIST 800-171 match prioritized.', type: 'info' },
+    { timestamp: '09:21:10', message: 'MATRIX_GENERATION_COMPLETE. LATENCY: 42s', type: 'success' },
+    { timestamp: '09:21:12', message: 'AGENT_REVIEW: Evaluating mission-critical alignment...', type: 'info' },
   ]);
 
   useEffect(() => {
@@ -163,6 +164,7 @@ const SamRep = ({ onBack }) => {
   const handleRequirementSelect = (req) => {
     setSelectedReq(req);
     addLog(`CONTEXT_ATTACHED: ${req.id}`, 'info');
+    if (isMobile) setIsMobileChatOpen(true);
   };
 
   return (
@@ -229,10 +231,10 @@ const SamRep = ({ onBack }) => {
         </div>
       </div>
 
-      <div className="aris-studio-workspace" style={{ flex: 1, position: 'relative' }}>
+      <div className="aris-studio-workspace" style={{ flex: 1, position: 'relative', overflow: isMobile ? 'auto' : 'hidden' }}>
         <PanelGroup direction={isMobile ? "vertical" : "horizontal"}>
-          {/* Pane 1: Requirements Linter (Left) */}
-          <Panel defaultSize={20} minSize={15} collapsible={true}>
+          {/* Pane 1: Requirements Linter (Left) - Hidden or minimized on mobile if needed, but let's keep it for now as a top section */}
+          <Panel defaultSize={isMobile ? 40 : 20} minSize={isMobile ? 30 : 15} collapsible={true}>
             <aside className="studio-pane studio-linter-pane">
               <RequirementsLinter 
                 requirements={requirementsData.requirements} 
@@ -242,12 +244,12 @@ const SamRep = ({ onBack }) => {
             </aside>
           </Panel>
 
-          <PanelResizeHandle className="resize-handle" />
+          {!isMobile && <PanelResizeHandle className="resize-handle" />}
 
           {/* Pane 2: Audit Canvas (Center) */}
-          <Panel defaultSize={55} minSize={30}>
+          <Panel defaultSize={isMobile ? 60 : 55} minSize={isMobile ? 40 : 30}>
             <main className="studio-pane studio-canvas">
-              <div className="canvas-content">
+              <div className="canvas-content" style={{ padding: isMobile ? '12px' : '24px' }}>
                 <SectionHeader title="Solicitation Brief" />
                 <div className="sam-rep-grid grid-overview" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 300px', gap: '16px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -284,24 +286,93 @@ const SamRep = ({ onBack }) => {
                    </div>
                 </div>
               </div>
-              <div style={{ height: '40px' }} /> {/* Guard for console */}
+              {!isMobile && <div style={{ height: '40px' }} />} {/* Guard for console */}
             </main>
-            <ConsolePanel 
-              isOpen={isConsoleOpen} 
-              onToggle={() => setIsConsoleOpen(!isConsoleOpen)} 
-              logs={logs}
-            />
+            {!isMobile && (
+              <ConsolePanel 
+                isOpen={isConsoleOpen} 
+                onToggle={() => setIsConsoleOpen(!isConsoleOpen)} 
+                logs={logs}
+              />
+            )}
           </Panel>
 
-          <PanelResizeHandle className="resize-handle" />
+          {!isMobile && <PanelResizeHandle className="resize-handle" />}
 
-          {/* Pane 3: Studio Workbench (Right) */}
-          <Panel defaultSize={25} minSize={20} collapsible={true}>
-            <aside className="studio-pane studio-workbench-pane">
-               <ARISChat selectedContext={selectedReq} onLog={addLog} onCommand={handleCommand} />
-            </aside>
-          </Panel>
+          {/* Pane 3: Studio Workbench (Right) - Desktop Only */}
+          {!isMobile && (
+            <Panel defaultSize={25} minSize={20} collapsible={true}>
+              <aside className="studio-pane studio-workbench-pane">
+                 <ARISChat selectedContext={selectedReq} onLog={addLog} onCommand={handleCommand} />
+              </aside>
+            </Panel>
+          )}
         </PanelGroup>
+
+        {/* ── Mobile Chat Floating Interface ── */}
+        {isMobile && (
+          <>
+            <button
+              onClick={() => setIsMobileChatOpen(true)}
+              style={{
+                position: 'fixed',
+                bottom: '80px',
+                right: '20px',
+                width: '56px',
+                height: '56px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+                color: 'white',
+                border: 'none',
+                boxShadow: '0 8px 32px rgba(79, 70, 229, 0.4)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 100,
+                cursor: 'pointer'
+              }}
+            >
+              <Zap size={24} fill="white" />
+            </button>
+
+            {isMobileChatOpen && (
+              <div 
+                style={{
+                  position: 'fixed',
+                  inset: 0,
+                  zIndex: 1000,
+                  background: 'rgba(9,9,11,0.98)',
+                  backdropFilter: 'blur(12px)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  animation: 'slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+                }}
+              >
+                <style>{`
+                  @keyframes slideUp {
+                    from { transform: translateY(100%); opacity: 0; }
+                    to { transform: translateY(0); opacity: 1; }
+                  }
+                `}</style>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', borderBottom: '1px solid #1a1a1a' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Zap size={14} color="#4f46e5" fill="#4f46e5" />
+                    <span style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '0.1em', color: '#e4e4e7' }}>INTELLIGENCE WORKBENCH</span>
+                  </div>
+                  <button 
+                    onClick={() => setIsMobileChatOpen(false)}
+                    style={{ background: '#18181b', border: '1px solid #27272a', color: '#a1a1aa', padding: '6px 14px', borderRadius: '6px', fontSize: '11px', fontWeight: 700 }}
+                  >
+                    DISMISS
+                  </button>
+                </div>
+                <div style={{ flex: 1, overflowY: 'auto' }}>
+                  <ARISChat selectedContext={selectedReq} onLog={addLog} onCommand={handleCommand} />
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       <footer style={{ 

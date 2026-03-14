@@ -11,29 +11,29 @@ const IntelligenceIndex = () => (
       {/* Opportunity Score */}
       <div style={{ textAlign: 'center', padding: '16px 8px', background: '#09090b' }}>
         <div style={{ fontSize: '9px', letterSpacing: '0.1em', color: '#52525b', marginBottom: '8px', textTransform: 'uppercase' }}>Opportunity</div>
-        <div style={{ fontSize: '32px', fontWeight: 800, color: '#e4e4e7', lineHeight: 1 }}>78<span style={{ fontSize: '12px', color: '#52525b' }}>/100</span></div>
+        <div style={{ fontSize: '32px', fontWeight: 800, color: '#e4e4e7', lineHeight: 1 }}>92<span style={{ fontSize: '12px', color: '#52525b' }}>/100</span></div>
       </div>
 
       {/* Bid Probability */}
       <div style={{ textAlign: 'center', padding: '16px 8px', background: '#09090b' }}>
         <div style={{ fontSize: '9px', letterSpacing: '0.1em', color: '#52525b', marginBottom: '8px', textTransform: 'uppercase' }}>Bid Prob.</div>
-        <div style={{ fontSize: '32px', fontWeight: 800, color: '#e4e4e7', lineHeight: 1 }}>63<span style={{ fontSize: '16px', color: '#52525b' }}>%</span></div>
+        <div style={{ fontSize: '32px', fontWeight: 800, color: '#e4e4e7', lineHeight: 1 }}>85<span style={{ fontSize: '16px', color: '#52525b' }}>%</span></div>
       </div>
 
       {/* Win Probability */}
       <div style={{ textAlign: 'center', padding: '16px 8px', background: '#09090b' }}>
         <div style={{ fontSize: '9px', letterSpacing: '0.1em', color: '#52525b', marginBottom: '8px', textTransform: 'uppercase' }}>Win Rate</div>
-        <div style={{ fontSize: '32px', fontWeight: 800, color: '#e4e4e7', lineHeight: 1 }}>31<span style={{ fontSize: '16px', color: '#52525b' }}>%</span></div>
+        <div style={{ fontSize: '32px', fontWeight: 800, color: '#e4e4e7', lineHeight: 1 }}>68<span style={{ fontSize: '16px', color: '#52525b' }}>%</span></div>
       </div>
     </div>
 
     {/* Index breakdown */}
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '0 4px' }}>
       {[
-        { label: 'Technical Alignment',   score: 82, color: '#a1a1aa' },
-        { label: 'Competitive Position',  score: 67, color: '#a1a1aa' },
-        { label: 'Compliance Readiness',  score: 48, color: '#ef4444' },
-        { label: 'Past Performance Fit',  score: 74, color: '#a1a1aa' },
+        { label: 'Technical Alignment',   score: 93, color: '#a1a1aa' },
+        { label: 'Competitive Position',  score: 88, color: '#a1a1aa' },
+        { label: 'Compliance Readiness',  score: 72, color: '#ef4444' },
+        { label: 'Past Performance Fit',  score: 86, color: '#a1a1aa' },
       ].map(({ label, score, color }) => (
         <div key={label}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
