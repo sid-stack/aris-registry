@@ -20,7 +20,6 @@ import { trackEvent } from "../utils/analytics";
 import PricingCard from "../components/PricingCard";
 import { trackKPI } from "../lib/analytics";
 import { GTM_PRICING_PLANS } from "../lib/pricing";
-import { createCheckoutSession } from "../lib/stripe";
 import Proposal from "./Proposal";
 
 const benefits = [
@@ -132,22 +131,28 @@ export default function Landing({ onEnterApp, onViewSample }) {
     if (isProcessing) return;
     setIsProcessing(true);
     trackEvent("checkout_click", { source, plan_name: plan.title || plan.key || "trial" });
-    const successUrl = `${window.location.origin}/?checkout=success&plan=${plan.key}`;
-    const cancelUrl = `${window.location.origin}/?checkout=cancelled&plan=${plan.key}`;
-
-    try {
-      const url = await createCheckoutSession(plan.key, successUrl, cancelUrl);
-      window.open(url, "_blank", "noopener,noreferrer");
-    } catch (error) {
-      trackEvent("checkout_error", {
-        source,
-        plan_name: plan.title || plan.key || "trial",
-        message: error instanceof Error ? error.message : "checkout_failed",
-      });
-      window.alert("Unable to start checkout right now. Please try again in a minute.");
-    } finally {
-      window.setTimeout(() => setIsProcessing(false), 500);
+    
+    // Redirect to the app for the Standard Plan
+    if (plan.key === "standard") {
+      window.location.href = "/app";
+      setIsProcessing(false);
+      return;
     }
+
+    // For other plans (e.g., Enterprise), handle as before or with mailto
+    if (plan.buttonLink && plan.buttonLink.startsWith('mailto:')) {
+      trackKPI("enterprise_contact", { source: "landing_pricing_card" });
+      window.location.href = plan.buttonLink;
+      setIsProcessing(false);
+      return;
+    }
+
+    // Fallback for any other plans that might have previously used Stripe checkout
+    // Since createCheckoutSession is removed, this path should ideally not be reached
+    // or should be handled differently (e.g., redirect to a generic signup page)
+    console.warn("Attempted to open checkout for a plan without a direct app redirect or mailto link. Plan:", plan);
+    window.alert("Unable to process this plan. Please contact support.");
+    setIsProcessing(false);
   };
 
   const handleStartTrial = () => {
@@ -156,29 +161,32 @@ export default function Landing({ onEnterApp, onViewSample }) {
     openCheckout("landing_hero", GTM_PRICING_PLANS[0]);
   };
 
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [passwordInput, setPasswordInput] = useState('');
-  const [passwordError, setPasswordError] = useState(false);
-  // Password stored in .env.local (gitignored) as VITE_DEMO_PASSWORD
-  const DEMO_PASSWORD = import.meta.env.VITE_DEMO_PASSWORD;
-
   const handleWorkspaceOpen = () => {
     trackEvent("open_workspace_click", { source: "landing_hero" });
-    setShowPasswordModal(true);
-    setPasswordInput('');
-    setPasswordError(false);
+    onEnterApp();
   };
 
-  const handlePasswordSubmit = (e) => {
-    e?.preventDefault();
-    if (passwordInput === DEMO_PASSWORD) {
-      setShowPasswordModal(false);
-      onEnterApp();
-    } else {
-      setPasswordError(true);
-      setPasswordInput('');
-    }
-  };
+  const [pstTime, setPstTime] = useState("");
+
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      const options = {
+        timeZone: 'America/Los_Angeles',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      };
+      setPstTime(now.toLocaleString('en-US', options) + " PST");
+    };
+    updateTime();
+    const timer = setInterval(updateTime, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
 
   const handlePilotCta = () => {
@@ -450,11 +458,6 @@ export default function Landing({ onEnterApp, onViewSample }) {
                         plan_name: plan.title,
                       });
                       trackKPI("upgrade_intent", { plan: plan.key, source: "landing_pricing" });
-                      if (plan.buttonLink.startsWith('mailto:')) {
-                        trackKPI("enterprise_contact", { source: "landing_pricing_card" });
-                        window.location.href = plan.buttonLink;
-                        return;
-                      }
                       openCheckout("landing_pricing", plan);
                     }}
                   />
@@ -524,7 +527,6 @@ export default function Landing({ onEnterApp, onViewSample }) {
             <div style={styles.footerInner}>
               <div>
                 <p style={styles.footerBrand}>BidSmith</p>
-                <p style={styles.footerText}>Copyright 2026 Bidsmith Ltd. All rights reserved.</p>
                 <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
                   <a href="https://linkedin.com/company/aris-labs" target="_blank" rel="noopener noreferrer" style={{ color: '#71717a' }}>LinkedIn</a>
                   <a href="https://github.com/aris-labs" target="_blank" rel="noopener noreferrer" style={{ color: '#71717a' }}>GitHub</a>
@@ -555,94 +557,20 @@ export default function Landing({ onEnterApp, onViewSample }) {
               </div>
             </div>
             <div style={{ textAlign: 'center', padding: '20px 0', borderTop: '1px solid #1a1a1a', marginTop: '40px' }}>
-               <p style={{ fontSize: '10px', color: '#27272a', letterSpacing: '0.1em' }}>
-                 BUILT BY ARIS LABS • DEFENSE INTELLIGENCE STANDARD
+               <p style={{ fontSize: '10px', color: '#27272a', letterSpacing: '0.1em', marginBottom: '8px' }}>
+                 BUILT BY ARIS LABS
+               </p>
+               <p style={{ fontSize: '10px', color: '#3f3f46', letterSpacing: '0.05em', marginBottom: '4px' }}>
+                 {pstTime}
+               </p>
+               <p style={{ fontSize: '10px', color: '#52525b', letterSpacing: '0.05em' }}>
+                 Copyright 2026 Bidsmith Ltd. All rights reserved.
                </p>
             </div>
           </footer>
         </>
       )}
 
-      {/* ── Password Gate Modal ── */}
-      {showPasswordModal && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 9999,
-          background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: '20px',
-        }}
-          onClick={(e) => { if (e.target === e.currentTarget) setShowPasswordModal(false); }}
-        >
-          <div style={{
-            background: '#09090b', border: '1px solid #27272a',
-            borderRadius: '20px', padding: '36px 32px', width: '100%', maxWidth: '380px',
-            boxShadow: '0 32px 80px rgba(0,0,0,0.8)',
-            animation: 'fadeInScale 0.2s ease',
-          }}>
-            <style>{`@keyframes fadeInScale { from { opacity:0; transform:scale(0.95); } to { opacity:1; transform:scale(1); } }`}</style>
-            <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-              <div style={{
-                width: '48px', height: '48px', borderRadius: '12px',
-                background: 'linear-gradient(135deg, #1d4ed8, #7c3aed)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                margin: '0 auto 14px', fontSize: '22px',
-              }}>⚡</div>
-              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#f4f4f5' }}>
-                ARIS Analyst Workspace
-              </h2>
-              <p style={{ margin: '8px 0 0', fontSize: '12px', color: '#71717a' }}>
-                Enter your access code to continue
-              </p>
-            </div>
-            <form onSubmit={handlePasswordSubmit}>
-              <input
-                autoFocus
-                type="password"
-                value={passwordInput}
-                onChange={e => { setPasswordInput(e.target.value); setPasswordError(false); }}
-                placeholder="Access code"
-                style={{
-                  width: '100%', boxSizing: 'border-box',
-                  background: '#18181b', border: `1px solid ${passwordError ? '#ef4444' : '#27272a'}`,
-                  borderRadius: '10px', color: '#e4e4e7',
-                  padding: '12px 14px', fontSize: '14px',
-                  outline: 'none', fontFamily: 'monospace', letterSpacing: '0.2em',
-                  transition: 'border-color 0.15s',
-                }}
-              />
-              {passwordError && (
-                <p style={{ margin: '8px 0 0', fontSize: '12px', color: '#ef4444', textAlign: 'center' }}>
-                  ✕ Incorrect access code. Try again.
-                </p>
-              )}
-              <button
-                type="submit"
-                style={{
-                  marginTop: '16px', width: '100%', padding: '12px',
-                  background: 'linear-gradient(135deg, #1d4ed8, #7c3aed)',
-                  color: '#fff', border: 'none', borderRadius: '10px',
-                  fontSize: '14px', fontWeight: 700, cursor: 'pointer',
-                  letterSpacing: '0.04em',
-                }}
-              >
-                Enter Workspace →
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowPasswordModal(false)}
-                style={{
-                  marginTop: '10px', width: '100%', padding: '10px',
-                  background: 'transparent', color: '#71717a',
-                  border: '1px solid #27272a', borderRadius: '10px',
-                  fontSize: '13px', cursor: 'pointer',
-                }}
-              >
-                Cancel
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -1101,10 +1029,10 @@ const TerminalSequence = () => {
               if (e.key === 'Enter') {
                 const hasSession = localStorage.getItem('aris_session_active') === 'true';
                 if (hasSession) {
-                  window.location.href = '/sam-rep';
+                  window.location.href = '/app';
                 } else {
-                  // Paywall Gate: Redirect to $149 Express Shred
-                  window.location.href = 'https://buy.stripe.com/test_express_shred_149';
+                  // Redirect to the app for non-session users as well, removing direct Stripe link
+                  window.location.href = '/app';
                 }
               }
             }}
