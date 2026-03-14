@@ -663,7 +663,7 @@ app.post("/api/checkout/session", asyncHandler(async (req, res) => {
   const origin = String(req.get("origin") || "https://www.bidsmith.pro").replace(/\/$/, "");
   const successUrlInput = String(req.body?.successUrl || "").trim();
   const cancelUrlInput = String(req.body?.cancelUrl || "").trim();
-  const successUrl = successUrlInput || `${origin}/app?checkout=success&premium=${encodeURIComponent(premiumTier)}&plan=${encodeURIComponent(plan)}`;
+  const successUrl = successUrlInput || `${origin}/sam-rep?session=success&premium=${encodeURIComponent(premiumTier)}&plan=${encodeURIComponent(plan)}`;
   const cancelUrl = cancelUrlInput || `${origin}/app?checkout=cancelled&premium=${encodeURIComponent(premiumTier)}&plan=${encodeURIComponent(plan)}`;
 
   if (!planConfig) {
@@ -836,6 +836,44 @@ app.post("/api/audit/code", async (req, res) => {
     return res.status(500).json({ error: err.message });
   }
 });
+
+// ─── /api/chat (ARIS Intelligence Chat) ──────────────────────────────────────
+const MAX_CONCURRENT_SESSIONS = 50; // Simple capacity threshold
+let currentSessions = 0;
+
+app.post("/api/chat", asyncHandler(async (req, res) => {
+  if (currentSessions >= MAX_CONCURRENT_SESSIONS) {
+    return res.status(503).json({ error: "Please Try Again Later, we are at full Capacity!" });
+  }
+
+  currentSessions++;
+  try {
+    const client = makeClient();
+    if (!client) return res.status(500).json({ error: "OpenRouter not configured. Set OPENROUTER_API_KEY." });
+
+    const userMessage = String(req.body?.message || "").trim();
+    const history = Array.isArray(req.body?.history) ? req.body.history : [];
+
+    if (!userMessage) return res.status(400).json({ error: "Message is required." });
+
+    const REPORT_CONTEXT = `
+You are ARIS — the AI Risk Intelligence System built by ARIS Labs.
+You are an expert RFP analyst and GovCon advisor.
+MERCURY_2_DIFFUSION_ACTIVE // ZERO_KNOWLEDGE_READY
+`.trim();
+
+    const messages = [
+      { role: "system", content: REPORT_CONTEXT },
+      ...history.slice(-8),
+      { role: "user", content: userMessage },
+    ];
+
+    const reply = await llm(client, messages, 512, "analyst", 2, { temperature: 0.3 });
+    return res.json({ message: reply });
+  } finally {
+    currentSessions--;
+  }
+}));
 
 // ─── /api/executive-summary ───────────────────────────────────────────────────────
 app.post("/api/executive-summary", upload.single("rfp"), async (req, res) => {

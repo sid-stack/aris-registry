@@ -1061,7 +1061,8 @@ const TerminalSequence = () => {
   const bootLogs = [
     "ARIS OS v1.1 : INITIALIZED",
     "PROTOCOL : STATELESS_BRIDGE",
-    "UPLOADING PROPRIETARY RFP DATA TO VOLATILE MEMORY... (ENCRYPTED)",
+    "DECOY_READY : ACTIVE",
+    "MERCURY_2_DIFFUSION_ACTIVE // ZERO_KNOWLEDGE_READY",
     "ANALYSIS COMPLETE. SYSTEM PURGE IN 120s."
   ];
 
@@ -1098,7 +1099,13 @@ const TerminalSequence = () => {
             autoFocus
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
-                window.location.href = '/app';
+                const hasSession = localStorage.getItem('aris_session_active') === 'true';
+                if (hasSession) {
+                  window.location.href = '/sam-rep';
+                } else {
+                  // Paywall Gate: Redirect to $149 Express Shred
+                  window.location.href = 'https://buy.stripe.com/test_express_shred_149';
+                }
               }
             }}
           />
