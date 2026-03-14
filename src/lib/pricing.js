@@ -28,6 +28,17 @@ export const GTM_PRICING_PLANS = [
     buttonLabel: "Request Deep Dive",
     buttonLink: "mailto:sid@bidsmith.pro?subject=Deep%20Dive%20Inquiry",
     callout: "Capture Deep Dive - Starting at $5,000",
+  },
+  {
+    key: "studio_pro",
+    title: "Studio Pro",
+    price: "$99",
+    billingCycle: "per month",
+    description: "Unlimited audits, Ghost Writer active, 1-click matrix export, and priority R-Studio support.",
+    buttonLabel: "Start Pro Trial",
+    buttonLink: "/api/checkout/session?plan=studio_pro",
+    callout: "Studio Pro - $99/mo subscription",
+    featured: true
   }
 ];
 

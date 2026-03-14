@@ -42,12 +42,129 @@
   .sam-rep-main {
     padding: 24px 32px;
   }
-  .sam-rep-grid.grid-intelligence,
-  .sam-rep-grid.grid-verification,
-  .sam-rep-grid.grid-bid,
-  .sam-rep-grid.grid-win-themes {
-    grid-template-columns: 1fr 1fr;
-  }
+}
+
+/* ARIS Studio IDE Layout */
+.aris-studio-workspace {
+  display: grid;
+  grid-template-columns: 320px 1fr 360px;
+  height: calc(100vh - 120px);
+  gap: 1px;
+  background: #27272a; /* Border color between panes */
+  overflow: hidden;
+}
+
+.studio-pane {
+  background: #09090b;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Sidebar: Requirements Linter */
+.studio-linter {
+  padding: 16px;
+  border-right: 1px solid #27272a;
+}
+
+.linter-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.linter-header h3 {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: #71717a;
+}
+
+.linter-count {
+  font-size: 10px;
+  background: #27272a;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #a1a1aa;
+}
+
+.linter-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.linter-item {
+  padding: 12px;
+  background: #18181b;
+  border: 1px solid #27272a;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.linter-item:hover {
+  border-color: #3b82f6;
+  background: #1c1c21;
+}
+
+.linter-item-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.req-id {
+  color: #3b82f6;
+}
+
+.req-text {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #e4e4e7;
+  margin-bottom: 12px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.linter-item-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.req-type {
+  font-size: 10px;
+  color: #71717a;
+}
+
+.req-status-tag {
+  font-size: 9px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.req-status-tag.unmet {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+/* Center Audit Canvas */
+.studio-canvas {
+  padding: 24px;
+  overflow-y: auto;
+}
+
+/* Right Studio Workbench */
+.studio-workbench {
+  border-left: 1px solid #27272a;
 }
 
 /* §1 solicitation + risk panel stacked on mobile, side-by-side on desktop */

@@ -12,16 +12,22 @@
 export default function PricingCard({
   title,
   price,
+  billingCycle,
   description,
   buttonLabel,
   buttonLink,
   onButtonClick,
   disabled = false,
+  featured = false,
 }) {
   return (
-    <div style={styles.card}>
+    <div style={{ ...styles.card, ...(featured ? styles.featuredCard : {}) }}>
+      {featured && <div style={styles.featuredBadge}>PRO CHOICE</div>}
       <h3 style={styles.title}>{title}</h3>
-      <p style={styles.price}>{price}</p>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: '4px' }}>
+        <p style={styles.price}>{price}</p>
+        {billingCycle && <span style={styles.billingCycle}>{billingCycle}</span>}
+      </div>
       <p style={styles.description}>{description}</p>
       <button
         type="button"
@@ -64,5 +70,28 @@ const styles = {
     cursor: "pointer",
   },
   buttonDisabled: { opacity: 0.55, cursor: "not-allowed" },
+  featuredCard: {
+    borderColor: "#4f46e5",
+    background: "rgba(79, 70, 229, 0.05)",
+    transform: "scale(1.05)",
+    position: "relative",
+  },
+  featuredBadge: {
+    position: "absolute",
+    top: -12,
+    left: "50%",
+    transform: "translateX(-50%)",
+    background: "#4f46e5",
+    color: "white",
+    fontSize: "10px",
+    fontWeight: 800,
+    padding: "4px 12px",
+    borderRadius: "999px",
+    letterSpacing: "0.05em",
+  },
+  billingCycle: {
+    fontSize: "0.85rem",
+    color: "#71717a",
+  }
 };
 

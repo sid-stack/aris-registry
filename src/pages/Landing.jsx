@@ -463,9 +463,11 @@ export default function Landing({ onEnterApp, onViewSample }) {
                     key={plan.key}
                     title={plan.title}
                     price={plan.price}
+                    billingCycle={plan.billingCycle}
                     description={plan.description}
                     buttonLabel={plan.buttonLabel}
                     buttonLink={plan.buttonLink}
+                    featured={plan.featured}
                     disabled={isProcessing}
                     onButtonClick={() => {
                       trackEvent("pricing_cta_click", {

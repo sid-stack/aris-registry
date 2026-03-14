@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import '../styles/Dashboard.css';
-import './SamRep.css'; // Import the new CSS file
+import './SamRep.css'; 
 
 import NavBar from '../components/dashboard/NavBar';
 import MetricsStrip from '../components/dashboard/MetricsStrip';
@@ -21,6 +21,11 @@ import VerificationGrid from '../components/dashboard/VerificationGrid';
 import WinThemes from '../components/dashboard/WinThemes';
 import ComplianceMatrix from '../components/dashboard/ComplianceMatrix';
 import ARISChat from '../components/dashboard/ARISChat';
+import RequirementsLinter from '../components/dashboard/RequirementsLinter';
+import SecurityToggle from '../components/dashboard/SecurityToggle';
+
+// Load static source of truth
+import requirementsData from '../../requirements_matrix.json';
 
 const SectionDivider = ({ number, title }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '8px 0 4px 0' }}>
@@ -45,177 +50,111 @@ const SamRep = ({ onBack }) => {
     try { localStorage.setItem('bs-theme', theme); } catch {}
   }, [theme]);
 
-  const [isDemoMode, setIsDemoMode] = useState(true); // Default to your polished static data
+  const [isDemoMode, setIsDemoMode] = useState(true); 
   const [loading, setLoading] = useState(false);
   const [complianceData, setComplianceData] = useState(null);
-  const [metrics, setMetrics] = useState(null);
-
-  // The Recovery Script - Switch between static mockup and live output via CTRL+SHIFT+D
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'd') {
-        e.preventDefault();
-        setIsDemoMode(prev => {
-            const nextMode = !prev;
-            console.log(`[ARIS]: Switching to ${nextMode ? 'STATIC' : 'LIVE'} mode.`);
-            return nextMode;
-        });
-        setComplianceData(null); // Setting to null defaults back to static matrix
-        setMetrics(null);
-        setLoading(false);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  const [selectedReq, setSelectedReq] = useState(null);
 
   const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');
 
-  const handleUpload = async (event) => {
-    if (isDemoMode) {
-        // Instant win: Set data to null to load the DHA Mock data
-        setComplianceData(null);
-        setMetrics(null);
-        setLoading(false);
-        console.log("Uploaded in Demo Mode (Static fallback loaded).");
-        return;
-    }
-
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append('rfp', file);
-
-    setLoading(true); // Show that lovely af spinner
-    try {
-        // Assume API runs on port 8080 or same domain
-        const response = await fetch('http://localhost:8080/api/shred', { method: 'POST', body: formData });
-        const result = await response.json();
-        
-        if (result.success) {
-            // Populate your ComplianceMatrix with REAL data
-            setComplianceData(result.data.requirements || []); 
-            setMetrics(result.data.metadata || result.data.statistics);
-        } else {
-            console.error("Shred error:", result);
-        }
-    } catch (error) {
-        console.error("Shred failed:", error);
-    } finally {
-        setLoading(false);
-    }
-  };
   return (
     <div
       id="dashboard-content"
       data-theme={theme}
-      style={{ backgroundColor: '#000000', color: '#e4e4e7', minHeight: '100vh', width: '100%' }}
+      style={{ backgroundColor: '#0b0b0d', color: '#e4e4e7', height: '100vh', width: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
     >
-      <div className="samrep-container">
       <NavBar theme={theme} onToggleTheme={toggleTheme} onBack={onBack} />
 
-      {/* ── Masthead ── */}
-      <div className="sam-rep-masthead">
-        <div>
-          <div style={{ fontSize: '9px', letterSpacing: '0.2em', color: 'var(--text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>
-            ARIS · Federal Pre-Bid Risk Intelligence
-          </div>
-          <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-            Report generated <strong style={{ color: 'var(--text-primary)' }}>March 11, 2026 · 14:37 UTC</strong>
-            &nbsp;·&nbsp; Analysis runtime <strong style={{ color: 'var(--text-primary)' }}>83 seconds</strong>
-            &nbsp;·&nbsp; Time saved <strong style={{ color: 'var(--success)' }}>~14 hrs</strong>
-          </div>
+      {/* ── Studio Toolbar ── */}
+      <div className="sam-rep-masthead" style={{ borderBottom: '1px solid #27272a', padding: '10px 20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+            <div>
+              <div style={{ fontSize: '9px', letterSpacing: '0.2em', color: 'var(--text-secondary)', marginBottom: '2px', textTransform: 'uppercase' }}>
+                ARIS STUDIO V1.0
+              </div>
+              <div style={{ fontSize: '11px', color: '#71717a' }}>
+                 <strong style={{ color: '#3b82f6' }}>LIVE AUDIT</strong>: DHA Video Imaging Archive
+              </div>
+            </div>
+            <SecurityToggle />
         </div>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
-          <input type="file" id="rfp-upload" style={{ display: 'none' }} onChange={handleUpload} accept=".pdf,.txt" />
-          <label
-            htmlFor="rfp-upload"
-            style={{
-              background: isDemoMode ? '#7c3aed' : 'var(--accent)',
-              color: '#fff',
-              padding: '7px 14px',
-              borderRadius: '5px',
-              fontSize: '11px',
-              fontWeight: 700,
-              letterSpacing: '0.06em',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              whiteSpace: 'nowrap',
-              border: '1px solid transparent',
-              flexShrink: 0,
-            }}
-          >
-            {loading ? '⏳ SHREDDING...' : isDemoMode ? '🎭 DEMO MODE' : '🚀 RUN SHRED'}
-          </label>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#18181b', padding: '4px 12px', borderRadius: '6px', border: '1px solid #27272a' }}>
+             <span style={{ fontSize: '10px', color: '#71717a' }}>SAVED TO SESSION</span>
+             <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#22c55e' }} />
+          </div>
           <ExportToolbar />
         </div>
       </div>
 
-      <main className="sam-rep-main">
+      <div className="aris-studio-workspace">
+        {/* Pane 1: Requirements Linter (Left) */}
+        <aside className="studio-pane studio-linter-pane">
+          <RequirementsLinter 
+            requirements={requirementsData.requirements} 
+            onSelect={setSelectedReq}
+          />
+        </aside>
 
-        <SectionDivider number="1" title="Solicitation Overview" />
-        <div className="sam-rep-grid grid-overview">
-          <div className="solicitation-risk-grid">
-            <SolicitationHeader />
-            <RiskPanel />
+        {/* Pane 2: Audit Canvas (Center) */}
+        <main className="studio-pane studio-canvas">
+          <div className="sam-rep-main" style={{ maxWidth: '1000px', margin: '0 auto', padding: '0' }}>
+            <SectionDivider number="1" title="Solicitation Overview" />
+            <div className="sam-rep-grid grid-overview">
+              <div className="solicitation-risk-grid">
+                <SolicitationHeader />
+                <RiskPanel />
+              </div>
+              <MetricsStrip />
+            </div>
+
+            <SectionDivider number="2" title="Intelligence Pipeline" />
+            <div className="sam-rep-grid grid-intelligence">
+              <AgenticPipeline />
+              <IntelligenceIndex />
+            </div>
+
+            <SectionDivider number="3" title="Compliance Matrix" />
+            <div style={{ marginBottom: '20px' }}>
+              <ComplianceMatrix complianceData={complianceData} isLoading={loading} />
+            </div>
+
+            <SectionDivider number="4" title="Verification & Risks" />
+            <div className="sam-rep-grid grid-verification">
+              <VerificationGrid />
+              <RiskHeatmap />
+            </div>
+
+            <SectionDivider number="5" title="Bid Intelligence" />
+            <div className="sam-rep-grid grid-bid">
+              <ExecutiveSummary />
+              <BidRecommendation />
+            </div>
           </div>
-          <MetricsStrip />
-          <SystemStatus />
-        </div>
+        </main>
 
-        <SectionDivider number="2" title="Intelligence Pipeline" />
-        <div className="sam-rep-grid grid-intelligence">
-          <AgenticPipeline />
-          <IntelligenceIndex />
-        </div>
-
-        <SectionDivider number="3" title="Verification & Risk Analysis" />
-        <div className="sam-rep-grid grid-verification">
-          <VerificationGrid />
-          <RiskHeatmap />
-        </div>
-
-        <SectionDivider number="4" title="Bid Intelligence" />
-        <div className="sam-rep-grid grid-bid">
-          <ExecutiveSummary />
-          <BidRecommendation />
-        </div>
-
-        <SectionDivider number="5" title="Risk Flags & Bid-Killer Alerts" />
-        <div style={{ marginBottom: '8px' }}>
-          <RiskFlags />
-        </div>
-
-        <SectionDivider number="6" title="Compliance Matrix — FAR Referenced" />
-        <div style={{ marginBottom: '8px' }}>
-          <ComplianceMatrix complianceData={complianceData} isLoading={loading} />
-        </div>
-
-        <SectionDivider number="7" title="Win Themes & Opportunities Radar" />
-        <div className="sam-rep-grid grid-win-themes">
-          <WinThemes />
-          <OpportunitiesRadar />
-        </div>
-
-        <SectionDivider number="8" title="Applicable Standards & Compliance Summary" />
-        <div style={{ marginBottom: '24px' }}>
-          <TechnicalAppendix />
-        </div>
-
-        <div className="sam-rep-footer">
-          <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
-            Audit Note: This report was generated via the <strong style={{ color: 'var(--accent)' }}>ARIS Stateless Bridge</strong>. Zero Storage. High Conviction.
-          </span>
-          <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
-            © 2026 BidSmith · ARIS Protocol · <span style={{ color: 'var(--success)' }}>bidsmith.pro</span>
-          </span>
-        </div>
-      </main>
+        {/* Pane 3: Studio Workbench (Right) */}
+        <aside className="studio-pane studio-workbench-pane" style={{ background: '#0b0b0d' }}>
+           <ARISChat selectedContext={selectedReq} />
+        </aside>
       </div>
-      <ARISChat />
+
+      {/* Breadcrumb / Footer */}
+      <footer style={{ 
+        height: '28px', 
+        background: '#1d4ed8', 
+        display: 'flex', 
+        alignItems: 'center', 
+        padding: '0 16px',
+        fontSize: '10px',
+        fontWeight: 600,
+        color: 'white',
+        letterSpacing: '0.05em',
+        justifyContent: 'space-between'
+      }}>
+        <div>SESSION: DHA-DHS-2026-X • {requirementsData.requirements.length} REQUIREMENTS PARSED</div>
+        <div>ARIS PROTOCOL: ZERO_KNOWLEDGE_ACTIVE</div>
+      </footer>
     </div>
   );
 };
