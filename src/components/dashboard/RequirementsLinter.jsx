@@ -7,7 +7,7 @@ const SEVERITY_COLORS = {
   Low: '#22c55e'
 };
 
-const RequirementsLinter = ({ requirements = [], onSelect }) => {
+const RequirementsLinter = ({ requirements = [], onSelect, selectedId }) => {
   return (
     <div className="studio-linter">
       <div className="linter-header">
@@ -16,11 +16,15 @@ const RequirementsLinter = ({ requirements = [], onSelect }) => {
       </div>
       <div className="linter-list">
         {requirements.map((req) => (
-          <div key={req.id} className="linter-item" onClick={() => onSelect?.(req)}>
+          <div 
+            key={req.id} 
+            className={`linter-item ${selectedId === req.id ? 'active' : ''}`} 
+            onClick={() => onSelect?.(req)}
+          >
             <div className="linter-item-header">
               <span className="req-id">{req.id}</span>
               <span className="req-severity" style={{ color: SEVERITY_COLORS[req.severity] }}>
-                {req.severity}
+                {req.severity.toUpperCase()}
               </span>
             </div>
             <p className="req-text">{req.text}</p>
