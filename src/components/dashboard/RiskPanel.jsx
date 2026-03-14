@@ -17,7 +17,7 @@ const RiskPanel = () => (
         lineHeight: 1,
         fontFamily: "'Space Mono', monospace",
         textShadow: '0 0 40px rgba(255,59,59,0.4)',
-      }}>87</div>
+      }}>93</div>
       <div style={{ fontSize: '11px', color: '#5a7a9a', marginTop: '4px' }}>/100</div>
 
       <div style={{ marginTop: '16px' }}>
@@ -36,7 +36,7 @@ const RiskPanel = () => (
         color: '#9aa8b8',
         lineHeight: 1.6,
       }}>
-        Confidence: <span style={{ color: '#ff3b3b', fontWeight: 700 }}>92%</span> &nbsp;·&nbsp;
+        Confidence: <span style={{ color: '#ff3b3b', fontWeight: 700 }}>98%</span> &nbsp;·&nbsp;
         Clauses Flagged: <span style={{ color: '#ff3b3b', fontWeight: 700 }}>14</span>
       </div>
     </div>

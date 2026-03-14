@@ -17,10 +17,10 @@ const Counter = ({ target, duration = 2000, suffix = '' }) => {
 };
 
 const MetricsStrip = ({ 
-  analyzedCount = 52, 
+  analyzedCount = 142, 
   riskCount = 14, 
   criticalCount = 2,
-  analysisTime = "83s"
+  analysisTime = "42s"
 }) => {
   const metrics = [
     {

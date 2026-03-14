@@ -25,7 +25,7 @@ const SolicitationHeader = () => {
       <div style={metaStyles}>
         <p><strong>Agency:</strong> Defense Health Agency</p>
         <p><strong>Solicitation ID:</strong> DHANOISS022426</p>
-        <p><strong>Analysis Time:</strong> 83 seconds</p>
+        <p><strong>Analysis Latency:</strong> 42 seconds</p>
       </div>
     </div>
   );

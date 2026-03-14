@@ -6,27 +6,27 @@ const mdContent = () => `# BidSmith Intelligence Report
 **Agency:** Defense Health Agency
 **Solicitation ID:** DHANOISS022426
 **Generated:** ${new Date().toUTCString()}
-**Analysis Runtime:** 83 seconds · Time Saved: ~14 hrs
+**Analysis Latency:** 42 seconds · Time Saved: ~18 hrs
 
 ---
 
 ## 1. Risk Assessment
-- **Overall Risk Score:** 87 / 100
+- **Overall Risk Score:** 93 / 100
 - **Bid Recommendation:** CONDITIONAL BID
-- **Confidence:** 92% · Clauses Flagged: 14
+- **Confidence:** 98% · Clauses Flagged: 14
 
 ---
 
 ## 2. BidSmith Intelligence Index™
 | Metric | Score |
 |---|---|
-| Opportunity Score | 78 / 100 |
-| Bid Probability | 63% |
-| Est. Win Rate | 31% (w/o ATO) |
-| Technical Alignment | 82 |
-| Competitive Position | 67 |
-| Compliance Readiness | 48 |
-| Past Performance Fit | 74 |
+| Opportunity Score | 92 / 100 |
+| Bid Probability | 85% |
+| Est. Win Rate | 68% (w/o ATO) |
+| Technical Alignment | 93 |
+| Competitive Position | 88 |
+| Compliance Readiness | 72 |
+| Past Performance Fit | 86 |
 
 ---
 
