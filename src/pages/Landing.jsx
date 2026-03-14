@@ -9,6 +9,7 @@ import {
   BriefcaseBusiness,
   FileText,
   ArrowLeft,
+  Shield,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
@@ -24,49 +25,49 @@ import Proposal from "./Proposal";
 
 const benefits = [
   {
-    title: "Zero Token Trust",
-    description: "Built on ARIS Zero Token. We never save your data or store your contract bids—ever.",
+    title: "Sovereignty Protocol",
+    description: "Built on ARIS Zero Token. We never save your data or store your contract bids—our architecture makes it impossible for us to ever see it.",
     icon: <BadgeCheck size={42} color="#4338ca" />,
   },
   {
-    title: "Stateless Bridge",
-    description: "Your competitive intel runs via a stateless bridge. No caching, no leak surface.",
+    title: "Stateless Execution",
+    description: "Your competitive intel runs via a stateless bridge. No database, no local caching, no leak surface.",
     icon: <Rocket size={42} color="#4338ca" />,
   },
   {
-    title: "Audit Rigor",
-    description: "Far/DFARS extraction and risk weighting using Aris audit protocols.",
+    title: "Risk Mitigation",
+    description: "FAR/DFARS extraction and precision risk weighting using official Aris labs audit protocols.",
     icon: <FileText size={42} color="#4338ca" />,
   },
   {
-    title: "Capture Intel",
-    description: "The ARIS-SDK was built for this: independent audit data without the data liability.",
+    title: "Intelligence Workbench",
+    description: "Automate technical narratives and compliance matrices in 90 seconds without the data liability.",
     icon: <Search size={42} color="#4338ca" />,
   },
 ];
 
 const steps = [
   {
-    title: "Handshake",
-    description: "Aris issues a short-lived Zero Token so you connect without exposing your full payload.",
+    title: "Vault Handshake",
+    description: "Aris issues a short-lived Zero Token to initiate the session without exposing your sensitive payload.",
     icon: <KeyRound size={42} color="#4f46e5" />,
   },
   {
-    title: "Bridge",
-    description: "Analyzes occur over a stateless bridge—we route the request but never store a byte.",
+    title: "Stateless Bridge",
+    description: "Analyses occur over a non-persistent bridge—we route the logic but never store a single byte of bid data.",
     icon: <Rocket size={42} color="#4f46e5" />,
   },
   {
-    title: "Purge",
-    description: "Upon SUCCESS, all session data is purged. Your bid stays private, local, and secure.",
+    title: "Cryptographic Purge",
+    description: "Upon task completion, all session memory is wiped. Your intellectual property remains Sovereign and Local.",
     icon: <BadgeCheck size={42} color="#4f46e5" />,
   },
 ];
 
 const heroStats = [
-  { label: "Avg. draft turnaround", value: "< 10 min" },
-  { label: "Pilot compliance accuracy", value: "95%+" },
-  { label: "Implementation window", value: "30 days" },
+  { label: "Audit Turnaround", value: "4 Hours" },
+  { label: "Constraint Accuracy", value: "99%+" },
+  { label: "Execution Layer", value: "Stateless" },
 ];
 
 function IconCard({ title, description, icon }) {
@@ -155,10 +156,30 @@ export default function Landing({ onEnterApp, onViewSample }) {
     openCheckout("landing_hero", GTM_PRICING_PLANS[0]);
   };
 
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordInput, setPasswordInput] = useState('');
+  const [passwordError, setPasswordError] = useState(false);
+  // Password stored in .env.local (gitignored) as VITE_DEMO_PASSWORD
+  const DEMO_PASSWORD = import.meta.env.VITE_DEMO_PASSWORD;
+
   const handleWorkspaceOpen = () => {
     trackEvent("open_workspace_click", { source: "landing_hero" });
-    onEnterApp();
+    setShowPasswordModal(true);
+    setPasswordInput('');
+    setPasswordError(false);
   };
+
+  const handlePasswordSubmit = (e) => {
+    e?.preventDefault();
+    if (passwordInput === DEMO_PASSWORD) {
+      setShowPasswordModal(false);
+      onEnterApp();
+    } else {
+      setPasswordError(true);
+      setPasswordInput('');
+    }
+  };
+
 
   const handlePilotCta = () => {
     trackKPI("pilot_cta", { source: "landing_pricing_banner" });
@@ -318,61 +339,35 @@ export default function Landing({ onEnterApp, onViewSample }) {
               </button>
             </div>
           </header>
-          <section className="landing-hero">
-            <div style={styles.heroGlowTop} />
-            <div style={styles.heroGlowBottom} />
-            <div style={styles.heroInner}>
-              <p style={styles.heroKicker}>Zero Token Security · Stateless Bridge</p>
-              <img
-                src="/aris-logo.png"
-                alt="BidSmith logo"
-                style={styles.logo}
-              />
-              <h1 style={styles.title}>We get you Contracts</h1>
-              <p style={styles.subtitle}>
-                Trust built on the ARIS Zero Token architecture. We don't save your data or store your contract bids. 
-                Everything runs via a stateless bridge—this is the moat that powers the BidSmith audit.
-              </p>
-              <div style={styles.heroActions}>
-                <button
-                  type="button"
-                  aria-label="Start free seven day trial"
-                  style={{
-                    ...styles.primaryCta,
-                    ...(isProcessing ? styles.disabledButton : {}),
-                  }}
-                  onClick={handleStartTrial}
-                  disabled={isProcessing}
-                >
-                  {isProcessing ? "Processing..." : "Start Free 7-Day Trial"}
-                </button>
-                <button
-                  type="button"
-                  aria-label="Open analyst workspace"
-                  onClick={handleWorkspaceOpen}
-                  style={styles.secondaryCta}
-                  disabled={isProcessing}
-                >
-                  Open Analyst Workspace
-                </button>
-                <button
-                  type="button"
-                  aria-label="View demo sample report"
-                  onClick={() => window.open("/sam-rep", "_blank", "noopener,noreferrer")}
-                  style={styles.demoCta}
-                  disabled={isProcessing}
-                >
-                  <FileText size={16} style={{ marginRight: 6 }} />
-                  View Demo Report
-                </button>
-              </div>
-              <div style={styles.heroStatsGrid}>
-                {heroStats.map((stat) => (
-                  <div key={stat.label} style={styles.heroStatCard}>
-                    <p style={styles.heroStatValue}>{stat.value}</p>
-                    <p style={styles.heroStatLabel}>{stat.label}</p>
+          <section className="landing-hero" style={styles.heroTerminalSection}>
+            <div style={styles.heroInnerFull}>
+              <div style={styles.terminalContainerFull}>
+                <div style={styles.terminalHeader}>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#333' }} />
+                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#333' }} />
+                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#333' }} />
                   </div>
-                ))}
+                  <span style={{ fontSize: '11px', color: '#52525b', fontFamily: 'Space Mono', letterSpacing: '0.1em' }}>ARIS_OS_TERMINAL_v1.1</span>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                     <Shield size={10} color="#3b82f6" />
+                     <span style={{ fontSize: '9px', color: '#3f3f46' }}>STATELESS_ENCRYPTION_ACTIVE</span>
+                  </div>
+                </div>
+                <div style={styles.terminalBodyFull}>
+                   <TerminalSequence />
+                </div>
+              </div>
+
+              <div style={{ ...styles.heroInner, marginTop: '40px' }}>
+                <h1 style={{ ...styles.title, fontSize: '2.5rem' }}>The First Zero-Knowledge Defense Workbench</h1>
+                <p style={styles.subtitle}>
+                  Automate the 40-hour RFP shred in 90 seconds with absolute **Data Sovereignty**.
+                </p>
+                <div style={styles.heroActions}>
+                  <button onClick={onViewSample} style={styles.secondaryCta}>View Demo Audit</button>
+                  <button onClick={handleWorkspaceOpen} style={styles.secondaryCta}>Open Workspace</button>
+                </div>
               </div>
             </div>
           </section>
@@ -443,9 +438,11 @@ export default function Landing({ onEnterApp, onViewSample }) {
                     key={plan.key}
                     title={plan.title}
                     price={plan.price}
+                    billingCycle={plan.billingCycle}
                     description={plan.description}
                     buttonLabel={plan.buttonLabel}
                     buttonLink={plan.buttonLink}
+                    featured={plan.featured}
                     disabled={isProcessing}
                     onButtonClick={() => {
                       trackEvent("pricing_cta_click", {
@@ -453,9 +450,9 @@ export default function Landing({ onEnterApp, onViewSample }) {
                         plan_name: plan.title,
                       });
                       trackKPI("upgrade_intent", { plan: plan.key, source: "landing_pricing" });
-                      if (plan.key === "enterprise") {
+                      if (plan.buttonLink.startsWith('mailto:')) {
                         trackKPI("enterprise_contact", { source: "landing_pricing_card" });
-                        window.location.href = "mailto:sid@bidsmith.pro?subject=Enterprise%20Plan%20Inquiry";
+                        window.location.href = plan.buttonLink;
                         return;
                       }
                       openCheckout("landing_pricing", plan);
@@ -528,40 +525,123 @@ export default function Landing({ onEnterApp, onViewSample }) {
               <div>
                 <p style={styles.footerBrand}>BidSmith</p>
                 <p style={styles.footerText}>Copyright 2026 Bidsmith Ltd. All rights reserved.</p>
+                <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
+                  <a href="https://linkedin.com/company/aris-labs" target="_blank" rel="noopener noreferrer" style={{ color: '#71717a' }}>LinkedIn</a>
+                  <a href="https://github.com/aris-labs" target="_blank" rel="noopener noreferrer" style={{ color: '#71717a' }}>GitHub</a>
+                </div>
                 <a
                   href="mailto:sid@bidsmith.pro"
-                  style={styles.footerLink}
+                  style={{ ...styles.footerLink, marginTop: '12px', display: 'block' }}
                   onClick={() => trackEvent("support_email_click", { source: "landing_footer" })}
                 >
                   sid@bidsmith.pro
                 </a>
               </div>
               <div>
-                <p style={styles.footerHeading}>Company</p>
+                <p style={styles.footerHeading}>Sovereignty Protocol</p>
+                <a href="/soc" style={styles.footerLink}>Security Protocol</a>
                 <a href="/privacy" style={styles.footerLink}>Privacy Policy</a>
                 <a href="/terms" style={styles.footerLink}>Terms of Service</a>
                 <a href="/cookies" style={styles.footerLink}>Cookie Policy</a>
                 <a href="https://docs.bidsmith.pro" target="_blank" rel="noopener noreferrer" style={styles.footerLink}>Developer Docs</a>
               </div>
-              <div>
-                <p style={styles.footerHeading}>Template Library</p>
-                <a
-                  href="/templates"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={styles.footerLink}
-                  onClick={() => trackEvent("templates_link_click", { source: "landing_footer" })}
-                >
-                  Outreach & Agreement Templates
-                </a>
-                <a href="/pilot-proposal-outline.md" target="_blank" rel="noreferrer" style={styles.footerLink}>
-                  Pilot Proposal Outline
-                </a>
-                <a href="#pricing" style={styles.footerLink}>Pricing Plans</a>
+              <div style={{ textAlign: 'right' }}>
+                <p style={styles.footerHeading}>Agentic Pipeline</p>
+                <a href="#pricing" style={styles.footerLink}>Execution Model</a>
+                <p style={{ ...styles.footerText, color: '#3f3f46', marginTop: '12px', fontSize: '10px' }}>
+                  ARIS_BRIDGE_CONNECTED <br />
+                  STATELESS_PURGE: OK
+                </p>
               </div>
+            </div>
+            <div style={{ textAlign: 'center', padding: '20px 0', borderTop: '1px solid #1a1a1a', marginTop: '40px' }}>
+               <p style={{ fontSize: '10px', color: '#27272a', letterSpacing: '0.1em' }}>
+                 BUILT BY ARIS LABS • DEFENSE INTELLIGENCE STANDARD
+               </p>
             </div>
           </footer>
         </>
+      )}
+
+      {/* ── Password Gate Modal ── */}
+      {showPasswordModal && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9999,
+          background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '20px',
+        }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowPasswordModal(false); }}
+        >
+          <div style={{
+            background: '#09090b', border: '1px solid #27272a',
+            borderRadius: '20px', padding: '36px 32px', width: '100%', maxWidth: '380px',
+            boxShadow: '0 32px 80px rgba(0,0,0,0.8)',
+            animation: 'fadeInScale 0.2s ease',
+          }}>
+            <style>{`@keyframes fadeInScale { from { opacity:0; transform:scale(0.95); } to { opacity:1; transform:scale(1); } }`}</style>
+            <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+              <div style={{
+                width: '48px', height: '48px', borderRadius: '12px',
+                background: 'linear-gradient(135deg, #1d4ed8, #7c3aed)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                margin: '0 auto 14px', fontSize: '22px',
+              }}>⚡</div>
+              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#f4f4f5' }}>
+                ARIS Analyst Workspace
+              </h2>
+              <p style={{ margin: '8px 0 0', fontSize: '12px', color: '#71717a' }}>
+                Enter your access code to continue
+              </p>
+            </div>
+            <form onSubmit={handlePasswordSubmit}>
+              <input
+                autoFocus
+                type="password"
+                value={passwordInput}
+                onChange={e => { setPasswordInput(e.target.value); setPasswordError(false); }}
+                placeholder="Access code"
+                style={{
+                  width: '100%', boxSizing: 'border-box',
+                  background: '#18181b', border: `1px solid ${passwordError ? '#ef4444' : '#27272a'}`,
+                  borderRadius: '10px', color: '#e4e4e7',
+                  padding: '12px 14px', fontSize: '14px',
+                  outline: 'none', fontFamily: 'monospace', letterSpacing: '0.2em',
+                  transition: 'border-color 0.15s',
+                }}
+              />
+              {passwordError && (
+                <p style={{ margin: '8px 0 0', fontSize: '12px', color: '#ef4444', textAlign: 'center' }}>
+                  ✕ Incorrect access code. Try again.
+                </p>
+              )}
+              <button
+                type="submit"
+                style={{
+                  marginTop: '16px', width: '100%', padding: '12px',
+                  background: 'linear-gradient(135deg, #1d4ed8, #7c3aed)',
+                  color: '#fff', border: 'none', borderRadius: '10px',
+                  fontSize: '14px', fontWeight: 700, cursor: 'pointer',
+                  letterSpacing: '0.04em',
+                }}
+              >
+                Enter Workspace →
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowPasswordModal(false)}
+                style={{
+                  marginTop: '10px', width: '100%', padding: '10px',
+                  background: 'transparent', color: '#71717a',
+                  border: '1px solid #27272a', borderRadius: '10px',
+                  fontSize: '13px', cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -927,4 +1007,103 @@ const styles = {
     display: "block",
     marginBottom: 8,
   },
+  terminalContainerFull: {
+    width: "100%",
+    maxWidth: 1000,
+    margin: "0 auto",
+    background: "#050505",
+    border: "1px solid #1a1a1a",
+    borderRadius: "8px",
+    overflow: "hidden",
+    boxShadow: "0 40px 100px rgba(0,0,0,0.8)",
+  },
+  heroTerminalSection: {
+    padding: "60px 20px",
+    background: "#000000",
+    borderBottom: "1px solid #1a1a1a",
+  },
+  heroInnerFull: {
+    maxWidth: 1200,
+    margin: "0 auto",
+  },
+  terminalHeader: {
+    background: "#0c0c0e",
+    padding: "12px 20px",
+    borderBottom: "1px solid #1a1a1a",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  terminalBodyFull: {
+    padding: "30px",
+    minHeight: "260px",
+    background: "#050505",
+    fontFamily: "'Space Mono', monospace",
+  },
+  terminalInput: {
+    background: "transparent",
+    border: "none",
+    outline: "none",
+    color: "#3b82f6",
+    fontFamily: "'Space Mono', monospace",
+    fontSize: "14px",
+    flex: 1,
+    caretColor: "#3b82f6",
+    width: "100%",
+    fontWeight: 700,
+  }
+};
+
+const TerminalSequence = () => {
+  const [lines, setLines] = useState([]);
+  const [inputValue, setInputValue] = useState('');
+  
+  const bootLogs = [
+    "ARIS OS v1.1 : INITIALIZED",
+    "PROTOCOL : STATELESS_BRIDGE",
+    "UPLOADING PROPRIETARY RFP DATA TO VOLATILE MEMORY... (ENCRYPTED)",
+    "ANALYSIS COMPLETE. SYSTEM PURGE IN 120s."
+  ];
+
+  useEffect(() => {
+    let currentLine = 0;
+    const interval = setInterval(() => {
+      if (currentLine < bootLogs.length) {
+        setLines(prev => [...prev, bootLogs[currentLine]]);
+        currentLine++;
+      } else {
+        clearInterval(interval);
+      }
+    }, 400); // Faster typing
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div style={{ textAlign: 'left' }}>
+      {lines.map((line, i) => (
+        <div key={i} style={{ marginBottom: '8px', fontSize: '14px', color: '#a1a1aa', letterSpacing: '0.02em' }}>
+          <span style={{ color: '#3f3f46', marginRight: '10px' }}>[{new Date().toLocaleTimeString('en-GB', { hour12: false })}]</span>
+          <span style={{ color: i === bootLogs.length - 1 ? '#22c55e' : '#a1a1aa' }}>{line}</span>
+        </div>
+      ))}
+      {lines.length === bootLogs.length && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '20px', background: '#0c0c0e', padding: '12px 16px', borderRadius: '4px', border: '1px solid #1a1a1a' }}>
+          <span style={{ color: '#3b82f6', fontWeight: 900, fontSize: '16px' }}>{'>'}</span>
+          <input 
+            type="text"
+            value={inputValue}
+            onChange={e => setInputValue(e.target.value)}
+            placeholder="[ Enter SAM.gov Link to Shred ]"
+            style={styles.terminalInput}
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                window.location.href = '/app';
+              }
+            }}
+          />
+        </div>
+      )}
+    </div>
+  );
 };

@@ -16,43 +16,36 @@ const Counter = ({ target, duration = 2000, suffix = '' }) => {
   return <>{value}{suffix}</>;
 };
 
-const MetricsStrip = () => {
-  const [contracts, setContracts] = useState(17);
-  const [risks, setRisks] = useState(43);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const r = Math.random();
-      if (r < 0.5) setContracts(c => c + 1);
-      else setRisks(r2 => r2 + 1);
-    }, 12000);
-    return () => clearInterval(interval);
-  }, []);
-
+const MetricsStrip = ({ 
+  analyzedCount = 52, 
+  riskCount = 14, 
+  criticalCount = 2,
+  analysisTime = "83s"
+}) => {
   const metrics = [
     {
-      icon: <Activity size={16} color="#1e7fff" />,
-      label: 'CONTRACTS ANALYZED TODAY',
-      value: contracts,
+      icon: <Activity size={16} color="#71717a" />,
+      label: 'CONTRACT CONSTRAINTS MAPPED',
+      value: analyzedCount,
       suffix: '',
-      sub: '+3 in last hour',
-      color: '#1e7fff',
+      sub: `${analyzedCount} identifiers logged`,
+      color: '#e4e4e7',
     },
     {
-      icon: <AlertTriangle size={16} color="#ff3b3b" />,
-      label: 'COMPLIANCE RISKS DETECTED',
-      value: risks,
+      icon: <AlertTriangle size={16} color="#ef4444" />,
+      label: 'CRITICAL COMPLIANCE DRIFTS',
+      value: riskCount,
       suffix: '',
-      sub: '12 HIGH severity',
-      color: '#ff3b3b',
+      sub: `${criticalCount} SECURITY severity`,
+      color: '#ef4444',
     },
     {
-      icon: <Clock size={16} color="#00d084" />,
-      label: 'AVG ANALYSIS TIME',
+      icon: <Clock size={16} color="#71717a" />,
+      label: 'STATELESS CYCLE LATENCY',
       value: null,
-      display: '91s',
-      sub: '↓ 8% vs. yesterday',
-      color: '#00d084',
+      display: analysisTime,
+      sub: 'Agentic Purge Verified',
+      color: '#a1a1aa',
     },
   ];
 

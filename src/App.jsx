@@ -7,6 +7,8 @@ import Landing from "./pages/Landing";
 import Templates from "./pages/Templates";
 import Legal from "./pages/Legal";
 import SamRep from "./pages/SamRep";
+import Discovery from "./pages/Discovery";
+import Security from "./pages/Security";
 import NotFound from "./pages/NotFound";
 import ConsentBanner from "./components/ConsentBanner";
 import { trackPageView } from "./utils/analytics";
@@ -29,13 +31,17 @@ export default function App() {
             ? "cookies"
             : path === "/sam-rep"
               ? "sam-rep"
-              : path === "/app"
-                ? "app"
-                : window.location.search.includes("app=true")
-                  ? "app"
-                  : path !== "/"
-                    ? "404"
-                    : "landing",
+              : path === "/discovery"
+                ? "discovery"
+                : path === "/soc"
+                  ? "soc"
+                  : path === "/app"
+                    ? "app"
+                  : window.location.search.includes("app=true")
+                    ? "app"
+                    : path !== "/"
+                      ? "404"
+                      : "landing",
   );
 
   useEffect(() => {
@@ -49,6 +55,10 @@ export default function App() {
       logicalPath = "/404";
     } else if (view === "sam-rep") {
       logicalPath = "/sam-rep";
+    } else if (view === "discovery") {
+      logicalPath = "/discovery";
+    } else if (view === "soc") {
+      logicalPath = "/soc";
     } else if (view === "landing") {
       logicalPath = "/";
     } else if (!authenticated) {
@@ -71,6 +81,10 @@ export default function App() {
     content = <NotFound />;
   } else if (view === "sam-rep") {
     content = <SamRep onBack={() => setView("landing")} />;
+  } else if (view === "discovery") {
+    content = <Discovery onBack={() => setView("landing")} />;
+  } else if (view === "soc") {
+    content = <Security onBack={() => setView("landing")} />;
   } else if (view === "landing") {
     content = <Landing onEnterApp={() => setView("app")} onViewSample={() => setView("sam-rep")} />;
   } else if (!authenticated) {
