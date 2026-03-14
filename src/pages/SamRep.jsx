@@ -94,6 +94,7 @@ const SamRep = ({ onBack }) => {
   const [isConsoleOpen, setIsConsoleOpen] = useState(false);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const [logs, setLogs] = useState([
+    { timestamp: 'SYSTEM', message: 'MERCURY_2_DIFFUSION_ACTIVE // ZERO_KNOWLEDGE_READY', type: 'sec' },
     { timestamp: '09:21:04', message: 'INITIALIZING_ANALYSIS: DHA_VIDEO_ARCHIVE...', type: 'info' },
     { timestamp: '09:21:08', message: 'PARSING_PDF: 142 clauses identified.', type: 'info' },
     { timestamp: '09:21:12', message: 'EXTRACTING_RISKS: 14 critical deviations flagged.', type: 'info' },
@@ -105,6 +106,12 @@ const SamRep = ({ onBack }) => {
     document.documentElement.setAttribute('data-theme', theme);
     try { localStorage.setItem('bs-theme', theme); } catch {}
     
+    // Check for success session
+    if (window.location.search.includes('session=success')) {
+      localStorage.setItem('aris_session_active', 'true');
+      addLog('PAYMENT_VERIFIED: SESSION_ACTIVE', 'success');
+    }
+
     const handleResize = () => setWindowWidth(window.innerWidth);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);

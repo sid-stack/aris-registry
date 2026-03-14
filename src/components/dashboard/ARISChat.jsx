@@ -91,29 +91,34 @@ const ARISChat = ({ selectedContext, onLog, onCommand }) => {
     onLog('USER_CMD_DISPATCHED: Processing intent...', 'info');
 
     try {
-      if (userText.toLowerCase().includes('missing') || userText.toLowerCase().includes('compliance') || userText.toLowerCase().includes('checklist')) {
-        setTimeout(() => {
-          setMessages(prev => [...prev, { 
-            role: 'assistant', 
-            content: `### 🛡️ COMPLIANCE GAP ANALYSIS\n\n**Solicitation:** ${selectedContext?.id || 'DHA Video Imaging Archive'}\n\nI have performed a comparative analysis between the solicitation requirements and your draft. The following items are **✗ ABSENT**:\n\n| Regulation | Required Item | Present? | Who | Why | What |\n|------------|---------------|----------|-----|-----|------|\n| CMMC 2.0 | Level 3 – MFA for privileged accounts | ✗ | CISO | Required for Level 3 certification; missing leads to non-compliance. | Add MFA clause + implementation plan. |\n| FAR 52.203-13 | Contractor code of conduct | ✗ | Legal | Required by FAR; omission can cause a bid-kill. | Insert a "Code of Conduct" paragraph. |\n| NIST 800-53 | AC-2 – Account Management | ✗ | SysEng | Needed for RMF compliance. | Add section describing account provisioning. |\n\n**Next steps:**\n1. Incorporate the missing items into the technical proposal sections.\n2. Attach the updated MFA implementation plan as an appendix.\n3. Re-run the ARIS shredder to verify that all required clauses now appear.` 
-          }]);
-          setLoading(false);
-          onLog('COMPLIANCE_AUDIT_COMPLETE', 'success');
-        }, 1200);
-        return;
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: userText,
+          history: messages.slice(-8)
+        })
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'CMD_EXECUTION_FAILED');
       }
 
-      setTimeout(() => {
-        setMessages(prev => [...prev, { 
-          role: 'assistant', 
-          content: `REASONING_ENGINE_OUTPUT:\n\nI've scanned the regulatory framework for this section. FAR 52.204-21 is active here, requiring a rigorous safeguarding protocol. This isn't just paperwork; it's the baseline for your bid's technical viability. I can pivot to a full control mapping if you're ready to deep-dive with the team.` 
-        }]);
-        setLoading(false);
-        onLog('CMD_EXECUTION_COMPLETE', 'success');
-      }, 1000);
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: data.message 
+      }]);
+      setLoading(false);
+      onLog('CMD_EXECUTION_COMPLETE', 'success');
     } catch (err) {
       setLoading(false);
-      onLog('CMD_EXECUTION_FAILED', 'error');
+      onLog(`ERROR: ${err.message}`, 'error');
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: `PIPELINE_ERROR: ${err.message}` 
+      }]);
     }
   };
 
