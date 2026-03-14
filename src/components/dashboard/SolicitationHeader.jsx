@@ -1,6 +1,11 @@
 import React from 'react';
 
-const SolicitationHeader = () => {
+const SolicitationHeader = ({ 
+  title = "DHA Video Imaging Archive", 
+  agency = "Defense Health Agency", 
+  id = "DHANOISS022426", 
+  analysisTime = "83 seconds" 
+}) => {
   const headerStyles = {
     backgroundColor: 'var(--card)',
     border: '1px solid var(--border)',
@@ -9,23 +14,37 @@ const SolicitationHeader = () => {
   };
 
   const titleStyles = {
-    fontSize: '2rem',
+    fontSize: '20px',
     fontWeight: 'bold',
     color: 'var(--text-primary)',
     marginBottom: '16px',
+    letterSpacing: '-0.02em'
   };
 
   const metaStyles = {
+    fontSize: '12px',
     color: 'var(--text-secondary)',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px'
   };
 
   return (
     <div style={headerStyles} className="dashboard-card">
-      <h1 style={titleStyles}>DHA Video Imaging Archive</h1>
+      <h1 style={titleStyles}>{title}</h1>
       <div style={metaStyles}>
-        <p><strong>Agency:</strong> Defense Health Agency</p>
-        <p><strong>Solicitation ID:</strong> DHANOISS022426</p>
-        <p><strong>Analysis Time:</strong> 83 seconds</p>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <span style={{ color: '#71717a', fontWeight: 600 }}>AGENCY:</span> 
+          <span>{agency}</span>
+        </div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <span style={{ color: '#71717a', fontWeight: 600 }}>ID:</span> 
+          <span style={{ fontFamily: 'monospace' }}>{id}</span>
+        </div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <span style={{ color: '#71717a', fontWeight: 600 }}>ANALYSIS:</span> 
+          <span>{analysisTime}</span>
+        </div>
       </div>
     </div>
   );
