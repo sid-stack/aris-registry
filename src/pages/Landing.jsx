@@ -560,11 +560,11 @@ export default function Landing({ onEnterApp, onViewSample }) {
                <p style={{ fontSize: '10px', color: '#27272a', letterSpacing: '0.1em', marginBottom: '8px' }}>
                  BUILT BY ARIS LABS
                </p>
-               <p style={{ fontSize: '10px', color: '#3f3f46', letterSpacing: '0.05em', marginBottom: '4px' }}>
-                 {pstTime}
-               </p>
-               <p style={{ fontSize: '10px', color: '#52525b', letterSpacing: '0.05em' }}>
+               <p style={{ fontSize: '10px', color: '#52525b', letterSpacing: '0.05em', marginBottom: '4px' }}>
                  Copyright 2026 Bidsmith Ltd. All rights reserved.
+               </p>
+               <p style={{ fontSize: '10px', color: '#3f3f46', letterSpacing: '0.05em' }}>
+                 {pstTime}
                </p>
             </div>
           </footer>
