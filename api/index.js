@@ -414,36 +414,65 @@ function extractTargetedSections(text) {
   ].filter(Boolean).join("\n\n");
 }
 
-// LLM with exponential backoff retry — ported from money/main.py run_llm()
-async function llm(client, messages, maxTokens = 4096, agentKey = "audit", retries = 3, options = {}) {
-  const model = AGENT_MODELS[agentKey] || "google/gemini-2.0-flash-001";
-  for (let attempt = 0; attempt < retries; attempt++) {
-    try {
-      const completionParams = {
-        model,
-        max_tokens: maxTokens,
-        temperature: options.temperature ?? 0,
-        top_p: options.topP ?? 0.1,
-        messages
-      };
+const FALLBACK_MODELS = [
+  "inception/mercury-2",
+  "anthropic/claude-3-haiku",
+  "openai/gpt-4o-mini"
+];
 
-      if (options.response_format) {
-        completionParams.response_format = options.response_format;
-      }
+// LLM with non-linear Diffusion Fallback Logic — Mercury 2 Pipeline
+async function llm(client, messages, maxTokens = 4096, agentKey = "audit", retries = 2, options = {}) {
+  // Use Mercury 2 for high-speed parallel synthesis or fallback to reliable models
+  const primaryModel = FALLBACK_MODELS[0];
+  const modelsToTry = [primaryModel, ...FALLBACK_MODELS.slice(1)];
 
-      const res = await client.chat.completions.create(completionParams);
-      return res.choices[0]?.message?.content || "";
-    } catch (e) {
-      const isRetryable = e?.status === 429 || e?.status >= 500;
-      if (isRetryable && attempt < retries - 1) {
-        const wait = Math.pow(2, attempt + 1) * 1000;
-        console.warn(`[llm] ${agentKey} attempt ${attempt + 1} failed (${e.status}), retrying in ${wait}ms`);
-        await new Promise(r => setTimeout(r, wait));
-      } else {
-        throw e;
+  for (const model of modelsToTry) {
+    for (let attempt = 0; attempt < retries; attempt++) {
+      try {
+        console.log(`[llm] Sculpting response with ${model} (Agent: ${agentKey}, Attempt: ${attempt + 1})`);
+        
+        const completionParams = {
+          model,
+          max_tokens: maxTokens,
+          temperature: options.temperature ?? 0.3,
+          top_p: options.topP ?? 0.1,
+          messages,
+          // OpenRouter specific: routing through multiple models if the provider allows
+          extra_body: {
+            models: modelsToTry
+          }
+        };
+
+        if (options.response_format) {
+          completionParams.response_format = options.response_format;
+        }
+
+        const res = await client.chat.completions.create(completionParams);
+        const result = res.choices[0]?.message?.content || "";
+        
+        if (result) {
+          console.log(`[llm] ${model} synthesis successful.`);
+          return result;
+        }
+      } catch (e) {
+        const statusCode = e?.status || e?.response?.status;
+        const isRetryable = statusCode === 429 || statusCode >= 500;
+        
+        console.error(`[llm] Error from ${model}: ${statusCode || e.message}`);
+
+        if (isRetryable && attempt < retries - 1) {
+          const wait = Math.pow(2, attempt + 1) * 1000;
+          await new Promise(r => setTimeout(r, wait));
+          continue;
+        }
+        
+        // Break inner loop to try next model
+        console.warn(`[llm] Switching from ${model} due to persistent error.`);
+        break; 
       }
     }
   }
+  throw new Error("ARIS_CORE_CRITICAL: All diffusion and fallback models exhausted.");
 }
 
 function stripCodeFences(raw = "") {
