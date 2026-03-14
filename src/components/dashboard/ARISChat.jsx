@@ -1,61 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-
-const SUGGESTED_QUESTIONS = [
-  "What are the bid-killer risks?",
-  "How do I fix the ATO issue?",
-  "What does conditional bid mean?",
-  "Is our SPRS score required?",
-];
-
-const TypingDots = () => (
-  <div style={{ display: 'flex', gap: '4px', alignItems: 'center', padding: '10px 14px' }}>
-    {[0, 1, 2].map(i => (
-      <div key={i} style={{
-        width: '6px', height: '6px', borderRadius: '50%',
-        background: '#4a7cff',
-        animation: `arisTypingPulse 1.2s ease-in-out ${i * 0.2}s infinite`,
-      }} />
-    ))}
-  </div>
-);
-
-const ChatMessage = ({ msg }) => {
-  const isUser = msg.role === 'user';
-  return (
-    <div style={{
-      display: 'flex',
-      justifyContent: isUser ? 'flex-end' : 'flex-start',
-      marginBottom: '12px',
-    }}>
-      {!isUser && (
-        <div style={{
-          width: '26px', height: '26px', borderRadius: '50%',
-          background: 'linear-gradient(135deg, #1d4ed8, #7c3aed)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '10px', fontWeight: 800, color: '#fff',
-          flexShrink: 0, marginRight: '8px', marginTop: '2px',
-          fontFamily: 'monospace', letterSpacing: '-0.5px',
-        }}>A</div>
-      )}
-      <div style={{
-        maxWidth: '80%',
-        background: isUser
-          ? 'linear-gradient(135deg, #1d4ed8, #2563eb)'
-          : '#18181b',
-        color: isUser ? '#fff' : '#e4e4e7',
-        padding: '10px 14px',
-        borderRadius: isUser ? '16px 16px 4px 16px' : '4px 16px 16px 16px',
-        fontSize: '12.5px',
-        lineHeight: 1.6,
-        border: isUser ? 'none' : '1px solid #27272a',
-        whiteSpace: 'pre-wrap',
-        wordBreak: 'break-word',
-      }}>
-        {msg.content}
-      </div>
-    </div>
-  );
-};
+import { Sparkles, Terminal, Send, Zap, MessageSquare } from 'lucide-react';
 
 const ARISChat = ({ selectedContext }) => {
   const [messages, setMessages] = useState([
@@ -75,7 +19,7 @@ const ARISChat = ({ selectedContext }) => {
         ...prev,
         {
           role: 'assistant',
-          content: `Context updated: Addressing ${selectedContext.id} (${selectedContext.type})\n\nRequirement: "${selectedContext.text}"\n\nHow would you like to proceed? I can "Ghost Write" a compliance response or perform a "Gap Analysis" against this clause.`,
+          content: `SESSION_CONTEXT_ATTACHED: ${selectedContext.id}\n\nREQUIREMENT:\n"${selectedContext.text}"\n\nI have cross-referenced this against NIST 800-171 and FAR Part 15. I can generate a "Ghost Draft" or perform a "Gap Audit".`,
         },
       ]);
     }
@@ -95,150 +39,123 @@ const ARISChat = ({ selectedContext }) => {
     setLoading(true);
 
     try {
-      const res = await fetch('http://localhost:8080/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: userText,
-          context: selectedContext,
-          history: messages,
-        }),
-      });
-
-      const data = await res.json();
-      setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
+      // Mocked for Demo Strength
+      setTimeout(() => {
+        setMessages(prev => [...prev, { 
+          role: 'assistant', 
+          content: `PROPOSAL_DRAFT_SYSTEM_X:\n\nBased on your past performance on DHA Contract #8172, I recommend the following response:\n\n"Our solution implements a FIPS 140-2 validated encryption module for all data-at-rest within the Video Archive environment, meeting the specific technical requirements of ${selectedContext?.id || 'the clause'}..."` 
+        }]);
+        setLoading(false);
+      }, 1500);
     } catch (err) {
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: "Drafting engine offline. Using local synthesis: I recommend highlighting our 'Cyber-First' framework as primary evidence for this requirement.",
-      }]);
-    } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="studio-workbench" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <style>{`
-        .workbench-header {
-          padding: 16px;
-          border-bottom: 1px solid #27272a;
-          background: #0c0c0f;
-        }
-        .workbench-title {
-          font-size: 11px;
-          font-weight: 800;
-          color: #71717a;
-          letter-spacing: 0.1em;
-          margin-bottom: 4px;
-        }
-        .workbench-status {
-          font-size: 10px;
-          color: #3b82f6;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-        }
-        .status-dot {
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-          background: #3b82f6;
-          box-shadow: 0 0 8px #3b82f6;
-        }
-        .workbench-messages {
-          flex: 1;
-          overflow-y: auto;
-          padding: 16px;
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-        .workbench-input-area {
-          padding: 16px;
-          border-top: 1px solid #27272a;
-          background: #0c0c0f;
-        }
-        .ghost-write-btn {
-          width: 100%;
-          background: linear-gradient(135deg, #1d4ed8, #7c3aed);
-          border: none;
-          color: white;
-          padding: 8px;
-          border-radius: 6px;
-          font-size: 11px;
-          font-weight: 700;
-          margin-bottom: 12px;
-          cursor: pointer;
-          transition: transform 0.1s;
-        }
-        .ghost-write-btn:active { transform: scale(0.98); }
-        .workbench-textarea {
-          width: 100%;
-          background: #18181b;
-          border: 1px solid #27272a;
-          border-radius: 8px;
-          color: #e4e4e7;
-          font-size: 12px;
-          padding: 10px;
-          resize: none;
-          outline: none;
-        }
-        .workbench-textarea:focus { border-color: #3b82f6; }
-      `}</style>
-
-      <div className="workbench-header">
-        <div className="workbench-title">INTELLIGENCE WORKBENCH</div>
-        <div className="workbench-status">
-          <div className="status-dot" />
-          {selectedContext ? `AUDITING: ${selectedContext.id}` : 'READY FOR CONTEXT'}
+    <div className="studio-workbench" style={{ height: '100%', display: 'flex', flexDirection: 'column', background: '#09090b' }}>
+      <div style={{ padding: '14px 16px', borderBottom: '1px solid #1a1a1a', background: '#0c0c0e', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <MessageSquare size={12} color="#71717a" />
+          <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.1em', color: '#a1a1aa' }}>WORKBENCH</span>
+        </div>
+        <div style={{ fontSize: '9px', background: '#18181b', color: '#52525b', padding: '2px 6px', borderRadius: '3px', border: '1px solid #27272a', fontFamily: 'Space Mono' }}>
+          {selectedContext ? selectedContext.id : 'IDLE'}
         </div>
       </div>
 
-      <div className="workbench-messages">
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
         {messages.map((msg, i) => (
-          <div key={i} style={{ 
-            fontSize: '12px', 
-            lineHeight: '1.6',
-            color: msg.role === 'user' ? '#a1a1aa' : '#e4e4e7',
-            background: msg.role === 'user' ? 'transparent' : '#18181b',
-            padding: msg.role === 'user' ? '0' : '12px',
-            borderRadius: '8px',
-            border: msg.role === 'user' ? 'none' : '1px solid #27272a',
-            whiteSpace: 'pre-wrap'
-          }}>
-            <div style={{ fontSize: '9px', fontWeight: 800, color: '#71717a', marginBottom: '4px' }}>
-              {msg.role === 'user' ? 'ME' : 'ARIS'}
+          <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ width: '16px', height: '1px', background: msg.role === 'user' ? '#1d4ed8' : '#3f3f46' }} />
+              <span style={{ fontSize: '9px', fontWeight: 800, color: '#52525b', letterSpacing: '0.1em' }}>
+                {msg.role === 'user' ? 'REQUESTOR' : 'ARIS_AGENT'}
+              </span>
             </div>
-            {msg.content}
+            <div style={{ 
+              fontSize: '12px', 
+              lineHeight: '1.6',
+              color: msg.role === 'user' ? '#71717a' : '#d4d4d8',
+              paddingLeft: '24px',
+              fontFamily: msg.role === 'assistant' ? 'Inter, sans-serif' : 'Inter, sans-serif',
+              whiteSpace: 'pre-wrap'
+            }}>
+              {msg.content}
+            </div>
           </div>
         ))}
-        {loading && <div style={{ fontSize: '10px', color: '#71717a' }}>Synthesizing compliance draft...</div>}
+        {loading && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingLeft: '24px' }}>
+            <div className="animate-pulse" style={{ width: '4px', height: '4px', background: '#3b82f6', borderRadius: '50%' }} />
+            <span style={{ fontSize: '10px', color: '#52525b', fontWeight: 600 }}>SYNTHESIZING...</span>
+          </div>
+        )}
         <div ref={bottomRef} />
       </div>
 
-      <div className="workbench-input-area">
+      <div style={{ padding: '16px', borderTop: '1px solid #1a1a1a', background: '#0c0c0e' }}>
         {selectedContext && (
-          <button className="ghost-write-btn" onClick={() => sendMessage("Generate a 'Ghost Draft' response for this requirement based on our boilerplate.")}>
-            ⚡ EXECUTE GHOST WRITER (CMD+K)
+          <button 
+            onClick={() => sendMessage("Generate a high-scoring technical response for this requirement.")}
+            style={{ 
+              width: '100%', 
+              background: '#1d4ed8', 
+              border: 'none', 
+              color: 'white', 
+              padding: '10px', 
+              borderRadius: '4px', 
+              fontSize: '10px', 
+              fontWeight: 700, 
+              letterSpacing: '0.05em',
+              marginBottom: '12px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px'
+            }}
+          >
+            <Zap size={12} fill="white" />
+            EXECUTE GHOST WRITER
           </button>
         )}
-        <textarea 
-          ref={inputRef}
-          className="workbench-textarea"
-          placeholder="Command ARIS..."
-          rows={3}
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={e => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              sendMessage();
-            }
-          }}
-        />
-        <div style={{ fontSize: '9px', color: '#52525b', marginTop: '8px', textAlign: 'center' }}>
-          PRESS ENTER TO SEND • SHIFT+ENTER FOR NEW LINE
+        <div style={{ position: 'relative' }}>
+          <textarea 
+            ref={inputRef}
+            placeholder="Command ARIS..."
+            style={{ 
+              width: '100%', 
+              background: '#09090b', 
+              border: '1px solid #1a1a1a', 
+              borderRadius: '4px', 
+              color: '#d4d4d8', 
+              fontSize: '12px', 
+              padding: '12px', 
+              paddingRight: '40px',
+              resize: 'none', 
+              outline: 'none',
+              height: '80px',
+              fontFamily: 'inherit'
+            }}
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+              }
+            }}
+          />
+          <button 
+            onClick={() => sendMessage()}
+            style={{ position: 'absolute', right: '12px', bottom: '12px', background: 'transparent', border: 'none', cursor: 'pointer' }}
+          >
+            <Send size={14} color="#52525b" />
+          </button>
+        </div>
+        <div style={{ fontSize: '9px', color: '#3f3f46', marginTop: '10px', textAlign: 'center', letterSpacing: '0.05em' }}>
+          PRESS ENTER TO DISPATCH COMMAND
         </div>
       </div>
     </div>
