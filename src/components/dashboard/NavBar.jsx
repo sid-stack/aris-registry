@@ -100,20 +100,24 @@ const NavBar = ({ theme, onToggleTheme, onBack }) => {
             <ArrowLeft size={18} />
           </button>
         )}
-        <Shield size={15} color="#1e7fff" style={{ flexShrink: 0 }} />
+        <div style={{
+          width: '20px', height: '20px', borderRadius: '4px', background: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '6px'
+        }}>
+          <Shield size={12} color="white" />
+        </div>
         <span style={{
           fontFamily: "'Space Mono', monospace",
-          fontWeight: 700, fontSize: '12px', letterSpacing: '0.05em', color: '#d4e4f7',
+          fontWeight: 800, fontSize: '12px', letterSpacing: '0.1em', color: '#fff',
           whiteSpace: 'nowrap',
         }}>
-          BIDSMITH <span style={{ color: '#1e7fff' }}>INTEL</span>
+          ARIS STUDIO <span style={{ color: '#3b82f6' }}>369</span>
         </span>
-        <span className="hide-mobile" style={{
-          background: 'rgba(30,127,255,0.1)', border: '1px solid rgba(30,127,255,0.3)',
-          color: '#1e7fff', fontSize: '9px', padding: '2px 6px', borderRadius: '2px',
-          letterSpacing: '0.1em', fontFamily: "'Space Mono', monospace", fontWeight: 700,
-          flexShrink: 0,
-        }}>BETA</span>
+        <span style={{
+           marginLeft: '12px', background: 'rgba(59,130,246,0.1)', border: '1px solid #3b82f6',
+           color: '#3b82f6', fontSize: '9px', padding: '1px 6px', borderRadius: '2px',
+           letterSpacing: '0.1em', fontFamily: "'Space Mono', monospace", fontWeight: 700,
+           flexShrink: 0,
+        }}>R-STUDIO</span>
       </div>
 
       {/* Actions */}

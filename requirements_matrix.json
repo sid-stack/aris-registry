@@ -1,0 +1,482 @@
+{
+  "metadata": {
+    "total_requirements": 52,
+    "extraction_date": "2026-03-13T20:15:13.651835"
+  },
+  "requirements": [
+    {
+      "text": "those Offerors will receive letters from the Government indicating the basis for non-selection.",
+      "type": "Operational",
+      "severity": "Medium",
+      "keywords": [
+        "will"
+      ],
+      "id": "REQ-0001"
+    },
+    {
+      "text": "Proposals will be categorized as Selectable or Not Selectable",
+      "type": "Operational",
+      "severity": "High",
+      "keywords": [
+        "will"
+      ],
+      "id": "REQ-0002"
+    },
+    {
+      "text": "The selection of one or more offerors for award will be based on the evaluation, as well as importance to agency programs and funding availability.",
+      "type": "Operational",
+      "severity": "High",
+      "keywords": [
+        "will"
+      ],
+      "id": "REQ-0003"
+    },
+    {
+      "text": "Selectable: Proposals are recommended for acceptance, if sufficient funding* is available.",
+      "type": "Operational",
+      "severity": "Medium",
+      "keywords": [
+        "are"
+      ],
+      "id": "REQ-0004"
+    },
+    {
+      "text": "Letters will be sent to the unfunded offerors.",
+      "type": "Operational",
+      "severity": "Medium",
+      "keywords": [
+        "will"
+      ],
+      "id": "REQ-0005"
+    },
+    {
+      "text": "These proposals may be funded at a later date without reevaluation, if funding becomes available.",
+      "type": "Operational",
+      "severity": "Low",
+      "keywords": [
+        "may"
+      ],
+      "id": "REQ-0006"
+    },
+    {
+      "text": "The Government reserves the right to award some, all, or none of the proposals.",
+      "type": "Operational",
+      "severity": "High",
+      "keywords": [
+        "reserves"
+      ],
+      "id": "REQ-0007"
+    },
+    {
+      "text": "the Government will review the Research and Related Senior and Key Person Profile Worksheet (for FAR based or Other Transactions), and Security Program Questionnaire and Privacy Act Statement submitted by the Contractor in order to satisfy the S&T Protection requirements IAW AFRLI 61-113.",
+      "type": "Compliance",
+      "severity": "Critical",
+      "keywords": [
+        "will"
+      ],
+      "id": "REQ-0008"
+    },
+    {
+      "text": "In the event a security risk is identified and the Government has determined the security risk exceeds the acceptable threshold, the Offeror will be notified and informed of the declination of award.",
+      "type": "Security",
+      "severity": "Critical",
+      "keywords": [
+        "will"
+      ],
+      "id": "REQ-0009"
+    },
+    {
+      "text": "Proposals\u2019 technical, cost, and schedule risk will be assessed as part of the above evaluation criteria\u2019s application.",
+      "type": "Operational",
+      "severity": "High",
+      "keywords": [
+        "will"
+      ],
+      "id": "REQ-0010"
+    },
+    {
+      "text": "Prior to award of a potentially successful offer, the Contracting Officer will make a determination regarding price reasonableness and realism.",
+      "type": "Cost",
+      "severity": "Critical",
+      "keywords": [
+        "will"
+      ],
+      "id": "REQ-0011"
+    },
+    {
+      "text": "The Government is required to review and consider any information about the applicant that is in SAM.gov before making any award in excess of the simplified acquisition threshold (currently $250,000) over the period of performance.",
+      "type": "Compliance",
+      "severity": "Critical",
+      "keywords": [
+        "required"
+      ],
+      "id": "REQ-0012"
+    },
+    {
+      "text": "Offerors whose proposals are selected for FAR based awards will be expected to submit certified cost and pricing data on contracts exceeding $2M prior to 1 OCT 2025, and $2.5M after 1 OCT 2025 (the threshold is $7.5M for small businesses or nontraditional defense contractors).",
+      "type": "Compliance",
+      "severity": "Critical",
+      "keywords": [
+        "will"
+      ],
+      "id": "REQ-0013"
+    },
+    {
+      "text": "When developing proposals, reference the AFRL \"Broad Agency Announcement (BAA): Guide for Industry,\" JAN 2025, and RI-Specific Proposal Preparation Instructions, APR 2025",
+      "type": "Documentation",
+      "severity": "High",
+      "keywords": [
+        "reference"
+      ],
+      "id": "REQ-0014"
+    },
+    {
+      "text": "Always reference the newest versions of these documents.",
+      "type": "Documentation",
+      "severity": "High",
+      "keywords": [
+        "Always"
+      ],
+      "id": "REQ-0015"
+    },
+    {
+      "text": "less than 12 point font is acceptable for graphics and illustrations (as in labels and short descriptions) as long as it is readable when printed out on standard 8x11 paper.",
+      "type": "Documentation",
+      "severity": "Medium",
+      "keywords": [
+        "is"
+      ],
+      "id": "REQ-0016"
+    },
+    {
+      "text": "All offerors submitting proposals will receive notification of their evaluation results within 45 days of submission.",
+      "type": "Operational",
+      "severity": "High",
+      "keywords": [
+        "will"
+      ],
+      "id": "REQ-0017"
+    },
+    {
+      "text": "Offerors should email the TPOC and the Contracting Officer listed in Section VII, for status of their proposal after 45 days, if no such correspondence has been received.",
+      "type": "Operational",
+      "severity": "Medium",
+      "keywords": [
+        "should"
+      ],
+      "id": "REQ-0018"
+    },
+    {
+      "text": "If a debriefing is requested in accordance with the time guidelines set out in FAR 15.505 and 15.506, a debriefing will be provided",
+      "type": "Operational",
+      "severity": "Medium",
+      "keywords": [
+        "will"
+      ],
+      "id": "REQ-0019"
+    },
+    {
+      "text": "Depending on the work to be performed, the offeror may require a TOP SECRET SENSITIVE COMPARTMENTED INFORMATION (TS/SCI) facility clearance and safeguarding capability; therefore, personnel identified for assignment to a classified effort must be cleared for access to TOP SECRET SENSITIVE COMPARTMENTED INFORMATION (TS/SCI) information at the time of award.",
+      "type": "Security",
+      "severity": "Critical",
+      "keywords": [
+        "must",
+        "may",
+        "require"
+      ],
+      "id": "REQ-0020"
+    },
+    {
+      "text": "In addition, the offeror may be required to have, or have access to, a certified and Government-approved facility to support work under this ARA.",
+      "type": "Security",
+      "severity": "High",
+      "keywords": [
+        "may",
+        "required"
+      ],
+      "id": "REQ-0021"
+    },
+    {
+      "text": "Only contractors who are registered and certified with the Defense Logistics Information Service (DLIS) and have a legitimate business purpose may participate in this solicitation.",
+      "type": "Compliance",
+      "severity": "Critical",
+      "keywords": [
+        "Only",
+        "may"
+      ],
+      "id": "REQ-0022"
+    },
+    {
+      "text": "You must submit a copy of your approved DD Form 2345, Militarily Critical Technical Data Agreement, with your white paper/proposal.",
+      "type": "Compliance",
+      "severity": "Critical",
+      "keywords": [
+        "must"
+      ],
+      "id": "REQ-0023"
+    },
+    {
+      "text": "Non-small businesses are encouraged to team with small business concerns to come up with the best technical solutions and obtain the best mix of cost, performance and schedule.",
+      "type": "Operational",
+      "severity": "Low",
+      "keywords": [
+        "encouraged"
+      ],
+      "id": "REQ-0024"
+    },
+    {
+      "text": "Offerors who are requested to submit a proposal under this solicitation of grants, cooperative agreements, Technology Investment Agreements, and other non-procurement transactions only shall submit specific information for all key personnel, whether or not the individuals\u2019 efforts under the project are to be funded by the DoD.",
+      "type": "Documentation",
+      "severity": "Critical",
+      "keywords": [
+        "shall"
+      ],
+      "id": "REQ-0025"
+    },
+    {
+      "text": "The information shall be included in the Research and Related/Key Person Profile (Expanded) form (https://www.grants.gov/forms/r-r-family.html).",
+      "type": "Documentation",
+      "severity": "Critical",
+      "keywords": [
+        "shall"
+      ],
+      "id": "REQ-0026"
+    },
+    {
+      "text": "This collection only applies to persons identified as key personnel.",
+      "type": "Documentation",
+      "severity": "Medium",
+      "keywords": [
+        "applies"
+      ],
+      "id": "REQ-0027"
+    },
+    {
+      "text": "This information shall not be included in the overall proposal page limits.",
+      "type": "Documentation",
+      "severity": "High",
+      "keywords": [
+        "shall"
+      ],
+      "id": "REQ-0028"
+    },
+    {
+      "text": "Failure to submit this information may cause the proposal to be returned without further review",
+      "type": "Compliance",
+      "severity": "Critical",
+      "keywords": [
+        "may"
+      ],
+      "id": "REQ-0029"
+    },
+    {
+      "text": "By submission of a white paper/proposal, you agree to abide by the following statement: \"By signing this white paper/proposal, I certify the proposing entity is in compliance with Section 223(a) of the William M. (Mac) Thornberry National Defense Authorization Act for Fiscal Year 2021 which requires that: (a) the PI and other key personnel certify that the current and pending support provided on the proposal is current, accurate and complete; (b) the PI and other key personnel agree to update such disclosure at the request of the agency prior to the award of support and at any subsequent time the agency determines appropriate during the term of the award; and (c) the PI and other key personnel have been made aware of the requirements under Section 223(a)(1) of this Act.",
+      "type": "Compliance",
+      "severity": "Critical",
+      "keywords": [
+        "requires",
+        "certify",
+        "agree"
+      ],
+      "id": "REQ-0030"
+    },
+    {
+      "text": "I am aware that any false, fictitious, or fraudulent statements or claims may subject me to criminal, civil, or administrative penalties.",
+      "type": "Compliance",
+      "severity": "Critical",
+      "keywords": [
+        "may"
+      ],
+      "id": "REQ-0031"
+    },
+    {
+      "text": "SBIR data rights clauses are non-negotiable and must not be the subject of negotiations pertaining to an award, or diminished or removed during award administration.",
+      "type": "Compliance",
+      "severity": "Critical",
+      "keywords": [
+        "must"
+      ],
+      "id": "REQ-0032"
+    },
+    {
+      "text": "Issuance of an award will not be made conditional based on forfeit of data rights.",
+      "type": "Compliance",
+      "severity": "High",
+      "keywords": [
+        "will"
+      ],
+      "id": "REQ-0033"
+    },
+    {
+      "text": "Any third party software (commercial and noncommercial) to be incorporated into a deliverable must be clearly identified in the proposal.",
+      "type": "Documentation",
+      "severity": "High",
+      "keywords": [
+        "must"
+      ],
+      "id": "REQ-0034"
+    },
+    {
+      "text": "Prior to delivery of any third party software, the contractor will obtain an appropriate license for the Government, and the written approval of the contracting officer.",
+      "type": "Compliance",
+      "severity": "Critical",
+      "keywords": [
+        "will"
+      ],
+      "id": "REQ-0035"
+    },
+    {
+      "text": "IAW DFARS 252.227-7017, the Identification and Assertion of Use, Release, or Disclosure Restriction provision applies.",
+      "type": "Compliance",
+      "severity": "High",
+      "keywords": [
+        "applies"
+      ],
+      "id": "REQ-0036"
+    },
+    {
+      "text": "Once a proposal has been selected for award, offerors will be given complete instructions on the submission process for the reports.",
+      "type": "Documentation",
+      "severity": "Medium",
+      "keywords": [
+        "will"
+      ],
+      "id": "REQ-0037"
+    },
+    {
+      "text": "As required by 2 CFR 200 Appendix XII of the Uniform Guidance and FAR 9.104-6, non-federal entities (NFEs) are required to disclose in FAPIIS any information about criminal, civil, and administrative proceedings, and/or affirm that there is no new information to provide.",
+      "type": "Compliance",
+      "severity": "Critical",
+      "keywords": [
+        "required"
+      ],
+      "id": "REQ-0038"
+    },
+    {
+      "text": "This applies to NFEs that receive federal awards (currently active grants, cooperative agreements, and procurement contracts) greater than $10,000,000 for any period of time during the period of performance of an award/project.",
+      "type": "Compliance",
+      "severity": "High",
+      "keywords": [
+        "applies"
+      ],
+      "id": "REQ-0039"
+    },
+    {
+      "text": "The following provisions* apply:",
+      "type": "Compliance",
+      "severity": "Critical",
+      "keywords": [
+        "apply"
+      ],
+      "id": "REQ-0040"
+    },
+    {
+      "text": "Please note that the current versions or deviations of the related clauses will be included in any resulting contract.",
+      "type": "Compliance",
+      "severity": "High",
+      "keywords": [
+        "will"
+      ],
+      "id": "REQ-0041"
+    },
+    {
+      "text": "Additional provisions may be included in any resultant contract, dependent upon each individual effort.",
+      "type": "Compliance",
+      "severity": "Medium",
+      "keywords": [
+        "may"
+      ],
+      "id": "REQ-0042"
+    },
+    {
+      "text": "When proposing an Other Transaction (OT), provide documentation that your accounting system is GAAP compliant.",
+      "type": "Compliance",
+      "severity": "High",
+      "keywords": [
+        "provide"
+      ],
+      "id": "REQ-0043"
+    },
+    {
+      "text": "Offerors must also self certify that they (or their subcontractor who will be participating to a significant extent) are a Nontraditional Defense Contractor, who is defined as an entity that is not currently performing and has not performed, within one year period prior to solicitation, any contract or subcontract for the DoD subject to full CAS coverage.",
+      "type": "Compliance",
+      "severity": "Critical",
+      "keywords": [
+        "must"
+      ],
+      "id": "REQ-0044"
+    },
+    {
+      "text": "Proposals shall include information to determine adequate financial resources to perform the effort, taking into consideration all existing commercial and governmental business commitments.",
+      "type": "Documentation",
+      "severity": "Critical",
+      "keywords": [
+        "shall"
+      ],
+      "id": "REQ-0045"
+    },
+    {
+      "text": "Proposals shall also include all significant ratios as outlined in DFARS 232.072-2(b)(10)(i)-(vi).",
+      "type": "Documentation",
+      "severity": "High",
+      "keywords": [
+        "shall"
+      ],
+      "id": "REQ-0046"
+    },
+    {
+      "text": "This requirement only applies to FAR based awards.",
+      "type": "Compliance",
+      "severity": "High",
+      "keywords": [
+        "applies"
+      ],
+      "id": "REQ-0047"
+    },
+    {
+      "text": "All white paper and proposal submissions and any questions of a technical nature shall be directed to the cognizant TPOC as specified below (unless otherwise specified in the technical area)",
+      "type": "Operational",
+      "severity": "High",
+      "keywords": [
+        "shall"
+      ],
+      "id": "REQ-0048"
+    },
+    {
+      "text": "Questions of a contractual/business nature shall be directed to the cognizant contracting officer, as specified below (email requests are preferred)",
+      "type": "Operational",
+      "severity": "High",
+      "keywords": [
+        "shall"
+      ],
+      "id": "REQ-0049"
+    },
+    {
+      "text": "Emails must reference the solicitation ARA number and title of the acquisition.",
+      "type": "Operational",
+      "severity": "High",
+      "keywords": [
+        "must"
+      ],
+      "id": "REQ-0050"
+    },
+    {
+      "text": "Before consulting with an ombudsman, interested parties must first address their concerns, issues, disagreements, and/or recommendations to the contracting officer for resolution.",
+      "type": "Operational",
+      "severity": "Medium",
+      "keywords": [
+        "must"
+      ],
+      "id": "REQ-0051"
+    },
+    {
+      "text": "DAFFARS Clause 5352.201-9101 Ombudsman will be incorporated into all contracts awarded under this ARA.",
+      "type": "Compliance",
+      "severity": "High",
+      "keywords": [
+        "will"
+      ],
+      "id": "REQ-0052"
+    }
+  ]
+}

@@ -25,7 +25,9 @@ function isStaticAsset(request) {
 
 self.addEventListener("fetch", (event) => {
   const { request } = event;
-  if (request.method !== "GET") return;
+  
+  // Ignore non-GET requests and chrome-extension:// schemes
+  if (request.method !== "GET" || request.url.startsWith('chrome-extension://')) return;
 
   if (request.destination === "document") {
     event.respondWith(
@@ -35,7 +37,7 @@ self.addEventListener("fetch", (event) => {
           caches.open(DOCUMENT_CACHE).then((cache) => cache.put(request, clone));
           return response;
         })
-        .catch(() => caches.match(request)),
+        .catch(() => caches.match(request))
     );
     return;
   }
@@ -43,13 +45,23 @@ self.addEventListener("fetch", (event) => {
   if (isStaticAsset(request)) {
     event.respondWith(
       caches.match(request).then((cached) => {
-        const networkFetch = fetch(request).then((response) => {
-          const clone = response.clone();
-          caches.open(STATIC_CACHE).then((cache) => cache.put(request, clone));
-          return response;
-        });
+        const networkFetch = fetch(request)
+          .then((response) => {
+            // Check if valid response before caching
+            if (!response || response.status !== 200 || response.type !== 'basic') {
+              return response;
+            }
+            const clone = response.clone();
+            caches.open(STATIC_CACHE).then((cache) => cache.put(request, clone));
+            return response;
+          })
+          .catch((err) => {
+            console.warn('[SW] Fetch failed (offline):', err);
+            return new Response('', { status: 503, statusText: 'Service Unavailable' });
+          });
         return cached || networkFetch;
-      }),
+      })
     );
   }
 });
+

@@ -1,0 +1,18 @@
+SECTION L: INSTRUCTIONS TO OFFERORS
+1. General
+The Defense Health Agency (DHA) seeks a solution for the Video Imaging Archive.
+
+2. Security Requirements
+L.2.1 Authority to Operate (ATO). The contractor shall provide proof of an existing Authority to Operate (ATO) at IL4 or higher. Proof of ATO must be included in Volume I.
+L.2.2 SPRS Score. The contractor must have an active NIST SP 800-171 DoD Assessment in SPRS.
+
+3. Submission
+L.3.1 Proposals must be submitted via the PIEE portal no later than May 20, 2024, 12:00 PM EST.
+
+SECTION M: EVALUATION FACTORS
+1. Basis of Award
+The Government will award a contract resulting from this solicitation to the responsible offeror whose proposal represents the best value.
+
+2. Technical Factors
+M.2.1 The Government will evaluate the offeror's approach to achieving the required Authority to Operate (ATO).
+M.2.2 Past Performance will be evaluated based on at least three (3) references for similar healthcare IT projects over $5M in the past five years.
