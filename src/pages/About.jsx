@@ -1,6 +1,7 @@
 import React from 'react';
 import { Briefcase, Users, Building2, Globe, Shield, Rocket, Target } from 'lucide-react';
 import NavBar from '../components/dashboard/NavBar';
+import '../styles/Dashboard.css';
 import './About.css';
 
 const MISSION_VALUES = [
