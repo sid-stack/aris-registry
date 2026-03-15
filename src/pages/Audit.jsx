@@ -219,8 +219,6 @@ export default function Audit({ onBack }) {
             <div style={{ fontSize: '11px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '12px', paddingLeft: '4px' }}>Try one of these:</div>
             <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '12px', scrollbarWidth: 'none' }}>
               <RecommendCard title="Video Archive" url="https://sam.gov/opp/0c17537b925b4be98e3575ed19520b72/view" onClick={startAudit} />
-              <RecommendCard title="NASA Pipeline" url="https://sam.gov/opp/NASA-2024-IP/view" onClick={startAudit} />
-              <RecommendCard title="Cloud Mod II" url="https://sam.gov/opp/VA-CLOUD-MOD-2024/view" onClick={startAudit} />
             </div>
           </div>
 
