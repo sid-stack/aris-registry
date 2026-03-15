@@ -137,12 +137,13 @@ body {
 .brand-text {
   font-family: 'Space Mono', monospace;
   font-weight: 700;
-  font-size: 12px;
+  font-size: 11px;
   letter-spacing: 0.05em;
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: none;
 }
 
 .beta-badge {
@@ -202,6 +203,11 @@ body {
 .nav-button.copied {
   color: var(--success);
   border-color: var(--success);
+}
+
+.nav-button:nth-of-type(3),
+.nav-button:nth-of-type(4) {
+  display: none;
 }
 
 .mobile-menu-toggle {
@@ -271,6 +277,16 @@ body {
   
   .nav-btn-label {
     display: inline;
+  }
+  
+  .brand-text {
+    display: inline;
+    font-size: 12px;
+  }
+  
+  .nav-button:nth-of-type(3),
+  .nav-button:nth-of-type(4) {
+    display: flex;
   }
   
   .back-label {
