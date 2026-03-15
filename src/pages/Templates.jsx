@@ -48,7 +48,7 @@ Bidsmith Ltd. (hereinafter "Provider")
 | Pilot | $2,500 / 30 days | Includes onboarding + 5,000 calls |
 | Enterprise | Custom | Contracted terms |
 
-Payments are to be made via Stripe or wire transfer to the account listed on the invoice.
+Payments are to be made via wire transfer to the account listed on the invoice.
 
 ## 3. Confidentiality
 Both parties agree to keep all non-public information confidential and to use it solely for the purpose of this pilot.
