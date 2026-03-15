@@ -337,7 +337,7 @@ const ARISChat = ({ selectedContext, onLog, onCommand, reportData }) => {
               )}
             </div>
             <div className="message-content">
-              {msg.isPredictive ? (
+              {msg.role === 'assistant' ? (
                 <ReactMarkdown 
                   remarkPlugins={[remarkGfm]} 
                   components={{
@@ -350,6 +350,14 @@ const ARISChat = ({ selectedContext, onLog, onCommand, reportData }) => {
                     ul: ({ children }) => <ul style={{ marginBottom: '12px', paddingLeft: '20px', color: 'var(--text-primary)' }}>{children}</ul>,
                     ol: ({ children }) => <ol style={{ marginBottom: '12px', paddingLeft: '20px', color: 'var(--text-primary)' }}>{children}</ol>,
                     li: ({ children }) => <li style={{ marginBottom: '6px', lineHeight: 1.5 }}>{children}</li>,
+                    table: ({ children }) => (
+                      <div style={{ overflowX: 'auto', margin: '16px 0', border: '1px solid var(--border)', borderRadius: '8px' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>{children}</table>
+                      </div>
+                    ),
+                    thead: ({ children }) => <thead style={{ background: 'var(--nav-bg)', borderBottom: '2px solid var(--border)' }}>{children}</thead>,
+                    th: ({ children }) => <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 700, color: 'var(--text-primary)' }}>{children}</th>,
+                    td: ({ children }) => <td style={{ padding: '10px 12px', borderBottom: '1px solid var(--border)', color: 'var(--text-secondary)' }}>{children}</td>,
                     blockquote: ({ children }) => (
                       <blockquote style={{ 
                         margin: '12px 0', 
