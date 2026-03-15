@@ -328,7 +328,7 @@ export default function Landing({ onEnterApp, onViewSample }) {
           <header style={styles.navbar}>
             <div style={styles.navInner}>
               <a href="/" className="brand-link" style={styles.brand}>
-                <img src="/aris-logo.png" alt="Aris" className="brand-logo" style={{ height: 22, width: 22, objectFit: "contain" }} />
+                <img src="/aris-logo.png" alt="Aris" className="brand-logo" style={{ height: 28, width: 28, objectFit: "contain" }} />
                 <span className="brand-name">BidSmith</span>
               </a>
               <nav className="landing-nav-links">

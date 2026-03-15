@@ -14,24 +14,27 @@ const NavBar = ({ theme, onToggleTheme, onBack }) => {
   };
 
   const handleShare = () => {
-    const url  = window.location.href;
-    const text = 'BidSmith Intelligence Report — DHA Video Imaging Archive (DHANOISS022426). Pre-bid risk analysis via ARIS Protocol.';
+    const url = window.location.origin + window.location.pathname;
     if (navigator.share) {
-      navigator.share({ title: 'BidSmith Intelligence Report', text, url }).catch(() => {});
+      navigator.share({ 
+        title: 'BidSmith Intelligence Report', 
+        url 
+      }).catch(() => {});
     } else {
       window.open(
-        `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
+        `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}`,
         '_blank', 'noopener,noreferrer'
       );
     }
   };
 
   const handleCopyLink = async () => {
+    const url = window.location.origin + window.location.pathname;
     try {
-      await navigator.clipboard.writeText(window.location.href);
+      await navigator.clipboard.writeText(url);
     } catch {
       const ta = document.createElement('textarea');
-      ta.value = window.location.href;
+      ta.value = url;
       document.body.appendChild(ta);
       ta.select();
       document.execCommand('copy');
@@ -67,22 +70,26 @@ const NavBar = ({ theme, onToggleTheme, onBack }) => {
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
-      padding: '0 16px',
-      height: '52px',
+      padding: '0 24px',
+      height: '68px',
       background: 'var(--nav-bg)',
       borderBottom: '1px solid var(--nav-border)',
       position: 'sticky',
       top: 0,
       zIndex: 100,
-      gap: '8px',
-      overflow: 'hidden',
+      gap: '20px',
     }}>
 
       {/* Brand */}
-      <div className="navbar-brand">
+      <a href="/" className="navbar-brand-link" style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: '14px', 
+        textDecoration: 'none',
+      }}>
         {onBack && (
           <button 
-            onClick={onBack}
+            onClick={(e) => { e.preventDefault(); onBack(); }}
             style={{
               background: 'transparent',
               border: 'none',
@@ -90,31 +97,40 @@ const NavBar = ({ theme, onToggleTheme, onBack }) => {
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              padding: '0 8px 0 0',
+              padding: '0 16px 0 0',
               marginRight: '8px',
               borderRight: '1px solid var(--nav-border)',
-              minHeight: '44px'
+              height: '32px',
+              transition: 'color 0.2s ease'
             }}
             aria-label="Back to home"
           >
-            <ArrowLeft size={18} />
+            <ArrowLeft size={22} />
           </button>
         )}
-        <Shield size={15} color="#1e7fff" style={{ flexShrink: 0 }} />
-        <span style={{
-          fontFamily: "'Space Mono', monospace",
-          fontWeight: 700, fontSize: '12px', letterSpacing: '0.05em', color: '#d4e4f7',
-          whiteSpace: 'nowrap',
-        }}>
-          BIDSMITH <span style={{ color: '#1e7fff' }}>INTEL</span>
-        </span>
-        <span className="hide-mobile" style={{
-          background: 'rgba(30,127,255,0.1)', border: '1px solid rgba(30,127,255,0.3)',
-          color: '#1e7fff', fontSize: '9px', padding: '2px 6px', borderRadius: '2px',
-          letterSpacing: '0.1em', fontFamily: "'Space Mono', monospace", fontWeight: 700,
-          flexShrink: 0,
-        }}>BETA</span>
-      </div>
+        <div className="brand-logo-zoom" style={{ display: 'flex', alignItems: 'center', transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)' }}>
+          <Shield size={24} color="#1e7fff" style={{ flexShrink: 0 }} />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span className="brand-name-nav" style={{
+            fontFamily: "'Inter', sans-serif",
+            fontWeight: 800, 
+            fontSize: '1.25rem', 
+            letterSpacing: '-0.02em', 
+            color: '#ffffff',
+            whiteSpace: 'nowrap',
+            transition: 'color 0.2s ease, transform 0.2s ease'
+          }}>
+            BidSmith <span style={{ color: '#1e7fff', fontFamily: "'Space Mono', monospace", fontSize: '0.9rem', letterSpacing: '0.1em', marginLeft: '4px' }}>INTEL</span>
+          </span>
+          <span className="hide-mobile" style={{
+            background: 'rgba(30,127,255,0.1)', border: '1px solid rgba(30,127,255,0.3)',
+            color: '#1e7fff', fontSize: '10px', padding: '2px 8px', borderRadius: '4px',
+            letterSpacing: '0.1em', fontFamily: "'Space Mono', monospace", fontWeight: 800,
+            flexShrink: 0,
+          }}>BETA</span>
+        </div>
+      </a>
 
       {/* Actions */}
       <div className="navbar-actions">
