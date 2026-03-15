@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
-constSOLICITATIONS = {
+const SOLICITATIONS = {
   "dha-video-archive": {
     title: "DHA Video Imaging Archive Solicitation",
     id: "HT9402-24-R-0012",
