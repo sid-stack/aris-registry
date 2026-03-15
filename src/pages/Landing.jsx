@@ -49,21 +49,42 @@ const benefits = [
 
 const steps = [
   {
-    title: "Vault Handshake",
-    description: "Aris issues a short-lived Zero Token to initiate the session without exposing your sensitive payload.",
-    icon: <KeyRound size={42} color="#4f46e5" />,
+    title: "Aris Protocol Agent",
+    description: "Manages the back-and-forth of compliance verification—automatically resolving missing docs and technical discrepancies to deliver high-quality bid sets.",
+    icon: <Shield size={42} color="#4f46e5" />,
   },
   {
-    title: "Stateless Bridge",
-    description: "Analyses occur over a non-persistent bridge—we route the logic but never store a single byte of bid data.",
-    icon: <Rocket size={42} color="#4f46e5" />,
-  },
-  {
-    title: "Cryptographic Purge",
-    description: "Upon task completion, all session memory is wiped. Your intellectual property remains Sovereign and Local.",
-    icon: <BadgeCheck size={42} color="#4f46e5" />,
+    title: "Compliance Sniper",
+    description: "Agentic Vision AI that reads solicitations the way your best analyst would, then extracts every FAR/DFARS field and flags risk signals with 0 manual input.",
+    icon: <FileText size={42} color="#4f46e5" />,
   },
 ];
+
+const platformMetrics = [
+  { label: "Extraction Accuracy", value: "98%" },
+  { label: "Processing Speed", value: "<30s", sub: "Per Document" },
+  { label: "Compliance Coverage", value: "100+", sub: "Reg Patterns" },
+];
+
+const problemPoints = [
+  {
+    title: "Endless Back-and-Forth",
+    description: "Incomplete source documents and missing annexes trigger rounds of tedious verification that drag turnaround times out to weeks.",
+  },
+  {
+    title: "Manual Review",
+    description: "Analysts pull data points by hand from complex formats that change across every agency. Human error compounds into slow approval times.",
+  },
+  {
+    title: "No Ground Truth",
+    description: "Government solicitation portals can be unstable or confusing. There is no single source of truth to verify compliance against.",
+  },
+  {
+    title: "Legacy Tools Break",
+    description: "Legacy OCR fails on scanned PDFs and messy tables. Generic AI misses subtle risk patterns unique to federal contracting.",
+  },
+];
+
 
 const heroStats = [
   { label: "Audit Turnaround", value: "4 Hours" },
@@ -332,71 +353,139 @@ export default function Landing({ onEnterApp, onViewSample }) {
                 <span className="brand-name">BidSmith</span>
               </a>
               <nav className="landing-nav-links">
-                <a href="#features" style={styles.navLink}>Features</a>
+                <a href="#solutions" style={styles.navLink}>Solutions</a>
                 <a href="/soc" style={styles.navLink}>Security</a>
-                <a href="#pricing" style={styles.navLink}>Pricing</a>
+                <a href="#markets" style={styles.navLink}>Markets</a>
+                <a href="#about" style={styles.navLink}>About</a>
                 <a href="https://docs.bidsmith.pro" target="_blank" rel="noopener noreferrer" style={styles.navLink}>Docs</a>
               </nav>
-              <button
-                type="button"
-                aria-label="Start free trial checkout"
-                style={styles.navCta}
-                onClick={handleStartTrial}
-                disabled={isProcessing}
-              >
-                Start Free
-              </button>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button style={styles.secondaryNavCta} onClick={handleStartTrial}>Try Aris</button>
+                <button style={styles.navCta} onClick={handleEnterpriseContact}>Request Demo</button>
+              </div>
             </div>
           </header>
-          <section className="landing-hero" style={styles.heroTerminalSection}>
+
+          <section className="landing-hero" style={styles.heroSection}>
             <div style={styles.heroInnerFull}>
-              <div style={styles.terminalContainerFull}>
-                <div style={styles.terminalHeader}>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#333' }} />
-                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#333' }} />
-                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#333' }} />
-                  </div>
-                  <span style={{ fontSize: '11px', color: '#52525b', fontFamily: 'Space Mono', letterSpacing: '0.1em' }}>ARIS_OS_TERMINAL_v1.1</span>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                     <Shield size={10} color="#3b82f6" />
-                     <span style={{ fontSize: '9px', color: '#3f3f46' }}>STATELESS_ENCRYPTION_ACTIVE</span>
-                  </div>
-                </div>
-                <div style={styles.terminalBodyFull}>
-                   <TerminalSequence />
-                </div>
+              {/* Trust Badge */}
+              <div style={styles.ycBadge}>
+                <span style={{ fontWeight: 800 }}>ARIS GEN 2</span>
+                <span style={{ color: '#52525b', marginLeft: '8px' }}>Sovereign Infrastructure For Federal Intel</span>
               </div>
 
-              <div style={{ ...styles.heroInner, marginTop: '40px' }}>
-                <h1 style={{ ...styles.title, fontSize: '2.5rem' }}>The First Zero-Knowledge Defense Workbench</h1>
-                <p style={styles.subtitle}>
-                  Automate the 40-hour RFP shred in 90 seconds with absolute **Data Sovereignty**.
-                </p>
-                <div style={styles.heroActions}>
-                  <button onClick={onViewSample} style={styles.secondaryCta}>View Demo Audit</button>
-                  <button onClick={handleWorkspaceOpen} style={styles.secondaryCta}>Open Workspace</button>
+              <h1 style={styles.megaTitle}>Sovereign Intelligence for Mission-Critical Federal Analysis.</h1>
+              <p style={styles.megaSubtitle}>
+                Aris streamlines solicitation analysis and transforms messy RFP documents into clean compliance matrices, using best-in-class agentic AI protocols. Cut turnaround times by 90%.
+              </p>
+
+              <div style={styles.heroActions}>
+                <button onClick={handleEnterpriseContact} style={styles.primaryMegaCta}>Request a Demo</button>
+                <button onClick={() => window.open('https://docs.bidsmith.pro', '_blank')} style={styles.secondaryMegaCta}>View Documentation</button>
+              </div>
+
+              {/* Stats Bar */}
+              <div style={styles.statsBar}>
+                {platformMetrics.map((m, i) => (
+                  <div key={i} style={styles.statItem}>
+                    <div style={styles.statValue}>{m.value}</div>
+                    <div style={styles.statLabel}>
+                      {m.label}
+                      {m.sub && <span style={styles.statSub}>{m.sub}</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          <section id="solutions" style={styles.sectionDark} data-reveal>
+            <div style={styles.sectionInner}>
+              <p style={styles.sectionEyebrow}>The Problem</p>
+              <h2 style={styles.sectionTitleLarge}>Documents are still the source of truth for GovCon.</h2>
+              <p style={styles.sectionSubtitle}>Manual underwriting for federal contracts remains legacy, manual, and prone to error. Aris replaces manual document review end-to-end.</p>
+              
+              <div style={styles.problemGrid}>
+                {problemPoints.map((p, i) => (
+                  <div key={i} style={styles.problemCard}>
+                    <div style={styles.problemIcon}>0{i+1}</div>
+                    <h3 style={styles.problemTitle}>{p.title}</h3>
+                    <p style={styles.problemText}>{p.description}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          <section style={styles.sectionMuted} data-reveal>
+            <div style={styles.sectionInner}>
+              <p style={styles.sectionEyebrow}>The Platform</p>
+              <h2 style={styles.sectionTitleLarge}>Collect. Verify. Decide. In seconds.</h2>
+              <p style={styles.sectionSubtitle}>Two protocols that replace manual document review end-to-end. Aris Protocol Agent handles compliance verification while Compliance Sniper extracts structured data.</p>
+              
+              <div style={styles.productGrid}>
+                <div style={styles.productCard}>
+                  <div style={styles.productBadge}>PROTOCOL AGENT</div>
+                  <h3 style={styles.productTitle}>Aris Protocol Agent</h3>
+                  <p style={styles.productText}>Manages the back-and-forth of solicitation verification in bid origination—delivering high-quality applications and rich data inputs.</p>
+                  <button style={styles.productLink} onClick={onViewSample}>See Sample Workflow →</button>
+                </div>
+                <div style={styles.productCard}>
+                  <div style={styles.productBadge}>COMPLIANCE SNIPER</div>
+                  <h3 style={styles.productTitle}>Compliance Sniper</h3>
+                  <p style={styles.productText}>Agentic AI that reads documents the way your best analyst would, then extracts every field and flags risk signals calibrated to FedRAMP/FAR.</p>
+                  <button style={styles.productLink} onClick={onEnterApp}>Trial Capture →</button>
                 </div>
               </div>
             </div>
           </section>
 
-          <section id="activity" style={styles.sectionMuted} data-reveal>
+          <section id="markets" style={styles.sectionDark} data-reveal>
             <div style={styles.sectionInner}>
-              <p style={styles.sectionEyebrow}>Platform Activity</p>
-              <h2 style={styles.sectionTitle}>BidSmith Activity</h2>
-              <div className="landing-activity-grid">
-                <div style={styles.activityStat}>
-                  <h3 style={styles.activityNumber}>17</h3>
-                  <p style={styles.activityLabel}>Reports Generated Today</p>
+              <p style={styles.sectionEyebrow}>Global Reach</p>
+              <h2 style={styles.sectionTitleLarge}>Where we operate.</h2>
+              <div style={styles.reachGrid}>
+                <div style={styles.reachCard}>
+                  <div style={styles.reachStatus}>LIVE</div>
+                  <h3 style={styles.reachTitle}>US DOD & IC</h3>
+                  <p style={styles.reachText}>Sovereign infrastructure for mission-critical mission support and intelligence analysis.</p>
                 </div>
-                <div style={styles.activityStat}>
-                  <h3 style={styles.activityNumber}>83s</h3>
-                  <p style={styles.activityLabel}>Average Analysis Time</p>
+                <div style={styles.reachCard}>
+                  <div style={styles.reachStatus}>ACTIVE</div>
+                  <h3 style={styles.reachTitle}>Civilian Agencies</h3>
+                  <p style={styles.reachText}>Modernizing document extraction for major federal civilian departments and legacy systems.</p>
                 </div>
-                <div style={styles.activityStat}>
-                  <h3 style={styles.activityNumber}>12</h3>
-                  <p style={styles.activityLabel}>Solicitations Processed</p>
+                <div style={styles.reachCard}>
+                  <div style={styles.reachStatusAlt}>COMING SOON</div>
+                  <h3 style={styles.reachTitle}>Intelligence Labs</h3>
+                  <p style={styles.reachText}>Next-gen edge computing protocols for disconnected environments and tactical analysis.</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+
+          <section id="solutions" style={styles.sectionDark} data-reveal>
+            <div style={styles.sectionInner}>
+              <p style={styles.sectionEyebrow}>Why Aris</p>
+              <h2 style={styles.sectionTitleLarge}>Built for the reality of federal contracting.</h2>
+              <p style={styles.sectionSubtitle}>Standard AI was never trained on your solicitation documents. Aris's Vision AI understands every format—with the intuition of your best analyst.</p>
+              
+              <div style={styles.problemGrid}>
+                <div style={styles.problemCard}>
+                  <div style={styles.problemIcon}>01</div>
+                  <h3 style={styles.problemTitle}>Any Document, Any Quality</h3>
+                  <p style={styles.problemText}>Handwritten ledgers, blurry phone captures, and nested PDF annexes. Aris doesn't just read documents—it understands them.</p>
+                </div>
+                <div style={styles.problemCard}>
+                  <div style={styles.problemIcon}>02</div>
+                  <h3 style={styles.problemTitle}>Every Agency Format</h3>
+                  <p style={styles.problemText}>DOD, IC, Civilian, and GSA. From any agency, any portal. One API that speaks every federal format.</p>
+                </div>
+                <div style={styles.problemCard}>
+                  <div style={styles.problemIcon}>03</div>
+                  <h3 style={styles.problemTitle}>Hyperlocal Signals</h3>
+                  <p style={styles.problemText}>Risk flags, FAR compliance scores, and past performance verification calibrated to federal standards, not generic defaults.</p>
                 </div>
               </div>
             </div>
@@ -525,59 +614,56 @@ export default function Landing({ onEnterApp, onViewSample }) {
           <FaqSection />
 
           <footer id="contact" style={styles.footer}>
-            <div className="footer-inner" style={styles.footerInner}>
-              <div className="footer-section brand-section">
-                <p className="footer-logo-text" style={styles.footerBrand}>BidSmith</p>
-                <div style={{ display: 'flex', gap: '16px', marginTop: '16px', justifyContent: isMobile ? 'center' : 'flex-start' }}>
-                  <a href="https://linkedin.com/company/aris-labs" target="_blank" rel="noopener noreferrer" className="footer-social-link" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Linkedin size={14} />
-                    LinkedIn
-                  </a>
-                  <a href="https://github.com/ARIS-Labs-HQ" target="_blank" rel="noopener noreferrer" className="footer-social-link" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Github size={14} />
-                    GitHub
-                  </a>
+            <div className="footer-inner" style={styles.footerGrid}>
+              <div className="footer-brand-col">
+                <p style={styles.footerBrandLogo}>BidSmith</p>
+                <p style={styles.footerTagline}>
+                  Vision AI agents that collect, verify, and analyze federal solicitations, so contractors close faster and lower risk.
+                </p>
+                <div style={styles.addressBlock}>
+                  <p style={styles.footerAddress}>Labs Headquarters</p>
+                  <p style={styles.footerAddress}>High-Sovereignty Node</p>
                 </div>
-                <a
-                  href="mailto:sid@bidsmith.pro"
-                  className="footer-contact-link"
-                  style={{ ...styles.footerLink, marginTop: '16px', display: 'block', fontWeight: 700 }}
-                  onClick={() => trackEvent("support_email_click", { source: "landing_footer" })}
-                >
-                  sid@bidsmith.pro
-                </a>
               </div>
-              <div className="footer-section">
-                <p className="footer-heading" style={styles.footerHeading}>Sovereignty Protocol</p>
-                <a href="/soc" className="footer-link" style={styles.footerLink}>Security Protocol</a>
-                <a href="/privacy" className="footer-link" style={styles.footerLink}>Privacy Policy</a>
-                <a href="/terms" className="footer-link" style={styles.footerLink}>Terms of Service</a>
-                <a href="/cookies" className="footer-link" style={styles.footerLink}>Cookie Policy</a>
-                <a href="https://docs.bidsmith.pro" target="_blank" rel="noopener noreferrer" className="footer-link" style={styles.footerLink}>Developer Docs</a>
+
+              <div className="footer-links-col">
+                <p style={styles.footerHeading}>Product</p>
+                <a href="#solutions" style={styles.footerLink}>Aris Protocol Agent</a>
+                <a href="#solutions" style={styles.footerLink}>Compliance Sniper</a>
+                <a href="https://docs.bidsmith.pro" target="_blank" rel="noopener noreferrer" style={styles.footerLink}>Documentation</a>
               </div>
-              <div className="footer-section pipeline-section">
-                <p className="footer-heading" style={styles.footerHeading}>Agentic Pipeline</p>
-                <a href="#pricing" className="footer-link" style={styles.footerLink}>Execution Model</a>
-                <div className="pipeline-status" style={{ marginTop: '16px' }}>
-                  <p style={{ ...styles.footerText, color: '#3f3f46', fontSize: '10px', fontWeight: 700, letterSpacing: '0.05em' }}>
-                    ARIS_BRIDGE_CONNECTED
-                  </p>
-                  <p style={{ ...styles.footerText, color: '#22c55e', fontSize: '10px', fontWeight: 800, letterSpacing: '0.1em' }}>
-                    STATELESS_PURGE: OK
-                  </p>
+
+              <div className="footer-links-col">
+                <p style={styles.footerHeading}>Company</p>
+                <a href="#about" style={styles.footerLink}>About</a>
+                <a href="#solutions" style={styles.footerLink}>Solutions</a>
+                <a href="/soc" style={styles.footerLink}>Security</a>
+                <a href="mailto:sid@bidsmith.pro" style={styles.footerLink}>Contact</a>
+              </div>
+
+              <div className="footer-links-col">
+                <p style={styles.footerHeading}>Markets</p>
+                <a href="#markets" style={styles.footerLink}>US DOD & IC</a>
+                <a href="#markets" style={styles.footerLink}>Civilian Agencies</a>
+                <a href="#markets" style={styles.footerLink}>Intelligence Labs</a>
+              </div>
+
+              <div className="footer-links-col">
+                <p style={styles.footerHeading}>Legal</p>
+                <a href="/privacy" style={styles.footerLink}>Privacy Policy</a>
+                <a href="/terms" style={styles.footerLink}>Terms of Service</a>
+                <div style={styles.footerSocials}>
+                   <a href="https://linkedin.com/company/aris-labs" style={styles.footerSocialIcon}><Linkedin size={16} /></a>
+                   <a href="https://github.com/ARIS-Labs-HQ" style={styles.footerSocialIcon}><Github size={16} /></a>
                 </div>
               </div>
             </div>
-            <div style={{ textAlign: 'center', padding: '20px 0', borderTop: '1px solid #1a1a1a', marginTop: '40px' }}>
-               <p style={{ fontSize: '10px', color: '#27272a', letterSpacing: '0.1em', marginBottom: '8px' }}>
-                 BUILT BY ARIS LABS
-               </p>
-               <p style={{ fontSize: '10px', color: '#52525b', letterSpacing: '0.05em', marginBottom: '4px' }}>
-                 Copyright 2026 Bidsmith Ltd. All rights reserved.
-               </p>
-               <p style={{ fontSize: '10px', color: '#3f3f46', letterSpacing: '0.05em' }}>
-                 {pstTime}
-               </p>
+
+            <div style={styles.footerBottom}>
+              <p style={styles.footerCopyright}>
+                © 2026 Aris Labs. Backed by Federal Intelligence Standards.
+              </p>
+              <p style={styles.footerTime}>{pstTime}</p>
             </div>
           </footer>
         </>
@@ -630,9 +716,244 @@ const styles = {
     borderRadius: 999,
     padding: "8px 16px",
     fontWeight: 700,
+    fontSize: "0.85rem",
     cursor: "pointer",
     whiteSpace: "nowrap",
-    marginLeft: "auto",
+  },
+  secondaryNavCta: {
+    background: "transparent",
+    color: "#ffffff",
+    border: "1px solid rgba(255,255,255,0.1)",
+    borderRadius: 999,
+    padding: "8px 16px",
+    fontWeight: 600,
+    fontSize: "0.85rem",
+    cursor: "pointer",
+    transition: "all 0.2s ease",
+  },
+  heroSection: {
+    padding: "100px 24px 80px",
+    background: "#000000",
+    textAlign: "center",
+    borderBottom: "1px solid #141416",
+  },
+  heroInnerFull: {
+    maxWidth: 1200,
+    margin: "0 auto",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+  },
+  megaTitle: {
+    fontSize: "clamp(2.5rem, 8vw, 5rem)",
+    fontWeight: 900,
+    lineHeight: 1,
+    letterSpacing: "-0.04em",
+    color: "#ffffff",
+    margin: "24px 0",
+    maxWidth: 1000,
+  },
+  megaSubtitle: {
+    fontSize: "clamp(1rem, 2vw, 1.25rem)",
+    color: "#71717a",
+    lineHeight: 1.6,
+    maxWidth: 720,
+    margin: "0 auto 40px",
+  },
+  ycBadge: {
+    display: "inline-flex",
+    alignItems: "center",
+    padding: "6px 16px",
+    background: "#0c0c0e",
+    border: "1px solid #141416",
+    borderRadius: 999,
+    fontSize: "11px",
+    letterSpacing: "0.05em",
+    fontFamily: "'Space Mono', monospace",
+  },
+  primaryMegaCta: {
+    background: "#3b82f6",
+    color: "#ffffff",
+    padding: "16px 32px",
+    borderRadius: 12,
+    fontWeight: 700,
+    fontSize: "1.05rem",
+    border: "none",
+    cursor: "pointer",
+    boxShadow: "0 0 20px rgba(59, 130, 246, 0.4)",
+  },
+  secondaryMegaCta: {
+    background: "transparent",
+    color: "#ffffff",
+    padding: "16px 32px",
+    borderRadius: 12,
+    fontWeight: 700,
+    fontSize: "1.05rem",
+    border: "1px solid #141416",
+    cursor: "pointer",
+  },
+  statsBar: {
+    display: "flex",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    gap: "60px",
+    marginTop: "80px",
+    width: "100%",
+  },
+  statItem: {
+    textAlign: "center",
+  },
+  statValue: {
+    fontSize: "2.5rem",
+    fontWeight: 900,
+    color: "#ffffff",
+    letterSpacing: "-0.02em",
+  },
+  statLabel: {
+    fontSize: "0.85rem",
+    color: "#71717a",
+    marginTop: "4px",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+  },
+  statSub: {
+    fontSize: "0.75rem",
+    opacity: 0.6,
+  },
+  sectionDark: {
+    padding: "100px 24px",
+    background: "#000000",
+  },
+  sectionTitleLarge: {
+    fontSize: "clamp(2rem, 5vw, 3.5rem)",
+    fontWeight: 900,
+    letterSpacing: "-0.03em",
+    color: "#ffffff",
+    textAlign: "center",
+    maxWidth: 800,
+    margin: "0 auto 24px",
+    lineHeight: 1.1,
+  },
+  sectionSubtitle: {
+    fontSize: "1.1rem",
+    color: "#71717a",
+    textAlign: "center",
+    maxWidth: 600,
+    margin: "0 auto 60px",
+    lineHeight: 1.6,
+  },
+  problemGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+    gap: "32px",
+    marginTop: "40px",
+  },
+  problemCard: {
+    padding: "32px",
+    background: "#0c0c0e",
+    border: "1px solid #141416",
+    borderRadius: 20,
+    transition: "all 0.3s ease",
+  },
+  problemIcon: {
+    fontSize: "0.85rem",
+    fontFamily: "'Space Mono', monospace",
+    color: "#3b82f6",
+    marginBottom: "24px",
+  },
+  problemTitle: {
+    fontSize: "1.25rem",
+    fontWeight: 800,
+    color: "#ffffff",
+    marginBottom: "16px",
+  },
+  problemText: {
+    fontSize: "0.95rem",
+    color: "#71717a",
+    lineHeight: 1.6,
+  },
+  productGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+    gap: "40px",
+  },
+  productCard: {
+    padding: "48px",
+    background: "#09090b",
+    border: "1px solid #141416",
+    borderRadius: 24,
+    textAlign: "left",
+  },
+  productBadge: {
+    display: "inline-block",
+    padding: "4px 12px",
+    background: "rgba(59, 130, 246, 0.1)",
+    border: "1px solid rgba(59, 130, 246, 0.2)",
+    color: "#3b82f6",
+    fontSize: "10px",
+    fontWeight: 800,
+    borderRadius: 4,
+    marginBottom: "24px",
+    letterSpacing: "0.1em",
+  },
+  productTitle: {
+    fontSize: "2rem",
+    fontWeight: 900,
+    color: "#ffffff",
+    marginBottom: "16px",
+    letterSpacing: "-0.02em",
+  },
+  productText: {
+    fontSize: "1.1rem",
+    color: "#71717a",
+    lineHeight: 1.6,
+    marginBottom: "32px",
+  },
+  productLink: {
+    background: "none",
+    border: "none",
+    color: "#3b82f6",
+    fontWeight: 700,
+    fontSize: "1rem",
+    cursor: "pointer",
+    padding: 0,
+  },
+  reachGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+    gap: "24px",
+  },
+  reachCard: {
+    padding: "32px",
+    background: "#09090b",
+    border: "1px solid #141416",
+    borderRadius: 16,
+  },
+  reachStatus: {
+    color: "#22c55e",
+    fontSize: "11px",
+    fontWeight: 800,
+    letterSpacing: "0.1em",
+    marginBottom: "12px",
+  },
+  reachStatusAlt: {
+    color: "#71717a",
+    fontSize: "11px",
+    fontWeight: 800,
+    letterSpacing: "0.1em",
+    marginBottom: "12px",
+  },
+  reachTitle: {
+    fontSize: "1.5rem",
+    fontWeight: 800,
+    color: "#ffffff",
+    marginBottom: "12px",
+  },
+  reachText: {
+    fontSize: "0.95rem",
+    color: "#71717a",
+    lineHeight: 1.6,
   },
   page: {
     minHeight: "100vh",
@@ -929,26 +1250,84 @@ const styles = {
   },
   inlineLink: { color: "#4338ca", textDecoration: "none", fontWeight: 600 },
   footer: {
-    background: "#0f172a",
-    borderTop: "1px solid #1e293b",
-    padding: "34px 20px 80px", /* Extra bottom padding for readability */
+    padding: "80px 24px 40px",
+    background: "#000000",
+    borderTop: "1px solid #141416",
   },
-  footerInner: {
-    maxWidth: 1120,
+  footerGrid: {
+    maxWidth: 1200,
     margin: "0 auto",
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-    gap: 22,
+    gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+    gap: "40px",
   },
-  footerBrand: { margin: "0 0 8px", color: "#ffffff", fontWeight: 800, fontSize: "1.1rem" },
-  footerText: { margin: "0 0 8px", color: "#94a3b8", fontSize: "0.9rem", lineHeight: 1.5 },
-  footerHeading: { margin: "0 0 10px", color: "#cbd5e1", fontWeight: 700, fontSize: "0.9rem" },
+  footerBrandLogo: {
+    fontSize: "1.5rem",
+    fontWeight: 900,
+    color: "#ffffff",
+    letterSpacing: "-0.02em",
+    marginBottom: "16px",
+  },
+  footerTagline: {
+    fontSize: "0.9rem",
+    color: "#71717a",
+    lineHeight: 1.6,
+    maxWidth: 240,
+    marginBottom: "24px",
+  },
+  addressBlock: {
+    marginTop: "24px",
+  },
+  footerAddress: {
+    fontSize: "0.8rem",
+    color: "#3f3f46",
+    margin: "4px 0",
+    fontFamily: "'Space Mono', monospace",
+  },
+  footerHeading: {
+    fontSize: "0.75rem",
+    fontWeight: 800,
+    textTransform: "uppercase",
+    letterSpacing: "0.1em",
+    color: "#3b82f6",
+    marginBottom: "20px",
+  },
   footerLink: {
-    color: "#e2e8f0",
-    textDecoration: "none",
-    fontSize: "0.92rem",
     display: "block",
-    marginBottom: 8,
+    fontSize: "0.9rem",
+    color: "#71717a",
+    textDecoration: "none",
+    marginBottom: "12px",
+    transition: "color 0.2s ease",
+  },
+  footerSocials: {
+    display: "flex",
+    gap: "16px",
+    marginTop: "20px",
+  },
+  footerSocialIcon: {
+    color: "#3f3f46",
+    transition: "color 0.2s ease",
+  },
+  footerBottom: {
+    maxWidth: 1200,
+    margin: "60px auto 0",
+    paddingTop: "32px",
+    borderTop: "1px solid #141416",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: "16px",
+  },
+  footerCopyright: {
+    fontSize: "0.8rem",
+    color: "#3f3f46",
+  },
+  footerTime: {
+    fontSize: "0.8rem",
+    color: "#3f3f46",
+    fontFamily: "'Space Mono', monospace",
   },
   terminalContainerFull: {
     width: "100%",
