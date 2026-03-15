@@ -3,9 +3,63 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
-import "katex/dist/katex.min.css";
 import { createCheckoutSession } from "../lib/stripe";
 import { createArisCallSession } from "../lib/stripe";
+
+// Error boundary component
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('Audit component error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ 
+          padding: '40px', 
+          textAlign: 'center', 
+          background: '#fff', 
+          border: '1px solid #e2e8f0', 
+          borderRadius: '8px',
+          margin: '20px'
+        }}>
+          <div style={{ fontSize: '18px', fontWeight: '600', color: '#dc2626', marginBottom: '10px' }}>
+            Audit System Error
+          </div>
+          <div style={{ fontSize: '14px', color: '#64748b', marginBottom: '20px' }}>
+            We encountered an error loading the audit system. Please try refreshing the page.
+          </div>
+          <button 
+            onClick={() => window.location.reload()} 
+            style={{
+              padding: '10px 20px',
+              background: '#2563eb',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: '500'
+            }}
+          >
+            Refresh Page
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 const API_URL = import.meta.env.VITE_API_URL || "";
 const API_BASE = API_URL.replace(/\/$/, "");
@@ -247,6 +301,34 @@ function FileRow({ ranked, index, isSelected, onSelect }) {
 }
 
 export default function Audit({ onProceed, onBack }) {
+  return (
+    <ErrorBoundary>
+      <AuditContent onProceed={onProceed} onBack={onBack} />
+    </ErrorBoundary>
+  );
+}
+
+function AuditContent({ onProceed, onBack }) {
+  // Load KaTeX CSS dynamically to avoid import issues
+  useEffect(() => {
+    try {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'https://cdn.jsdelivr.net/npm/katex@0.16.38/dist/katex.min.css';
+      document.head.appendChild(link);
+      
+      return () => {
+        try {
+          document.head.removeChild(link);
+        } catch (e) {
+          // Ignore cleanup errors
+        }
+      };
+    } catch (e) {
+      console.warn('Failed to load KaTeX CSS:', e);
+    }
+  }, []);
+
   const [samUrl, setSamUrl] = useState("");
   const [rankedFiles, setRankedFiles] = useState([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -270,12 +352,49 @@ export default function Audit({ onProceed, onBack }) {
   const [arisError, setArisError] = useState("");
   const [arisResult, setArisResult] = useState(null);
   const [arisStatus, setArisStatus] = useState("");
+  const [componentReady, setComponentReady] = useState(false);
   const esRef = useRef(null);
+
+  // Ensure component is ready
+  useEffect(() => {
+    setComponentReady(true);
+  }, []);
 
   const { stepText, stepIndex } = useLoadingStep(loadingUrl);
   const selectedFile = rankedFiles[selectedIndex];
   const c = result?.compliance;
   const isLoading = loadingUrl || loadingFile;
+
+  // Show loading state while component initializes
+  if (!componentReady) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '50vh',
+        background: '#fff',
+        border: '1px solid #e2e8f0',
+        borderRadius: '8px',
+        margin: '20px'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ 
+            width: '40px', 
+            height: '40px', 
+            border: '3px solid #e2e8f0', 
+            borderTopColor: '#2563eb', 
+            borderRadius: '50%', 
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto 16px'
+          }} />
+          <div style={{ fontSize: '14px', color: '#64748b', fontFamily: 'Inter, sans-serif' }}>
+            Loading Audit System...
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
