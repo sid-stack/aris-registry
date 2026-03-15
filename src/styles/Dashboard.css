@@ -242,6 +242,10 @@ body {
   bottom: -4px;
 }
 
+.nav-btn-label {
+  display: none;
+}
+
 /* Tablet Styles */
 @media (min-width: 641px) {
   .navbar {
@@ -261,6 +265,10 @@ body {
   
   .mobile-menu-toggle {
     display: none;
+  }
+  
+  .nav-btn-label {
+    display: inline;
   }
   
   .back-label {
