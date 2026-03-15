@@ -7,15 +7,17 @@
   flex-direction: column;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   overflow-x: hidden;
+  width: 100%;
 }
 
 .about-main {
   flex: 1;
-  padding: 40px 16px;
+  padding: 40px 20px;
   max-width: 900px;
   margin: 0 auto;
   width: 100%;
   box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 @media (min-width: 768px) {
@@ -48,25 +50,29 @@
 }
 
 .about-title {
-  font-size: 32px;
-  line-height: 1.1;
+  font-size: 28px;
+  line-height: 1.2;
   font-weight: 810;
   color: #f4f4f5;
   margin-bottom: 24px;
   letter-spacing: -0.03em;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 @media (min-width: 768px) {
   .about-title {
     font-size: 48px;
+    line-height: 1.1;
   }
 }
 
 .about-description {
-  font-size: 18px;
+  font-size: 16px;
   color: #71717a;
   max-width: 800px;
   line-height: 1.6;
+  word-wrap: break-word;
 }
 
 @media (min-width: 768px) {
@@ -147,13 +153,13 @@
 .lab-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 40px;
+  gap: 32px;
   align-items: center;
 }
 
 @media (min-width: 900px) {
   .lab-grid {
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: 1fr 1fr;
     gap: 60px;
   }
 }
@@ -194,9 +200,9 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 11px;
+  font-size: 10px;
   color: #52525b;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
 }
 
@@ -228,26 +234,25 @@
 }
 
 .about-footer {
-  height: auto;
-  min-height: 48px;
   border-top: 1px solid #1a1a1a;
   background: #09090b;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 16px;
-  gap: 12px;
+  padding: 24px 16px;
+  gap: 16px;
   text-align: center;
 }
 
 @media (min-width: 768px) {
   .about-footer {
-    height: 40px;
+    height: 48px;
     flex-direction: row;
     padding: 0 32px;
     justify-content: space-between;
     text-align: left;
+    gap: 0;
   }
 }
 
@@ -273,6 +278,7 @@
   border: none;
   cursor: pointer;
   width: 100%;
+  max-width: 320px;
 }
 
 @media (min-width: 480px) {
