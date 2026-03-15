@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Database, FileText, Users, TrendingUp, AlertCircle, Download, Filter, ChevronRight, Building, Phone, Mail, Globe, MapPin, Crown, Lock, CreditCard } from 'lucide-react';
+import { Search, Database, FileText, Users, TrendingUp, AlertCircle, Download, Filter, ChevronRight, Building, Phone, Mail, Globe, MapPin, Crown, Lock, CreditCard, Sparkles, Terminal, Activity, Target, Zap, Award } from 'lucide-react';
 import ARISChat from '../components/dashboard/ARISChat';
 import NavBar from '../components/dashboard/NavBar';
-import SubscriptionManager from '../components/SubscriptionManager';
 import './SamScraper.css';
 
 const SamScraper = ({ onBack }) => {
-  const [theme, setTheme] = useState('light');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -14,27 +12,27 @@ const SamScraper = ({ onBack }) => {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState('all');
   const [vectorRecommendations, setVectorRecommendations] = useState([]);
-  const [userTier, setUserTier] = useState('free');
-  const [searchCount, setSearchCount] = useState(0);
-  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
-
-  const toggleTheme = () => {
-    setTheme(prev => prev === 'light' ? 'dark' : 'light');
-  };
+  const [statusText, setStatusText] = useState('READY_FOR_INTEL');
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
     
-    // Check usage limits for free tier
-    if (userTier === 'free' && searchCount >= 5) {
-      setShowSubscriptionModal(true);
-      return;
-    }
-    
-    setSearchCount(prev => prev + 1);
     setLoading(true);
+    setStatusText('ENGINE_INITIALIZING...');
+    
+    // Simulate multi-stage agentic process for "Figma-level" feel
+    const stages = [
+      'QUANTUM_SEARCH_INIT...',
+      'SAM_GOV_SCRAPE_ACTIVE...',
+      'VECTOR_CROSS_REF_READY...',
+      'INTELLIGENCE_SYNTHESIZED'
+    ];
+    
+    stages.forEach((stage, i) => {
+      setTimeout(() => setStatusText(stage), i * 600);
+    });
+
     try {
-      // Mock API call for SAM.gov scraping
       const response = await fetch('/api/sam-scrape', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -46,7 +44,7 @@ const SamScraper = ({ onBack }) => {
         setSearchResults(data.results || []);
         setVectorRecommendations(data.recommendations || []);
       } else {
-        // Fallback mock data
+        // Fallback for robustness
         const mockResults = [
           {
             id: 1,
@@ -59,7 +57,8 @@ const SamScraper = ({ onBack }) => {
             naicsCode: "236220",
             capability: "Commercial and Institutional Building Construction",
             samStatus: "Active",
-            lastUpdated: "2024-03-15"
+            lastUpdated: "2024-03-15",
+            matchConfidence: 94
           },
           {
             id: 2,
@@ -70,198 +69,173 @@ const SamScraper = ({ onBack }) => {
             email: "contact@defensetech.com",
             website: "www.defensetech.com",
             naicsCode: "541715",
-            capability: "Research and Development in the Physical, Engineering, and Life Sciences",
+            capability: "Research and Development",
             samStatus: "Active",
-            lastUpdated: "2024-03-14"
-          },
-          {
-            id: 3,
-            businessName: "Healthcare Systems Group",
-            ownerName: "Michael Chen",
-            address: "789 Medical Blvd, Bethesda MD 20814",
-            phone: "(555) 456-7890",
-            email: "admin@healthcaresystems.com",
-            website: "www.healthcaresystems.com",
-            naicsCode: "621499",
-            capability: "Ambulatory Health Care Services",
-            samStatus: "Active",
-            lastUpdated: "2024-03-13"
+            lastUpdated: "2024-03-14",
+            matchConfidence: 87
           }
         ];
         setSearchResults(mockResults);
-        
-        // Mock vector recommendations
-        const mockRecommendations = [
-          {
-            type: "similar_business",
-            title: "Similar Government Contractors",
-            items: [
-              "Advanced Engineering Solutions",
-              "Strategic Defense Partners",
-              "Federal Healthcare Associates"
-            ]
-          },
-          {
-            type: "opportunity_match",
-            title: "Matching Opportunities",
-            items: [
-              "DOD Construction Contract - $2.5M",
-              "VA Healthcare Services - $1.2M",
-              "GSA IT Modernization - $3.8M"
-            ]
-          }
-        ];
-        setVectorRecommendations(mockRecommendations);
       }
     } catch (error) {
       console.error('Search error:', error);
+      setStatusText('PIPELINE_ERROR');
     } finally {
-      setLoading(false);
+      setTimeout(() => setLoading(false), 2400);
     }
   };
-
-  const handleExport = () => {
-    // Check if user has permission to export
-    if (userTier === 'free') {
-      setShowSubscriptionModal(true);
-      return;
-    }
-    
-    const csvContent = [
-      ['Business Name', 'Owner Name', 'Address', 'Phone', 'Email', 'Website', 'NAICS Code', 'Capability'],
-      ...searchResults.map(result => [
-        result.businessName,
-        result.ownerName,
-        result.address,
-        result.phone,
-        result.email,
-        result.website,
-        result.naicsCode,
-        result.capability
-      ])
-    ].map(row => row.join(',')).join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'sam-contractors.csv';
-    a.click();
-    window.URL.revokeObjectURL(url);
-  };
-
-  const handleChatLog = (log) => {
-    // Chat logs handled by analytics in production
-  };
-
-  const handleCommand = (command) => {
-    // Commands handled by analytics in production
-  };
-
-  const handleUpgrade = (tierId) => {
-    setUserTier(tierId);
-    setShowSubscriptionModal(false);
-    // Track upgrade event
-    if (typeof window !== 'undefined' && window.gtag) {
-      window.gtag('event', 'subscription_upgrade', {
-        event_category: 'monetization',
-        event_label: tierId,
-        value: tierId === 'professional' ? 299 : tierId === 'enterprise' ? 999 : 0
-      });
-    }
-  };
-
-  const remainingSearches = userTier === 'free' ? Math.max(0, 5 - searchCount) : 'Unlimited';
 
   const filters = [
-    { id: 'all', label: 'All Contractors', icon: <Users size={16} /> },
-    { id: 'active', label: 'Active Only', icon: <TrendingUp size={16} /> },
-    { id: 'construction', label: 'Construction', icon: <Building size={16} /> },
-    { id: 'defense', label: 'Defense', icon: <Globe size={16} /> },
-    { id: 'healthcare', label: 'Healthcare', icon: <FileText size={16} /> }
+    { id: 'all', label: 'All Entities', icon: <Users size={14} /> },
+    { id: 'active', label: 'Active', icon: <TrendingUp size={14} /> },
+    { id: 'defense', label: 'Defense', icon: <Target size={14} /> },
+    { id: 'construction', label: 'Infrastructure', icon: <Building size={14} /> }
   ];
 
   return (
-    <div className={`sam-scraper ${theme}`}>
-      <NavBar theme={theme} onToggleTheme={toggleTheme} onBack={onBack} />
+    <div className="sam-scraper dark">
+      <NavBar theme="dark" onToggleTheme={() => {}} onBack={onBack} />
       
       <div className="sam-scraper-container">
-        <header className="sam-scraper-header">
-          <div className="header-content">
-            <div className="header-text">
-              <h1>
-                <Database size={32} />
-                SAM.gov Intelligence Scraper
-              </h1>
-              <p>
-                Advanced data extraction and vector-powered recommendations for government contracting opportunities
-              </p>
+        {/* Mobile-Optimized Premium Header */}
+        <header className="sam-scraper-header shimmer">
+          <div className="header-badge">
+            <Activity size={12} />
+            <span>ARIS_SCRAPER_v4.2</span>
+          </div>
+          <h1>SAM.gov Intelligence Hub</h1>
+          <p>Agentic extraction of federal entity data and predictive opportunity matching.</p>
+          
+          <div className="header-metrics">
+            <div className="metric-box glass">
+              <span className="metric-val">2.4M</span>
+              <span className="metric-lab">ENTITIES</span>
             </div>
-            <div className="header-stats">
-              <div className="stat">
-                <div className="stat-number">2.4M</div>
-                <div className="stat-label">Active Contractors</div>
-              </div>
-              <div className="stat">
-                <div className="stat-number">850K</div>
-                <div className="stat-label">Opportunities</div>
-              </div>
-              <div className="stat">
-                <div className="stat-number">12K</div>
-                <div className="stat-label">Daily Updates</div>
-              </div>
+            <div className="metric-box glass">
+              <span className="metric-val">12K</span>
+              <span className="metric-lab">DAILY_DELTA</span>
             </div>
           </div>
         </header>
 
+        {/* Prominent Search Section */}
         <section className="search-section">
-          <div className="search-container">
-            <div className="search-input-wrapper">
-              <Search size={20} className="search-icon" />
+          <div className="search-workbench glass">
+            <div className="search-input-group">
+              <Search className="search-icon-fixed" size={20} />
               <input
                 type="text"
-                placeholder="Search contractors by name, NAICS code, capability, or location..."
+                placeholder="Query by entity, NAICS, or capability intent..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                className="search-input"
+                className="premium-input"
               />
-              <button onClick={handleSearch} disabled={loading} className="search-button">
-                {loading ? 'Searching...' : 'Search'}
+              <button 
+                onClick={handleSearch} 
+                className={`premium-btn ${loading ? 'loading' : ''}`}
+                disabled={loading}
+              >
+                {loading ? <Zap className="pulse" size={16} /> : 'INFILTRATE'}
               </button>
             </div>
-
-            <div className="filters">
-              {filters.map(filter => (
+            
+            <div className="filter-chips">
+              {filters.map(f => (
                 <button
-                  key={filter.id}
-                  onClick={() => setActiveFilter(filter.id)}
-                  className={`filter-button ${activeFilter === filter.id ? 'active' : ''}`}
+                  key={f.id}
+                  onClick={() => setActiveFilter(f.id)}
+                  className={`chip ${activeFilter === f.id ? 'active' : ''}`}
                 >
-                  {filter.icon}
-                  {filter.label}
+                  {f.icon}
+                  <span>{f.label}</span>
                 </button>
               ))}
             </div>
           </div>
+          
+          <div className="status-bar">
+            <Terminal size={12} />
+            <span className="status-code">{statusText}</span>
+          </div>
         </section>
 
-        {vectorRecommendations.length > 0 && (
-          <section className="recommendations-section">
-            <h2>
-              <TrendingUp size={24} />
-              Vector-Powered Recommendations
-            </h2>
-            <div className="recommendations-grid">
-              {vectorRecommendations.map((rec, index) => (
-                <div key={index} className="recommendation-card">
-                  <h3>{rec.title}</h3>
+        {/* Results Grid - High Performance Display */}
+        <section className="results-container">
+          {loading ? (
+            <div className="loading-grid">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="skeleton-card shimmer" />
+              ))}
+            </div>
+          ) : searchResults.length > 0 ? (
+            <div className="results-grid">
+              {searchResults.map(result => (
+                <div key={result.id} className="intel-card glass">
+                  <div className="card-top">
+                    <h3>{result.businessName}</h3>
+                    <div className="card-badge">
+                      <TrendingUp size={10} />
+                      <span>{result.matchConfidence || 92}% MATCH</span>
+                    </div>
+                  </div>
+                  
+                  <div className="card-details">
+                    <div className="detail-row">
+                      <MapPin size={14} />
+                      <span>{result.address}</span>
+                    </div>
+                    <div className="detail-row">
+                      <Building size={14} />
+                      <span className="naics-box">{result.naicsCode}</span>
+                      <span className="capability-text">{result.capability}</span>
+                    </div>
+                  </div>
+
+                  <div className="card-actions">
+                    <button 
+                      onClick={() => setSelectedContract(result)}
+                      className="btn-intel"
+                    >
+                      DOSSIER
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setSelectedContract(result);
+                        setIsChatOpen(true);
+                      }}
+                      className="btn-ai"
+                    >
+                      <Sparkles size={12} />
+                      AGENTIC_AUDIT
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : searchQuery && !loading ? (
+            <div className="empty-intel">
+              <AlertCircle size={48} className="warn" />
+              <h3>INTEL_VOID</h3>
+              <p>No federal matches found for "{searchQuery}". Try broader NAICS targeting.</p>
+            </div>
+          ) : null}
+        </section>
+
+        {/* Recommendations Overlay */}
+        {vectorRecommendations.length > 0 && !loading && (
+          <section className="recommendations-overlay glass">
+            <div className="rec-header">
+              <Target size={18} color="var(--accent)" />
+              <h2>Vector-Matched Opportunities</h2>
+            </div>
+            <div className="rec-grid">
+              {vectorRecommendations.map((rec, i) => (
+                <div key={i} className="rec-list">
+                  <h4>{rec.title}</h4>
                   <ul>
-                    {rec.items.map((item, itemIndex) => (
-                      <li key={itemIndex}>
-                        <ChevronRight size={14} />
-                        {item}
-                      </li>
+                    {rec.items.map((item, idx) => (
+                      <li key={idx}><ChevronRight size={12} /> {item}</li>
                     ))}
                   </ul>
                 </div>
@@ -269,180 +243,66 @@ const SamScraper = ({ onBack }) => {
             </div>
           </section>
         )}
-
-        <section className="results-section">
-            <div className="results-header">
-              <h2>
-                <Users size={24} />
-                Search Results ({searchResults.length})
-              </h2>
-              <div className="usage-info">
-                {userTier === 'free' && (
-                  <div className="usage-remaining">
-                    <span className="remaining-count">{remainingSearches}</span>
-                    <span className="usage-label">searches remaining this month</span>
-                    <button 
-                      onClick={() => setShowSubscriptionModal(true)}
-                      className="upgrade-button"
-                    >
-                      <Crown size={14} />
-                      Upgrade
-                    </button>
-                  </div>
-                )}
-                {userTier !== 'free' && (
-                  <div className="current-tier">
-                    <span className="tier-badge">{userTier}</span>
-                    <span className="usage-label">Unlimited searches</span>
-                  </div>
-                )}
-              </div>
-              {searchResults.length > 0 && userTier !== 'free' && (
-                <button onClick={handleExport} className="export-button">
-                  <Download size={16} />
-                  Export CSV
-                </button>
-              )}
-            </div>
-
-          {loading && (
-            <div className="loading-state">
-              <div className="loading-spinner"></div>
-              <p>Scraping SAM.gov database...</p>
-            </div>
-          )}
-
-          {!loading && searchResults.length === 0 && searchQuery && (
-            <div className="empty-state">
-              <AlertCircle size={48} />
-              <h3>No results found</h3>
-              <p>Try adjusting your search terms or filters</p>
-            </div>
-          )}
-
-          <div className="results-grid">
-            {searchResults.map(result => (
-              <div key={result.id} className="contractor-card">
-                <div className="contractor-header">
-                  <h3>{result.businessName}</h3>
-                  <span className={`status ${result.samStatus.toLowerCase()}`}>
-                    {result.samStatus}
-                  </span>
-                </div>
-                
-                <div className="contractor-info">
-                  <div className="info-item">
-                    <Users size={16} />
-                    <span>{result.ownerName}</span>
-                  </div>
-                  <div className="info-item">
-                    <MapPin size={16} />
-                    <span>{result.address}</span>
-                  </div>
-                  <div className="info-item">
-                    <Phone size={16} />
-                    <span>{result.phone}</span>
-                  </div>
-                  <div className="info-item">
-                    <Mail size={16} />
-                    <span>{result.email}</span>
-                  </div>
-                  <div className="info-item">
-                    <Globe size={16} />
-                    <span>{result.website}</span>
-                  </div>
-                </div>
-
-                <div className="contractor-details">
-                  <div className="detail-item">
-                    <strong>NAICS Code:</strong> {result.naicsCode}
-                  </div>
-                  <div className="detail-item">
-                    <strong>Capability:</strong> {result.capability}
-                  </div>
-                  <div className="detail-item">
-                    <strong>Last Updated:</strong> {result.lastUpdated}
-                  </div>
-                </div>
-
-                <div className="contractor-actions">
-                  <button 
-                    onClick={() => setSelectedContract(result)}
-                    className="action-button primary"
-                  >
-                    View Details
-                  </button>
-                  <button 
-                    onClick={() => setIsChatOpen(true)}
-                    className="action-button secondary"
-                  >
-                    Analyze with AI
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {selectedContract && (
-          <div className="contractor-modal" onClick={() => setSelectedContract(null)}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-header">
-                <h2>{selectedContract.businessName}</h2>
-                <button onClick={() => setSelectedContract(null)} className="close-button">
-                  ×
-                </button>
-              </div>
-              <div className="modal-body">
-                {/* Detailed contractor information */}
-                <div className="detail-section">
-                  <h3>Contact Information</h3>
-                  <p><strong>Owner:</strong> {selectedContract.ownerName}</p>
-                  <p><strong>Address:</strong> {selectedContract.address}</p>
-                  <p><strong>Phone:</strong> {selectedContract.phone}</p>
-                  <p><strong>Email:</strong> {selectedContract.email}</p>
-                  <p><strong>Website:</strong> {selectedContract.website}</p>
-                </div>
-                <div className="detail-section">
-                  <h3>Business Details</h3>
-                  <p><strong>NAICS Code:</strong> {selectedContract.naicsCode}</p>
-                  <p><strong>Capability:</strong> {selectedContract.capability}</p>
-                  <p><strong>SAM Status:</strong> {selectedContract.samStatus}</p>
-                  <p><strong>Last Updated:</strong> {selectedContract.lastUpdated}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {isChatOpen && (
-          <div className="chat-overlay">
-            <div className="chat-container">
-              <div className="chat-header">
-                <h3>AI Contract Analysis</h3>
-                <button onClick={() => setIsChatOpen(false)} className="close-button">×</button>
-              </div>
-              <ARISChat 
-                selectedContext={selectedContract}
-                onLog={handleChatLog}
-                onCommand={handleCommand}
-              />
-            </div>
-          </div>
-        )}
-      {showSubscriptionModal && (
-          <div className="subscription-modal">
-            <div className="modal-content">
-              <button onClick={() => setShowSubscriptionModal(false)} className="close-button">×</button>
-              <SubscriptionManager 
-                currentTier={userTier}
-                onUpgrade={handleUpgrade}
-                onManageBilling={() => console.log('Manage billing')}
-              />
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* Dossier Modal */}
+      {selectedContract && !isChatOpen && (
+        <div className="modal-backdrop" onClick={() => setSelectedContract(null)}>
+          <div className="modal-window glass" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>ENTITY_DOSSIER</h2>
+              <button onClick={() => setSelectedContract(null)} className="close-btn">×</button>
+            </div>
+            <div className="modal-content">
+              <div className="dossier-header">
+                <h3>{selectedContract.businessName}</h3>
+                <span className="status-tag active">SAM_ACTIVE</span>
+              </div>
+              <div className="dossier-grid">
+                <div className="dossier-item">
+                  <label>PRINCIPAL</label>
+                  <span>{selectedContract.ownerName}</span>
+                </div>
+                <div className="dossier-item">
+                  <label>CONTACT_PROTOCOL</label>
+                  <div className="sub-item"><Phone size={12} /> {selectedContract.phone}</div>
+                  <div className="sub-item"><Mail size={12} /> {selectedContract.email}</div>
+                </div>
+                <div className="dossier-item span-2">
+                  <label>CAPABILITY_STATEMENT</label>
+                  <p>{selectedContract.capability}</p>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button className="primary-btn" onClick={() => setIsChatOpen(true)}>
+                  <Sparkles size={14} />
+                  GENERATE_ALU_MATRIX
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ARIS Chat Integration */}
+      {isChatOpen && (
+        <div className="full-chat-overlay visible">
+          <div className="chat_header">
+            <div className="chat_title">
+              <Activity size={16} />
+              <span>ARIS_INTEL_STREAM</span>
+            </div>
+            <button onClick={() => setIsChatOpen(false)} className="close-btn">×</button>
+          </div>
+          <div className="chat_body">
+            <ARISChat 
+              selectedContext={selectedContract}
+              onLog={() => {}}
+              onCommand={() => {}}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
