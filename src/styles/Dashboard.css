@@ -278,3 +278,32 @@ body {
   margin: 1rem 0;
 }
 
+/* ── Navbar Brand Styles ── */
+.navbar-brand-link:hover .brand-logo-zoom {
+  transform: scale(1.25);
+  filter: drop-shadow(0 0 16px rgba(30, 127, 255, 0.5));
+}
+
+.navbar-brand-link:hover .brand-name-nav {
+  color: #1e7fff !important;
+}
+
+[data-theme="light"] .brand-name-nav {
+  color: #0f172a;
+}
+.navbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.navbar-brand-link {
+  display: flex;
+  align-items: center;
+  transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.navbar-brand-link:active {
+  transform: scale(0.98);
+}
+
