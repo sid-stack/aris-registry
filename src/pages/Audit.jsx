@@ -215,12 +215,7 @@ export default function Audit({ onBack }) {
             </button>
           </div>
 
-          <div style={{ marginBottom: '24px' }}>
-            <div style={{ fontSize: '11px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '12px', paddingLeft: '4px' }}>Try one of these:</div>
-            <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '12px', scrollbarWidth: 'none' }}>
-              <RecommendCard title="Video Archive" url="https://sam.gov/opp/0c17537b925b4be98e3575ed19520b72/view" onClick={startAudit} />
-            </div>
-          </div>
+
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px' }}>
             <FeatureTip icon={<ShieldCheck />} title="Privacy First" text="We don't save your data. Your bid info stays yours." />
