@@ -333,10 +333,9 @@ export default function Landing({ onEnterApp, onViewSample }) {
               </a>
               <nav className="landing-nav-links">
                 <a href="#features" style={styles.navLink}>Features</a>
-                <a href="#workflow" style={styles.navLink}>Workflow</a>
+                <a href="/soc" style={styles.navLink}>Security</a>
                 <a href="#pricing" style={styles.navLink}>Pricing</a>
                 <a href="https://docs.bidsmith.pro" target="_blank" rel="noopener noreferrer" style={styles.navLink}>Docs</a>
-                <a href="#contact" style={styles.navLink}>Contact</a>
               </nav>
               <button
                 type="button"
@@ -598,13 +597,13 @@ const styles = {
     borderBottom: "1px solid #27272a",
   },
   navInner: {
-    maxWidth: 1120,
+    maxWidth: 1200,
     margin: "0 auto",
-    padding: "16px 20px",
+    padding: "18px 24px",
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 14,
+    gap: 32,
     flexWrap: "nowrap",
   },
   brand: {
@@ -618,8 +617,11 @@ const styles = {
   navLink: {
     color: "#a1a1aa",
     textDecoration: "none",
-    fontSize: "0.95rem",
+    fontSize: "0.85rem",
     fontWeight: 600,
+    letterSpacing: "0.02em",
+    textTransform: "uppercase",
+    transition: "color 0.2s ease",
   },
   navCta: {
     background: "#ffffff",
