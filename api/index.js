@@ -550,7 +550,7 @@ app.get("/api/privacy/consent", asyncHandler(async (req, res) => {
   }
 }));
 
-app.post("/api/arislabs/discover", async (req, res) => {
+app.post("/api/arislabs/discover", asyncHandler(async (req, res) => {
   try {
     const capability = String(req.body?.capability || "").trim();
     if (!capability) {
@@ -599,7 +599,7 @@ app.post("/api/arislabs/discover", async (req, res) => {
     console.error("[/api/arislabs/discover] ERROR:", err);
     return res.status(500).json({ error: err.message });
   }
-});
+}));
 
 app.post("/v1/execute", asyncHandler(async (req, res) => {
   const solicitationUrl = String(req.body?.solicitation_url || req.body?.url || "").trim();
@@ -786,7 +786,7 @@ app.post("/api/aris-call-session", asyncHandler(async (req, res) => {
   return res.json({ url: payload.url, id: payload.id });
 }));
 
-app.post("/api/audit/code", async (req, res) => {
+app.post("/api/audit/code", asyncHandler(async (req, res) => {
   const client = makeClient();
   if (!client) return res.status(500).json({ error: "Server configuration incomplete" });
 
@@ -835,7 +835,7 @@ app.post("/api/audit/code", async (req, res) => {
     console.error("[/api/audit/code] ERROR:", err);
     return res.status(500).json({ error: err.message });
   }
-});
+}));
 
 // ─── /api/chat (ARIS Intelligence Chat) ──────────────────────────────────────
 const MAX_CONCURRENT_SESSIONS = 50; // Simple capacity threshold
@@ -876,7 +876,7 @@ MERCURY_2_DIFFUSION_ACTIVE // ZERO_KNOWLEDGE_READY
 }));
 
 // ─── /api/executive-summary ───────────────────────────────────────────────────────
-app.post("/api/executive-summary", upload.single("rfp"), async (req, res) => {
+app.post("/api/executive-summary", upload.single("rfp"), asyncHandler(async (req, res) => {
   const client = makeClient();
   if (!client) return res.status(500).json({ error: "Server configuration incomplete" });
   try {
@@ -911,10 +911,10 @@ app.post("/api/executive-summary", upload.single("rfp"), async (req, res) => {
     console.error("[/api/executive-summary] ERROR:", err);
     res.status(500).json({ error: err.message });
   }
-});
+}));
 
 // ─── /api/generate ────────────────────────────────────────────────────────────
-app.post("/api/generate", upload.single("rfp"), async (req, res) => {
+app.post("/api/generate", upload.single("rfp"), asyncHandler(async (req, res) => {
   const client = makeClient();
   if (!client) return res.status(500).json({ error: "Server configuration incomplete" });
   try {
@@ -939,7 +939,7 @@ app.post("/api/generate", upload.single("rfp"), async (req, res) => {
     console.error("[/api/generate] ERROR:", err);
     res.status(500).json({ error: err.message });
   }
-});
+}));
 
 // ─── Audit Prompt (Legacy Reference - supports detailed extraction) ──────────
 const DETAILED_AUDIT_PROMPT = `You are a federal contract compliance auditor and disqualification gatekeeper.
@@ -1085,7 +1085,7 @@ registerPricingRoutes("/pricing");
 registerPricingRoutes("/api/pricing");
 
 // ─── /api/audit ───────────────────────────────────────────────────────────────
-app.post("/api/audit", upload.single("file"), async (req, res) => {
+app.post("/api/audit", upload.single("file"), asyncHandler(async (req, res) => {
   const client = makeClient();
   if (!client) return res.status(500).json({ error: "Server configuration incomplete" });
   try {
@@ -1124,7 +1124,7 @@ app.post("/api/audit", upload.single("file"), async (req, res) => {
     console.error("[/api/audit] ERROR:", err);
     res.status(500).json({ error: err.message });
   }
-});
+}));
 
 // ─── /api/analyze-link — SAM.gov URL → Full Audit Pipeline ───────────────────
 const noticeCache = new Map();
@@ -1186,7 +1186,7 @@ async function downloadWithRetry(url, retries = 3) {
   }
 }
 
-app.post("/api/analyze-link", analyzeLinkLimiter, async (req, res) => {
+app.post("/api/analyze-link", analyzeLinkLimiter, asyncHandler(async (req, res) => {
   const client = makeClient();
   if (!client) return res.status(500).json({ error: "Server configuration incomplete" });
 
@@ -1394,12 +1394,12 @@ app.post("/api/analyze-link", analyzeLinkLimiter, async (req, res) => {
 
   noticeCache.set(noticeId, { ts: Date.now(), data: result });
   res.json(result);
-});
+}));
 // ─── /api/generate-report — 4-Stage Agent Pipeline (money/ pattern) ──────────
 // Stage 1: Analyst  — synthesize pillars into strategic brief
 // Stage 2: Drafter  — write full QDS-style proposal from brief
 // ─── /api/generate-report ────────────────────────────────────────────────────────────
-app.post("/api/generate-report", async (req, res) => {
+app.post("/api/generate-report", asyncHandler(async (req, res) => {
   const client = makeClient();
   if (!client) return res.status(500).json({ error: "Server configuration incomplete" });
   
@@ -1483,7 +1483,7 @@ app.post("/api/generate-report", async (req, res) => {
     // Always return useful fallback response
     return res.json(fallbackResponse);
   }
-});
+}));
 
 // ─── /api/generate-report-stream — SSE Agentic Pipeline ─────────────────────
 // Streams real-time agent events as each stage completes (like money/ websocket)
@@ -1707,6 +1707,422 @@ Output ONLY finalized clean Markdown.`
 
   res.end();
 });
+
+// ─── /api/usage ─────────────────────────────────────────────────────
+app.get("/api/usage", asyncHandler(async (req, res) => {
+  const { userId } = req.query;
+  
+  if (!userId) {
+    return res.status(400).json({ error: "User ID required" });
+  }
+
+  try {
+    // Mock usage data - in production, this would come from database
+    const usageData = {
+      userId,
+      currentTier: "free",
+      searchCount: 3,
+      searchLimit: 5,
+      remainingSearches: 2,
+      creditsBalance: 0,
+      lastReset: new Date().toISOString(),
+      subscriptionStatus: "active"
+    };
+
+    res.json({
+      success: true,
+      usage: usageData
+    });
+
+  } catch (err) {
+    console.error("[/api/usage] ERROR:", err);
+    res.status(500).json({ error: err.message });
+  }
+}));
+
+// ─── /api/subscription/upgrade ───────────────────────────────────────────
+app.post("/api/subscription/upgrade", asyncHandler(async (req, res) => {
+  const { userId, tierId } = req.body;
+  
+  if (!userId || !tierId) {
+    return res.status(400).json({ error: "User ID and tier ID required" });
+  }
+
+  try {
+    // Mock subscription upgrade - in production, this would integrate with Stripe
+    const upgradeData = {
+      userId,
+      oldTier: "free",
+      newTier: tierId,
+      price: tierId === "professional" ? 299 : tierId === "enterprise" ? 999 : 0,
+      currency: "USD",
+      billingCycle: "monthly",
+      upgradedAt: new Date().toISOString(),
+      status: "success"
+    };
+
+    // In production, create Stripe checkout session here
+    if (tierId !== "free") {
+      // const stripeSession = await createStripeCheckoutSession({
+      //   userId,
+      //   tierId,
+      //   successUrl: `${req.protocol}://${req.get('host')}/app?subscription=success`,
+      //   cancelUrl: `${req.protocol}://${req.get('host')}/app?subscription=cancelled`
+      // });
+      // return res.json({ success: true, checkoutUrl: stripeSession.url });
+    }
+
+    res.json({
+      success: true,
+      upgrade: upgradeData
+    });
+
+  } catch (err) {
+    console.error("[/api/subscription/upgrade] ERROR:", err);
+    res.status(500).json({ error: err.message });
+  }
+}));
+
+// ─── /api/credits/purchase ─────────────────────────────────────────────
+app.post("/api/credits/purchase", asyncHandler(async (req, res) => {
+  const { userId, packId } = req.body;
+  
+  if (!userId || !packId) {
+    return res.status(400).json({ error: "User ID and pack ID required" });
+  }
+
+  try {
+    // Mock credit pack purchase - in production, this would integrate with Stripe
+    const creditPacks = {
+      starter_pack: { credits: 50, price: 99 },
+      professional_pack: { credits: 200, price: 299 },
+      enterprise_pack: { credits: 500, price: 499 }
+    };
+
+    const pack = creditPacks[packId];
+    if (!pack) {
+      return res.status(400).json({ error: "Invalid credit pack" });
+    }
+
+    const purchaseData = {
+      userId,
+      packId,
+      credits: pack.credits,
+      price: pack.price,
+      currency: "USD",
+      purchasedAt: new Date().toISOString(),
+      status: "success"
+    };
+
+    // In production, create Stripe checkout session here
+    // const stripeSession = await createStripeCreditSession({
+    //   userId,
+    //   packId,
+    //   successUrl: `${req.protocol}://${req.get('host')}/app?credits=success`,
+    //   cancelUrl: `${req.protocol}://${req.get('host')}/app?credits=cancelled`
+    // });
+    // return res.json({ success: true, checkoutUrl: stripeSession.url });
+
+    res.json({
+      success: true,
+      purchase: purchaseData
+    });
+
+  } catch (err) {
+    console.error("[/api/credits/purchase] ERROR:", err);
+    res.status(500).json({ error: err.message });
+  }
+}));
+
+// ─── /api/survey ─────────────────────────────────────────────────────
+app.post("/api/survey", asyncHandler(async (req, res) => {
+  const surveyData = req.body;
+  
+  if (!surveyData) {
+    return res.status(400).json({ error: "Survey data required" });
+  }
+
+  try {
+    // Validate required fields
+    const requiredFields = ['willingness', 'reason', 'contracts_per_month', 'time_per_contract', 'budget'];
+    const missingFields = requiredFields.filter(field => !surveyData[field]);
+    
+    if (missingFields.length > 0) {
+      return res.status(400).json({ 
+        error: "Missing required fields", 
+        missing: missingFields 
+      });
+    }
+
+    // Store survey response (in production, this would go to a database)
+    const surveyResponse = {
+      id: `survey_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      ...surveyData,
+      receivedAt: new Date().toISOString(),
+      ip: req.ip,
+      userAgent: req.get('User-Agent')
+    };
+
+    // Log for analysis
+    console.log('[SURVEY RESPONSE]', {
+      willingness: surveyResponse.willingness,
+      budget: surveyResponse.budget,
+      contracts_per_month: surveyResponse.contracts_per_month,
+      time_per_contract: surveyResponse.time_per_contract,
+      features: surveyResponse.features,
+      reason: surveyResponse.reason.substring(0, 100) + '...'
+    });
+
+    // In production, save to database:
+    // await db.collection('surveys').insertOne(surveyResponse);
+
+    // Calculate WTP score for analysis
+    const wtpScore = calculateWTPScore(surveyData);
+    
+    res.json({
+      success: true,
+      surveyId: surveyResponse.id,
+      wtpScore: wtpScore,
+      message: "Survey response recorded successfully"
+    });
+
+  } catch (err) {
+    console.error("[/api/survey] ERROR:", err);
+    res.status(500).json({ error: err.message });
+  }
+}));
+
+// Calculate Willingness-to-Pay score
+function calculateWTPScore(data) {
+  let score = 0;
+  
+  // Base willingness (40 points)
+  if (data.willingness === 'yes') {
+    score += 40;
+  }
+  
+  // Time savings calculation (30 points max)
+  const timeMultipliers = {
+    'less_15': 0.25,
+    '15_30': 0.5, 
+    '30_60': 0.75,
+    'more_60': 1.0
+  };
+  
+  const monthlyTimeHours = (data.contracts_per_month || 0) * (timeMultipliers[data.time_per_contract] || 0.5) / 60;
+  const monthlyValue = monthlyTimeHours * 30; // $30/hour value
+  const timeScore = Math.min(30, (monthlyValue / 99) * 30); // Normalize to 30 points
+  score += timeScore;
+  
+  // Budget alignment (20 points max)
+  const budgetScores = {
+    'less_50': 0,
+    '50_100': 10,
+    '101_200': 15,
+    'more_200': 20
+  };
+  score += budgetScores[data.budget] || 0;
+  
+  // Feature demand (10 points max)
+  const featureCount = Array.isArray(data.features) ? data.features.length : 0;
+  score += Math.min(10, featureCount * 2);
+  
+  return Math.round(score);
+}
+
+// ─── /api/waitlist-signup ─────────────────────────────────────────────
+app.post("/api/waitlist-signup", asyncHandler(async (req, res) => {
+  const { name, email, company, useCase, budget } = req.body;
+  
+  if (!name || !email) {
+    return res.status(400).json({ error: "Name and email are required" });
+  }
+
+  try {
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: "Invalid email format" });
+    }
+
+    // Store waitlist signup (in production, this would go to a database)
+    const waitlistEntry = {
+      id: `waitlist_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      name: name.trim(),
+      email: email.toLowerCase().trim(),
+      company: company?.trim() || '',
+      useCase: useCase || '',
+      budget: budget || '',
+      source: 'demo_analytics_page',
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent'),
+      createdAt: new Date().toISOString(),
+      status: 'active'
+    };
+
+    // In production, save to database:
+    // await db.collection('waitlist').insertOne(waitlistEntry);
+
+    // Log for analysis
+    console.log('[WAITLIST SIGNUP]', {
+      name: waitlistEntry.name,
+      email: waitlistEntry.email.substring(0, 3) + '***@' + waitlistEntry.email.split('@')[1],
+      company: waitlistEntry.company,
+      useCase: waitlistEntry.useCase,
+      budget: waitlistEntry.budget,
+      source: waitlistEntry.source
+    });
+
+    // Send confirmation email (in production)
+    // await sendConfirmationEmail(waitlistEntry);
+
+    res.json({
+      success: true,
+      message: "Successfully joined the waitlist!",
+      waitlistId: waitlistEntry.id
+    });
+
+  } catch (err) {
+    console.error("[/api/waitlist-signup] ERROR:", err);
+    res.status(500).json({ error: err.message });
+  }
+}));
+
+// ─── /api/demo-analytics ─────────────────────────────────────────────
+app.get("/api/demo-analytics", asyncHandler(async (req, res) => {
+  try {
+    // Mock analytics data - in production, this would come from your database
+    const analyticsData = {
+      totalViews: 1247,
+      uniqueVisitors: 892,
+      demoViews: 156,
+      signupClicks: 43,
+      conversionRate: 27.4,
+      avgSessionDuration: 245, // seconds
+      topPages: [
+        { page: '/sam-scraper', views: 523, percentage: 42 },
+        { page: '/survey', views: 234, percentage: 19 },
+        { page: '/', views: 189, percentage: 15 },
+        { page: '/survey-analytics', views: 156, percentage: 12 },
+        { page: '/demo-analytics', views: 145, percentage: 12 }
+      ],
+      recentActivity: [
+        { type: 'demo_view', page: '/sam-scraper', timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString() },
+        { type: 'signup_click', page: '/sam-scraper', timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString() },
+        { type: 'demo_view', page: '/survey', timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString() },
+        { type: 'page_view', page: '/', timestamp: new Date(Date.now() - 1000 * 60 * 45).toISOString() }
+      ]
+    };
+
+    res.json({
+      success: true,
+      analytics: analyticsData
+    });
+
+  } catch (err) {
+    console.error("[/api/demo-analytics] ERROR:", err);
+    res.status(500).json({ error: err.message });
+  }
+}));
+
+// ─── /api/sam-scrape ────────────────────────────────────────────────────────────────
+app.post("/api/sam-scrape", asyncHandler(async (req, res) => {
+  const { query, filter = 'all' } = req.body;
+  
+  if (!query || !query.trim()) {
+    return res.status(400).json({ error: "Search query is required" });
+  }
+
+  try {
+    // Mock SAM.gov scraping results
+    // In production, this would integrate with actual SAM.gov API or web scraping
+    const mockResults = [
+      {
+        id: 1,
+        businessName: "Federal Construction Solutions LLC",
+        ownerName: "John Smith",
+        address: "123 Government St, Washington DC 20500",
+        phone: "(555) 123-4567",
+        email: "info@federalconstruction.com",
+        website: "www.federalconstruction.com",
+        naicsCode: "236220",
+        capability: "Commercial and Institutional Building Construction",
+        samStatus: "Active",
+        lastUpdated: "2024-03-15",
+        filter: "construction"
+      },
+      {
+        id: 2,
+        businessName: "Defense Technology Innovations",
+        ownerName: "Sarah Johnson",
+        address: "456 Defense Ave, Arlington VA 22201",
+        phone: "(555) 987-6543",
+        email: "contact@defensetech.com",
+        website: "www.defensetech.com",
+        naicsCode: "541715",
+        capability: "Research and Development in the Physical, Engineering, and Life Sciences",
+        samStatus: "Active",
+        lastUpdated: "2024-03-14",
+        filter: "defense"
+      },
+      {
+        id: 3,
+        businessName: "Healthcare Systems Group",
+        ownerName: "Michael Chen",
+        address: "789 Medical Blvd, Bethesda MD 20814",
+        phone: "(555) 456-7890",
+        email: "admin@healthcaresystems.com",
+        website: "www.healthcaresystems.com",
+        naicsCode: "621499",
+        capability: "Ambulatory Health Care Services",
+        samStatus: "Active",
+        lastUpdated: "2024-03-13",
+        filter: "healthcare"
+      }
+    ];
+
+    // Apply filter
+    let filteredResults = mockResults;
+    if (filter !== 'all') {
+      filteredResults = mockResults.filter(result => result.filter === filter);
+    }
+
+    // Mock vector database recommendations
+    const recommendations = [
+      {
+        type: "similar_business",
+        title: "Similar Government Contractors",
+        items: [
+          "Advanced Engineering Solutions",
+          "Strategic Defense Partners", 
+          "Federal Healthcare Associates"
+        ]
+      },
+      {
+        type: "opportunity_match",
+        title: "Matching Opportunities",
+        items: [
+          "DOD Construction Contract - $2.5M",
+          "VA Healthcare Services - $1.2M",
+          "GSA IT Modernization - $3.8M"
+        ]
+      }
+    ];
+
+    res.json({
+      success: true,
+      results: filteredResults,
+      recommendations: recommendations,
+      total: filteredResults.length,
+      query: query,
+      filter: filter
+    });
+
+  } catch (err) {
+    console.error("[/api/sam-scrape] ERROR:", err);
+    res.status(500).json({ error: err.message });
+  }
+}));
 
 app.get("/", (req, res) => {
   // Google-Lite: Redirect browsers to docs, serve Discovery JSON to machines

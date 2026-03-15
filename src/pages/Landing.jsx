@@ -11,6 +11,7 @@ import {
   ArrowLeft,
   Shield,
   Linkedin,
+  Globe,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
@@ -25,42 +26,37 @@ import Proposal from "./Proposal";
 
 const benefits = [
   {
-    title: "Sovereignty Protocol",
-    description: "Built on ARIS Zero Token. We never save your data or store your contract bids—our architecture makes it impossible for us to ever see it.",
-    icon: <BadgeCheck size={42} color="#4338ca" />,
+    title: "AI Analysis",
+    description: "Our agentic AI 'shreds' 200+ page contracts in seconds to find hidden compliance traps.",
+    icon: <Zap size={42} color="#4338ca" />,
+  },
+  {
+    title: "Zero Knowledge",
+    description: "We never see your data. Our architecture makes it impossible for us to store or access your sensitive bids.",
+    icon: <Shield size={42} color="#4338ca" />,
   },
   {
     title: "Stateless Execution",
-    description: "Your competitive intel runs via a stateless bridge. No database, no local caching, no leak surface.",
+    description: "Your data is processed in temporary memory and wiped instantly. No database, no local caching, no leaks.",
     icon: <Rocket size={42} color="#4338ca" />,
-  },
-  {
-    title: "Risk Mitigation",
-    description: "FAR/DFARS extraction and precision risk weighting using official Aris labs audit protocols.",
-    icon: <FileText size={42} color="#4338ca" />,
-  },
-  {
-    title: "Intelligence Workbench",
-    description: "Automate technical narratives and compliance matrices in 90 seconds without the data liability.",
-    icon: <Search size={42} color="#4338ca" />,
   },
 ];
 
 const steps = [
   {
-    title: "Vault Handshake",
-    description: "Aris issues a short-lived Zero Token to initiate the session without exposing your sensitive payload.",
-    icon: <KeyRound size={42} color="#4f46e5" />,
+    title: "Paste your link",
+    description: "Simply paste the SAM.gov link of the job you want.",
+    icon: <Globe size={42} color="#4f46e5" />,
   },
   {
-    title: "Stateless Bridge",
-    description: "Analyses occur over a non-persistent bridge—we route the logic but never store a single byte of bid data.",
+    title: "Wait 60 seconds",
+    description: "Our AI reads the contract and finds the hidden rules.",
     icon: <Rocket size={42} color="#4f46e5" />,
   },
   {
-    title: "Cryptographic Purge",
-    description: "Upon task completion, all session memory is wiped. Your intellectual property remains Sovereign and Local.",
-    icon: <BadgeCheck size={42} color="#4f46e5" />,
+    title: "Get your report",
+    description: "We tell you if you can win and what risks to avoid.",
+    icon: <FileText size={42} color="#4f46e5" />,
   },
 ];
 
@@ -160,6 +156,11 @@ export default function Landing({ onEnterApp, onViewSample }) {
     trackEvent("start_free_trial_click", { source: "landing_hero" });
     trackKPI("trial_click", { source: "landing_hero" });
     openCheckout("landing_hero", GTM_PRICING_PLANS[0]);
+  };
+
+  const handleSamScraperOpen = () => {
+    trackEvent("sam_scraper_click", { source: "landing_hero" });
+    window.location.href = "/sam-scraper";
   };
 
   const handleWorkspaceOpen = () => {
@@ -369,13 +370,14 @@ export default function Landing({ onEnterApp, onViewSample }) {
               </div>
 
               <div style={{ ...styles.heroInner, marginTop: '40px' }}>
-                <h1 style={{ ...styles.title, fontSize: '2.5rem' }}>The First Zero-Knowledge Defense Workbench</h1>
-                <p style={styles.subtitle}>
-                  Automate the 40-hour RFP shred in 90 seconds with absolute **Data Sovereignty**.
+                <h1 style={{ ...styles.title, fontSize: isMobile ? '2rem' : '3.25rem' }}>Will you win the contract?</h1>
+                <p style={{ ...styles.subtitle, fontSize: isMobile ? '1rem' : '1.25rem' }}>
+                  Shred the 40-hour RFP in 90 seconds. Find risks, check rules, and bid with confidence.
                 </p>
-                <div style={styles.heroActions}>
-                  <button onClick={onViewSample} style={styles.secondaryCta}>View Demo Audit</button>
-                  <button onClick={handleWorkspaceOpen} style={styles.secondaryCta}>Open Workspace</button>
+                <div style={{ ...styles.heroActions, flexDirection: isMobile ? 'column' : 'row' }}>
+                  <button onClick={handleWorkspaceOpen} style={{ ...styles.primaryCta, width: isMobile ? '100%' : 'auto' }}>Start Free Audit</button>
+                  <button onClick={onViewSample} style={{ ...styles.secondaryCta, width: isMobile ? '100%' : 'auto' }}>See a Sample</button>
+                  <button onClick={handleSamScraperOpen} style={{ ...styles.secondaryCta, width: isMobile ? '100%' : 'auto' }}>Search Contractors</button>
                 </div>
               </div>
             </div>
@@ -702,7 +704,14 @@ const styles = {
     borderRadius: 999,
     padding: "6px 12px",
   },
-  title: { margin: 0, fontSize: "clamp(2rem, 6vw, 3.25rem)", lineHeight: 1.1, letterSpacing: "-0.02em", color: "#ffffff" },
+  title: { 
+    margin: 0, 
+    fontSize: "clamp(2rem, 8vw, 3.5rem)", 
+    lineHeight: 1.1, 
+    letterSpacing: "-0.02em", 
+    color: "#ffffff",
+    overflowWrap: "break-word"
+  },
   logo: {
     height: 72,
     width: "auto",
@@ -722,11 +731,14 @@ const styles = {
   primaryCta: {
     background: "#3b82f6",
     color: "#ffffff",
-    fontWeight: 600,
-    borderRadius: 10,
-    padding: "12px 22px",
-    border: "1px solid #2563eb",
+    fontWeight: 800,
+    borderRadius: 12,
+    padding: "16px 32px",
+    border: "none",
     cursor: "pointer",
+    fontSize: "16px",
+    boxShadow: "0 4px 14px rgba(37, 99, 235, 0.4)",
+    transition: "all 0.2s ease",
   },
   secondaryCta: {
     background: "rgba(255,255,255,0.03)",
@@ -1002,7 +1014,7 @@ const styles = {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    flexWrap: "wrap",
+    flexDirection: window.innerWidth < 768 ? "column" : "row",
     gap: "16px",
   },
   footerCopyright: {

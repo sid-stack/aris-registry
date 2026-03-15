@@ -1,0 +1,536 @@
+/* Demo Analytics Dashboard Styles */
+.demo-analytics {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 40px 20px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.analytics-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.analytics-header h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 12px;
+}
+
+.analytics-header p {
+  font-size: 1.1rem;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+  margin-bottom: 40px;
+}
+
+.metric-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.metric-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.metric-card.primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: #ffffff;
+}
+
+.metric-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.metric-card.primary .metric-icon {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.metric-content {
+  flex: 1;
+}
+
+.metric-content h3 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+  opacity: 0.8;
+}
+
+.metric-card.primary .metric-content h3 {
+  opacity: 0.9;
+}
+
+.metric-value {
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.metric-card.primary .metric-value {
+  color: #ffffff;
+}
+
+.metric-change {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.metric-change.positive {
+  color: #10b981;
+}
+
+.metric-card.primary .metric-change.positive {
+  color: #86efac;
+}
+
+.conversion-section {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 40px;
+  margin-bottom: 40px;
+}
+
+.conversion-metrics h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 24px;
+}
+
+.funnel-steps {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 32px;
+  padding: 24px;
+  background: #f8fafc;
+  border-radius: 12px;
+  overflow-x: auto;
+}
+
+.funnel-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  min-width: 120px;
+}
+
+.step-number {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #3b82f6;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.step-content h4 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+.step-value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #1f2937;
+}
+
+.funnel-arrow {
+  font-size: 1.5rem;
+  color: #64748b;
+  margin: 0 8px;
+}
+
+.conversion-rate {
+  text-align: center;
+  padding: 24px;
+  background: #ffffff;
+  border: 2px solid #3b82f6;
+  border-radius: 12px;
+}
+
+.conversion-rate h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+.rate-value {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #3b82f6;
+  margin-bottom: 8px;
+}
+
+.rate-description {
+  font-size: 0.9rem;
+  color: #64748b;
+}
+
+.signup-form-section {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 32px;
+}
+
+.signup-form-section h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 12px;
+}
+
+.signup-form-section p {
+  color: #64748b;
+  margin-bottom: 24px;
+}
+
+.success-message {
+  text-align: center;
+  padding: 32px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  border-radius: 12px;
+}
+
+.success-message h3 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.signup-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.form-group input,
+.form-group select {
+  padding: 12px 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.2s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.submit-button {
+  padding: 16px 32px;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.submit-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
+}
+
+.submit-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.detailed-analytics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+}
+
+.top-pages h2,
+.recent-activity h2 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 20px;
+}
+
+.pages-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.page-item {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.page-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.page-info h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.page-stats {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.page-views {
+  font-weight: 600;
+  color: #374151;
+}
+
+.page-percentage {
+  background: #3b82f6;
+  color: #ffffff;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.page-bar {
+  height: 8px;
+  background: #f1f5f9;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.page-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6, #10b981);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.activity-item {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.activity-type {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.activity-details {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.activity-page {
+  font-size: 0.9rem;
+  color: #64748b;
+}
+
+.activity-time {
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .conversion-section {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  
+  .funnel-steps {
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .funnel-arrow {
+    transform: rotate(90deg);
+    margin: 8px 0;
+  }
+  
+  .detailed-analytics {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .demo-analytics {
+    padding: 20px 16px;
+  }
+  
+  .metrics-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .form-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .page-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .activity-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}
+
+/* Dark Theme */
+.demo-analytics.dark {
+  background: #0f172a;
+  color: #f8fafc;
+}
+
+.demo-analytics.dark .analytics-header h1 {
+  color: #f8fafc;
+}
+
+.demo-analytics.dark .metric-card,
+.demo-analytics.dark .signup-form-section,
+.demo-analytics.dark .page-item,
+.demo-analytics.dark .activity-item {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.demo-analytics.dark .metric-content h3,
+.demo-analytics.dark .conversion-metrics h2,
+.demo-analytics.dark .signup-form-section h2,
+.demo-analytics.dark .top-pages h2,
+.demo-analytics.dark .recent-activity h2,
+.demo-analytics.dark .page-info h4,
+.demo-analytics-dark .activity-type {
+  color: #f8fafc;
+}
+
+.demo-analytics.dark .form-group label {
+  color: #e2e8f0;
+}
+
+.demo-analytics.dark .form-group input,
+.demo-analytics.dark .form-group select {
+  background: #0f172a;
+  border-color: #334155;
+  color: #f8fafc;
+}
+
+.demo-analytics.dark .step-content h4 {
+  color: #e2e8f0;
+}
+
+.demo-analytics.dark .step-value {
+  color: #f8fafc;
+}
+
+.demo-analytics.dark .conversion-metrics {
+  background: #1e293b;
+}
+
+.demo-analytics.dark .rate-description {
+  color: #cbd5e1;
+}
+
+.demo-analytics.dark .page-stats {
+  background: #1e293b;
+}
+
+.demo-analytics-dark .page-views {
+  color: #e2e8f0;
+}
+
+.demo-analytics.dark .page-bar {
+  background: #334155;
+}
+
+.demo-analytics.dark .activity-page {
+  color: #cbd5e1;
+}
+
+.demo-analytics.dark .activity-time {
+  color: #64748b;
+}

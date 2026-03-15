@@ -50,32 +50,44 @@ const MetricsStrip = ({
   ];
 
   return (
-    <div className="dashboard-card grid-col-span-2 animate-in" style={{ padding: '0' }}>
-      <div className="metrics-strip-grid" style={{
+    <div className="dashboard-card animate-in" style={{ padding: '0', overflow: 'hidden' }}>
+      <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
       }}>
         {metrics.map((m, i) => (
           <div key={m.label} style={{
-            padding: '18px 24px',
-            borderRight: i < (metrics.length - 1) ? '1px solid var(--border)' : 'none',
+            padding: '16px 20px',
+            borderRight: '1px solid var(--border)',
+            borderBottom: '1px solid var(--border)',
             display: 'flex',
             flexDirection: 'column',
-            gap: '6px',
-          }}>
+            gap: '8px',
+          }} className="metric-item">
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               {m.icon}
-              <span style={{ fontSize: '9px', letterSpacing: '0.15em', color: 'var(--text-secondary)', fontWeight: 700 }}>
+              <span style={{ fontSize: '9px', letterSpacing: '0.15em', color: 'var(--text-secondary)', fontWeight: 800 }}>
                 {m.label}
               </span>
             </div>
-            <div style={{ fontSize: '28px', fontWeight: 700, color: m.color, lineHeight: 1, fontFamily: "'Space Mono', monospace" }}>
+            <div style={{ fontSize: '24px', fontWeight: 800, color: m.color, lineHeight: 1, fontFamily: "'Space Mono', monospace" }}>
               {m.value !== null ? <Counter target={m.value} /> : m.display}
             </div>
-            <div style={{ fontSize: '10px', color: 'var(--text-secondary)', fontFamily: "'Space Mono', monospace" }}>{m.sub}</div>
+            <div style={{ fontSize: '10px', color: 'var(--text-secondary)', fontFamily: "'Space Mono', monospace", opacity: 0.8 }}>{m.sub}</div>
           </div>
         ))}
       </div>
+      <style>{`
+        .metric-item:last-child {
+          border-right: none;
+          border-bottom: none;
+        }
+        @media (max-width: 600px) {
+          .metric-item {
+            border-right: none !important;
+          }
+        }
+      `}</style>
     </div>
   );
 };

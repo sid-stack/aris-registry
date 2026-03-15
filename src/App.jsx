@@ -10,6 +10,9 @@ import SamRep from "./pages/SamRep";
 import Discovery from "./pages/Discovery";
 import Security from "./pages/Security";
 import About from "./pages/About";
+import SamScraper from "./pages/SamScraper";
+import SurveyAnalytics from "./components/SurveyAnalytics";
+import DemoAnalytics from "./components/DemoAnalytics";
 import NotFound from "./pages/NotFound";
 import ConsentBanner from "./components/ConsentBanner";
 import { trackPageView } from "./utils/analytics";
@@ -36,6 +39,12 @@ export default function App() {
                 ? "discovery"
                 : path === "/soc"
                   ? "soc"
+                  : path === "/sam-scraper"
+                    ? "sam-scraper"
+                  : path === "/survey-analytics"
+                    ? "survey-analytics"
+                  : path === "/demo-analytics"
+                    ? "demo-analytics"
                   : path === "/app"
                     ? "app"
                   : window.location.search.includes("app=true")
@@ -62,10 +71,18 @@ export default function App() {
       logicalPath = "/discovery";
     } else if (view === "soc") {
       logicalPath = "/soc";
+    } else if (view === "sam-scraper") {
+      logicalPath = "/sam-scraper";
+    } else if (view === "survey-analytics") {
+      logicalPath = "/survey-analytics";
+    } else if (view === "demo-analytics") {
+      logicalPath = "/demo-analytics";
     } else if (view === "about") {
       logicalPath = "/about";
     } else if (view === "landing") {
       logicalPath = "/";
+    } else if (view === "app") {
+      logicalPath = "/app/audit";
     } else if (!authenticated) {
       logicalPath = "/app/login";
     } else if (route === "audit") {
@@ -90,10 +107,19 @@ export default function App() {
     content = <Discovery onBack={() => setView("landing")} />;
   } else if (view === "soc") {
     content = <Security onBack={() => setView("landing")} />;
+  } else if (view === "sam-scraper") {
+    content = <SamScraper onBack={() => setView("landing")} />;
+  } else if (view === "survey-analytics") {
+    content = <SurveyAnalytics />;
+  } else if (view === "demo-analytics") {
+    content = <DemoAnalytics />;
   } else if (view === "about") {
     content = <About onBack={() => setView("landing")} />;
   } else if (view === "landing") {
     content = <Landing onEnterApp={() => setView("app")} onViewSample={() => setView("sam-rep")} />;
+  } else if (view === "app") {
+    // Audit is stateless and zero-knowledge, allow guest access for the first audit
+    content = <Audit onBack={() => setView("landing")} />;
   } else if (!authenticated) {
     content = <Login onLogin={() => setAuthenticated(true)} />;
   } else {
