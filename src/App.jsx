@@ -9,49 +9,40 @@ import Legal from "./pages/Legal";
 import SamRep from "./pages/SamRep";
 import Discovery from "./pages/Discovery";
 import Security from "./pages/Security";
-import Labs from "./pages/Labs";
 import NotFound from "./pages/NotFound";
 import ConsentBanner from "./components/ConsentBanner";
 import { trackPageView } from "./utils/analytics";
 
 export default function App() {
   const path = window.location.pathname;
-  const host = window.location.hostname;
-  const isLabsSubdomain = host.startsWith("labs.");
-
   const [authenticated, setAuthenticated] = useState(false);
   const [proposal, setProposal] = useState(null);
   const [route] = useState(() =>
     window.location.search.includes("phase2=true") ? "phase2" : "audit",
   );
   const [view, setView] = useState(() =>
-    isLabsSubdomain
-      ? "labs"
-      : path === "/templates"
-        ? "templates"
-        : path === "/privacy"
-          ? "privacy"
-          : path === "/terms"
-            ? "terms"
-            : path === "/cookies"
-              ? "cookies"
-              : path === "/sam-rep"
-                ? "sam-rep"
-                : path === "/discovery"
-                  ? "discovery"
-                  : path === "/soc"
-                    ? "soc"
-                  : path === "/labs"
-                    ? "labs"
+    path === "/templates"
+      ? "templates"
+      : path === "/privacy"
+        ? "privacy"
+        : path === "/terms"
+          ? "terms"
+          : path === "/cookies"
+            ? "cookies"
+            : path === "/sam-rep"
+              ? "sam-rep"
+              : path === "/discovery"
+                ? "discovery"
+                : path === "/soc"
+                  ? "soc"
                   : path === "/app"
                     ? "app"
                   : window.location.search.includes("app=true")
                     ? "app"
-                  : path !== "/"
-                    ? "404"
-                    : "landing",
+                    : path !== "/"
+                      ? "404"
+                      : "landing",
   );
-
 
   useEffect(() => {
     let logicalPath = "/";
@@ -68,8 +59,6 @@ export default function App() {
       logicalPath = "/discovery";
     } else if (view === "soc") {
       logicalPath = "/soc";
-    } else if (view === "labs") {
-      logicalPath = "/labs";
     } else if (view === "landing") {
       logicalPath = "/";
     } else if (!authenticated) {
@@ -87,7 +76,7 @@ export default function App() {
   if (view === "templates") {
     content = <Templates />;
   } else if (view === "privacy" || view === "terms" || view === "cookies") {
-    content = <Legal type={view} onBack={() => setView("landing")} />;
+    content = <Legal type={view} />;
   } else if (view === "404") {
     content = <NotFound />;
   } else if (view === "sam-rep") {
@@ -96,8 +85,6 @@ export default function App() {
     content = <Discovery onBack={() => setView("landing")} />;
   } else if (view === "soc") {
     content = <Security onBack={() => setView("landing")} />;
-  } else if (view === "labs") {
-    content = <Labs onBack={() => setView("landing")} />;
   } else if (view === "landing") {
     content = <Landing onEnterApp={() => setView("app")} onViewSample={() => setView("sam-rep")} />;
   } else if (!authenticated) {

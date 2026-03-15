@@ -1,237 +1,226 @@
-import React, { useEffect } from "react";
-import { Shield, ArrowLeft, Lock, FileText, BadgeCheck } from "lucide-react";
+import { useEffect } from "react";
+import { Shield, ArrowLeft } from "lucide-react";
 
 const LEGAL_CONTENT = {
   privacy: {
     title: "Privacy Policy",
-    updated: "March 15, 2026",
+    updated: "December 12, 2025",
     sections: [
       {
-        heading: "Sovereign Ingestion Protocol",
-        body: "ARIS Intelligence Labs operates on a Zero-Knowledge architecture. We collect account information and base telemetry required to maintain secure session handshakes. We do not persist contract bids, sensitive technical payloads, or proprietary win-themes. All analysis occurs via the Stateless Bridge™.",
+        heading: "Data Sovereignty & Zero-Knowledge",
+        body: "BidSmith is built on the principle of Data Sovereignty. Our architecture utilizes a Stateless Bridge protocol where all sensitive RFP and solicitation data is processed in transient memory only. We do not persist, store, or cache your competitive intelligence or proposal payloads on any server-side database. Once your session is terminated, all cryptographic traces of the analysis are purged.",
       },
       {
-        heading: "Data Sovereignty",
-        body: "Data processed via ARIS is encrypted using AES-256-GCM. We never utilize your proprietary data for training public or private LLM weights. User identity is protected via tokenized handshake protocols.",
+        heading: "What Information We Collect",
+        body: "We collect account-level information (email address) required for authentication and subscription management. We also collect anonymized usage telemetry and operational diagnostics to maintain system health. We NEVER collect or view the contents of the documents you shred via the Intelligence Workbench.",
       },
       {
-        heading: "User Termination Rights",
-        body: "Users maintain total sovereignty over their account meta-data. Requests for purge can be dispatched to sid@bidsmith.pro.",
+        heading: "Stateless Execution Model",
+        body: "Analyses are routed through a secure execution layer that transforms inputs into structured outputs without persistence. Your intellectual property remains yours; our engine only sees the logic required for processing, never the proprietary context.",
       },
       {
-        heading: "Telemetry & Cookies",
-        body: "We use high-security essential cookies to maintain the Stateless Bridge connection. Anonymous telemetry is collected only to ensure infrastructure stability.",
+        heading: "Information Security",
+        body: "We implement defense-grade security measures including end-to-end encryption for session handshakes and short-lived Zero Tokens to prevent unauthorized payload access.",
       },
     ],
   },
   terms: {
-    title: "Corporate Terms of Service",
-    updated: "March 15, 2026",
+    title: "Terms of Service",
+    updated: "December 12, 2025",
     sections: [
       {
-        heading: "1. Infrastructure Access",
-        body: "BidSmith (powered by ARIS Intelligence Labs) provides autonomous intelligence infrastructure for federal solicitation analysis. Access is granted on a per-session sovereign basis.",
+        heading: "The Intelligence Workbench",
+        body: "BidSmith provides a high-performance workbench for federal capture management. By using the platform, you agree to utilize the services for lawful proposal development and analysis.",
       },
       {
-        heading: "2. Intellectual Property",
-        body: "Users retain 100% ownership of inputs and machine-synthesized outputs. ARIS Labs claims no right, title, or interest in any data processed via the Stateless Bridge.",
+        heading: "Subscription & Licensing",
+        body: "Access to the ARIS OS and associated workbench tools is granted via tiered subscription models. Pilot programs are governed by specific 30-day non-persistent execution terms.",
       },
       {
-        heading: "3. Service Integrity",
-        body: "Users must not attempt to reverse-engineer Mercury 2 protocols or utilize the infrastructure for unauthorized adversarial testing against federal systems.",
-      },
-      {
-        heading: "4. Liability Limitation",
-        body: "ARIS Intelligence Labs provides an extraction layer for technical synthesis. Final compliance remains the responsibility of the Prime Contractor's legal and capture teams.",
+        heading: "Liability & Precision",
+        body: "While BidSmith provides precision-grade risk auditing, users are responsible for final verification of all compliance claims against official FAR/DFARS regulations.",
       },
     ],
   },
   cookies: {
     title: "Cookie Policy",
-    updated: "March 15, 2026",
+    updated: "December 12, 2025",
     sections: [
       {
-        heading: "Session Handshake",
-        body: "Required for the Aris Zero Token handshake and stateless session management.",
+        heading: "Operational Cookies",
+        body: "We use essential session tokens to maintain your authentication state and preferences within the sovereign workbench.",
       },
       {
-        heading: "Performance Monitoring",
-        body: "Non-identifying cookies used to monitor Mercury 2 diffusion velocity and infrastructure health.",
-      },
-      {
-        heading: "Consent Governance",
-        body: "We respect the Global Privacy Control and local jurisdictional directives.",
+        heading: "Telemetry Cookies",
+        body: "Anonymous telemetry is used to optimize the agentic pipeline and identify throughput bottlenecks.",
       },
     ],
   },
 };
 
-export default function Legal({ type = "privacy", onBack }) {
+export default function Legal({ type = "privacy" }) {
   const page = LEGAL_CONTENT[type] || LEGAL_CONTENT.privacy;
 
   useEffect(() => {
     const previousTitle = document.title;
-    document.title = `ARIS Labs – ${page.title}`;
-    return () => { document.title = previousTitle; };
+    document.title = `BidSmith | ${page.title}`;
+    window.scrollTo(0, 0);
+    return () => {
+      document.title = previousTitle;
+    };
   }, [page.title]);
 
   return (
-    <div style={styles.page}>
+    <main style={styles.page}>
       <header style={styles.header}>
         <div style={styles.headerInner}>
-          <div style={styles.brand}>
-            <Shield size={18} color="#3b82f6" />
-            <span style={styles.brandText}>LABS.BIDSMITH.PRO</span>
-          </div>
-          <button onClick={onBack || (() => window.location.href = '/')} style={styles.backButton}>
-            <ArrowLeft size={14} />
-            {type === 'terms' ? 'Exit Corporate Portal' : 'Back'}
-          </button>
+          <a href="/" style={styles.brand}>
+            <Shield size={18} color="#ffffff" fill="#ffffff" fillOpacity={0.1} />
+            <span style={styles.brandName}>REGISTRY.BIDSMITH.PRO</span>
+          </a>
+          <a href="/" style={styles.backLink}>
+            <ArrowLeft size={14} /> Back to Home
+          </a>
         </div>
       </header>
 
-      <main style={styles.container}>
-        <div style={styles.kicker}>
-          <BadgeCheck size={12} color="#3b82f6" />
-          <span style={styles.kickerText}>GOVERNANCE_PROTOCOL_v3.4</span>
-        </div>
-        
-        <h1 style={styles.title}>{page.title}</h1>
-        <p style={styles.updated}>SPECIFICATION UPDATED: {page.updated}</p>
-        
-        <div style={styles.divider} />
+      <div style={styles.container}>
+        <div style={styles.contentCard}>
+          <div style={styles.badge}>LEGAL DOCUMENT</div>
+          <h1 style={styles.title}>{page.title}</h1>
+          <p style={styles.updated}>Effective Version: {page.updated}</p>
+          
+          <div style={styles.divider} />
 
-        {page.sections.map((section) => (
-          <section key={section.heading} style={styles.section}>
-            <h2 style={styles.heading}>{section.heading}</h2>
-            <p style={styles.body}>{section.body}</p>
-          </section>
-        ))}
+          {page.sections.map((section) => (
+            <section key={section.heading} style={styles.section}>
+              <h2 style={styles.heading}>{section.heading}</h2>
+              <p style={styles.body}>{section.body}</p>
+            </section>
+          ))}
 
-        <div style={styles.footerInfo}>
-          <Lock size={14} color="#3f3f46" />
-          <span style={styles.footerInfoText}>ALL DATA PROCESSED VIA STATELESS_BRIDGE IS CRYPTOGRAPHICALLY PURGED UPON EXIT.</span>
+          <div style={styles.footer}>
+            <p style={styles.footerText}>
+              For inquiries regarding data sovereignty or CMMC compliance, contact <a href="mailto:sid@bidsmith.pro" style={styles.inlineLink}>sid@bidsmith.pro</a>
+            </p>
+          </div>
         </div>
-      </main>
-    </div>
+      </div>
+    </main>
   );
 }
 
 const styles = {
   page: {
     minHeight: "100vh",
-    background: "#09090b",
-    color: "#a1a1aa",
-    fontFamily: "'Space Mono', monospace",
-    lineHeight: '1.6',
+    background: "#000000",
+    color: "#e4e4e7",
+    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+    paddingBottom: "80px",
   },
   header: {
-    padding: '16px 20px',
-    borderBottom: '1px solid #1a1a1a',
-    background: '#0c0c0e',
+    borderBottom: "1px solid #141416",
+    background: "rgba(0,0,0,0.8)",
+    backdropFilter: "blur(12px)",
+    position: "sticky",
+    top: 0,
+    zIndex: 100,
   },
   headerInner: {
-    maxWidth: '800px',
-    margin: '0 auto',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    maxWidth: "1120px",
+    margin: "0 auto",
+    height: "64px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: "0 20px",
   },
   brand: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    textDecoration: "none",
   },
-  brandText: {
-    fontSize: '11px',
+  brandName: {
+    fontSize: "0.75rem",
+    fontWeight: 900,
+    color: "#ffffff",
+    letterSpacing: "0.15em",
+  },
+  backLink: {
+    fontSize: "0.85rem",
+    color: "#71717a",
+    textDecoration: "none",
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    transition: "color 0.2s ease",
+  },
+  container: {
+    maxWidth: "800px",
+    margin: "60px auto 0",
+    padding: "0 20px",
+  },
+  contentCard: {
+    background: "#050505",
+    border: "1px solid #141416",
+    borderRadius: "2px",
+    padding: "60px",
+  },
+  badge: {
+    fontSize: "0.65rem",
     fontWeight: 800,
-    color: '#3b82f6',
-    letterSpacing: '0.1em',
+    color: "#3b82f6",
+    letterSpacing: "0.1em",
+    marginBottom: "20px",
   },
-  backButton: {
-    background: 'transparent',
-    border: '1px solid #27272a',
-    color: '#52525b',
-    padding: '5px 12px',
-    borderRadius: '4px',
-    fontSize: '10px',
-    fontWeight: 700,
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    textTransform: 'uppercase',
+  title: {
+    margin: 0,
+    fontSize: "2.5rem",
+    fontWeight: 400,
+    color: "#ffffff",
+    letterSpacing: "-0.02em",
   },
-  container: { 
-    maxWidth: 720, 
-    margin: "0 auto", 
-    padding: "60px 24px" 
-  },
-  kicker: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    marginBottom: '12px',
-  },
-  kickerText: {
-    fontSize: '9px',
-    fontWeight: 800,
-    color: '#3b82f6',
-    letterSpacing: '0.1em',
-  },
-  title: { 
-    margin: '0 0 8px', 
-    fontSize: "28px", 
-    fontWeight: 900, 
-    color: '#f4f4f5',
-    letterSpacing: '-0.01em'
-  },
-  updated: { 
-    margin: "0 0 32px", 
-    color: "#3f3f46", 
-    fontSize: "11px",
-    fontWeight: 700,
-    letterSpacing: '0.05em'
+  updated: {
+    margin: "12px 0 0",
+    color: "#3f3f46",
+    fontSize: "0.85rem",
   },
   divider: {
-    height: '1px',
-    background: '#1a1a1a',
-    marginBottom: '40px',
+    height: "1px",
+    background: "#141416",
+    margin: "40px 0",
   },
-  section: { 
-    marginBottom: "40px" 
+  section: {
+    marginBottom: "48px",
   },
-  heading: { 
-    margin: "0 0 12px", 
-    fontSize: "14px", 
-    fontWeight: 800, 
-    color: '#ffffff',
-    textTransform: 'uppercase',
-    letterSpacing: '0.05em'
-  },
-  body: { 
-    margin: 0, 
-    lineHeight: 1.8, 
-    color: "#a1a1aa",
-    fontSize: '13px',
-    fontFamily: 'Inter, sans-serif'
-  },
-  footerInfo: {
-    marginTop: '60px',
-    padding: '24px',
-    background: '#0c0c0e',
-    border: '1px solid #1a1a1a',
-    borderRadius: '8px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-  },
-  footerInfoText: {
-    fontSize: '10px',
-    color: '#3f3f46',
+  heading: {
+    margin: "0 0 16px",
+    fontSize: "0.95rem",
     fontWeight: 700,
-    letterSpacing: '0.05em',
-  }
+    color: "#ffffff",
+    textTransform: "uppercase",
+    letterSpacing: "0.05em",
+  },
+  body: {
+    margin: 0,
+    lineHeight: 1.8,
+    color: "#71717a",
+    fontSize: "0.95rem",
+  },
+  footer: {
+    marginTop: "80px",
+    paddingTop: "24px",
+    borderTop: "1px solid #141416",
+  },
+  footerText: {
+    fontSize: "0.85rem",
+    color: "#3f3f46",
+    margin: 0,
+  },
+  inlineLink: {
+    color: "#3b82f6",
+    textDecoration: "none",
+  },
 };
-
 

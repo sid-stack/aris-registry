@@ -1,6 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import { 
   Sparkles, 
   Terminal, 
@@ -13,8 +11,6 @@ import {
   AlertTriangle,
   CheckCircle2
 } from 'lucide-react';
-
-
 
 const ARISChat = ({ selectedContext, onLog, onCommand }) => {
   const [messages, setMessages] = useState([
@@ -147,10 +143,15 @@ const ARISChat = ({ selectedContext, onLog, onCommand }) => {
                 {msg.role === 'user' ? 'ME' : 'ARIS'}
               </span>
             </div>
-            <div className={`prose prose-invert max-w-none font-inter ${msg.role === 'user' ? 'text-zinc-400' : 'text-zinc-300'}`} style={{ paddingLeft: '24px', fontSize: '13px', lineHeight: '1.6' }}>
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {msg.content}
-              </ReactMarkdown>
+            <div style={{ 
+              fontSize: '12px', 
+              lineHeight: '1.6',
+              color: msg.role === 'user' ? '#71717a' : '#d4d4d8',
+              paddingLeft: '24px',
+              fontFamily: 'Inter, sans-serif',
+              whiteSpace: 'pre-wrap'
+            }}>
+              {msg.content}
             </div>
             {msg.role === 'assistant' && (
               <div style={{ 
@@ -208,7 +209,29 @@ const ARISChat = ({ selectedContext, onLog, onCommand }) => {
               <Zap size={12} fill="white" />
               EXECUTE RESPONSE SYNTHESIS
             </button>
-
+            <div style={{ background: '#1e1b4b', border: '1px solid #312e81', borderRadius: '4px', padding: '12px' }}>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                 <CreditCard size={12} color="#818cf8" />
+                 <span style={{ fontSize: '10px', fontWeight: 800, color: '#f4f4f5' }}>UPGRADE TO DRAFT PACK</span>
+               </div>
+               <p style={{ fontSize: '10px', color: '#a5b4fc', lineHeight: 1.4, margin: '0 0 10px 0' }}>Get the full "Compliance Response Kit" (5 Core Drafts + Section L Synthesis) for this RFP.</p>
+               <a 
+                href="https://buy.stripe.com/test_6oE3cb..." // Mocked Stripe Link
+                target="_blank"
+                style={{ 
+                  display: 'block',
+                  textAlign: 'center',
+                  background: 'white', 
+                  color: '#1e1b4b', 
+                  textDecoration: 'none',
+                  padding: '6px', 
+                  borderRadius: '3px', 
+                  fontSize: '9px', 
+                  fontWeight: 800 
+                }}>
+                 ACTIVATE RESPONSE PACK ($999)
+               </a>
+            </div>
           </div>
         )}
         <div style={{ position: 'relative' }}>

@@ -59,6 +59,18 @@ Style:
 - Include type hints (Python) or JSDoc (Node) for public functions.
 - Use async/await where possible.`;
 
+const STRIPE_PRODUCTS = {
+  starter: { productId: "prod_Starter", priceId: "price_StarterMonthly", mode: "subscription" },
+  growth: { productId: "prod_Growth", priceId: "price_GrowthMonthly", mode: "subscription" },
+  pilot: { productId: "prod_Pilot", priceId: "price_PilotOneTime", mode: "payment" },
+};
+
+const STRIPE_PREMIUM_PRODUCTS = {
+  standard: { priceId: process.env.STRIPE_PRICE_PREMIUM_STANDARD, turnaroundHours: "48" },
+  express: { priceId: process.env.STRIPE_PRICE_PREMIUM_EXPRESS, turnaroundHours: "24" },
+};
+const STRIPE_ARIS_CALL_PRICE_ID = process.env.STRIPE_PRICE_ARIS_CALL;
+
 const PRICING_TIERS = [
   {
     id: "starter",
@@ -260,6 +272,14 @@ const allowedOrigins = new Set([
 if (process.env.NODE_ENV !== "production") {
   allowedOrigins.add("http://localhost:5173");
   allowedOrigins.add("http://localhost:3000");
+}
+
+const stripeMissingVars = [];
+const stripePublicKey = process.env.VITE_STRIPE_PUBLIC_KEY || process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+if (!process.env.STRIPE_SECRET_KEY) stripeMissingVars.push("STRIPE_SECRET_KEY");
+if (!stripePublicKey) stripeMissingVars.push("VITE_STRIPE_PUBLIC_KEY (or NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)");
+if (stripeMissingVars.length > 0) {
+  console.warn(`[STRIPE_CONFIG] Missing env vars: ${stripeMissingVars.join(", ")} — Stripe checkout routes will fail`);
 }
 
 app.use(cors({
@@ -629,6 +649,141 @@ app.post("/v1/execute", asyncHandler(async (req, res) => {
   }
 
   return res.json(payload);
+}));
+
+/**
+ * Creates a Stripe Checkout session for a pricing plan.
+ */
+app.post("/api/checkout/session", asyncHandler(async (req, res) => {
+  const plan = String(req.body?.plan || "").toLowerCase();
+  const premiumTierRaw = String(req.body?.premiumTier || "none").toLowerCase();
+  const context = (req.body?.context && typeof req.body.context === "object") ? req.body.context : {};
+  const premiumTier = premiumTierRaw === "standard" || premiumTierRaw === "express" ? premiumTierRaw : "none";
+  const planConfig = STRIPE_PRODUCTS[plan];
+  const origin = String(req.get("origin") || "https://www.bidsmith.pro").replace(/\/$/, "");
+  const successUrlInput = String(req.body?.successUrl || "").trim();
+  const cancelUrlInput = String(req.body?.cancelUrl || "").trim();
+  const successUrl = successUrlInput || `${origin}/sam-rep?session=success&premium=${encodeURIComponent(premiumTier)}&plan=${encodeURIComponent(plan)}`;
+  const cancelUrl = cancelUrlInput || `${origin}/app?checkout=cancelled&premium=${encodeURIComponent(premiumTier)}&plan=${encodeURIComponent(plan)}`;
+
+  if (!planConfig) {
+    return res.status(400).json({ error: "Unsupported plan" });
+  }
+  if (premiumTierRaw !== "none" && premiumTier === "none") {
+    return res.status(400).json({ error: "Unsupported premiumTier. Use none, standard, or express." });
+  }
+
+  const stripeAuth = Buffer.from(`${process.env.STRIPE_SECRET_KEY}:`).toString("base64");
+  const formBody = new URLSearchParams();
+  formBody.append("mode", planConfig.mode);
+  formBody.append("success_url", successUrl);
+  formBody.append("cancel_url", cancelUrl);
+  formBody.append("line_items[0][price]", planConfig.priceId);
+  formBody.append("line_items[0][quantity]", "1");
+  if (premiumTier !== "none") {
+    const premiumConfig = STRIPE_PREMIUM_PRODUCTS[premiumTier];
+    if (!premiumConfig?.priceId) {
+      return res.status(500).json({
+        error: `Missing Stripe price configuration for premium tier "${premiumTier}"`,
+        requiredEnv: premiumTier === "standard"
+          ? "STRIPE_PRICE_PREMIUM_STANDARD"
+          : "STRIPE_PRICE_PREMIUM_EXPRESS",
+      });
+    }
+    formBody.append("line_items[1][price]", premiumConfig.priceId);
+    formBody.append("line_items[1][quantity]", "1");
+    formBody.append("metadata[premium_tier]", premiumTier);
+    formBody.append("metadata[requested_turnaround_hours]", premiumConfig.turnaroundHours);
+  } else {
+    formBody.append("metadata[premium_tier]", "none");
+    formBody.append("metadata[requested_turnaround_hours]", "");
+  }
+  formBody.append("metadata[notice_id]", String(context.noticeId || ""));
+  formBody.append("metadata[opportunity_title]", String(context.opportunityTitle || ""));
+  formBody.append("metadata[source]", String(context.source || ""));
+  formBody.append("client_reference_id", `${plan}_${premiumTier}_${Date.now()}`);
+
+  const stripeResponse = await fetch("https://api.stripe.com/v1/checkout/sessions", {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${stripeAuth}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: formBody.toString(),
+  });
+
+  const raw = await stripeResponse.text();
+  let payload = {};
+  try { payload = JSON.parse(raw); } catch { payload = { raw }; }
+
+  if (!stripeResponse.ok) {
+    return res.status(502).json({
+      error: "Stripe checkout session creation failed",
+      detail: payload,
+    });
+  }
+
+  return res.json({
+    id: payload.id,
+    url: payload.url,
+    mode: planConfig.mode,
+    productId: planConfig.productId,
+    priceId: planConfig.priceId,
+    premiumTier,
+    premiumPriceId: premiumTier !== "none" ? STRIPE_PREMIUM_PRODUCTS[premiumTier].priceId : null,
+  });
+}));
+
+app.post("/api/aris-call-session", asyncHandler(async (req, res) => {
+  if (!STRIPE_ARIS_CALL_PRICE_ID) {
+    return res.status(500).json({
+      error: "Missing Stripe Aris call price configuration",
+      requiredEnv: "STRIPE_PRICE_ARIS_CALL",
+    });
+  }
+
+  const metadataInput = (req.body?.metadata && typeof req.body.metadata === "object") ? req.body.metadata : {};
+  const origin = String(req.get("origin") || "https://www.bidsmith.pro").replace(/\/$/, "");
+  const successUrl = String(req.body?.successUrl || `${origin}/app?aris=checkout_success`).trim();
+  const cancelUrl = String(req.body?.cancelUrl || `${origin}/app?aris=checkout_canceled`).trim();
+
+  const stripeAuth = Buffer.from(`${process.env.STRIPE_SECRET_KEY}:`).toString("base64");
+  const formBody = new URLSearchParams();
+  formBody.append("mode", "payment");
+  formBody.append("success_url", successUrl);
+  formBody.append("cancel_url", cancelUrl);
+  formBody.append("line_items[0][price]", STRIPE_ARIS_CALL_PRICE_ID);
+  formBody.append("line_items[0][quantity]", "1");
+  formBody.append("metadata[product]", "ArisEngineCall");
+  Object.entries(metadataInput).forEach(([key, value]) => {
+    if (value === undefined || value === null) return;
+    const safeKey = String(key).slice(0, 40);
+    const safeValue = String(value).slice(0, 500);
+    formBody.append(`metadata[${safeKey}]`, safeValue);
+  });
+  formBody.append("client_reference_id", `aris_call_${Date.now()}`);
+
+  const stripeResponse = await fetch("https://api.stripe.com/v1/checkout/sessions", {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${stripeAuth}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: formBody.toString(),
+  });
+
+  const raw = await stripeResponse.text();
+  let payload = {};
+  try { payload = JSON.parse(raw); } catch { payload = { raw }; }
+
+  if (!stripeResponse.ok) {
+    return res.status(502).json({
+      error: "Stripe Aris call checkout session creation failed",
+      detail: payload,
+    });
+  }
+
+  return res.json({ url: payload.url, id: payload.id });
 }));
 
 app.post("/api/audit/code", async (req, res) => {

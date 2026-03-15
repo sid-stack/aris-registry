@@ -23,13 +23,9 @@ function isStaticAsset(request) {
   return ["script", "style", "image", "font"].includes(request.destination);
 }
 
-function shouldCache(request) {
-  return request.url.startsWith("http");
-}
-
 self.addEventListener("fetch", (event) => {
   const { request } = event;
-  if (request.method !== "GET" || !shouldCache(request)) return;
+  if (request.method !== "GET") return;
 
   if (request.destination === "document") {
     event.respondWith(
@@ -57,4 +53,3 @@ self.addEventListener("fetch", (event) => {
     );
   }
 });
-
