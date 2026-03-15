@@ -531,7 +531,7 @@ export default function Landing({ onEnterApp, onViewSample }) {
               </div>
 
               <div style={{ ...styles.heroInner, marginTop: '40px' }}>
-                <h1 style={{ ...styles.title, fontSize: isMobile ? '2rem' : '3.25rem' }}>Will you win the contract?</h1>
+                <h1 style={{ ...styles.title, fontSize: isMobile ? '2rem' : '3.25rem' }}>Stateless Contract Intelligence</h1>
                 <p style={{ ...styles.subtitle, fontSize: isMobile ? '1rem' : '1.25rem' }}>
                   Shred the 40-hour RFP in 90 seconds. Find risks, check rules, and bid with confidence.
                 </p>
