@@ -532,7 +532,7 @@ export default function Landing({ onEnterApp, onViewSample }) {
                   <img src="/aris-labs.png" alt="ARIS Labs" style={{ height: '20px', width: 'auto' }} />
                 </div>
                 <p style={styles.footerTagline}>
-                  Vision AI agents that collect, verify, and analyze federal solicitations, so contractors close faster and lower risk.
+                  Sovereign GovCon intelligence. Powered by SAM.gov data to collect, verify, and analyze federal solicitations for precision bid management.
                 </p>
                 <div style={styles.footerAddressLine}>
                   Labs Headquarters<br />
@@ -590,7 +590,6 @@ export default function Landing({ onEnterApp, onViewSample }) {
                 <a href="https://linkedin.com/company/aris-labs" target="_blank" rel="noopener noreferrer" style={styles.footerSocialLink}>
                   <Linkedin size={16} />
                 </a>
-                <span style={styles.footerYcBadge}>Backed by Y Combinator (W26)</span>
               </div>
             </div>
           </footer>
@@ -965,7 +964,7 @@ const styles = {
   },
   footerTagline: {
     fontSize: "13px",
-    color: "#71717a",
+    color: "#a1a1aa",
     lineHeight: "1.6",
     margin: 0,
   },
