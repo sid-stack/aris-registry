@@ -11,7 +11,6 @@ import {
   ArrowLeft,
   Shield,
   Linkedin,
-  Github,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
@@ -327,15 +326,16 @@ export default function Landing({ onEnterApp, onViewSample }) {
         <>
           <header style={styles.navbar}>
             <div style={styles.navInner}>
-              <a href="/" className="brand-link" style={styles.brand}>
-                <img src="/aris-logo.png" alt="Aris" className="brand-logo" style={{ height: 28, width: 28, objectFit: "contain" }} />
-                <span className="brand-name">BidSmith</span>
+              <a href="/" style={styles.brand}>
+                <img src="/aris-logo.png" alt="Aris" style={{ height: 22, width: 22, objectFit: "contain" }} />
+                <span>BidSmith</span>
               </a>
               <nav className="landing-nav-links">
                 <a href="#features" style={styles.navLink}>Features</a>
-                <a href="/soc" style={styles.navLink}>Security</a>
+                <a href="#workflow" style={styles.navLink}>Workflow</a>
                 <a href="#pricing" style={styles.navLink}>Pricing</a>
                 <a href="https://docs.bidsmith.pro" target="_blank" rel="noopener noreferrer" style={styles.navLink}>Docs</a>
+                <a href="#contact" style={styles.navLink}>Contact</a>
               </nav>
               <button
                 type="button"
@@ -524,60 +524,66 @@ export default function Landing({ onEnterApp, onViewSample }) {
 
           <FaqSection />
 
-          <footer id="contact" style={styles.footer}>
-            <div className="footer-inner" style={styles.footerInner}>
-              <div className="footer-section brand-section">
-                <p className="footer-logo-text" style={styles.footerBrand}>BidSmith</p>
-                <div style={{ display: 'flex', gap: '16px', marginTop: '16px', justifyContent: isMobile ? 'center' : 'flex-start' }}>
-                  <a href="https://linkedin.com/company/aris-labs" target="_blank" rel="noopener noreferrer" className="footer-social-link" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Linkedin size={14} />
-                    LinkedIn
-                  </a>
-                  <a href="https://github.com/ARIS-Labs-HQ" target="_blank" rel="noopener noreferrer" className="footer-social-link" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Github size={14} />
-                    GitHub
-                  </a>
+          <footer id="contact" style={styles.footerContainer}>
+            <div style={{ ...styles.footerInnerGrid, gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(5, 1fr)" }}>
+              {/* Column 1: Brand & Address */}
+              <div style={styles.footerBrandCol}>
+                <div style={styles.footerLogoWrap}>
+                  <Shield size={22} color="#ffffff" fill="#ffffff" fillOpacity={0.1} />
+                  <span style={styles.footerLogoText}>BidSmith</span>
                 </div>
-                <a
-                  href="mailto:sid@bidsmith.pro"
-                  className="footer-contact-link"
-                  style={{ ...styles.footerLink, marginTop: '16px', display: 'block', fontWeight: 700 }}
-                  onClick={() => trackEvent("support_email_click", { source: "landing_footer" })}
-                >
-                  sid@bidsmith.pro
-                </a>
+                <p style={styles.footerTagline}>
+                  Vision AI agents that collect, verify, and analyze federal solicitations, so contractors close faster and lower risk.
+                </p>
+                <div style={styles.footerAddressLine}>
+                  Labs Headquarters<br />
+                  High-Sovereignty Node
+                </div>
               </div>
-              <div className="footer-section">
-                <p className="footer-heading" style={styles.footerHeading}>Sovereignty Protocol</p>
-                <a href="/soc" className="footer-link" style={styles.footerLink}>Security Protocol</a>
-                <a href="/privacy" className="footer-link" style={styles.footerLink}>Privacy Policy</a>
-                <a href="/terms" className="footer-link" style={styles.footerLink}>Terms of Service</a>
-                <a href="/cookies" className="footer-link" style={styles.footerLink}>Cookie Policy</a>
-                <a href="https://docs.bidsmith.pro" target="_blank" rel="noopener noreferrer" className="footer-link" style={styles.footerLink}>Developer Docs</a>
+
+              {/* Column 2: Product */}
+              <div style={styles.footerLinkCol}>
+                <h4 style={styles.footerColHeading}>Product</h4>
+                <a href="#solutions" style={styles.footerLinkItem}>Aris Protocol Agent</a>
+                <a href="#solutions" style={styles.footerLinkItem}>Compliance Sniper</a>
+                <a href="https://docs.bidsmith.pro" target="_blank" rel="noopener noreferrer" style={styles.footerLinkItem}>Documentation</a>
               </div>
-              <div className="footer-section pipeline-section">
-                <p className="footer-heading" style={styles.footerHeading}>Agentic Pipeline</p>
-                <a href="#pricing" className="footer-link" style={styles.footerLink}>Execution Model</a>
-                <div className="pipeline-status" style={{ marginTop: '16px' }}>
-                  <p style={{ ...styles.footerText, color: '#3f3f46', fontSize: '10px', fontWeight: 700, letterSpacing: '0.05em' }}>
-                    ARIS_BRIDGE_CONNECTED
-                  </p>
-                  <p style={{ ...styles.footerText, color: '#22c55e', fontSize: '10px', fontWeight: 800, letterSpacing: '0.1em' }}>
-                    STATELESS_PURGE: OK
-                  </p>
+
+              {/* Column 3: Company */}
+              <div style={styles.footerLinkCol}>
+                <h4 style={styles.footerColHeading}>Company</h4>
+                <a href="#about" style={styles.footerLinkItem}>About</a>
+                <a href="#solutions" style={styles.footerLinkItem}>Solutions</a>
+                <a href="/soc" style={styles.footerLinkItem}>Security</a>
+                <a href="mailto:sid@bidsmith.pro" style={styles.footerLinkItem}>Contact</a>
+              </div>
+
+              {/* Column 4: Markets */}
+              <div style={styles.footerLinkCol}>
+                <h4 style={styles.footerColHeading}>Markets</h4>
+                <a href="#markets" style={styles.footerLinkItem}>US DOD & IC</a>
+                <a href="#markets" style={styles.footerLinkItem}>Civilian Agencies</a>
+                <a href="#markets" style={styles.footerLinkItem}>Intelligence Labs</a>
+              </div>
+
+              {/* Column 5: Legal */}
+              <div style={styles.footerLinkCol}>
+                <h4 style={styles.footerColHeading}>Legal</h4>
+                <a href="/privacy" style={styles.footerLinkItem}>Privacy Policy</a>
+                <a href="/terms" style={styles.footerLinkItem}>Terms of Service</a>
+                <div style={styles.footerSocialIcons}>
+                  <a href="https://linkedin.com/company/aris-labs" target="_blank" rel="noopener noreferrer" style={styles.footerSocialLink}><Linkedin size={18} /></a>
                 </div>
               </div>
             </div>
-            <div style={{ textAlign: 'center', padding: '20px 0', borderTop: '1px solid #1a1a1a', marginTop: '40px' }}>
-               <p style={{ fontSize: '10px', color: '#27272a', letterSpacing: '0.1em', marginBottom: '8px' }}>
-                 BUILT BY ARIS LABS
-               </p>
-               <p style={{ fontSize: '10px', color: '#52525b', letterSpacing: '0.05em', marginBottom: '4px' }}>
-                 Copyright 2026 Bidsmith Ltd. All rights reserved.
-               </p>
-               <p style={{ fontSize: '10px', color: '#3f3f46', letterSpacing: '0.05em' }}>
-                 {pstTime}
-               </p>
+
+            <div style={styles.footerBottomRow}>
+              <div style={styles.footerCopyright}>
+                © 2026 BidSmith, Inc. All rights reserved.
+              </div>
+              <div style={styles.footerPstTime}>
+                {pstTime}
+              </div>
             </div>
           </footer>
         </>
@@ -597,13 +603,13 @@ const styles = {
     borderBottom: "1px solid #27272a",
   },
   navInner: {
-    maxWidth: 1200,
+    maxWidth: 1120,
     margin: "0 auto",
-    padding: "18px 24px",
+    padding: "16px 20px",
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 32,
+    gap: 14,
     flexWrap: "nowrap",
   },
   brand: {
@@ -617,11 +623,8 @@ const styles = {
   navLink: {
     color: "#a1a1aa",
     textDecoration: "none",
-    fontSize: "0.85rem",
+    fontSize: "0.95rem",
     fontWeight: 600,
-    letterSpacing: "0.02em",
-    textTransform: "uppercase",
-    transition: "color 0.2s ease",
   },
   navCta: {
     background: "#ffffff",
@@ -928,27 +931,93 @@ const styles = {
     letterSpacing: "0.05em",
   },
   inlineLink: { color: "#4338ca", textDecoration: "none", fontWeight: 600 },
-  footer: {
-    background: "#0f172a",
-    borderTop: "1px solid #1e293b",
-    padding: "34px 20px 80px", /* Extra bottom padding for readability */
+  footerContainer: {
+    background: "#000000",
+    borderTop: "1px solid #141416",
+    padding: "80px 24px 60px",
   },
-  footerInner: {
-    maxWidth: 1120,
+  footerInnerGrid: {
+    maxWidth: 1200,
     margin: "0 auto",
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-    gap: 22,
+    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+    gap: "40px",
   },
-  footerBrand: { margin: "0 0 8px", color: "#ffffff", fontWeight: 800, fontSize: "1.1rem" },
-  footerText: { margin: "0 0 8px", color: "#94a3b8", fontSize: "0.9rem", lineHeight: 1.5 },
-  footerHeading: { margin: "0 0 10px", color: "#cbd5e1", fontWeight: 700, fontSize: "0.9rem" },
-  footerLink: {
-    color: "#e2e8f0",
+  footerBrandCol: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "20px",
+  },
+  footerLogoWrap: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+  },
+  footerLogoText: {
+    fontSize: "1.5rem",
+    fontWeight: 900,
+    color: "#ffffff",
+    letterSpacing: "-0.02em",
+  },
+  footerTagline: {
+    fontSize: "0.95rem",
+    color: "#71717a",
+    lineHeight: "1.6",
+    maxWidth: "300px",
+  },
+  footerAddressLine: {
+    fontSize: "0.85rem",
+    color: "#3f3f46",
+    lineHeight: "1.6",
+    fontFamily: "'Inter', sans-serif",
+  },
+  footerLinkCol: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "16px",
+  },
+  footerColHeading: {
+    fontSize: "0.75rem",
+    fontWeight: 800,
+    textTransform: "uppercase",
+    letterSpacing: "0.1em",
+    color: "#ffffff",
+    margin: 0,
+  },
+  footerLinkItem: {
+    fontSize: "0.9rem",
+    color: "#71717a",
     textDecoration: "none",
-    fontSize: "0.92rem",
-    display: "block",
-    marginBottom: 8,
+    transition: "color 0.2s ease",
+  },
+  footerBottomRow: {
+    maxWidth: 1200,
+    margin: "60px auto 0",
+    paddingTop: "32px",
+    borderTop: "1px solid #141416",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: "24px",
+  },
+  footerCopyright: {
+    fontSize: "0.85rem",
+    color: "#3f3f46",
+  },
+  footerPstTime: {
+    fontSize: "0.85rem",
+    color: "#3f3f46",
+  },
+  footerSocialIcons: {
+    display: "flex",
+    alignItems: "center",
+    gap: "16px",
+    marginTop: "4px",
+  },
+  footerSocialLink: {
+    color: "#3f3f46",
+    transition: "color 0.2s ease",
   },
   terminalContainerFull: {
     width: "100%",

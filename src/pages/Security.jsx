@@ -1,5 +1,5 @@
 import React from 'react';
-import { Shield, Lock, Server, RefreshCw, BadgeCheck, FileShield, Database, Cpu } from 'lucide-react';
+import { Shield, Lock, Server, RefreshCw, BadgeCheck, Database, Cpu } from 'lucide-react';
 import NavBar from '../components/dashboard/NavBar';
 
 const ARIS_PROTOCOL_STEPS = [

@@ -4,6 +4,9 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
+import { createCheckoutSession } from "../lib/stripe";
+import { createArisCallSession } from "../lib/stripe";
+
 const API_URL = import.meta.env.VITE_API_URL || "";
 const API_BASE = API_URL.replace(/\/$/, "");
 const PREMIUM_BASE_PLAN = "starter";
@@ -259,6 +262,14 @@ export default function Audit({ onProceed, onBack }) {
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
   const [showUpload, setShowUpload] = useState(false);
+  const [premiumTier, setPremiumTier] = useState(null);
+  const [premiumLoading, setPremiumLoading] = useState(false);
+  const [premiumError, setPremiumError] = useState("");
+  const [checkoutStatus, setCheckoutStatus] = useState(null);
+  const [arisLoading, setArisLoading] = useState(false);
+  const [arisError, setArisError] = useState("");
+  const [arisResult, setArisResult] = useState(null);
+  const [arisStatus, setArisStatus] = useState("");
   const esRef = useRef(null);
 
   const { stepText, stepIndex } = useLoadingStep(loadingUrl);
@@ -267,8 +278,71 @@ export default function Audit({ onProceed, onBack }) {
   const isLoading = loadingUrl || loadingFile;
 
   useEffect(() => {
-    // Audit context cleanup
-    sessionStorage.removeItem("bidsmith_audit_context");
+    const params = new URLSearchParams(window.location.search);
+    const checkout = params.get("checkout");
+    const aris = params.get("aris");
+    const hasFlags = Boolean(checkout || aris);
+
+    if (checkout === "success") {
+      const premium = params.get("premium");
+      setCheckoutStatus({
+        kind: "success",
+        text: premium && premium !== "none"
+          ? `Payment confirmed. Premium ${premium} memo order received.`
+          : "Payment confirmed.",
+      });
+    } else if (checkout === "cancelled") {
+      setCheckoutStatus({
+        kind: "cancelled",
+        text: "Checkout was cancelled. You can retry anytime.",
+      });
+    }
+
+    if (aris === "checkout_success") {
+      const raw = sessionStorage.getItem("bidsmith_audit_context");
+      let ctx = {};
+      try { ctx = raw ? JSON.parse(raw) : {}; } catch { ctx = {}; }
+      if (!ctx.samUrl) {
+        setArisStatus("Aris checkout complete, but missing solicitation URL context.");
+      } else {
+        setArisStatus("Aris checkout complete. Running engine...");
+        setArisLoading(true);
+        setArisError("");
+        fetch(ARIS_EXECUTE_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            solicitation_url: ctx.samUrl,
+            metadata: {
+              noticeId: ctx.noticeId || "",
+              source: "audit_page",
+              user_id: ctx.userId || "anonymous",
+            },
+          }),
+        })
+          .then(async (resp) => {
+            const data = await resp.json();
+            if (!resp.ok) throw new Error(data?.error || "Aris execute failed");
+            setArisResult(data);
+            setArisStatus("Aris execution complete.");
+          })
+          .catch((e) => {
+            setArisError(e?.message || "Aris execution failed.");
+            setArisStatus("");
+          })
+          .finally(() => setArisLoading(false));
+      }
+    } else if (aris === "checkout_canceled") {
+      setArisStatus("Aris checkout was canceled.");
+    }
+
+    if (!hasFlags) return;
+    params.delete("checkout");
+    params.delete("premium");
+    params.delete("plan");
+    params.delete("aris");
+    const next = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ""}`;
+    window.history.replaceState({}, "", next);
   }, []);
 
   // ── Parse markdown compliance table into row objects ──────────────────────
@@ -432,6 +506,47 @@ export default function Audit({ onProceed, onBack }) {
     finally { setLoadingFile(false); }
   }
 
+  async function startPremiumCheckout() {
+    if (!premiumTier || !result) return;
+    setPremiumLoading(true);
+    setPremiumError("");
+    try {
+      const url = await createCheckoutSession({
+        plan: PREMIUM_BASE_PLAN,
+        premiumTier,
+        context: {
+          noticeId: result?.noticeId || "",
+          opportunityTitle: result?.title || result?.metadata?.file || "Unknown Opportunity",
+          source: "audit_page",
+        },
+      });
+      window.location.assign(url);
+    } catch (e) {
+      setPremiumError(e?.message || "Unable to start premium checkout.");
+    } finally {
+      setPremiumLoading(false);
+    }
+  }
+
+  async function startArisCheckout() {
+    if (!result) return;
+    setArisLoading(true);
+    setArisError("");
+    try {
+      const session = await createArisCallSession({
+        successUrl: `${window.location.origin}/app?aris=checkout_success`,
+        cancelUrl: `${window.location.origin}/app?aris=checkout_canceled`,
+        metadata: {
+          noticeId: result?.noticeId || "",
+          source: "audit_page",
+        },
+      });
+      window.location.assign(session.url);
+    } catch (e) {
+      setArisError(e?.message || "Aris checkout failed.");
+      setArisLoading(false);
+    }
+  }
 
   return (
     <div style={{ minHeight: "100vh", background: "#f8fafc", color: "#0f172a", fontFamily: "'IBM Plex Mono', 'Courier New', monospace", padding: "40px 24px 100px" }}>
@@ -522,6 +637,35 @@ export default function Audit({ onProceed, onBack }) {
         {error && (
           <div style={{ margin: "24px 0", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "6px", padding: "14px 18px", color: "#b91c1c", fontSize: "13px", fontFamily: "monospace", fontWeight: 600 }}>⚠ {error}</div>
         )}
+        {checkoutStatus && (
+          <div
+            style={{
+              margin: "18px 0 0",
+              background: checkoutStatus.kind === "success" ? "#f0fdf4" : "#fffbeb",
+              border: checkoutStatus.kind === "success" ? "1px solid #86efac" : "1px solid #fcd34d",
+              borderRadius: "6px",
+              padding: "12px 14px",
+              color: checkoutStatus.kind === "success" ? "#166534" : "#92400e",
+              fontSize: "12px",
+              fontFamily: "monospace",
+              fontWeight: 700,
+              letterSpacing: "0.02em",
+            }}
+          >
+            {checkoutStatus.kind === "success" ? "✓ " : "⚠ "}
+            {checkoutStatus.text}
+          </div>
+        )}
+        {arisStatus && (
+          <div style={{ margin: "10px 0 0", background: "#ecfeff", border: "1px solid #a5f3fc", borderRadius: "6px", padding: "10px 12px", color: "#155e75", fontSize: "12px", fontFamily: "monospace", fontWeight: 700 }}>
+            {arisStatus}
+          </div>
+        )}
+        {arisError && (
+          <div style={{ margin: "10px 0 0", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "6px", padding: "10px 12px", color: "#b91c1c", fontSize: "12px", fontFamily: "monospace", fontWeight: 700 }}>
+            {arisError}
+          </div>
+        )}
 
         {/* Main Manual Upload Box Triggered Only Upon Failure or Request */}
         {showUpload && (
@@ -589,6 +733,110 @@ export default function Audit({ onProceed, onBack }) {
               <DisqualifiersCard items={c.technical_disqualifiers} />
               <BondingCard bonding={c.bonding_reqs} />
             </div>
+
+            <div style={{ marginTop: "18px", background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: "8px", padding: "18px", boxShadow: "0 2px 6px rgba(15,23,42,0.04)" }}>
+              <div style={{ fontSize: "14px", fontWeight: 800, color: "#312e81", fontFamily: "'Inter', sans-serif", marginBottom: "6px" }}>
+                Premium Risk-Memo PDF
+              </div>
+              <div style={{ fontSize: "12px", color: "#475569", lineHeight: 1.6, marginBottom: "10px", fontFamily: "monospace" }}>
+                Executive-ready, FAR-cited compliance memo delivered in 24-48 hours.
+              </div>
+
+              <div style={{ display: "flex", gap: "18px", flexWrap: "wrap", marginBottom: "12px" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", color: "#0f172a", fontFamily: "monospace", cursor: "pointer" }}>
+                  <input
+                    type="radio"
+                    name="premium-tier"
+                    checked={premiumTier === "standard"}
+                    onChange={() => setPremiumTier("standard")}
+                  />
+                  <span>Standard - $199</span>
+                </label>
+                <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", color: "#0f172a", fontFamily: "monospace", cursor: "pointer" }}>
+                  <input
+                    type="radio"
+                    name="premium-tier"
+                    checked={premiumTier === "express"}
+                    onChange={() => setPremiumTier("express")}
+                  />
+                  <span>Express (24h) - $299</span>
+                </label>
+              </div>
+
+              <img
+                src="/premium-preview.svg"
+                alt="Premium report preview"
+                style={{ width: "100%", maxWidth: "460px", borderRadius: "8px", border: "1px solid #e2e8f0", marginBottom: "12px", display: "block" }}
+              />
+
+              <button
+                type="button"
+                onClick={startPremiumCheckout}
+                disabled={!premiumTier || premiumLoading}
+                style={{
+                  width: "100%",
+                  borderRadius: "8px",
+                  border: "none",
+                  padding: "12px 14px",
+                  fontSize: "12px",
+                  fontFamily: "monospace",
+                  fontWeight: 800,
+                  letterSpacing: "0.06em",
+                  textTransform: "uppercase",
+                  cursor: !premiumTier || premiumLoading ? "not-allowed" : "pointer",
+                  background: !premiumTier || premiumLoading ? "#cbd5e1" : "#4f46e5",
+                  color: !premiumTier || premiumLoading ? "#475569" : "#ffffff",
+                }}
+              >
+                {premiumLoading ? "Redirecting..." : "Add to order"}
+              </button>
+              {premiumError && (
+                <div style={{ marginTop: "8px", fontSize: "12px", color: "#b91c1c", fontFamily: "monospace", fontWeight: 700 }}>
+                  {premiumError}
+                </div>
+              )}
+            </div>
+
+            <div style={{ marginTop: "12px", background: "#f0fdf4", border: "1px solid #86efac", borderRadius: "8px", padding: "14px 16px" }}>
+              <div style={{ fontSize: "13px", fontWeight: 800, color: "#166534", marginBottom: "6px", fontFamily: "monospace", letterSpacing: "0.04em" }}>
+                Aris SDK Pay-Per-Call
+              </div>
+              <div style={{ fontSize: "12px", color: "#166534", marginBottom: "10px", fontFamily: "monospace" }}>
+                Run full Aris execution for this opportunity at USD 0.25 per call.
+              </div>
+              <button
+                type="button"
+                onClick={startArisCheckout}
+                disabled={arisLoading}
+                style={{
+                  width: "100%",
+                  borderRadius: "8px",
+                  border: "none",
+                  padding: "11px 14px",
+                  fontSize: "12px",
+                  fontFamily: "monospace",
+                  fontWeight: 800,
+                  letterSpacing: "0.06em",
+                  textTransform: "uppercase",
+                  cursor: arisLoading ? "not-allowed" : "pointer",
+                  background: arisLoading ? "#bbf7d0" : "#16a34a",
+                  color: arisLoading ? "#166534" : "#ffffff",
+                }}
+              >
+                {arisLoading ? "Redirecting..." : "Run Aris Engine (USD 0.25)"}
+              </button>
+            </div>
+
+            {arisResult && (
+              <div style={{ marginTop: "12px", background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "12px" }}>
+                <div style={{ fontSize: "11px", color: "#64748b", fontFamily: "monospace", marginBottom: "8px", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                  Aris Execution Output
+                </div>
+                <pre style={{ margin: 0, maxHeight: "260px", overflow: "auto", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "6px", padding: "10px", fontSize: "11px", lineHeight: 1.55, color: "#1e293b", fontFamily: "'IBM Plex Mono', monospace" }}>
+                  {JSON.stringify(arisResult, null, 2)}
+                </pre>
+              </div>
+            )}
 
             {/* ── Bid Intelligence Report ── */}
             {(loadingReport || agents.length > 0 || report) && (

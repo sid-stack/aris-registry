@@ -15,21 +15,14 @@ import NavBar from '../components/dashboard/NavBar';
 import './SamRep.css'; // Reuse the premium monochrome styles
 
 const Discovery = ({ onBack }) => {
-  const [theme, setTheme] = useState(() => {
-    try { return localStorage.getItem('bs-theme') || 'dark'; } catch { return 'dark'; }
-  });
   const [prospects, setProspects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeNaics, setActiveNaics] = useState("541511,541512");
   
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    try { localStorage.setItem('bs-theme', theme); } catch {}
     fetchProspects();
-  }, [activeNaics, theme]);
+  }, [activeNaics]);
 
-  const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');
-  
   const fetchProspects = async () => {
     setLoading(true);
     try {
@@ -47,7 +40,7 @@ const Discovery = ({ onBack }) => {
 
   return (
     <div style={{ backgroundColor: '#09090b', color: '#a1a1aa', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <NavBar theme={theme} onToggleTheme={toggleTheme} onBack={onBack} />
+      <NavBar onBack={onBack} />
       
       {/* Discovery Masthead */}
       <div style={{ padding: '24px 32px', borderBottom: '1px solid #1a1a1a', background: '#09090b' }}>
