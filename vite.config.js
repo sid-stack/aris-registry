@@ -5,10 +5,6 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   return {
     plugins: [react()],
-    define: {
-      // Ensure React is available globally in production
-      'process.env.NODE_ENV': JSON.stringify(mode),
-    },
     server: {
       port: 5173,
       proxy: {
