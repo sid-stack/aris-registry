@@ -338,7 +338,7 @@ const analyzeLinkLimiter = rateLimit({
 
 const apiLimiter = rateLimit({
   windowMs: 1000, // 1 second
-  max: 5,         // limit each IP to 5 requests per windowMs
+  max: 50,         // limit each IP to 50 requests per windowMs
   message: failResponse("rate_limited", "Too many requests, try again later"),
   standardHeaders: true,
   legacyHeaders: false,
@@ -798,33 +798,18 @@ app.post("/api/audit/code", asyncHandler(async (req, res) => {
       return res.status(400).json({
         status: "FAIL",
         issues: ["missing_excerpt"],
-        remediation: "Provide excerpt in request body as {excerpt: string}",
+        remediation: "provide code excerpt for audit"
       });
     }
 
-    const userPrompt = [
-      `RFP excerpt:\n${excerpt.slice(0, 20000)}`,
-      `Preferred output language: ${preferredLanguage === "node" ? "Node 18" : "Python 3.11"}.`,
-      "Generate the final chosen implementation only.",
-    ].join("\n\n");
+    const messages = [
+      { role: "system", content: CODE_AUDIT_SYSTEM_PROMPT },
+      { role: "user", content: `Audit this RFP excerpt and provide validation code in ${preferredLanguage}:\n\n${excerpt}` }
+    ];
 
-    const raw = await llm(
-      client,
-      [
-        { role: "system", content: CODE_AUDIT_SYSTEM_PROMPT },
-        { role: "user", content: userPrompt },
-      ],
-      500,
-      "audit_codegen",
-      3,
-      { temperature: 0.7, topP: 0.95 },
-    );
-
-    const cleaned = stripCodeFences(raw);
-    let structured = null;
-    try { structured = JSON.parse(cleaned); } catch { }
-
-    if (structured?.status === "FAIL") return res.status(422).json(structured);
+    const model = AGENT_MODELS.audit_codegen;
+    const response = await llm(client, messages, 1000, "audit_codegen");
+    const cleaned = stripCodeFences(response);
 
     return res.json({
       status: "OK",
@@ -834,6 +819,63 @@ app.post("/api/audit/code", asyncHandler(async (req, res) => {
   } catch (err) {
     console.error("[/api/audit/code] ERROR:", err);
     return res.status(500).json({ error: err.message });
+  }
+}));
+
+/**
+ * Lead Magnet: Free Sample Shred
+ * Takes a file and an email, returns a quick compliance check.
+ */
+app.post("/api/free-shred", upload.single("file"), asyncHandler(async (req, res) => {
+  const email = String(req.body?.email || "").trim();
+  const file = req.file;
+
+  if (!email || !file) {
+    return res.status(400).json({ error: "Email and file are required" });
+  }
+
+  // Validate email
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({ error: "Invalid email format" });
+  }
+
+  const client = makeClient();
+  if (!client) return res.status(500).json({ error: "LLM configuration incomplete" });
+
+  try {
+    const text = await parsePDF(file.buffer);
+    const excerpt = text.slice(0, 15000);
+
+    const messages = [
+      {
+        role: "system",
+        content: `You are an expert GovCon Compliance Auditor. Perform a "Quick Shred" of the provided RFP excerpt. Identify: 1. Three critical compliance risks. 2. One potential "Bid Killer" trap. 3. A suggested response strategy. Return as a JSON object: {"shred": "markdown_content", "risks_detected": count}`
+      },
+      {
+        role: "user",
+        content: `Lead Email: ${email}\n\nRFP Excerpt:\n${excerpt}`
+      }
+    ];
+
+    const response = await llm(client, messages, 2000, "analyst", 2, { response_format: { type: "json_object" } });
+    const parsed = JSON.parse(response);
+
+    console.log("[FREE_SHRED_LEAD]", {
+      email,
+      timestamp: new Date().toISOString(),
+      risks: parsed.risks_detected,
+      fileName: file.originalname
+    });
+
+    return res.json({
+      success: true,
+      shred: parsed.shred,
+      message: "Shred complete. Lead captured."
+    });
+  } catch (err) {
+    console.error("[/api/free-shred] ERROR:", err);
+    return res.status(500).json({ error: "Failed to process shred." });
   }
 }));
 

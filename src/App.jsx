@@ -11,6 +11,7 @@ import Discovery from "./pages/Discovery";
 import Security from "./pages/Security";
 import About from "./pages/About";
 import SamScraper from "./pages/SamScraper";
+import Labs from "./pages/Labs";
 import SurveyAnalytics from "./components/SurveyAnalytics";
 import DemoAnalytics from "./components/DemoAnalytics";
 import NotFound from "./pages/NotFound";
@@ -51,6 +52,8 @@ export default function App() {
                     ? "app"
                   : path === "/about"
                     ? "about"
+                  : path.startsWith("/labs")
+                    ? "labs"
                     : path !== "/"
                       ? "404"
                       : "landing",
@@ -115,6 +118,8 @@ export default function App() {
     content = <DemoAnalytics />;
   } else if (view === "about") {
     content = <About onBack={() => setView("landing")} />;
+  } else if (view === "labs") {
+    content = <Labs onBack={() => setView("landing")} />;
   } else if (view === "landing") {
     content = <Landing onEnterApp={() => setView("app")} onViewSample={() => setView("sam-rep")} />;
   } else if (view === "app") {
