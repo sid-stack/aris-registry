@@ -75,11 +75,10 @@ export default function Legal({ type = "privacy" }) {
       <header style={styles.header}>
         <div style={styles.headerInner}>
           <a href="/" style={styles.brand}>
-            <Shield size={18} color="#ffffff" fill="#ffffff" fillOpacity={0.1} />
-            <span style={styles.brandName}>REGISTRY.BIDSMITH.PRO</span>
+            <img src="/aris-labs.png" alt="ARIS Labs" style={{ height: '18px', width: 'auto' }} />
           </a>
           <a href="/" style={styles.backLink}>
-            <ArrowLeft size={14} /> Back to Home
+            <ArrowLeft size={14} /> Back to Dashboard
           </a>
         </div>
       </header>
@@ -148,7 +147,7 @@ const styles = {
     letterSpacing: "0.15em",
   },
   backLink: {
-    fontSize: "0.85rem",
+    fontSize: "12px",
     color: "#71717a",
     textDecoration: "none",
     display: "flex",
@@ -176,10 +175,10 @@ const styles = {
   },
   title: {
     margin: 0,
-    fontSize: "2.5rem",
-    fontWeight: 400,
+    fontSize: "2rem",
+    fontWeight: 550,
     color: "#ffffff",
-    letterSpacing: "-0.02em",
+    letterSpacing: "-0.01em",
   },
   updated: {
     margin: "12px 0 0",

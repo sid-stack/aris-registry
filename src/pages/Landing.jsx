@@ -525,12 +525,11 @@ export default function Landing({ onEnterApp, onViewSample }) {
           <FaqSection />
 
           <footer id="contact" style={styles.footerContainer}>
-            <div style={{ ...styles.footerInnerGrid, gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(5, 1fr)" }}>
-              {/* Column 1: Brand & Address */}
+            <div style={styles.footerInnerGrid}>
+              {/* Column 1: Brand & Description */}
               <div style={styles.footerBrandCol}>
                 <div style={styles.footerLogoWrap}>
-                  <Shield size={22} color="#ffffff" fill="#ffffff" fillOpacity={0.1} />
-                  <span style={styles.footerLogoText}>BidSmith</span>
+                  <img src="/aris-labs.png" alt="ARIS Labs" style={{ height: '20px', width: 'auto' }} />
                 </div>
                 <p style={styles.footerTagline}>
                   Vision AI agents that collect, verify, and analyze federal solicitations, so contractors close faster and lower risk.
@@ -541,38 +540,44 @@ export default function Landing({ onEnterApp, onViewSample }) {
                 </div>
               </div>
 
-              {/* Column 2: Product */}
-              <div style={styles.footerLinkCol}>
-                <h4 style={styles.footerColHeading}>Product</h4>
-                <a href="#solutions" style={styles.footerLinkItem}>Aris Protocol Agent</a>
-                <a href="#solutions" style={styles.footerLinkItem}>Compliance Sniper</a>
-                <a href="https://docs.bidsmith.pro" target="_blank" rel="noopener noreferrer" style={styles.footerLinkItem}>Documentation</a>
-              </div>
+              {/* Link Columns Grid */}
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', 
+                gap: isMobile ? '32px' : '40px',
+                flex: 1 
+              }}>
+                {/* Column 2: Product */}
+                <div style={styles.footerLinkCol}>
+                  <h4 style={styles.footerColHeading}>Product</h4>
+                  <a href="#solutions" style={styles.footerLinkItem}>Aris Protocol Agent</a>
+                  <a href="#solutions" style={styles.footerLinkItem}>Compliance Sniper</a>
+                  <a href="https://docs.bidsmith.pro" target="_blank" rel="noopener noreferrer" style={styles.footerLinkItem}>Documentation</a>
+                </div>
 
-              {/* Column 3: Company */}
-              <div style={styles.footerLinkCol}>
-                <h4 style={styles.footerColHeading}>Company</h4>
-                <a href="#about" style={styles.footerLinkItem}>About</a>
-                <a href="#solutions" style={styles.footerLinkItem}>Solutions</a>
-                <a href="/soc" style={styles.footerLinkItem}>Security</a>
-                <a href="mailto:sid@bidsmith.pro" style={styles.footerLinkItem}>Contact</a>
-              </div>
+                {/* Column 3: Company */}
+                <div style={styles.footerLinkCol}>
+                  <h4 style={styles.footerColHeading}>Company</h4>
+                  <a href="#about" style={styles.footerLinkItem}>About</a>
+                  <a href="#solutions" style={styles.footerLinkItem}>Solutions</a>
+                  <a href="/soc" style={styles.footerLinkItem}>Security</a>
+                  <a href="mailto:sid@bidsmith.pro" style={styles.footerLinkItem}>Contact</a>
+                </div>
 
-              {/* Column 4: Markets */}
-              <div style={styles.footerLinkCol}>
-                <h4 style={styles.footerColHeading}>Markets</h4>
-                <a href="#markets" style={styles.footerLinkItem}>US DOD & IC</a>
-                <a href="#markets" style={styles.footerLinkItem}>Civilian Agencies</a>
-                <a href="#markets" style={styles.footerLinkItem}>Intelligence Labs</a>
-              </div>
+                {/* Column 4: Markets */}
+                <div style={styles.footerLinkCol}>
+                  <h4 style={styles.footerColHeading}>Markets</h4>
+                  <a href="#markets" style={styles.footerLinkItem}>US DOD & IC</a>
+                  <a href="#markets" style={styles.footerLinkItem}>Civilian Agencies</a>
+                  <a href="#markets" style={styles.footerLinkItem}>Intelligence Labs</a>
+                </div>
 
-              {/* Column 5: Legal */}
-              <div style={styles.footerLinkCol}>
-                <h4 style={styles.footerColHeading}>Legal</h4>
-                <a href="/privacy" style={styles.footerLinkItem}>Privacy Policy</a>
-                <a href="/terms" style={styles.footerLinkItem}>Terms of Service</a>
-                <div style={styles.footerSocialIcons}>
-                  <a href="https://linkedin.com/company/aris-labs" target="_blank" rel="noopener noreferrer" style={styles.footerSocialLink}><Linkedin size={18} /></a>
+                {/* Column 5: Legal */}
+                <div style={styles.footerLinkCol}>
+                  <h4 style={styles.footerColHeading}>Legal</h4>
+                  <a href="/privacy" style={styles.footerLinkItem}>Privacy Policy</a>
+                  <a href="/terms" style={styles.footerLinkItem}>Terms of Service</a>
+                  <a href="mailto:sid@bidsmith.pro" style={styles.footerLinkItem}>Contact</a>
                 </div>
               </div>
             </div>
@@ -581,8 +586,11 @@ export default function Landing({ onEnterApp, onViewSample }) {
               <div style={styles.footerCopyright}>
                 © 2026 BidSmith, Inc. All rights reserved.
               </div>
-              <div style={styles.footerPstTime}>
-                {pstTime}
+              <div style={styles.footerSocialIcons}>
+                <a href="https://linkedin.com/company/aris-labs" target="_blank" rel="noopener noreferrer" style={styles.footerSocialLink}>
+                  <Linkedin size={16} />
+                </a>
+                <span style={styles.footerYcBadge}>Backed by Y Combinator (W26)</span>
               </div>
             </div>
           </footer>
@@ -605,12 +613,12 @@ const styles = {
   navInner: {
     maxWidth: 1120,
     margin: "0 auto",
+    flexWrap: "wrap",
     padding: "16px 20px",
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
     gap: 14,
-    flexWrap: "nowrap",
   },
   brand: {
     display: "inline-flex",
@@ -684,9 +692,9 @@ const styles = {
     display: "inline-flex",
     alignItems: "center",
     gap: 8,
-    border: "1px solid #c7d2fe",
-    background: "#eef2ff",
-    color: "#4338ca",
+    border: "1px solid #3b82f6",
+    background: "rgba(59,130,246,0.1)",
+    color: "#60a5fa",
     fontSize: "0.78rem",
     letterSpacing: "0.06em",
     textTransform: "uppercase",
@@ -712,12 +720,12 @@ const styles = {
     gap: 12,
   },
   primaryCta: {
-    background: "#4f46e5",
+    background: "#3b82f6",
     color: "#ffffff",
     fontWeight: 600,
     borderRadius: 10,
     padding: "12px 22px",
-    border: "1px solid #4338ca",
+    border: "1px solid #2563eb",
     cursor: "pointer",
   },
   secondaryCta: {
@@ -731,11 +739,11 @@ const styles = {
   },
   demoCta: {
     background: "#ffffff",
-    color: "#4f46e5",
+    color: "#0f172a",
     fontWeight: 600,
     borderRadius: 10,
     padding: "12px 22px",
-    border: "1px solid #4f46e5",
+    border: "1px solid #ffffff",
     cursor: "pointer",
     display: "inline-flex",
     alignItems: "center",
@@ -753,7 +761,7 @@ const styles = {
   sectionEyebrow: {
     margin: "0 0 8px",
     textAlign: "center",
-    color: "#4f46e5",
+    color: "#3b82f6",
     fontSize: "0.75rem",
     fontWeight: 700,
     textTransform: "uppercase",
@@ -798,16 +806,16 @@ const styles = {
     boxShadow: "0 8px 18px rgba(15,23,42,0.03)",
   },
   planTitle: { margin: 0, fontSize: "1.2rem" },
-  planPrice: { margin: "10px 0 12px", fontSize: "2rem", color: "#4f46e5", fontWeight: 700 },
+  planPrice: { margin: "10px 0 12px", fontSize: "2rem", color: "#3b82f6", fontWeight: 700 },
   planButton: {
     marginTop: 16,
     display: "inline-block",
-    background: "#4f46e5",
+    background: "#3b82f6",
     color: "#ffffff",
     fontWeight: 600,
     borderRadius: 10,
     padding: "10px 18px",
-    border: "1px solid #4338ca",
+    border: "1px solid #2563eb",
     cursor: "pointer",
   },
   disabledButton: { opacity: 0.55, cursor: "not-allowed" },
@@ -934,90 +942,88 @@ const styles = {
   footerContainer: {
     background: "#000000",
     borderTop: "1px solid #141416",
-    padding: "80px 24px 60px",
+    padding: "64px 24px 48px",
   },
   footerInnerGrid: {
-    maxWidth: 1200,
+    maxWidth: 1120,
     margin: "0 auto",
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-    gap: "40px",
+    display: "flex",
+    flexDirection: window.innerWidth < 768 ? "column" : "row",
+    justifyContent: "space-between",
+    gap: "64px",
   },
   footerBrandCol: {
     display: "flex",
     flexDirection: "column",
-    gap: "20px",
+    gap: "16px",
+    maxWidth: "320px",
   },
   footerLogoWrap: {
     display: "flex",
     alignItems: "center",
-    gap: "10px",
-  },
-  footerLogoText: {
-    fontSize: "1.5rem",
-    fontWeight: 900,
-    color: "#ffffff",
-    letterSpacing: "-0.02em",
+    marginBottom: "4px",
   },
   footerTagline: {
-    fontSize: "0.95rem",
+    fontSize: "13px",
     color: "#71717a",
     lineHeight: "1.6",
-    maxWidth: "300px",
+    margin: 0,
   },
   footerAddressLine: {
-    fontSize: "0.85rem",
+    fontSize: "13px",
     color: "#3f3f46",
     lineHeight: "1.6",
-    fontFamily: "'Inter', sans-serif",
+    marginTop: "8px",
   },
   footerLinkCol: {
     display: "flex",
     flexDirection: "column",
-    gap: "16px",
+    gap: "12px",
   },
   footerColHeading: {
-    fontSize: "0.75rem",
-    fontWeight: 800,
+    fontSize: "11px",
+    fontWeight: 700,
     textTransform: "uppercase",
-    letterSpacing: "0.1em",
+    letterSpacing: "0.05em",
     color: "#ffffff",
-    margin: 0,
+    margin: "0 0 4px 0",
   },
   footerLinkItem: {
-    fontSize: "0.9rem",
+    fontSize: "13px",
     color: "#71717a",
     textDecoration: "none",
     transition: "color 0.2s ease",
   },
   footerBottomRow: {
-    maxWidth: 1200,
-    margin: "60px auto 0",
-    paddingTop: "32px",
+    maxWidth: 1120,
+    margin: "48px auto 0",
+    paddingTop: "24px",
     borderTop: "1px solid #141416",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
     flexWrap: "wrap",
-    gap: "24px",
+    gap: "16px",
   },
   footerCopyright: {
-    fontSize: "0.85rem",
-    color: "#3f3f46",
-  },
-  footerPstTime: {
-    fontSize: "0.85rem",
+    fontSize: "12px",
     color: "#3f3f46",
   },
   footerSocialIcons: {
     display: "flex",
     alignItems: "center",
     gap: "16px",
-    marginTop: "4px",
   },
   footerSocialLink: {
     color: "#3f3f46",
     transition: "color 0.2s ease",
+    display: "flex",
+    alignItems: "center",
+  },
+  footerYcBadge: {
+    fontSize: "12px",
+    color: "#3f3f46",
+    opacity: 0.8,
   },
   terminalContainerFull: {
     width: "100%",

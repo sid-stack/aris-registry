@@ -3,24 +3,34 @@
   width: 100%;           /* Lock width without triggering vertical scrollbar shifts */
   max-width: 1400px;     /* Cap on desktop */
   margin: 0 auto;
-  background: #09090b;   /* Deep Zinc-950 UI container */
+  background: var(--background);
   min-height: 100vh;
-  padding-bottom: 80px; /* Add breathing room at the end */
-  box-shadow: 0 0 40px rgba(0,0,0,0.8);
-  overflow-x: hidden;    /* HARD MARGIN: Cuts off any broken tables or text */
+  padding-bottom: 80px;
+  box-shadow: 0 0 40px rgba(0,0,0,0.5);
+  overflow-x: hidden;
   box-sizing: border-box;
+  color: var(--text-primary);
 }
 
 /* Masthead */
 .sam-rep-masthead {
-  background: #09090b;
-  border-bottom: 1px solid #27272a;
-  padding: 14px 24px;
+  background: var(--nav-bg);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 12px;
+  min-height: 52px;
+  height: auto;
+}
+
+@media (max-width: 768px) {
+  .sam-rep-masthead {
+    padding: 8px 12px;
+    gap: 8px;
+  }
 }
 
 /* Main content area */
@@ -49,9 +59,9 @@
   display: flex;
   flex-direction: column;
   height: calc(100vh - 120px);
-  background: #09090b;
+  background: var(--background);
   overflow: hidden;
-  border-top: 1px solid #1a1a1a;
+  border-top: 1px solid var(--border);
 }
 
 @media (min-width: 768px) {
@@ -61,7 +71,7 @@
 }
 
 .studio-pane {
-  background: #09090b;
+  background: var(--background);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -88,7 +98,7 @@
 
 /* Sidebar: Requirements Linter */
 .studio-linter-pane {
-  background: #09090b;
+  background: var(--background);
 }
 
 .studio-linter {
@@ -100,8 +110,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 14px 16px;
-  border-bottom: 1px solid #1a1a1a;
-  background: #0c0c0e;
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -246,7 +256,7 @@
 
 /* Center Audit Canvas */
 .studio-canvas {
-  background: #0c0c0e;
+  background: var(--background);
   padding: 0;
   position: relative;
 }
@@ -260,7 +270,7 @@
 
 /* Right Studio Workbench */
 .studio-workbench-pane {
-  background: #09090b;
+  background: var(--background);
 }
 
 /* Section divider refinement */
@@ -301,8 +311,8 @@ body {
   bottom: 0;
   left: 0;
   right: 0;
-  background: #09090b;
-  border-top: 1px solid #1a1a1a;
+  background: var(--card);
+  border-top: 1px solid var(--border);
   z-index: 50;
   transition: height 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
