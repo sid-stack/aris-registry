@@ -7,24 +7,20 @@ const LEGAL_CONTENT = {
     updated: "March 15, 2026",
     sections: [
       {
-        heading: "Overview",
-        body: "This Privacy Policy describes how ARIS Intelligence Labs ('ARIS', 'we', 'our', 'us') collects, uses, and discloses information obtained through our website and sovereign analysis protocols. By using our Services, you agree to these governance terms.",
+        heading: "Sovereign Ingestion Protocol",
+        body: "ARIS Intelligence Labs operates on a Zero-Knowledge architecture. We collect account information and base telemetry required to maintain secure session handshakes. We do not persist contract bids, sensitive technical payloads, or proprietary win-themes. All analysis occurs via the Stateless Bridge™.",
       },
       {
-        heading: "Stateless Data Collection",
-        body: "We collect information directly from you when you authenticate via the Zero Token handshake. Personal information is limited to registration metadata (email, organization). Telemetry (IP, timestamps, browser attributes) is collected automatically to maintain the session bridge integrity.",
+        heading: "Data Sovereignty",
+        body: "Data processed via ARIS is encrypted using AES-256-GCM. We never utilize your proprietary data for training public or private LLM weights. User identity is protected via tokenized handshake protocols.",
       },
       {
-        heading: "Session activity & Purge",
-        body: "Aris collects data included in uploaded solicitation files solely for the purpose of transient analysis. In accordance with our 'Stateless Bridge' protocol, all technical payloads and technical files are held in RAM during execution and cryptographically purged upon session completion. We do not persist bid data.",
+        heading: "User Termination Rights",
+        body: "Users maintain total sovereignty over their account meta-data. Requests for purge can be dispatched to sid@bidsmith.pro.",
       },
       {
-        heading: "Processing & Usage",
-        body: "Information is processed to: provide the Services; fulfill analysis requests; send operational notifications; and defend infrastructure against adversarial attack. Our legal basis for processing includes contract performance and legitimate security interests.",
-      },
-      {
-        heading: "Disclosure & Sovereignty",
-        body: "WE DO NOT SELL YOUR DATA. Information is shared only with sub-processors required to execute the analysis (e.g., dedicated AI compute nodes) under strict non-persistance agreements. We may disclose information if required by federal law or to protect national security interests.",
+        heading: "Telemetry & Cookies",
+        body: "We use high-security essential cookies to maintain the Stateless Bridge connection. Anonymous telemetry is collected only to ensure infrastructure stability.",
       },
     ],
   },
