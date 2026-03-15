@@ -10,6 +10,8 @@ import {
   FileText,
   ArrowLeft,
   Shield,
+  Linkedin,
+  Github,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
@@ -325,9 +327,9 @@ export default function Landing({ onEnterApp, onViewSample }) {
         <>
           <header style={styles.navbar}>
             <div style={styles.navInner}>
-              <a href="/" style={styles.brand}>
-                <img src="/aris-logo.png" alt="Aris" style={{ height: 22, width: 22, objectFit: "contain" }} />
-                <span>BidSmith</span>
+              <a href="/" className="brand-link" style={styles.brand}>
+                <img src="/aris-logo.png" alt="Aris" className="brand-logo" style={{ height: 22, width: 22, objectFit: "contain" }} />
+                <span className="brand-name">BidSmith</span>
               </a>
               <nav className="landing-nav-links">
                 <a href="#features" style={styles.navLink}>Features</a>
@@ -524,36 +526,47 @@ export default function Landing({ onEnterApp, onViewSample }) {
           <FaqSection />
 
           <footer id="contact" style={styles.footer}>
-            <div style={styles.footerInner}>
-              <div>
-                <p style={styles.footerBrand}>BidSmith</p>
-                <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
-                  <a href="https://linkedin.com/company/aris-labs" target="_blank" rel="noopener noreferrer" style={{ color: '#71717a' }}>LinkedIn</a>
-                  <a href="https://github.com/aris-labs" target="_blank" rel="noopener noreferrer" style={{ color: '#71717a' }}>GitHub</a>
+            <div className="footer-inner" style={styles.footerInner}>
+              <div className="footer-section brand-section">
+                <p className="footer-logo-text" style={styles.footerBrand}>BidSmith</p>
+                <div style={{ display: 'flex', gap: '16px', marginTop: '16px', justifyContent: isMobile ? 'center' : 'flex-start' }}>
+                  <a href="https://linkedin.com/company/aris-labs" target="_blank" rel="noopener noreferrer" className="footer-social-link" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Linkedin size={14} />
+                    LinkedIn
+                  </a>
+                  <a href="https://github.com/ARIS-Labs-HQ" target="_blank" rel="noopener noreferrer" className="footer-social-link" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Github size={14} />
+                    GitHub
+                  </a>
                 </div>
                 <a
                   href="mailto:sid@bidsmith.pro"
-                  style={{ ...styles.footerLink, marginTop: '12px', display: 'block' }}
+                  className="footer-contact-link"
+                  style={{ ...styles.footerLink, marginTop: '16px', display: 'block', fontWeight: 700 }}
                   onClick={() => trackEvent("support_email_click", { source: "landing_footer" })}
                 >
                   sid@bidsmith.pro
                 </a>
               </div>
-              <div>
-                <p style={styles.footerHeading}>Sovereignty Protocol</p>
-                <a href="/soc" style={styles.footerLink}>Security Protocol</a>
-                <a href="/privacy" style={styles.footerLink}>Privacy Policy</a>
-                <a href="/terms" style={styles.footerLink}>Terms of Service</a>
-                <a href="/cookies" style={styles.footerLink}>Cookie Policy</a>
-                <a href="https://docs.bidsmith.pro" target="_blank" rel="noopener noreferrer" style={styles.footerLink}>Developer Docs</a>
+              <div className="footer-section">
+                <p className="footer-heading" style={styles.footerHeading}>Sovereignty Protocol</p>
+                <a href="/soc" className="footer-link" style={styles.footerLink}>Security Protocol</a>
+                <a href="/privacy" className="footer-link" style={styles.footerLink}>Privacy Policy</a>
+                <a href="/terms" className="footer-link" style={styles.footerLink}>Terms of Service</a>
+                <a href="/cookies" className="footer-link" style={styles.footerLink}>Cookie Policy</a>
+                <a href="https://docs.bidsmith.pro" target="_blank" rel="noopener noreferrer" className="footer-link" style={styles.footerLink}>Developer Docs</a>
               </div>
-              <div style={{ textAlign: 'right' }}>
-                <p style={styles.footerHeading}>Agentic Pipeline</p>
-                <a href="#pricing" style={styles.footerLink}>Execution Model</a>
-                <p style={{ ...styles.footerText, color: '#3f3f46', marginTop: '12px', fontSize: '10px' }}>
-                  ARIS_BRIDGE_CONNECTED <br />
-                  STATELESS_PURGE: OK
-                </p>
+              <div className="footer-section pipeline-section">
+                <p className="footer-heading" style={styles.footerHeading}>Agentic Pipeline</p>
+                <a href="#pricing" className="footer-link" style={styles.footerLink}>Execution Model</a>
+                <div className="pipeline-status" style={{ marginTop: '16px' }}>
+                  <p style={{ ...styles.footerText, color: '#3f3f46', fontSize: '10px', fontWeight: 700, letterSpacing: '0.05em' }}>
+                    ARIS_BRIDGE_CONNECTED
+                  </p>
+                  <p style={{ ...styles.footerText, color: '#22c55e', fontSize: '10px', fontWeight: 800, letterSpacing: '0.1em' }}>
+                    STATELESS_PURGE: OK
+                  </p>
+                </div>
               </div>
             </div>
             <div style={{ textAlign: 'center', padding: '20px 0', borderTop: '1px solid #1a1a1a', marginTop: '40px' }}>
