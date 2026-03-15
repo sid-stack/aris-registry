@@ -9,6 +9,19 @@
       }
     }
   ],
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "labs.bidsmith.pro"
+        }
+      ],
+      "destination": "https://www.bidsmith.pro/labs",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/(.*)",
