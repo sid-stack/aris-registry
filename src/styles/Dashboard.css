@@ -205,8 +205,7 @@ body {
   border-color: var(--success);
 }
 
-.nav-button:nth-of-type(3),
-.nav-button:nth-of-type(4) {
+.nav-button {
   display: none;
 }
 
@@ -284,8 +283,7 @@ body {
     font-size: 12px;
   }
   
-  .nav-button:nth-of-type(3),
-  .nav-button:nth-of-type(4) {
+  .nav-button {
     display: flex;
   }
   
