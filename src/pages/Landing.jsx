@@ -12,6 +12,7 @@ import {
   Shield,
   Linkedin,
   Globe,
+  Zap,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
