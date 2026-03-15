@@ -1,11 +1,11 @@
 import React from 'react';
-import { CheckCircle, Loader, Brain, PenLine, Scale, Search } from 'lucide-react';
+import { Search, Brain, FileText, Shield, TrendingUp, CheckCircle } from 'lucide-react';
 
 const agents = [
   { icon: Brain,   label: 'Mission Analyst',   desc: 'Synthesizing solicitation data into strategic brief',    delay: 0 },
-  { icon: PenLine, label: 'Narrative Synthesizer', desc: 'Writing QDS-style federal proposal draft',              delay: 0.1 },
-  { icon: Scale,   label: 'Compliance Auditor',   desc: 'Generating FAR/DFARS-referenced compliance matrix',     delay: 0.2 },
-  { icon: Search,  label: 'Win-Theme Architect',  desc: 'Extracting win themes, risk flags & technical outline', delay: 0.3 },
+  { icon: FileText, label: 'Narrative Synthesizer', desc: 'Writing QDS-style federal proposal draft',              delay: 0.1 },
+  { icon: Shield,   label: 'Compliance Auditor',   desc: 'Generating FAR/DFARS-referenced compliance matrix',     delay: 0.2 },
+  { icon: TrendingUp,  label: 'Win-Theme Architect',  desc: 'Extracting win themes, risk flags & technical outline', delay: 0.3 },
 ];
 
 const AgenticPipeline = () => (
