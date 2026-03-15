@@ -59,27 +59,27 @@ const ConsolePanel = ({ isOpen, onToggle, logs }) => {
         <div className="console-title">
           <Terminal size={12} />
           <span>AGENTIC LOGS</span>
-          <div style={{ marginLeft: '12px', color: '#312e81', background: '#1e1b4b', padding: '1px 6px', borderRadius: '2px', fontSize: '9px' }}>
+          <div style={{ marginLeft: '12px', color: 'var(--accent)', background: 'rgba(30,127,255,0.1)', border: '1px solid rgba(30,127,255,0.2)', padding: '1px 6px', borderRadius: '2px', fontSize: '9px' }}>
             CONNECTED: PIPELINE_7
           </div>
         </div>
-        {isOpen ? <ChevronDown size={14} color="#52525b" /> : <ChevronUp size={14} color="#52525b" />}
+        {isOpen ? <ChevronDown size={14} color="var(--text-secondary)" /> : <ChevronUp size={14} color="var(--text-secondary)" />}
       </div>
       {isOpen && (
         <div 
           ref={scrollRef}
-          style={{ padding: '12px 16px', fontSize: '11px', fontFamily: 'Space Mono, monospace', color: '#71717a', height: '120px', overflowY: 'auto' }}
+          style={{ padding: '12px 16px', fontSize: '11px', fontFamily: 'Space Mono, monospace', color: 'var(--text-secondary)', height: '120px', overflowY: 'auto' }}
         >
           {logs.map((log, i) => (
             <div key={i} style={{ marginBottom: '4px' }}>
-              <span style={{ color: log.type === 'error' ? '#ef4444' : log.type === 'success' ? '#22c55e' : log.type === 'sec' ? '#818cf8' : '#3b82f6' }}>
+              <span style={{ color: log.type === 'error' ? 'var(--risk-high)' : log.type === 'success' ? 'var(--success)' : log.type === 'sec' ? 'var(--accent)' : 'var(--accent)' }}>
                 [{log.timestamp}]
               </span> {log.type === 'link' ? (
-                <a href="/ARIS_Security_Protocol.pdf" target="_blank" style={{ color: '#818cf8', textDecoration: 'underline', cursor: 'pointer', fontWeight: 700 }}>{log.message}</a>
+                <a href="/ARIS_Security_Protocol.pdf" target="_blank" style={{ color: 'var(--accent)', textDecoration: 'underline', cursor: 'pointer', fontWeight: 700 }}>{log.message}</a>
               ) : log.message}
             </div>
           ))}
-          <div style={{ color: '#a1a1aa' }}>_ pipeline idle. awaiting user input.</div>
+          <div style={{ color: 'var(--text-secondary)' }}>_ pipeline idle. awaiting user input.</div>
         </div>
       )}
     </div>
@@ -161,6 +161,43 @@ const SamRep = ({ onBack }) => {
 
   const isMobile = windowWidth < 768;
 
+  // Report context for AI chat
+  const reportContext = {
+    solicitation: {
+      title: "DHA Video Imaging Archive",
+      id: "DHANOISS022426",
+      agency: "Defense Health Agency",
+      riskScore: "HIGH",
+      confidence: 92,
+      analysisTime: "83 seconds",
+      totalRequirements: totalRequirements,
+      highRiskCount: highRiskCount,
+      criticalCount: criticalCount
+    },
+    compliance: {
+      rmfRequired: true,
+      atoRequired: true,
+      sprsScore: "110/110 needed",
+      legacyIntegration: "MUMPS compatibility required",
+      riskFactors: [
+        "RMF compliance dependencies",
+        "Authority to Operate requirements", 
+        "Legacy system integration constraints",
+        "Federal healthcare data standards"
+      ]
+    },
+    competitive: {
+      estimatedValue: "$45M - $67M",
+      expectedBidders: 8,
+      deadline: "2024-04-15",
+      evaluationCriteria: {
+        technical: 60,
+        management: 30,
+        cost: 10
+      }
+    }
+  };
+
   const handleRequirementSelect = (req) => {
     setSelectedReq(req);
     addLog(`CONTEXT_ATTACHED: ${req.id}`, 'info');
@@ -171,13 +208,13 @@ const SamRep = ({ onBack }) => {
     <div
       id="dashboard-content"
       data-theme={theme}
-      style={{ backgroundColor: '#09090b', color: '#a1a1aa', height: '100vh', width: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
+      style={{ backgroundColor: 'var(--background)', color: 'var(--text-primary)', height: '100vh', width: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
     >
       <NavBar theme={theme} onToggleTheme={toggleTheme} onBack={onBack} />
 
       {/* ── Studio Toolbar ── */}
-      <div className="sam-rep-masthead" style={{ borderBottom: '1px solid #1a1a1a', padding: '10px 24px', background: '#09090b', height: '52px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+      <div className="sam-rep-masthead" style={{ borderBottom: '1px solid var(--border)', background: 'var(--nav-bg)', minHeight: '52px', height: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px', background: '#1e1b4b', borderRadius: '4px', border: '1px solid #312e81' }}>
                 <Activity size={12} color="#818cf8" />
@@ -204,16 +241,16 @@ const SamRep = ({ onBack }) => {
             <SecurityToggle />
         </div>
         <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-          <div className="hide-mobile" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#0c0c0e', padding: '4px 10px', borderRadius: '4px', border: '1px solid #1a1a1a' }}>
+          <div className="hide-mobile" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--card)', padding: '4px 10px', borderRadius: '4px', border: '1px solid var(--border)' }}>
              <Shield size={10} color="#3b82f6" />
              <span style={{ fontSize: '9px', color: '#71717a', letterSpacing: '0.05em' }}>ENCRYPTED SESSION</span>
           </div>
           <button 
             onClick={() => window.location.href = '/discovery'}
             style={{ 
-              background: '#0c0c0e', 
-              border: '1px solid #27272a', 
-              color: '#d4d4d8', 
+              background: 'var(--card)', 
+              border: '1px solid var(--border)', 
+              color: 'var(--text-primary)', 
               padding: '6px 12px', 
               borderRadius: '4px', 
               fontSize: '10px', 
@@ -303,7 +340,12 @@ const SamRep = ({ onBack }) => {
           {!isMobile && (
             <Panel defaultSize={25} minSize={20} collapsible={true}>
               <aside className="studio-pane studio-workbench-pane">
-                 <ARISChat selectedContext={selectedReq} onLog={addLog} onCommand={handleCommand} />
+                 <ARISChat 
+                  selectedContext={selectedReq} 
+                  onLog={addLog} 
+                  onCommand={handleCommand} 
+                  reportData={reportContext}
+                />
               </aside>
             </Panel>
           )}
@@ -341,7 +383,7 @@ const SamRep = ({ onBack }) => {
                   position: 'fixed',
                   inset: 0,
                   zIndex: 1000,
-                  background: 'rgba(9,9,11,0.98)',
+                  background: 'var(--background)',
                   backdropFilter: 'blur(12px)',
                   display: 'flex',
                   flexDirection: 'column',
@@ -367,7 +409,12 @@ const SamRep = ({ onBack }) => {
                   </button>
                 </div>
                 <div style={{ flex: 1, overflowY: 'auto' }}>
-                  <ARISChat selectedContext={selectedReq} onLog={addLog} onCommand={handleCommand} />
+                  <ARISChat 
+                    selectedContext={selectedReq} 
+                    onLog={addLog} 
+                    onCommand={handleCommand}
+                    reportData={reportContext}
+                  />
                 </div>
               </div>
             )}
@@ -377,16 +424,16 @@ const SamRep = ({ onBack }) => {
 
       <footer style={{ 
         height: '28px', 
-        background: '#09090b', 
+        background: 'var(--card)', 
         display: 'flex', 
         alignItems: 'center', 
         padding: '0 16px',
         fontSize: '9px',
         fontWeight: 600,
-        color: '#3f3f46',
+        color: 'var(--text-secondary)',
         letterSpacing: '0.05em',
         justifyContent: 'space-between',
-        borderTop: '1px solid #1a1a1a'
+        borderTop: '1px solid var(--border)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>

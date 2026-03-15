@@ -45,8 +45,8 @@ const NavBar = ({ theme, onToggleTheme, onBack }) => {
     display: 'flex', alignItems: 'center', gap: '5px',
     padding: '5px 9px',
     background: 'transparent',
-    color: '#5a7a9a',
-    border: '1px solid #1a2840',
+    color: 'var(--text-secondary)',
+    border: '1px solid var(--border)',
     borderRadius: '3px',
     cursor: 'pointer',
     fontSize: '10px',
@@ -59,61 +59,28 @@ const NavBar = ({ theme, onToggleTheme, onBack }) => {
     ...overrides,
   });
 
-  const hoverOn  = e => { e.currentTarget.style.color = '#d4e4f7'; e.currentTarget.style.borderColor = '#1e3050'; };
-  const hoverOff = e => { e.currentTarget.style.color = e.currentTarget.dataset.copied ? '#22c55e' : '#5a7a9a'; e.currentTarget.style.borderColor = e.currentTarget.dataset.copied ? '#22c55e' : '#1a2840'; };
+  const hoverOn  = e => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.borderColor = 'var(--accent)'; };
+  const hoverOff = e => { e.currentTarget.style.color = e.currentTarget.dataset.copied ? 'var(--success)' : 'var(--text-secondary)'; e.currentTarget.style.borderColor = e.currentTarget.dataset.copied ? 'var(--success)' : 'var(--border)'; };
 
   return (
-    <nav style={{
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: '0 16px',
-      height: '52px',
-      background: 'var(--nav-bg)',
-      borderBottom: '1px solid var(--nav-border)',
-      position: 'sticky',
-      top: 0,
-      zIndex: 100,
-      gap: '8px',
-      overflow: 'hidden',
-    }}>
-
+    <nav className="navbar">
       {/* Brand */}
       <div className="navbar-brand">
         {onBack && (
           <button 
+            className="back-button"
             onClick={onBack}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: '#d4e4f7',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              padding: '0 8px 0 0',
-              marginRight: '8px',
-              borderRight: '1px solid var(--nav-border)',
-              minHeight: '44px'
-            }}
             aria-label="Back to home"
           >
             <ArrowLeft size={18} />
+            <span className="back-label">Back</span>
           </button>
         )}
-        <Shield size={15} color="#1e7fff" style={{ flexShrink: 0 }} />
-        <span style={{
-          fontFamily: "'Space Mono', monospace",
-          fontWeight: 700, fontSize: '12px', letterSpacing: '0.05em', color: '#d4e4f7',
-          whiteSpace: 'nowrap',
-        }}>
+        <Shield size={15} color="#1e7fff" className="brand-icon" />
+        <span className="brand-text">
           BIDSMITH <span style={{ color: '#1e7fff' }}>INTEL</span>
         </span>
-        <span className="hide-mobile" style={{
-          background: 'rgba(30,127,255,0.1)', border: '1px solid rgba(30,127,255,0.3)',
-          color: '#1e7fff', fontSize: '9px', padding: '2px 6px', borderRadius: '2px',
-          letterSpacing: '0.1em', fontFamily: "'Space Mono', monospace", fontWeight: 700,
-          flexShrink: 0,
-        }}>BETA</span>
+        <span className="beta-badge">BETA</span>
       </div>
 
       {/* Actions */}
@@ -124,38 +91,40 @@ const NavBar = ({ theme, onToggleTheme, onBack }) => {
           className="theme-toggle"
           onClick={onToggleTheme}
           title={isDark ? 'Light mode' : 'Dark mode'}
-          style={{ marginRight: '4px', flexShrink: 0 }}
         >
-          {isDark ? <><Sun size={11} /><span className="nav-btn-label"> LIGHT</span></> : <><Moon size={11} /><span className="nav-btn-label"> DARK</span></>}
+          {isDark ? <Sun size={11} /> : <Moon size={11} />}
+          <span className="nav-btn-label">{isDark ? 'LIGHT' : 'DARK'}</span>
         </button>
 
         {/* PDF */}
         <button
-          style={btnStyle({ opacity: pdfLoading ? 0.6 : 1 })}
+          className={`nav-button ${pdfLoading ? 'loading' : ''}`}
           onClick={handlePDF}
           disabled={pdfLoading}
-          onMouseEnter={hoverOn} onMouseLeave={hoverOff}
         >
           <FileText size={12} />
           <span className="nav-btn-label">{pdfLoading ? 'SAVING...' : 'PDF'}</span>
         </button>
 
         {/* Share */}
-        <button style={btnStyle()} onClick={handleShare} onMouseEnter={hoverOn} onMouseLeave={hoverOff}>
+        <button className="nav-button" onClick={handleShare}>
           <Share2 size={12} />
           <span className="nav-btn-label">SHARE</span>
         </button>
 
         {/* Copy Link */}
         <button
-          style={btnStyle({ color: copied ? '#22c55e' : '#5a7a9a', borderColor: copied ? '#22c55e' : '#1a2840' })}
+          className={`nav-button ${copied ? 'copied' : ''}`}
           onClick={handleCopyLink}
-          onMouseEnter={hoverOn} onMouseLeave={hoverOff}
         >
           {copied ? <Check size={12} /> : <Link size={12} />}
           <span className="nav-btn-label">{copied ? 'COPIED!' : 'LINK'}</span>
         </button>
 
+        {/* Mobile menu button */}
+        <button className="mobile-menu-toggle" aria-label="Menu">
+          <div className="hamburger"></div>
+        </button>
       </div>
     </nav>
   );

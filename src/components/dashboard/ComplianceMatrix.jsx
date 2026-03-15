@@ -32,8 +32,8 @@ const MobileComplianceCard = ({ req }) => {
 
   return (
     <div style={{
-      background: "#09090b",
-      border: "1px solid #27272a",
+      background: "var(--card)",
+      border: "1px solid var(--border)",
       borderRadius: "8px",
       padding: "16px",
       marginBottom: "12px",
@@ -43,7 +43,7 @@ const MobileComplianceCard = ({ req }) => {
     }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <span style={{ fontFamily: "monospace", fontSize: "14px", color: "#a1a1aa", fontWeight: 600 }}>
+          <span style={{ fontFamily: "monospace", fontSize: "14px", color: "var(--text-secondary)", fontWeight: 600 }}>
             {req.id}
           </span>
         </div>
@@ -65,7 +65,7 @@ const MobileComplianceCard = ({ req }) => {
 
       <div style={{ 
         fontSize: "15px", 
-        color: "#e4e4e7", 
+        color: "var(--text-primary)", 
         lineHeight: "1.6",
         wordBreak: "break-word",
         display: expanded ? "block" : "-webkit-box",
@@ -76,7 +76,7 @@ const MobileComplianceCard = ({ req }) => {
         {req.requirement}
       </div>
 
-      <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", fontSize: "12px", color: "#a1a1aa" }}>
+      <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", fontSize: "12px", color: "var(--text-secondary)" }}>
         <span><strong>Sec:</strong> {req.section}</span>
         <span>•</span>
         <span><strong>Cat:</strong> {req.category}</span>
@@ -87,7 +87,7 @@ const MobileComplianceCard = ({ req }) => {
       </div>
 
       {expanded && (
-        <div style={{ marginTop: "8px", paddingTop: "8px", borderTop: "1px solid #27272a", fontSize: "13px", color: "#d4d4d8" }}>
+        <div style={{ marginTop: "8px", paddingTop: "8px", borderTop: "1px solid var(--border)", fontSize: "13px", color: "var(--text-secondary)" }}>
           <strong>Action: </strong>{req.action}
         </div>
       )}
@@ -97,8 +97,8 @@ const MobileComplianceCard = ({ req }) => {
         style={{
           background: "transparent",
           border: "none",
-          borderTop: "1px solid #27272a",
-          color: "#4a7cff",
+          borderTop: "1px solid var(--border)",
+          color: "var(--accent)",
           fontSize: "13px",
           fontWeight: "600",
           padding: "16px 0 4px 0",

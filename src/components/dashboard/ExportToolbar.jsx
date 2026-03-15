@@ -164,7 +164,13 @@ const ExportToolbar = () => {
   });
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+    <div style={{ 
+      display: 'flex', 
+      alignItems: 'center', 
+      gap: '8px', 
+      flexWrap: 'wrap', 
+      justifyContent: 'flex-start' 
+    }}>
       <button style={btnStyle(pdfLoading)} onClick={handlePDF} disabled={pdfLoading}>
         {pdfLoading
           ? <Loader size={13} style={{ animation: 'spin 1s linear infinite' }} />
