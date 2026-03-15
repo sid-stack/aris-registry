@@ -331,11 +331,11 @@ export default function Landing({ onEnterApp, onViewSample }) {
                 <span>BidSmith</span>
               </a>
               <nav className="landing-nav-links">
-                <a href="#features" style={styles.navLink}>Features</a>
-                <a href="#workflow" style={styles.navLink}>Workflow</a>
-                <a href="#pricing" style={styles.navLink}>Pricing</a>
+                <a href="/#solutions" style={styles.navLink}>Solutions</a>
+                <a href="/#workflow" style={styles.navLink}>Workflow</a>
+                <a href="/#pricing" style={styles.navLink}>Pricing</a>
                 <a href="https://docs.bidsmith.pro" target="_blank" rel="noopener noreferrer" style={styles.navLink}>Docs</a>
-                <a href="#contact" style={styles.navLink}>Contact</a>
+                <a href="/#contact" style={styles.navLink}>Contact</a>
               </nav>
               <button
                 type="button"
@@ -381,7 +381,7 @@ export default function Landing({ onEnterApp, onViewSample }) {
             </div>
           </section>
 
-          <section id="activity" style={styles.sectionMuted} data-reveal>
+          <section id="markets" style={styles.sectionMuted} data-reveal>
             <div style={styles.sectionInner}>
               <p style={styles.sectionEyebrow}>Platform Activity</p>
               <h2 style={styles.sectionTitle}>BidSmith Activity</h2>
@@ -402,7 +402,7 @@ export default function Landing({ onEnterApp, onViewSample }) {
             </div>
           </section>
 
-          <section id="features" style={styles.sectionMuted} data-reveal>
+          <section id="solutions" style={styles.sectionMuted} data-reveal>
             <div style={styles.sectionInner}>
               <p style={styles.sectionEyebrow}>Why teams switch from manual workflows</p>
               <h2 style={styles.sectionTitle}>Why Bidsmith Lite?</h2>
@@ -535,8 +535,9 @@ export default function Landing({ onEnterApp, onViewSample }) {
                   Sovereign GovCon intelligence. Powered by SAM.gov data to collect, verify, and analyze federal solicitations for precision bid management.
                 </p>
                 <div style={styles.footerAddressLine}>
-                  Labs Headquarters<br />
-                  High-Sovereignty Node
+                  <a href="/about" style={{ textDecoration: 'none', color: 'inherit', transition: 'color 0.2s' }} onMouseEnter={(e) => e.target.style.color = '#fff'} onMouseLeave={(e) => e.target.style.color = 'inherit'}>
+                    Labs headquarters : San Francisco, CA
+                  </a>
                 </div>
               </div>
 
@@ -550,16 +551,16 @@ export default function Landing({ onEnterApp, onViewSample }) {
                 {/* Column 2: Product */}
                 <div style={styles.footerLinkCol}>
                   <h4 style={styles.footerColHeading}>Product</h4>
-                  <a href="#solutions" style={styles.footerLinkItem}>Aris Protocol Agent</a>
-                  <a href="#solutions" style={styles.footerLinkItem}>Compliance Sniper</a>
+                  <a href="/#solutions" style={styles.footerLinkItem}>Aris Protocol Agent</a>
+                  <a href="/#solutions" style={styles.footerLinkItem}>Compliance Sniper</a>
                   <a href="https://docs.bidsmith.pro" target="_blank" rel="noopener noreferrer" style={styles.footerLinkItem}>Documentation</a>
                 </div>
 
                 {/* Column 3: Company */}
                 <div style={styles.footerLinkCol}>
                   <h4 style={styles.footerColHeading}>Company</h4>
-                  <a href="#about" style={styles.footerLinkItem}>About</a>
-                  <a href="#solutions" style={styles.footerLinkItem}>Solutions</a>
+                  <a href="/about" style={styles.footerLinkItem}>About</a>
+                  <a href="/#solutions" style={styles.footerLinkItem}>Solutions</a>
                   <a href="/soc" style={styles.footerLinkItem}>Security</a>
                   <a href="mailto:sid@bidsmith.pro" style={styles.footerLinkItem}>Contact</a>
                 </div>
@@ -567,9 +568,9 @@ export default function Landing({ onEnterApp, onViewSample }) {
                 {/* Column 4: Markets */}
                 <div style={styles.footerLinkCol}>
                   <h4 style={styles.footerColHeading}>Markets</h4>
-                  <a href="#markets" style={styles.footerLinkItem}>US DOD & IC</a>
-                  <a href="#markets" style={styles.footerLinkItem}>Civilian Agencies</a>
-                  <a href="#markets" style={styles.footerLinkItem}>Intelligence Labs</a>
+                  <a href="/#markets" style={styles.footerLinkItem}>US DOD & IC</a>
+                  <a href="/#markets" style={styles.footerLinkItem}>Civilian Agencies</a>
+                  <a href="/#markets" style={styles.footerLinkItem}>Intelligence Labs</a>
                 </div>
 
                 {/* Column 5: Legal */}

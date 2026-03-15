@@ -365,37 +365,6 @@ function AuditContent({ onProceed, onBack }) {
   const c = result?.compliance;
   const isLoading = loadingUrl || loadingFile;
 
-  // Show loading state while component initializes
-  if (!componentReady) {
-    return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '50vh',
-        background: '#fff',
-        border: '1px solid #e2e8f0',
-        borderRadius: '8px',
-        margin: '20px'
-      }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ 
-            width: '40px', 
-            height: '40px', 
-            border: '3px solid #e2e8f0', 
-            borderTopColor: '#2563eb', 
-            borderRadius: '50%', 
-            animation: 'spin 1s linear infinite',
-            margin: '0 auto 16px'
-          }} />
-          <div style={{ fontSize: '14px', color: '#64748b', fontFamily: 'Inter, sans-serif' }}>
-            Loading Audit System...
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const checkout = params.get("checkout");
@@ -463,6 +432,37 @@ function AuditContent({ onProceed, onBack }) {
     const next = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ""}`;
     window.history.replaceState({}, "", next);
   }, []);
+
+  // Show loading state while component initializes
+  if (!componentReady) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '50vh',
+        background: '#fff',
+        border: '1px solid #e2e8f0',
+        borderRadius: '8px',
+        margin: '20px'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ 
+            width: '40px', 
+            height: '40px', 
+            border: '3px solid #e2e8f0', 
+            borderTopColor: '#2563eb', 
+            borderRadius: '50%', 
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto 16px'
+          }} />
+          <div style={{ fontSize: '14px', color: '#64748b', fontFamily: 'Inter, sans-serif' }}>
+            Loading Audit System...
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // ── Parse markdown compliance table into row objects ──────────────────────
   function parseComplianceTable(md) {

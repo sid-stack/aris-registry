@@ -9,6 +9,7 @@ import Legal from "./pages/Legal";
 import SamRep from "./pages/SamRep";
 import Discovery from "./pages/Discovery";
 import Security from "./pages/Security";
+import About from "./pages/About";
 import NotFound from "./pages/NotFound";
 import ConsentBanner from "./components/ConsentBanner";
 import { trackPageView } from "./utils/analytics";
@@ -39,6 +40,8 @@ export default function App() {
                     ? "app"
                   : window.location.search.includes("app=true")
                     ? "app"
+                  : path === "/about"
+                    ? "about"
                     : path !== "/"
                       ? "404"
                       : "landing",
@@ -59,6 +62,8 @@ export default function App() {
       logicalPath = "/discovery";
     } else if (view === "soc") {
       logicalPath = "/soc";
+    } else if (view === "about") {
+      logicalPath = "/about";
     } else if (view === "landing") {
       logicalPath = "/";
     } else if (!authenticated) {
@@ -85,6 +90,8 @@ export default function App() {
     content = <Discovery onBack={() => setView("landing")} />;
   } else if (view === "soc") {
     content = <Security onBack={() => setView("landing")} />;
+  } else if (view === "about") {
+    content = <About onBack={() => setView("landing")} />;
   } else if (view === "landing") {
     content = <Landing onEnterApp={() => setView("app")} onViewSample={() => setView("sam-rep")} />;
   } else if (!authenticated) {
