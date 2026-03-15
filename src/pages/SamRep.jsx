@@ -423,29 +423,34 @@ const SamRep = ({ onBack }) => {
       </div>
 
       <footer style={{ 
-        height: '28px', 
+        height: '32px', 
         background: 'var(--card)', 
         display: 'flex', 
         alignItems: 'center', 
-        padding: '0 16px',
-        fontSize: '9px',
-        fontWeight: 600,
-        color: 'var(--text-secondary)',
-        letterSpacing: '0.05em',
+        padding: '0 20px',
+        fontFamily: "'IBM Plex Mono', 'JetBrains Mono', monospace",
+        fontSize: '11px',
+        fontWeight: 400,
+        color: '#64748b',
+        letterSpacing: '0.025em',
         justifyContent: 'space-between',
         borderTop: '1px solid var(--border)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Activity size={10} color="#22c55e" />
-            <span>LIVE: PIPELINE_ONLINE</span>
+            <div style={{ 
+              width: '6px', 
+              height: '6px', 
+              borderRadius: '50%', 
+              backgroundColor: '#22c55e',
+              animation: 'pulse 2s infinite'
+            }} />
+            <span>BidSmith: AI-powered federal contracting intelligence platform</span>
           </div>
-          <div style={{ color: '#27272a' }}>|</div>
-          <div>SESSION: {totalRequirements} REQUIREMENTS PARSED</div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div>MEM: 124MB</div>
-          <div style={{ color: '#312e81' }}>ZERO_KNOWLEDGE_VAULT: ACTIVE</div>
+          <div>Win more contracts with predictive analysis</div>
+          <div style={{ color: '#3b82f6', fontWeight: 500 }}>ZERO_KNOWLEDGE_VAULT: ACTIVE</div>
         </div>
       </footer>
     </div>
