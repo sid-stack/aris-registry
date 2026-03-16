@@ -510,18 +510,23 @@ function stripCodeFences(raw = "") {
 }
 
 // ─── Analytics ───────────────────────────────────────────────────────────────
-app.post("/api/track", (req, res) => {
+app.post("/api/track", asyncHandler(async (req, res) => {
   const { event, uid, page, metadata } = req.body;
   
+  // Validate required fields
+  if (!event) {
+    return res.status(400).json({ error: "Missing required field: event" });
+  }
+  
   // Log event to console for 'Sovereign Audit' logic
-  console.log(`[SOVEREIGN_TRACK_PIPELINE] ${new Date().toISOString()} | UID: ${uid} | EVENT: ${event} | PAGE: ${page}`);
+  console.log(`[SOVEREIGN_TRACK_PIPELINE] ${new Date().toISOString()} | UID: ${uid || 'anonymous'} | EVENT: ${event} | PAGE: ${page || 'unknown'}`);
   if (metadata && Object.keys(metadata).length > 0) {
     console.log(`  └─ DATA: ${JSON.stringify(metadata)}`);
   }
 
   // In production, this would persist to a stateless buffer or external log sink
   res.status(202).json({ status: "ACCEPTED", protocol: "STATELESS" });
-});
+}));
 
 // ─── Health ───────────────────────────────────────────────────────────────────
 app.get("/api/health", asyncHandler(async (_req, res) => {
@@ -1276,15 +1281,31 @@ async function downloadWithRetry(url, retries = 3) {
 app.post("/api/analyze-link", analyzeLinkLimiter, asyncHandler(async (req, res) => {
   try {
     const client = makeClient();
-    if (!client) return res.status(500).json({ error: "Server configuration incomplete" });
+    if (!client) {
+      console.error("[/api/analyze-link] OPENROUTER_API_KEY not configured");
+      return res.status(500).json({ 
+        error: "Server configuration incomplete", 
+        details: "OpenRouter API key not configured. Please set OPENROUTER_API_KEY environment variable." 
+      });
+    }
 
     const { url } = req.body;
     const SAM_API_KEY = process.env.SAM_API_KEY || process.env.SAM_GOV_API_KEY;
-    if (!SAM_API_KEY) return res.status(500).json({ error: "Server configuration incomplete" });
-    if (!url) return res.status(400).json({ error: "Missing url in request body." });
+    if (!SAM_API_KEY) {
+      console.error("[/api/analyze-link] SAM_API_KEY not configured");
+      return res.status(500).json({ 
+        error: "Server configuration incomplete", 
+        details: "SAM.gov API key not configured. Please set SAM_API_KEY or SAM_GOV_API_KEY environment variable." 
+      });
+    }
+    if (!url) {
+      return res.status(400).json({ error: "Missing url in request body." });
+    }
 
     const noticeId = parseNoticeId(url);
-    if (!noticeId) return res.status(400).json({ error: "Invalid SAM.gov URL — could not extract notice ID." });
+    if (!noticeId) {
+      return res.status(400).json({ error: "Invalid SAM.gov URL — could not extract notice ID." });
+    }
 
     const cached = noticeCache.get(noticeId);
     if (cached && Date.now() - cached.ts < 86400000) {
