@@ -9,41 +9,38 @@ app.use(express.json());
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
 /* --------------------------------------------------------------
-   1️⃣  Table definitions (run once, e.g. via a migration script)
+   1️⃣  Table definitions (Enhanced for Funnel Tracking)
    -------------------------------------------------------------- */
 const init = async () => {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS visitor_events (
       id          BIGSERIAL PRIMARY KEY,
       uid         TEXT NOT NULL,
-      event_type  TEXT NOT NULL,               -- 'page_view' | 'time_spent'
-      value       BIGINT DEFAULT 0,            -- seconds for time_spent, 0 otherwise
+      event_type  TEXT NOT NULL,               -- 'page_view', 'demo_view', 'signup_click', 'conversion'
+      page_url    TEXT,
+      value       BIGINT DEFAULT 0,            -- seconds or other numeric values
+      metadata    JSONB DEFAULT '{}',          -- flexible context
       created_at  TIMESTAMPTZ DEFAULT now()
     );
+    CREATE INDEX IF NOT EXISTS idx_event_type ON visitor_events(event_type);
+    CREATE INDEX IF NOT EXISTS idx_uid ON visitor_events(uid);
   `);
 };
 init();
 
 /* --------------------------------------------------------------
-   2️⃣  /api/track endpoint – receives payload from front-end
+   2️⃣  /api/track endpoint –receives payload from front-end
    -------------------------------------------------------------- */
 app.post('/api/track', async (req, res) => {
-  const { uid, event, seconds } = req.body;
+  const { uid, event, value, page, metadata } = req.body;
   if (!uid || !event) return res.status(400).json({error:'bad payload'});
 
   try {
-    if (event === 'page_view') {
-      await pool.query(
-        `INSERT INTO visitor_events (uid, event_type) VALUES ($1,$2)`,
-        [uid, event]
-      );
-    } else if (event === 'time_spent') {
-      const secs = parseInt(seconds, 10) || 0;
-      await pool.query(
-        `INSERT INTO visitor_events (uid, event_type, value) VALUES ($1,$2,$3)`,
-        [uid, event, secs]
-      );
-    }
+    await pool.query(
+      `INSERT INTO visitor_events (uid, event_type, value, page_url, metadata) 
+       VALUES ($1, $2, $3, $4, $5)`,
+      [uid, event, value || 0, page || '', JSON.stringify(metadata || {})]
+    );
     res.json({ok:true});
   } catch (e) {
     console.error('[TRACK ERROR]', e);
@@ -52,57 +49,65 @@ app.post('/api/track', async (req, res) => {
 });
 
 /* --------------------------------------------------------------
-   3️⃣  Helper endpoint for live dashboard (already exists)
+   3️⃣  Dashboard Aggregator (Matches analytics.html expectations)
    -------------------------------------------------------------- */
 app.get('/api/demo-analytics', async (req, res) => {
   try {
-    const { rows } = await pool.query(`
-      WITH daily AS (
-        SELECT
-          date_trunc('day', created_at)::date AS day,
-          COUNT(*)                                   AS total_views,
-          COUNT(DISTINCT uid)                        AS unique_visitors,
-          SUM(CASE WHEN event_type='time_spent' THEN value ELSE 0 END) AS total_seconds
-        FROM visitor_events
-        WHERE created_at >= CURRENT_DATE - INTERVAL '30 days'
-        GROUP BY day
-      )
-      SELECT
-        day,
-        total_views,
-        unique_visitors,
-        total_seconds,
-        ROUND(total_seconds/60.0,1) AS minutes_spent
-      FROM daily
-      ORDER BY day DESC
+    // 1. Core Totals
+    const statsQuery = await pool.query(`
+      SELECT 
+        COUNT(*) FILTER (WHERE event_type = 'page_view') as total_views,
+        COUNT(DISTINCT uid) as unique_visitors,
+        COUNT(*) FILTER (WHERE event_type = 'demo_view') as demo_views,
+        COUNT(*) FILTER (WHERE event_type = 'signup_click') as signup_clicks,
+        COUNT(*) FILTER (WHERE event_type = 'conversion') as signups
+      FROM visitor_events
+      WHERE created_at >= CURRENT_DATE - INTERVAL '30 days'
+    `);
+    const s = statsQuery.rows[0];
+
+    // 2. History (Daily aggregation)
+    const historyQuery = await pool.query(`
+      SELECT 
+        date_trunc('day', created_at)::date AS day,
+        COUNT(*) FILTER (WHERE event_type = 'page_view') as views,
+        COUNT(*) FILTER (WHERE event_type = 'conversion') as signups
+      FROM visitor_events
+      WHERE created_at >= CURRENT_DATE - INTERVAL '30 days'
+      GROUP BY day
+      ORDER BY day ASC
     `);
 
-    // Build history array for charts
-    const history = rows.map(r => ({
-      date: r.day.toISOString().split('T')[0],
-      views: Number(r.total_views),
-      signups: 0 // keep for compatibility - you can add later
-    }));
+    // 3. Recent Activity
+    const activityQuery = await pool.query(`
+      SELECT 
+        event_type as type,
+        page_url as page,
+        created_at as timestamp
+      FROM visitor_events
+      ORDER BY created_at DESC
+      LIMIT 10
+    `);
 
-    // Calculate totals
-    const totals = rows.reduce(
-      (a,b) => ({
-        totalViews: a.total_views + Number(b.total_views),
-        uniqueVisitors: a.unique_visitors + Number(b.unique_visitors),
-        totalMinutes: a.total_minutes + Number(b.minutes_spent)
-      }),
-      { totalViews:0, uniqueVisitors:0, totalMinutes:0 }
-    );
-
-    res.json({ ...totals, history });
+    res.json({
+      totalViews: parseInt(s.total_views) || 0,
+      uniqueVisitors: parseInt(s.unique_visitors) || 0,
+      demoViews: parseInt(s.demo_views) || 0,
+      signupClicks: parseInt(s.signup_clicks) || 0,
+      signups: parseInt(s.signups) || 0,
+      history: historyQuery.rows.map(r => ({
+        date: r.day.toISOString().split('T')[0],
+        views: parseInt(r.views),
+        signups: parseInt(r.signups)
+      })),
+      recentActivity: activityQuery.rows
+    });
   } catch (e) {
     console.error('[ANALYTICS ERROR]', e);
     res.status(500).json({error:'db error'});
   }
 });
 
-/* --------------------------------------------------------------
-   4️⃣  Start server
-   -------------------------------------------------------------- */
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 API listening on ${PORT}`));
+const PORT = process.env.PORT || 3001; // Avoid conflict with main API if local
+app.listen(PORT, () => console.log(`📊 Analytics Engine listening on ${PORT}`));
+

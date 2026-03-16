@@ -242,20 +242,23 @@ const ARISChat = ({ selectedContext, onLog, onCommand, reportData }) => {
       <div className="chat-header">
         <div className="chat-title">
           <div className="title-left">
-            <Brain size={16} className="ai-icon" />
+            <div className="ai-icon-wrapper">
+              <Brain size={20} className="ai-icon" />
+              <div className="ai-pulse" />
+            </div>
             <div>
               <span className="title-text">AI PREDICTIVE ANALYSIS</span>
-              <div className="subtitle">GovCon Intelligence Assistant</div>
+              <div className="subtitle">ARIS Engine Premium v4.2</div>
             </div>
           </div>
           <div className="status-indicators">
-            <div className="status-item">
-              <Activity size={10} className="status-active" />
-              <span>CONTEXT_LOADED</span>
+            <div className="status-item glass">
+              <Activity size={12} className="status-active" />
+              <span>CONTEXT_LIVE</span>
             </div>
-            <div className="status-item">
-              <Target size={10} className="status-active" />
-              <span>AI_READY</span>
+            <div className="status-item glass">
+              <Zap size={12} className="status-active" />
+              <span>QUANTUM_READY</span>
             </div>
           </div>
         </div>
@@ -263,15 +266,17 @@ const ARISChat = ({ selectedContext, onLog, onCommand, reportData }) => {
 
       {/* Predictive Tools Bar */}
       {showPredictiveTools && (
-        <div className="predictive-tools">
+        <div className="predictive-tools shimmer">
           <div className="tools-header">
-            <Sparkles size={12} />
-            <span>QUICK ANALYSIS</span>
+            <div className="header-label">
+              <Sparkles size={14} className="sparkle-icon" />
+              <span>PREDICTIVE WORKBENCH</span>
+            </div>
             <button 
-              className="tools-toggle"
+              className="tools-toggle glass"
               onClick={() => setShowPredictiveTools(false)}
             >
-              −
+              <ChevronRight size={14} style={{ transform: 'rotate(90deg)' }} />
             </button>
           </div>
           <div className="tools-grid">
@@ -280,8 +285,8 @@ const ARISChat = ({ selectedContext, onLog, onCommand, reportData }) => {
               onClick={() => runPredictiveAnalysis('winProbability')}
               disabled={loading}
             >
-              <Target size={14} />
-              <span>Win Probability</span>
+              <Target size={18} />
+              <span>Win Prob.</span>
               <div className="confidence-badge">78%</div>
             </button>
             <button 
@@ -289,8 +294,8 @@ const ARISChat = ({ selectedContext, onLog, onCommand, reportData }) => {
               onClick={() => runPredictiveAnalysis('riskMitigation')}
               disabled={loading}
             >
-              <ShieldCheck size={14} />
-              <span>Risk Mitigation</span>
+              <ShieldCheck size={18} />
+              <span>Risk Audit</span>
               <div className="confidence-badge">85%</div>
             </button>
             <button 
@@ -298,8 +303,8 @@ const ARISChat = ({ selectedContext, onLog, onCommand, reportData }) => {
               onClick={() => runPredictiveAnalysis('pricingOptimization')}
               disabled={loading}
             >
-              <DollarSign size={14} />
-              <span>Pricing Strategy</span>
+              <DollarSign size={18} />
+              <span>Pricing</span>
               <div className="confidence-badge">72%</div>
             </button>
             <button 
@@ -307,8 +312,8 @@ const ARISChat = ({ selectedContext, onLog, onCommand, reportData }) => {
               onClick={() => runPredictiveAnalysis('competitivePositioning')}
               disabled={loading}
             >
-              <BarChart3 size={14} />
-              <span>Competitive Intel</span>
+              <BarChart3 size={18} />
+              <span>Competitors</span>
               <div className="confidence-badge">68%</div>
             </button>
           </div>
@@ -422,13 +427,9 @@ const ARISChat = ({ selectedContext, onLog, onCommand, reportData }) => {
           </div>
         ))}
         {loading && (
-          <div className="loading-indicator">
-            <div className="loading-dots">
-              <div className="dot" />
-              <div className="dot" />
-              <div className="dot" />
-            </div>
-            <span>AI ANALYZING...</span>
+          <div className="loading-indicator shimmer">
+            <Brain size={16} className="ai-spin" />
+            <span>ARIS IS SYNTHESIZING...</span>
           </div>
         )}
         <div ref={bottomRef} />

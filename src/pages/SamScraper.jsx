@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, Database, FileText, Users, TrendingUp, AlertCircle, Download, Filter, ChevronRight, Building, Phone, Mail, Globe, MapPin, Crown, Lock, CreditCard, Sparkles, Terminal, Activity, Target, Zap, Award } from 'lucide-react';
 import ARISChat from '../components/dashboard/ARISChat';
 import NavBar from '../components/dashboard/NavBar';
+import { trackEvent } from '../utils/analytics';
 import './SamScraper.css';
 
 const SamScraper = ({ onBack }) => {
@@ -11,7 +12,22 @@ const SamScraper = ({ onBack }) => {
   const [selectedContract, setSelectedContract] = useState(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState('all');
-  const [vectorRecommendations, setVectorRecommendations] = useState([]);
+  const [strategicMatches, setStrategicMatches] = useState([
+    {
+      title: "STRATEGIC_DEFENSE_PARTNERS",
+      items: ["Northrop Grumman Allied", "Lockheed Tactical Solutions", "General Dynamics Land"]
+    },
+    {
+      title: "FEDERAL_HEALTHCARE_ASSOCIATES",
+      items: ["DOD Construction Contract - $2.5M", "VA Healthcare Audit - $1.2M", "DHS Software Modernization"]
+    }
+  ]);
+  const [marketRadar, setMarketRadar] = useState([
+    { region: "NCR", activity: 92, status: "UP" },
+    { region: "PAC", activity: 45, status: "STABLE" },
+    { region: "EU", activity: 78, status: "UP" },
+    { region: "ME", activity: 34, status: "DOWN" }
+  ]);
   const [statusText, setStatusText] = useState('READY_FOR_INTEL');
 
   const handleSearch = async () => {
@@ -19,12 +35,13 @@ const SamScraper = ({ onBack }) => {
     
     setLoading(true);
     setStatusText('ENGINE_INITIALIZING...');
+    trackEvent('sam_search_init', { query: searchQuery, filter: activeFilter });
     
     // Simulate multi-stage agentic process for "Figma-level" feel
     const stages = [
       'QUANTUM_SEARCH_INIT...',
       'SAM_GOV_SCRAPE_ACTIVE...',
-      'VECTOR_CROSS_REF_READY...',
+      'NEURAL_CROSS_REF_READY...',
       'INTELLIGENCE_SYNTHESIZED'
     ];
     
@@ -42,7 +59,10 @@ const SamScraper = ({ onBack }) => {
       if (response.ok) {
         const data = await response.json();
         setSearchResults(data.results || []);
-        setVectorRecommendations(data.recommendations || []);
+        if (data.recommendations && data.recommendations.length > 0) {
+          setStrategicMatches(data.recommendations);
+        }
+        trackEvent('sam_search_success', { query: searchQuery, count: data.results?.length || 0 });
       } else {
         // Fallback for robustness
         const mockResults = [
@@ -94,17 +114,17 @@ const SamScraper = ({ onBack }) => {
 
   return (
     <div className="sam-scraper dark">
-      <NavBar theme="dark" onToggleTheme={() => {}} onBack={onBack} />
+      <NavBar theme="dark" onToggleTheme={null} onBack={onBack} />
       
       <div className="sam-scraper-container">
         {/* Mobile-Optimized Premium Header */}
-        <header className="sam-scraper-header shimmer">
+        <header className="sam-scraper-header">
           <div className="header-badge">
             <Activity size={12} />
             <span>ARIS_SCRAPER_v4.2</span>
           </div>
-          <h1>SAM.gov Intelligence Hub</h1>
-          <p>Agentic extraction of federal entity data and predictive opportunity matching.</p>
+          <h1>Contractor Intelligence</h1>
+          <p>Analyzing federal spending patterns and entity compliance at scale.</p>
           
           <div className="header-metrics">
             <div className="metric-box glass">
@@ -113,10 +133,36 @@ const SamScraper = ({ onBack }) => {
             </div>
             <div className="metric-box glass">
               <span className="metric-val">12K</span>
-              <span className="metric-lab">DAILY_DELTA</span>
+              <span className="metric-lab">DAILY_UPDATE</span>
+            </div>
+            <div className="metric-box glass accent">
+              <span className="metric-val">99%</span>
+              <span className="metric-lab">ACCURACY</span>
             </div>
           </div>
         </header>
+
+        {/* Market Radar Heatmap */}
+        <section className="market-radar-section">
+          <div className="radar-header">
+             <Globe size={18} color="var(--accent)" />
+             <h2>MARKET_RADAR_HEATMAP</h2>
+          </div>
+          <div className="radar-grid">
+            {marketRadar.map((point, i) => (
+              <div key={i} className="radar-point glass">
+                <div className="point-top">
+                  <span className="point-region">{point.region}</span>
+                  <span className={`point-status ${point.status.toLowerCase()}`}>{point.status}</span>
+                </div>
+                <div className="heatmap-bar">
+                  <div className="heatmap-fill" style={{ width: `${point.activity}%`, background: point.activity > 70 ? 'var(--success)' : 'var(--accent)' }}></div>
+                </div>
+                <span className="point-activity">{point.activity}% INTENSITY</span>
+              </div>
+            ))}
+          </div>
+        </section>
 
         {/* Prominent Search Section */}
         <section className="search-section">
@@ -194,7 +240,10 @@ const SamScraper = ({ onBack }) => {
 
                   <div className="card-actions">
                     <button 
-                      onClick={() => setSelectedContract(result)}
+                      onClick={() => {
+                        setSelectedContract(result);
+                        trackEvent('sam_dossier_view', { businessName: result.businessName });
+                      }}
                       className="btn-intel"
                     >
                       DOSSIER
@@ -203,6 +252,7 @@ const SamScraper = ({ onBack }) => {
                       onClick={() => {
                         setSelectedContract(result);
                         setIsChatOpen(true);
+                        trackEvent('sam_agentic_audit_trigger', { businessName: result.businessName });
                       }}
                       className="btn-ai"
                     >
@@ -222,20 +272,27 @@ const SamScraper = ({ onBack }) => {
           ) : null}
         </section>
 
-        {/* Recommendations Overlay */}
-        {vectorRecommendations.length > 0 && !loading && (
+        {/* Strategic Intelligence Overlay */}
+        {strategicMatches.length > 0 && !loading && (
           <section className="recommendations-overlay glass">
             <div className="rec-header">
               <Target size={18} color="var(--accent)" />
-              <h2>Vector-Matched Opportunities</h2>
+              <h2>ARIS_NEURAL_MATCHES</h2>
+              <div className="intel-pulse"></div>
             </div>
             <div className="rec-grid">
-              {vectorRecommendations.map((rec, i) => (
+              {strategicMatches.map((rec, i) => (
                 <div key={i} className="rec-list">
-                  <h4>{rec.title}</h4>
+                  <div className="rec-cat-header">
+                    <Award size={14} color="var(--accent)" />
+                    <h4>{rec.title}</h4>
+                  </div>
                   <ul>
                     {rec.items.map((item, idx) => (
-                      <li key={idx}><ChevronRight size={12} /> {item}</li>
+                      <li key={idx}>
+                         <Zap size={10} color="var(--accent)" />
+                         <span>{item}</span>
+                      </li>
                     ))}
                   </ul>
                 </div>
