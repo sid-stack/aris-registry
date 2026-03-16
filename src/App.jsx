@@ -97,6 +97,25 @@ export default function App() {
     trackPageView(logicalPath);
   }, [view, authenticated, route, proposal]);
 
+  // ── HISTORY LOCKDOWN (Trap user on site) ──
+  useEffect(() => {
+    // Push state to create a history entry we can intercept
+    window.history.pushState({ view }, "", window.location.pathname);
+
+    const handlePopState = (event) => {
+      // Re-push state immediately to maintain the trap
+      window.history.pushState({ view }, "", window.location.pathname);
+      
+      if (view !== "landing") {
+        setView("landing");
+      }
+      // If already on landing, the pushState above keeps us there
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [view]);
+
   let content = null;
   if (view === "templates") {
     content = <Templates />;
