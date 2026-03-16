@@ -1298,7 +1298,12 @@ app.post("/api/analyze-link", analyzeLinkLimiter, asyncHandler(async (req, res) 
     try {
       const samRes = await fetch(
         `https://api.sam.gov/opportunities/v2/search?noticeid=${noticeId}&limit=1&api_key=${SAM_API_KEY}`,
-        { headers: { Accept: "application/json" } }
+        { 
+          headers: { 
+            "Accept": "application/json",
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+          } 
+        }
       );
 
       if (!samRes.ok) {
