@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Database, FileText, Users, TrendingUp, AlertCircle, Download, Filter, ChevronRight, Building, Phone, Mail, Globe, MapPin, Crown, Lock, CreditCard, Sparkles, Terminal, Activity, Target, Zap, Award } from 'lucide-react';
+import { Search, Database, FileText, Users, TrendingUp, AlertCircle, Download, Filter, ChevronRight, Building, Phone, Mail, Globe, MapPin, Crown, Lock, CreditCard, Sparkles, Terminal, Activity, Target, Zap, Award, Brain } from 'lucide-react';
 import ARISChat from '../components/dashboard/ARISChat';
 import NavBar from '../components/dashboard/NavBar';
 import { trackEvent } from '../utils/analytics';
@@ -14,14 +14,29 @@ const SamScraper = ({ onBack }) => {
   const [activeFilter, setActiveFilter] = useState('all');
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [actionLog, setActionLog] = useState('');
+  
+  // ARIS Gravity Well - Prevent leaving the site
+  useEffect(() => {
+    const handlePopState = () => {
+      window.history.pushState(null, document.title, window.location.href);
+    };
+    window.history.pushState(null, document.title, window.location.href);
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   const [strategicMatches, setStrategicMatches] = useState([
     {
-      title: "STRATEGIC_DEFENSE_PARTNERS",
-      items: ["Northrop Grumman Allied", "Lockheed Tactical Solutions", "General Dynamics Land"]
+      title: "HIGH_PROBABILITY_ACQUISITIONS",
+      items: ["Northrop Tactical Systems", "Raytheon Mission Systems", "General Dynamics Land"]
     },
     {
-      title: "FEDERAL_HEALTHCARE_ASSOCIATES",
-      items: ["DOD Construction Contract - $2.5M", "VA Healthcare Audit - $1.2M", "DHS Software Modernization"]
+      title: "TARGETED_CONTRACT_OPPORTUNITIES",
+      items: ["DOD Cyber-Subsystem - $45M", "USAF Cloud Migration - $12M", "DHS Risk Intelligence"]
+    },
+    {
+      title: "COMPETITIVE_LANDSCAPE_ALIASES",
+      items: ["Boeing Defense Unit", "L3Harris Technologies", "Leidos Strategy Group"]
     }
   ]);
   const [marketRadar, setMarketRadar] = useState([
@@ -36,15 +51,14 @@ const SamScraper = ({ onBack }) => {
     if (!searchQuery.trim()) return;
     
     setLoading(true);
-    setStatusText('ENGINE_INITIALIZING...');
+    setStatusText('INITIALIZING_QUANTUM_BRIDGE...');
     trackEvent('sam_search_init', { query: searchQuery, filter: activeFilter });
     
-    // Simulate multi-stage agentic process for "Figma-level" feel
     const stages = [
-      'QUANTUM_SEARCH_INIT...',
-      'SAM_GOV_SCRAPE_ACTIVE...',
-      'NEURAL_CROSS_REF_READY...',
-      'INTELLIGENCE_SYNTHESIZED'
+      'SCANNING_FEDERAL_REGISTRIES...',
+      'NEURAL_LAYER_CROSS_REF...',
+      'ENCRYPTING_QUERY_STREAM...',
+      'INTELLIGENCE_LOCKED'
     ];
     
     stages.forEach((stage, i) => {
@@ -305,12 +319,12 @@ const SamScraper = ({ onBack }) => {
           ) : null}
         </section>
 
-        {/* Strategic Intelligence Overlay */}
+        {/* Strategic Match Clusters */}
         {strategicMatches.length > 0 && !loading && (
           <section className="recommendations-overlay glass">
             <div className="rec-header">
               <Target size={18} color="var(--accent)" />
-              <h2>ARIS_NEURAL_MATCHES</h2>
+              <h2>ARIS_MATCH_CLUSTERS</h2>
               <div className="intel-pulse"></div>
             </div>
             <div className="rec-grid">
