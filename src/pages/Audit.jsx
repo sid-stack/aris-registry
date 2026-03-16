@@ -18,7 +18,12 @@ import {
   Lock,
   Search,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  DollarSign,
+  MessageCircle,
+  Clock,
+  Wifi,
+  WifiOff
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -39,7 +44,330 @@ const PIPELINE_LOGS = [
   "AUDIT_COMPLETE_PIPELINE_IDLE"
 ];
 
-// ── COMPONENTS ──
+// ── SOVEREIGN INTELLIGENCE WORKBENCH COMPONENTS ──
+
+const LogTerminal = ({ pipelineStatus }) => {
+  const [logs, setLogs] = useState([
+    { type: 'io', msg: '[IO]: INITIALIZING_MERCURY_PIPELINE' },
+    { type: 'sec', msg: '[SEC]: ESTABLISHING_ZERO_KNOWLEDGE_VAULT' },
+    { type: 'sys', msg: '[SYS]: LOADING_FEDERAL_COMPLIANCE_MATRIX' }
+  ]);
+  
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const newLogs = [
+        { type: 'io', msg: '[IO]: SHREDDING_SECTION_M' },
+        { type: 'sec', msg: '[SEC]: ENCRYPTING_PII_VAULT' },
+        { type: 'sys', msg: '[SYS]: MAPPING_FAR_CLAUSES' },
+        { type: 'risk', msg: '[RISK]: DETECTING_DQ_TRIGGERS' },
+        { type: 'intel', msg: '[INTEL]: EXTRACTING_WIN_THEMES' }
+      ];
+      
+      setLogs(prev => {
+        const randomLog = newLogs[Math.floor(Math.random() * newLogs.length)];
+        return [...prev.slice(-8), randomLog];
+      });
+    }, 2000);
+    
+    return () => clearInterval(interval);
+  }, []);
+  
+  return (
+    <div className="log-terminal">
+      <div className="terminal-header">
+        <span className="terminal-title">AGENTIC PURGE TERMINAL</span>
+        <div className="terminal-indicators">
+          <div className="indicator active"></div>
+          <div className="indicator"></div>
+          <div className="indicator"></div>
+        </div>
+      </div>
+      <div className="terminal-body">
+        {logs.map((log, i) => (
+          <div key={i} className={`terminal-log ${log.type}`}>
+            {log.msg}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const DisqualificationRadar = ({ hazards = [] }) => {
+  const radarPoints = hazards.length > 0 ? hazards : [
+    { angle: 0, risk: 93, label: 'L.3.2' },
+    { angle: 60, risk: 87, label: 'M.4' },
+    { angle: 120, risk: 78, label: 'FAR 52' },
+    { angle: 180, risk: 65, label: 'NIST 800' },
+    { angle: 240, risk: 82, label: 'IL4 ATO' },
+    { angle: 300, risk: 71, label: 'DISA JSP' }
+  ];
+  
+  return (
+    <div className="disqualification-radar">
+      <div className="radar-title">DISQUALIFICATION RADAR</div>
+      <div className="radar-container">
+        <svg className="radar-svg" viewBox="0 0 200 200">
+          {/* Radar circles */}
+          {[25, 50, 75, 100].map((radius, i) => (
+            <circle
+              key={i}
+              cx="100"
+              cy="100"
+              r={radius}
+              fill="none"
+              stroke="rgba(0, 255, 194, 0.1)"
+              strokeWidth="1"
+            />
+          ))}
+          
+          {/* Radar lines */}
+          {[0, 60, 120, 180, 240, 300].map((angle, i) => {
+            const radian = (angle * Math.PI) / 180;
+            const x2 = 100 + 100 * Math.cos(radian);
+            const y2 = 100 + 100 * Math.sin(radian);
+            return (
+              <line
+                key={i}
+                x1="100"
+                y1="100"
+                x2={x2}
+                y2={y2}
+                stroke="rgba(0, 255, 194, 0.1)"
+                strokeWidth="1"
+              />
+            );
+          })}
+          
+          {/* Hazard points */}
+          {radarPoints.map((point, i) => {
+            const radian = (point.angle * Math.PI) / 180;
+            const distance = (point.risk / 100) * 90;
+            const x = 100 + distance * Math.cos(radian);
+            const y = 100 + distance * Math.sin(radian);
+            const isHighRisk = point.risk > 80;
+            
+            return (
+              <g key={i}>
+                <circle
+                  cx={x}
+                  cy={y}
+                  r="4"
+                  fill={isHighRisk ? '#FF3E3E' : '#00FFC2'}
+                  className={isHighRisk ? 'pulse-hazard' : ''}
+                />
+                <text
+                  x={x}
+                  y={y - 8}
+                  textAnchor="middle"
+                  fill="white"
+                  fontSize="8"
+                  fontFamily="JetBrains Mono"
+                >
+                  {point.label}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+    </div>
+  );
+};
+
+const RevenueProtection = ({ totalValue = 45000000, winProbability = 0.13 }) => {
+  const weightedValue = Math.round(totalValue * winProbability);
+  
+  return (
+    <div className="revenue-protection">
+      <div className="protection-header">
+        <ShieldCheck size={14} />
+        <span>REVENUE PROTECTION</span>
+      </div>
+      <div className="protection-metrics">
+        <div className="metric-row">
+          <span className="metric-label">Total Value</span>
+          <span className="metric-value">${totalValue.toLocaleString()}</span>
+        </div>
+        <div className="metric-row">
+          <span className="metric-label">Win Probability</span>
+          <span className="metric-value">{(winProbability * 100).toFixed(0)}%</span>
+        </div>
+        <div className="metric-divider"></div>
+        <div className="weighted-value">
+          <span className="weighted-label">Weighted Value</span>
+          <span className="weighted-amount mercury-teal-glow">
+            ${weightedValue.toLocaleString()}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const SecureComplianceShield = ({ onUnlock }) => {
+  const [isHovered, setIsHovered] = useState(false);
+  
+  return (
+    <div className="secure-shield-container">
+      <button 
+        className="secure-compliance-shield pulse-bridge"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        onClick={onUnlock}
+      >
+        <div className="shield-icon">
+          <ShieldCheck size={32} />
+        </div>
+        <div className="shield-text">
+          <div className="shield-title">Secure Compliance Shield</div>
+          {isHovered && (
+            <div className="shield-tooltip">
+              Unlock 30-Page Remediation Matrix — $499
+            </div>
+          )}
+        </div>
+      </button>
+    </div>
+  );
+};
+
+const StatelessProgressTracker = ({ isActive, sessionTime }) => {
+  const [timeLeft, setTimeLeft] = useState(sessionTime);
+  
+  useEffect(() => {
+    if (!isActive) return;
+    const timer = setInterval(() => {
+      setTimeLeft(prev => Math.max(0, prev - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [isActive]);
+  
+  const minutes = Math.floor(timeLeft / 60);
+  const seconds = timeLeft % 60;
+  
+  return (
+    <div className="stateless-tracker">
+      <div className="encryption-status">
+        <Wifi className="pulse-bridge" size={12} color="var(--accent)" />
+        <span>Zero-Knowledge Encryption: <span className="flicker">ACTIVE</span></span>
+      </div>
+      <div className="session-purge">
+        <Clock size={12} />
+        <span>Session Purge: {minutes}:{seconds.toString().padStart(2, '0')}</span>
+      </div>
+    </div>
+  );
+};
+
+const LiveFeedSidebar = ({ logs, isActive }) => {
+  const pipelineStages = [
+    "SCANNING_SECTION_L",
+    "MAPPING_FAR_CLAUSES", 
+    "IDENTIFYING_DQ_TRIGGERS",
+    "CALCULATING_RISK_VECTOR",
+    "GENERATING_REMEDIATION"
+  ];
+  
+  return (
+    <div className="live-feed-sidebar">
+      <div className="panel-header">
+        <Terminal size={14} /> Real-time Pipeline
+      </div>
+      <div className="pipeline-terminal live">
+        {logs.map((log, i) => (
+          <div key={i} className={`terminal-line ${log.type}`}>
+            <span className="timestamp">[{new Date().toLocaleTimeString('en-GB', { hour12: false })}]</span> {log.msg}
+          </div>
+        ))}
+        {isActive && (
+          <>
+            {pipelineStages.map((stage, i) => (
+              <div key={i} className="terminal-line info pulse-bridge">
+                {'>'} {stage}...
+              </div>
+            ))}
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const DisqualificationMatrix = ({ compliance = [] }) => {
+  const criticalHazards = compliance.filter(item => item.risk > 80) || [
+    { category: "ATO Documentation", risk: 93, description: "IL4 pathway not documented" },
+    { category: "Section L Compliance", risk: 87, description: "Missing technical volume requirements" },
+    { category: "FAR 52.204-21", risk: 78, description: "Incomplete security safeguards" }
+  ];
+  
+  return (
+    <div className="disqualification-matrix">
+      <div className="panel-header">
+        <AlertTriangle size={14} /> Critical Hazards
+      </div>
+      <div className="hazards-grid">
+        {criticalHazards.map((hazard, i) => (
+          <div 
+            key={i} 
+            className={`hazard-card ${hazard.risk > 80 ? 'critical-glow' : ''}`}
+            style={{ borderLeft: `3px solid ${hazard.risk > 80 ? 'var(--risk-high)' : 'var(--risk-medium)'}` }}
+          >
+            <div className="hazard-score">
+              <span className="score-value">{hazard.risk}</span>
+              <span className="score-label">RISK</span>
+            </div>
+            <div className="hazard-details">
+              <div className="hazard-category">{hazard.category}</div>
+              <div className="hazard-description">{hazard.description}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const RevenueProjection = ({ estimatedValue = 50000000, riskScore = 87 }) => {
+  const valueAtRisk = Math.round(estimatedValue * (riskScore / 100));
+  
+  return (
+    <div className="revenue-projection">
+      <div className="projection-header">
+        <DollarSign size={14} /> Contract Value at Risk
+      </div>
+      <div className="projection-amount">
+        <span className="currency">$</span>
+        <span className="amount">{valueAtRisk.toLocaleString()}</span>
+      </div>
+      <div className="projection-subtitle">
+        Based on {riskScore}/100 risk score
+      </div>
+    </div>
+  );
+};
+
+const ConversionLayer = ({ onPurchase }) => {
+  return (
+    <div className="conversion-layer">
+      <button 
+        className="secure-matrix-btn pulse-bridge"
+        onClick={onPurchase}
+      >
+        <Lock size={16} />
+        <span>Secure Full Compliance Matrix ($499)</span>
+      </button>
+      
+      <div className="human-chat-bubble">
+        <MessageCircle size={14} className="chat-icon" />
+        <div className="chat-content">
+          <strong>Mercury 2 has identified 3 disqualifiers.</strong><br/>
+          Speak to an Auditor.
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const PipelineTerminal = ({ logs, active }) => {
   const terminalRef = useRef(null);
@@ -83,11 +411,18 @@ export default function Audit({ onBack }) {
   const [report, setReport] = useState(null);
   const [logs, setLogs] = useState([{ msg: "ARIS_BOOT_SEQUENCE_COMPLETE", type: "success" }]);
   const [isVaultActive, setIsVaultActive] = useState(true);
+  const [sessionTime] = useState(900); // 15 minutes session
   
   const esRef = useRef(null);
 
   const addLog = (msg, type = "info") => {
     setLogs(prev => [...prev.slice(-15), { msg, type }]);
+  };
+
+  const handlePurchase = () => {
+    // Redirect to Stripe checkout
+    window.open('https://buy.stripe.com/your-stripe-link-here', '_blank');
+    trackEvent('purchase_initiated', { value: 499, currency: 'USD' });
   };
 
   const startAudit = async (url) => {
@@ -149,17 +484,16 @@ export default function Audit({ onBack }) {
   };
 
   return (
-    <div className="audit-page-container">
+    <div className="audit-page-container sovereign-intelligence-workbench">
       <NavBar theme="dark" onToggleTheme={null} onBack={onBack} />
-
+      
       {!result && !isLoading ? (
         <div className="ingestion-view">
           <div className="ingestion-hero">
             <Activity className="cyber-glow" size={40} color="var(--accent)" />
-            <h1 style={{ fontSize: '2.5rem', fontWeight: 900, marginTop: '24px' }}>Sovereign Intelligence Terminal</h1>
+            <h1 style={{ fontSize: '2.5rem', fontWeight: 900, marginTop: '24px' }}>Sovereign Intelligence Workbench</h1>
             <p style={{ color: 'var(--text-secondary)', marginTop: '16px' }}>
-              Stateless execution of federal solicitation audits. <br/>
-              Zero persistence. Zero knowledge. Absolute precision.
+              Mercury 2 Engine • Zero-Knowledge Analysis • Palantir-Grade Intelligence
             </p>
             
             <div className="cyber-input-wrapper">
@@ -174,115 +508,110 @@ export default function Audit({ onBack }) {
             </div>
             
             <button className="cyber-btn" onClick={() => startAudit()}>
-              INITIALIZE AGENTIC PIPELINE
+              DEPLOY MERCURY 2 INTELLIGENCE
             </button>
           </div>
         </div>
       ) : (
-        <div className="workbench-layout">
-          {/* Left: Mission Context */}
-          <aside className="workbench-panel workbench-left">
-            <div className="panel-header">
-              <Target size={14} /> Mission_Context
-            </div>
-            <div className="panel-content">
-              <div className="mission-context">
-                <div className="context-block">
-                  <label>GOV_AGENCY</label>
-                  <p>{result?.agency || (isLoading ? "PARSING_GATEWAY..." : "WAITING...")}</p>
+        <div className="sovereign-layout">
+          {/* Left: Log Terminal */}
+          <aside className="sovereign-panel sovereign-left">
+            <LogTerminal pipelineStatus={result?.status} />
+            
+            {/* Mission Context */}
+            <div className="mission-context-compact">
+              <div className="panel-header">
+                <Target size={14} /> Mission Context
+              </div>
+              <div className="context-compact">
+                <div className="context-item">
+                  <label>AGENCY</label>
+                  <p>{result?.agency || "PARSING..."}</p>
                 </div>
-                <div className="context-block">
-                  <label>SOLICITATION_ID</label>
+                <div className="context-item">
+                  <label>SOLICITATION</label>
                   <p>{result?.id || "N/A"}</p>
                 </div>
-                <div className="context-block">
-                  <label>BRIDGE_LINK_STATUS</label>
-                  <p className="flicker" style={{ color: 'var(--accent)' }}>{isLoading ? "ENCRYPTED_STREAM" : result ? "STATELESS_IDLE" : "DISCONNECTED"}</p>
-                </div>
-                
-                <div style={{ marginTop: 'auto' }}>
-                  <label>COMPLIANCE_HEATMAP</label>
-                  <ComplianceHeatmap />
+                <div className="context-item">
+                  <label>STATUS</label>
+                  <p className="flicker" style={{ color: 'var(--accent)' }}>
+                    {isLoading ? "ENCRYPTED_STREAM" : "STATELESS_IDLE"}
+                  </p>
                 </div>
               </div>
             </div>
           </aside>
 
-          {/* Center: Risk Audit */}
-          <main className="workbench-panel workbench-center">
+          {/* Center: Main Intelligence Workbench */}
+          <main className="sovereign-panel sovereign-center">
             <div className="panel-header">
-              <ShieldCheck size={14} /> Intelligence_Workbench
+              <ShieldCheck size={14} /> Intelligence Workbench
             </div>
             <div className="panel-content">
-              <div className="audit-viewport">
-                {isLoading ? (
-                  <div style={{ padding: '40px', textAlign: 'center' }}>
-                    <div className="spinner-outer" style={{ margin: '0 auto 40px' }} />
-                    <h2 style={{ fontSize: '20px', fontWeight: 800 }}>PIPELINE_ENGAGED</h2>
-                    <PipelineTerminal logs={logs} active={isLoading} />
+              {isLoading ? (
+                <div style={{ padding: '40px', textAlign: 'center' }}>
+                  <div className="spinner-outer" style={{ margin: '0 auto 40px' }} />
+                  <h2 style={{ fontSize: '20px', fontWeight: 800 }}>MERCURY 2 INTELLIGENCE ACTIVE</h2>
+                  <PipelineTerminal logs={logs} active={isLoading} />
+                </div>
+              ) : (
+                <>
+                  {/* Disqualification Radar */}
+                  <DisqualificationRadar hazards={result?.compliance} />
+                  
+                  {/* Revenue Protection */}
+                  <RevenueProtection totalValue={45000000} winProbability={0.13} />
+                  
+                  {/* Critical Alert */}
+                  <div className="critical-alert">
+                    <AlertTriangle size={24} color="#FF3E3E" />
+                    <div className="alert-content">
+                      <h4>IL4 ATO CITATION MISSING (DQ RISK: 93%)</h4>
+                      <p>DHA/DISA JSP reciprocity agreement not cited in Section L.3.2. Technical Approach score will be disqualified regardless of AI capabilities.</p>
+                    </div>
                   </div>
-                ) : (
-                  <>
-                    <div className="hazard-alert pulse-bridge">
-                      <AlertTriangle size={24} color="var(--risk-high)" />
-                      <div className="hazard-content">
-                        <h4>DISQUALIFICATION_HAZARD_DETECTED</h4>
-                        <p style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                           Requirement L.4.2 mismatch with NIST 800-171 Rev 3 controls. 
-                           Non-responsive risk: HIGH.
-                        </p>
+
+                  {/* Secure Compliance Shield */}
+                  <SecureComplianceShield onUnlock={handlePurchase} />
+                  
+                  {/* Report Section */}
+                  {report?.proposal_draft && (
+                    <div className="report-section">
+                      <div className="report-header">
+                        <Terminal size={14} /> Remediation Script
+                      </div>
+                      <div className="report-content">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{report.proposal_draft}</ReactMarkdown>
                       </div>
                     </div>
-
-                    <div className="audit-grid">
-                      <div className="audit-info-card">
-                        <div className="audit-info-label">DEADLINE</div>
-                        <div className="audit-info-value">{result?.compliance?.deadline_date?.value || "2024-04-15"}</div>
-                      </div>
-                      <div className="audit-info-card" style={{ borderLeft: '2px solid var(--accent)' }}>
-                        <div className="audit-info-label">RISK_SCORE</div>
-                        <div className="audit-info-value flicker">87/100</div>
-                      </div>
-                    </div>
-
-                    {report?.proposal_draft && (
-                      <div className="audit-memo-section">
-                         <div className="audit-memo-header">
-                            <Terminal size={14} /> REMEDIATION_SCRIPT
-                         </div>
-                         <div className="audit-markdown-content">
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{report.proposal_draft}</ReactMarkdown>
-                         </div>
-                      </div>
-                    )}
-                    
-                    <button className="cyber-btn" style={{ background: 'transparent', border: '1px solid var(--border)', color: '#fff', marginTop: '32px' }} onClick={onBack}>
-                      TERMINATE_SESSION
-                    </button>
-                  </>
-                )}
-              </div>
+                  )}
+                  
+                  <button className="cyber-btn terminate-btn" onClick={onBack}>
+                    TERMINATE SESSION
+                  </button>
+                </>
+              )}
             </div>
           </main>
 
           {/* Right: AI Assistant */}
-          <aside className="workbench-panel workbench-right">
-             <div className="panel-header">
-                <Cpu size={14} /> Agentic_Pipeline
-             </div>
-             <div style={{ flex: 1, overflow: 'hidden' }}>
-                <ARISChat reportData={result} />
-             </div>
+          <aside className="sovereign-panel sovereign-right">
+            <div className="panel-header">
+              <Cpu size={14} /> Mercury 2 Engine
+            </div>
+            <div style={{ flex: 1, overflow: 'hidden' }}>
+              <ARISChat reportData={result} />
+            </div>
           </aside>
         </div>
       )}
 
-      {/* Stateless Vault Status */}
+      {/* Vault Status Bar */}
       <div className="vault-status-bar">
         <div className="vault-glow flash" />
-        <span>STATELESS_VAULT: ENCRYPTED</span>
+        <span>SOVEREIGN_VAULT: ENCRYPTED</span>
         <span style={{ opacity: 0.3 }}>|</span>
-        <span style={{ color: 'var(--text-secondary)' }}>ZERO_KNOWLEDGE_PROTOCOL_ACTIVE</span>
+        <span style={{ color: 'var(--text-secondary)' }}>MERCURY_2_PROTOCOL_ACTIVE</span>
       </div>
     </div>
   );

@@ -3,6 +3,7 @@ import { Search, Filter, Bell, Settings, User, LogOut, Cpu, Database, Shield, Ac
 
 const QuickActions = ({ theme }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [notifications, setNotifications] = useState(3);
 
   const actions = [
@@ -11,6 +12,8 @@ const QuickActions = ({ theme }) => {
     { icon: Shield, label: 'Security Audit', color: 'var(--risk-medium)' },
     { icon: Activity, label: 'Live Metrics', color: '#8b5cf6' } // Keep purple for distinction
   ];
+
+  const searchFilters = ['All', 'Solicitations', 'Risks', 'Requirements', 'Compliance'];
 
   return (
     <div className="quick-actions">
@@ -22,8 +25,15 @@ const QuickActions = ({ theme }) => {
           placeholder="Search solicitations, risks, requirements..."
           className="search-input"
         />
-        <button className="search-filter">
+        <button className="search-filter" onClick={() => setIsFilterOpen(!isFilterOpen)}>
           <Filter size={14} />
+          {isFilterOpen && (
+            <div className="filter-dropdown">
+              {searchFilters.map(filter => (
+                <button key={filter} className="filter-option">{filter}</button>
+              ))}
+            </div>
+          )}
         </button>
       </div>
 
