@@ -210,7 +210,7 @@ const SamRep = ({ onBack }) => {
       data-theme={theme}
       style={{ backgroundColor: 'var(--background)', color: 'var(--text-primary)', height: '100vh', width: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
     >
-      <NavBar theme={theme} onToggleTheme={toggleTheme} onBack={onBack} />
+      <NavBar theme="dark" onToggleTheme={null} onBack={onBack} />
 
       {/* ── Studio Toolbar ── */}
       <div className="sam-rep-masthead" style={{ borderBottom: '1px solid var(--border)', background: 'var(--nav-bg)', minHeight: '52px', height: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>

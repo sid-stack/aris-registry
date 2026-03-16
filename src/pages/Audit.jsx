@@ -148,7 +148,7 @@ export default function Audit({ onBack }) {
 
   return (
     <div className="audit-page-container">
-      <NavBar theme="dark" onToggleTheme={toggleTheme} onBack={onBack} />
+      <NavBar theme="dark" onToggleTheme={null} onBack={onBack} />
 
       <div className="audit-workspace">
         
