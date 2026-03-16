@@ -6,8 +6,8 @@ export default function Login({ onLogin }) {
   const [shake, setShake] = useState(false);
 
   function handleSubmit() {
-    const accessKey = import.meta.env.VITE_ACCESS_KEY || "aris369";
-    if (password === accessKey) {
+    const accessKey = import.meta.env.VITE_ACCESS_KEY;
+    if (password === accessKey || (import.meta.env.DEV && password === "aris369")) {
       onLogin();
       setError("");
     } else {
