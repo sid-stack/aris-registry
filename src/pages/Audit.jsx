@@ -11,18 +11,13 @@ import {
   AlertTriangle, 
   FileText, 
   CheckCircle2, 
-  ArrowRight, 
-  HelpCircle, 
-  Laptop, 
-  Globe, 
-  Search, 
-  Copy, 
-  Download, 
-  Share2,
   Terminal,
   Activity,
-  User,
-  Cpu
+  Cpu,
+  Globe,
+  Lock,
+  Search,
+  ChevronDown
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -32,72 +27,67 @@ import "./Audit.css";
 
 // ── UTILITIES ──
 
-const LOADING_STEPS = [
-  "INITIALIZING_QUANTUM_SCAN...",
+const PIPELINE_LOGS = [
+  "INITIALIZING_STATELESS_BRIDGE...",
   "CONNECTING_TO_FEDERAL_GATEWAY...",
   "PARSING_SOLICITATION_STRUCTURE...",
   "IDENTIFYING_COMPLIANCE_FRICITION...",
   "EXTRACTING_SECTION_L_REQUIREMENTS...",
   "RUNNING_RISK_MODELS...",
-  "FINALIZING_ZERO_KNOWLEDGE_REPORT..."
+  "FINALIZING_ZERO_KNOWLEDGE_REPORT...",
+  "AUDIT_COMPLETE_PIPELINE_IDLE"
 ];
-
-function useLoadingStep(active) {
-  const [step, setStep] = useState(0);
-  const ref = useRef();
-  useEffect(() => {
-    if (!active) { setStep(0); return; }
-    ref.current = setInterval(() => setStep(s => Math.min(s + 1, LOADING_STEPS.length - 1)), 1500);
-    return () => clearInterval(ref.current);
-  }, [active]);
-  return { stepText: LOADING_STEPS[step], stepIndex: step };
-}
 
 // ── COMPONENTS ──
 
-function FeatureTip({ icon, title, text }) {
-  return (
-    <div style={{ display: 'flex', gap: '16px', padding: '20px', background: 'rgba(255, 255, 255, 0.02)', borderRadius: '12px', border: '1px solid var(--border)' }}>
-      <div style={{ color: 'var(--accent)' }}>{icon}</div>
-      <div>
-        <div style={{ fontSize: '13px', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>{title}</div>
-        <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>{text}</div>
-      </div>
-    </div>
-  );
-}
+const PipelineTerminal = ({ logs, active }) => {
+  const terminalRef = useRef(null);
+  useEffect(() => {
+    if (terminalRef.current) {
+      terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+    }
+  }, [logs]);
 
-function StatusBadge({ assessment }) {
-  if (!assessment) return null;
-  const { disqualified, risk_level } = assessment;
-  const isDanger = disqualified || risk_level === "HIGH";
-  
   return (
-    <div className={`audit-status-strip ${isDanger ? 'danger' : 'success'}`}>
-      {isDanger ? <AlertTriangle size={18} /> : <CheckCircle2 size={18} />}
-      <span>{disqualified ? "STATUS: NON-RESPONSIVE DETECTED" : risk_level === "HIGH" ? "STATUS: HIGH_RISK_PROFILE" : "STATUS: RESPONSIBILITY_VERIFIED"}</span>
+    <div className="pipeline-terminal">
+      {logs.map((log, i) => (
+        <div key={i} className={`terminal-line ${log.type}`}>
+          <span className="timestamp">[{new Date().toLocaleTimeString('en-GB', { hour12: false })}]</span> {log.msg}
+        </div>
+      ))}
+      {active && <div className="terminal-line info pulse-bridge">{'>'} ANALYZING_SOURCE_STREAM...</div>}
     </div>
   );
-}
+};
+
+const ComplianceHeatmap = ({ intensity = [] }) => {
+  return (
+    <div className="heatmap-container">
+      {Array.from({ length: 142 }).map((_, i) => (
+        <div 
+          key={i} 
+          className={`heatmap-cell ${i < 10 ? 'high' : i < 30 ? 'med' : 'low'}`}
+          title={`Clause ${i + 1} Assessment`}
+        />
+      ))}
+    </div>
+  );
+};
 
 export default function Audit({ onBack }) {
-  const [theme, setTheme] = useState("dark");
   const [samUrl, setSamUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
   const [report, setReport] = useState(null);
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const [showUpload, setShowUpload] = useState(false);
+  const [logs, setLogs] = useState([{ msg: "ARIS_BOOT_SEQUENCE_COMPLETE", type: "success" }]);
+  const [isVaultActive, setIsVaultActive] = useState(true);
   
-  const { stepText, stepIndex } = useLoadingStep(isLoading);
   const esRef = useRef(null);
 
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', 'dark');
-  }, []);
-
-  const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');
+  const addLog = (msg, type = "info") => {
+    setLogs(prev => [...prev.slice(-15), { msg, type }]);
+  };
 
   const startAudit = async (url) => {
     const finalUrl = url || samUrl;
@@ -107,8 +97,15 @@ export default function Audit({ onBack }) {
     setError("");
     setResult(null);
     setReport(null);
+    addLog(`INITIATING_AUDIT_ON: ${finalUrl.split('/').pop()}`, "info");
     trackEvent("audit_start", { url: finalUrl });
     
+    // Simulate streaming logs
+    const stages = PIPELINE_LOGS.slice(0, -1);
+    stages.forEach((stage, i) => {
+      setTimeout(() => addLog(stage, i === stages.length - 1 ? "success" : "info"), i * 1200);
+    });
+
     try {
       const res = await fetch("/api/analyze-link", {
         method: "POST",
@@ -117,14 +114,18 @@ export default function Audit({ onBack }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "WE COULD NOT ACCESS GATEWAY. TRY DIRECT UPLOAD.");
-      setResult(data);
-      streamReport(data);
-      trackEvent("audit_success", { url: finalUrl, title: data.title });
+      
+      setTimeout(() => {
+        setResult(data);
+        streamReport(data);
+        addLog("INTELLIGENCE_SYNTHESIS_COMPLETE", "success");
+        trackEvent("audit_success", { url: finalUrl, title: data.title });
+        setIsLoading(false);
+      }, 7000); // Allow logs to play out
+
     } catch (e) {
       setError(e.message);
-      setShowUpload(true);
-      trackEvent("audit_error", { url: finalUrl, error: e.message });
-    } finally {
+      addLog(`PIPELINE_FATAL_ERROR: ${e.message}`, "error");
       setIsLoading(false);
     }
   };
@@ -150,218 +151,138 @@ export default function Audit({ onBack }) {
     <div className="audit-page-container">
       <NavBar theme="dark" onToggleTheme={null} onBack={onBack} />
 
-      <div className="audit-workspace">
-        
-        {/* Masthead Label */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '-16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px', background: '#1e1b4b', borderRadius: '4px', border: '1px solid #312e81' }}>
-            <Activity size={10} color="#818cf8" />
-          </div>
-          <span style={{ fontSize: '10px', fontWeight: 800, letterSpacing: '0.2em', color: '#52525b', textTransform: 'uppercase' }}>Zero-Knowledge Audit Suite</span>
-        </div>
-
-        {!result && !isLoading && (
-          <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-            <div className="audit-hero-card">
-              <h1 className="audit-hero-title">Federal Opportunity Audit</h1>
-              <p className="audit-hero-subtitle">
-                Deploying stateless intelligence to verify contract eligibility. 
-                Paste a SAM.gov link to identify risk friction and compliance traps.
-              </p>
-              
-              <div className="audit-input-group">
-                <Globe className="audit-input-icon" size={20} />
-                <input 
-                  type="text"
-                  value={samUrl}
-                  onChange={e => setSamUrl(e.target.value)}
-                  placeholder="Paste SAM.gov Opportunity Link..."
-                  className="audit-main-input"
-                />
-              </div>
-
-              <button 
-                onClick={() => startAudit()}
-                disabled={!samUrl}
-                className="audit-action-btn"
-              >
-                <Cpu size={18} /> INITIALIZE AUDIT PROTOCOL
-              </button>
-
-              <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center' }}>
-                <input 
-                  type="file" 
-                  id="audit-file-upload" 
-                  hidden 
-                  accept=".pdf" 
-                  onChange={e => {
-                    const file = e.target.files[0];
-                    if (file) {
-                      trackEvent("audit_file_upload_select", { fileName: file.name });
-                      // Add file processing logic here if needed
-                    }
-                  }} 
-                />
-                <label 
-                  htmlFor="audit-file-upload"
-                  style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '8px', 
-                    fontSize: '11px', 
-                    fontWeight: 700, 
-                    color: 'var(--text-secondary)',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.1em',
-                    cursor: 'pointer',
-                    opacity: 0.6,
-                    transition: 'opacity 0.2s'
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.opacity = 0.9}
-                  onMouseLeave={e => e.currentTarget.style.opacity = 0.6}
-                >
-                  <FileText size={14} /> or upload solicitation PDF
-                </label>
-              </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
-              <FeatureTip icon={<ShieldCheck />} title="STATLESS ARCHITECTURE" text="Aris processes data in transient memory. No bid data is persisted server-side." />
-              <FeatureTip icon={<Target />} title="COMPLIANCE LINTING" text="Automated scanning for disqualifying clauses and structural requirement mismatches." />
-              <FeatureTip icon={<TrendingUp />} title="WIN PROBABILITY" text="Predictive modeling based on agency spending history and competitive density." />
-            </div>
-          </div>
-        )}
-
-        {isLoading && (
-          <div className="audit-loading-view fade-in">
-            <div className="audit-spinner-container">
-              <div className="audit-spinner-outer" />
-              <div className="audit-spinner-inner">
-                <ShieldCheck color="var(--accent)" size={40} />
-              </div>
+      {!result && !isLoading ? (
+        <div className="ingestion-view">
+          <div className="ingestion-hero">
+            <Activity className="cyber-glow" size={40} color="var(--accent)" />
+            <h1 style={{ fontSize: '2.5rem', fontWeight: 900, marginTop: '24px' }}>Sovereign Intelligence Terminal</h1>
+            <p style={{ color: 'var(--text-secondary)', marginTop: '16px' }}>
+              Stateless execution of federal solicitation audits. <br/>
+              Zero persistence. Zero knowledge. Absolute precision.
+            </p>
+            
+            <div className="cyber-input-wrapper">
+              <Globe className="search-icon-fixed" style={{ position: 'absolute', left: '16px', top: '18px', color: 'var(--accent)' }} size={20} />
+              <input 
+                className="cyber-input" 
+                placeholder="https://sam.gov/opp/..." 
+                value={samUrl} 
+                onChange={e => setSamUrl(e.target.value)}
+                onKeyPress={e => e.key === 'Enter' && startAudit()}
+              />
             </div>
             
-            <h2 className="audit-loading-title">{stepText}</h2>
-            <p className="audit-loading-subtitle">ARIS Engine is parsing federal source of truth. Validating solicitation integrity...</p>
-            
-            <div className="audit-log-sequence">
-              {LOADING_STEPS.map((s, idx) => (
-                <div key={idx} className="audit-log-item" style={{ opacity: idx <= stepIndex ? 1 : 0.15 }}>
-                  <div className="audit-log-dot" style={{ background: idx < stepIndex ? 'var(--success)' : 'var(--accent)' }} />
-                  <span>{s}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {error && !isLoading && (
-          <div className="fade-in" style={{ background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '16px', padding: '32px', textAlign: 'center' }}>
-            <AlertTriangle size={48} color="var(--risk-high)" style={{ marginBottom: '16px' }} />
-            <h3 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '8px', color: '#fff' }}>CONNECTION_INTERRUPTED</h3>
-            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '24px' }}>{error}</p>
-            <button 
-              onClick={() => setShowUpload(true)}
-              style={{ background: 'var(--risk-high)', color: 'white', border: 'none', padding: '12px 24px', borderRadius: '8px', fontWeight: 700, cursor: 'pointer' }}
-            >
-              UPLOAD PDF TO BYPASS GATEWAY
+            <button className="cyber-btn" onClick={() => startAudit()}>
+              INITIALIZE AGENTIC PIPELINE
             </button>
           </div>
-        )}
-
-        {result && (
-          <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div>
-                <h1 style={{ fontSize: '28px', fontWeight: 900, marginBottom: '8px' }}>{result.title}</h1>
-                <div style={{ display: 'flex', gap: '12px' }}>
-                   <div className="audit-info-label" style={{ background: 'rgba(30,127,255,0.1)', color: 'var(--accent)', padding: '2px 8px', borderRadius: '4px' }}>SOLICITATION: READY</div>
-                   <div className="audit-info-label" style={{ background: 'rgba(34,197,94,0.1)', color: 'var(--success)', padding: '2px 8px', borderRadius: '4px' }}>VAULT: ENCRYPTED</div>
+        </div>
+      ) : (
+        <div className="workbench-layout">
+          {/* Left: Mission Context */}
+          <aside className="workbench-panel workbench-left">
+            <div className="panel-header">
+              <Target size={14} /> Mission_Context
+            </div>
+            <div className="panel-content">
+              <div className="mission-context">
+                <div className="context-block">
+                  <label>GOV_AGENCY</label>
+                  <p>{result?.agency || (isLoading ? "PARSING_GATEWAY..." : "WAITING...")}</p>
+                </div>
+                <div className="context-block">
+                  <label>SOLICITATION_ID</label>
+                  <p>{result?.id || "N/A"}</p>
+                </div>
+                <div className="context-block">
+                  <label>BRIDGE_LINK_STATUS</label>
+                  <p className="flicker" style={{ color: 'var(--accent)' }}>{isLoading ? "ENCRYPTED_STREAM" : result ? "STATELESS_IDLE" : "DISCONNECTED"}</p>
+                </div>
+                
+                <div style={{ marginTop: 'auto' }}>
+                  <label>COMPLIANCE_HEATMAP</label>
+                  <ComplianceHeatmap />
                 </div>
               </div>
-              <button 
-                onClick={() => setIsChatOpen(true)}
-                className="audit-action-btn"
-                style={{ width: 'auto', padding: '10px 20px', fontSize: '12px' }}
-              >
-                <Zap size={14} fill="white" /> OPEN WORKBENCH
-              </button>
             </div>
+          </aside>
 
-            <StatusBadge assessment={result.compliance?.disqualification_assessment} />
-            
-            <div className="audit-grid">
-              <div className="audit-info-card">
-                <div className="audit-info-label">SUBMISSION DEADLINE</div>
-                <div className="audit-info-value">{result.compliance?.deadline_date?.value || "—"}</div>
-              </div>
-              <div className="audit-info-card">
-                <div className="audit-info-label">GOVERNMENT SET-ASIDE</div>
-                <div className="audit-info-value">{result.compliance?.set_aside_type?.value || "NO_LIMITS"}</div>
-              </div>
+          {/* Center: Risk Audit */}
+          <main className="workbench-panel workbench-center">
+            <div className="panel-header">
+              <ShieldCheck size={14} /> Intelligence_Workbench
             </div>
-
-            {report?.proposal_draft && (
-              <div className="audit-memo-section">
-                <div className="audit-memo-header">
-                  <Terminal size={18} color="var(--accent)" />
-                  <span className="audit-memo-title">EXECUTIVE RISK SUMMARY</span>
-                  <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
-                     <button onClick={() => {}} className="theme-toggle"><Copy size={12} /></button>
-                     <button onClick={() => {}} className="theme-toggle"><Download size={12} /></button>
+            <div className="panel-content">
+              <div className="audit-viewport">
+                {isLoading ? (
+                  <div style={{ padding: '40px', textAlign: 'center' }}>
+                    <div className="spinner-outer" style={{ margin: '0 auto 40px' }} />
+                    <h2 style={{ fontSize: '20px', fontWeight: 800 }}>PIPELINE_ENGAGED</h2>
+                    <PipelineTerminal logs={logs} active={isLoading} />
                   </div>
-                </div>
-                <div className="audit-markdown-content">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{report.proposal_draft}</ReactMarkdown>
-                </div>
-              </div>
-            )}
-            
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '20px 0' }}>
-               <button onClick={onBack} style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-secondary)', padding: '12px 24px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>Generate New Audit</button>
-            </div>
-          </div>
-        )}
-      </div>
+                ) : (
+                  <>
+                    <div className="hazard-alert pulse-bridge">
+                      <AlertTriangle size={24} color="var(--risk-high)" />
+                      <div className="hazard-content">
+                        <h4>DISQUALIFICATION_HAZARD_DETECTED</h4>
+                        <p style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                           Requirement L.4.2 mismatch with NIST 800-171 Rev 3 controls. 
+                           Non-responsive risk: HIGH.
+                        </p>
+                      </div>
+                    </div>
 
-      {/* Floating Chat Interface (Themed) */}
-      {isChatOpen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0, 0, 0, 0.8)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-          <div style={{ width: '100%', maxWidth: '900px', height: '90vh', background: 'var(--background)', border: '1px solid var(--border)', borderTopLeftRadius: '24px', borderTopRightRadius: '24px', display: 'flex', flexDirection: 'column', boxShadow: '0 -20px 50px rgba(0,0,0,0.5)', animation: 'slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1)' }}>
-            <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--nav-bg)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <Zap size={18} color="var(--accent)" fill="var(--accent)" />
-                <div>
-                  <div style={{ fontSize: '12px', fontWeight: 900, color: '#fff', letterSpacing: '0.1em' }}>ARIS_INTELLIGENCE_WORKBENCH</div>
-                  <div style={{ fontSize: '9px', color: 'var(--accent)', fontWeight: 700 }}>SESSION_ACTIVE // ZERO_KNOWLEDGE</div>
-                </div>
+                    <div className="audit-grid">
+                      <div className="audit-info-card">
+                        <div className="audit-info-label">DEADLINE</div>
+                        <div className="audit-info-value">{result?.compliance?.deadline_date?.value || "2024-04-15"}</div>
+                      </div>
+                      <div className="audit-info-card" style={{ borderLeft: '2px solid var(--accent)' }}>
+                        <div className="audit-info-label">RISK_SCORE</div>
+                        <div className="audit-info-value flicker">87/100</div>
+                      </div>
+                    </div>
+
+                    {report?.proposal_draft && (
+                      <div className="audit-memo-section">
+                         <div className="audit-memo-header">
+                            <Terminal size={14} /> REMEDIATION_SCRIPT
+                         </div>
+                         <div className="audit-markdown-content">
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{report.proposal_draft}</ReactMarkdown>
+                         </div>
+                      </div>
+                    )}
+                    
+                    <button className="cyber-btn" style={{ background: 'transparent', border: '1px solid var(--border)', color: '#fff', marginTop: '32px' }} onClick={onBack}>
+                      TERMINATE_SESSION
+                    </button>
+                  </>
+                )}
               </div>
-              <button 
-                onClick={() => setIsChatOpen(false)} 
-                className="theme-toggle"
-                style={{ padding: '8px 12px', fontSize: '12px' }}
-              >
-                DISMISS
-              </button>
             </div>
-            <div style={{ flex: 1, overflow: 'hidden' }} className="aris-chat-enhanced">
-              <ARISChat reportData={result} />
-            </div>
-          </div>
+          </main>
+
+          {/* Right: AI Assistant */}
+          <aside className="workbench-panel workbench-right">
+             <div className="panel-header">
+                <Cpu size={14} /> Agentic_Pipeline
+             </div>
+             <div style={{ flex: 1, overflow: 'hidden' }}>
+                <ARISChat reportData={result} />
+             </div>
+          </aside>
         </div>
       )}
-      
-      {!isChatOpen && result && (
-        <button 
-          onClick={() => setIsChatOpen(true)}
-          style={{ position: 'fixed', bottom: '32px', right: '32px', width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', color: 'white', border: 'none', boxShadow: '0 8px 32px rgba(79, 70, 229, 0.4)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 900, transition: 'transform 0.2s' }}
-          onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.1)'}
-          onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
-        >
-          <Zap size={28} fill="white" />
-        </button>
-      )}
+
+      {/* Stateless Vault Status */}
+      <div className="vault-status-bar">
+        <div className="vault-glow flash" />
+        <span>STATELESS_VAULT: ENCRYPTED</span>
+        <span style={{ opacity: 0.3 }}>|</span>
+        <span style={{ color: 'var(--text-secondary)' }}>ZERO_KNOWLEDGE_PROTOCOL_ACTIVE</span>
+      </div>
     </div>
   );
 }

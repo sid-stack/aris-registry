@@ -76,11 +76,11 @@ const NavBar = ({ theme, onToggleTheme, onBack }) => {
             <span className="back-label">Back</span>
           </button>
         )}
-        <Shield size={15} color="#1e7fff" className="brand-icon" />
+        <Shield size={15} color="var(--accent)" className="brand-icon" />
         <span className="brand-text">
-          BIDSMITH <span style={{ color: '#1e7fff' }}>INTEL</span>
+          ARIS <span style={{ color: 'var(--accent)' }}>PROTOCOL</span>
         </span>
-        <span className="beta-badge">BETA</span>
+        <span className="beta-badge" style={{ borderColor: 'var(--accent)', color: 'var(--accent)' }}>S0V.INT</span>
       </div>
 
       {/* Actions */}
