@@ -440,11 +440,11 @@ function extractTargetedSections(text) {
 }
 
 const FALLBACK_MODELS = [
-  "inception/mercury-2",
+  "google/gemini-2.0-flash-001",
   "anthropic/claude-3-haiku",
   "openai/gpt-4o-mini",
-  "google/gemini-2.0-flash-exp:free",
-  "qwen/qwen-2-7b-instruct:free"
+  "meta-llama/llama-3.1-8b-instruct:free",
+  "microsoft/wizardlm-2-8x22b"
 ];
 
 // LLM with non-linear Diffusion Fallback Logic — Mercury 2 Pipeline
@@ -1378,6 +1378,15 @@ app.post("/api/analyze-link", analyzeLinkLimiter, asyncHandler(async (req, res) 
             console.warn(`[/api/analyze-link] Firecrawl returned ${fcRes.status}`);
           } catch (fcErr) {
             console.warn(`[/api/analyze-link] Firecrawl failed:`, fcErr.message);
+            // If Firecrawl fails due to AI model exhaustion, provide basic response
+            if (fcErr.message.includes("All diffusion and fallback models exhausted")) {
+              return res.status(503).json({
+                error: "AI service temporarily unavailable",
+                instruction: "Please try again in a few minutes or upload the solicitation PDF directly",
+                details: "All AI models are currently experiencing high demand. This is a temporary issue.",
+                fallback: "manual_upload"
+              });
+            }
           }
         } else {
           console.warn(`[/api/analyze-link] No FIRECRAWL_API_KEY set, skipping fallback.`);
