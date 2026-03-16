@@ -21,7 +21,8 @@ import {
   Award,
   Eye,
   Lightbulb,
-  Activity
+  Activity,
+  ChevronRight
 } from 'lucide-react';
 
 const ARISChat = ({ selectedContext, onLog, onCommand, reportData }) => {

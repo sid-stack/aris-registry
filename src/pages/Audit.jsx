@@ -17,7 +17,8 @@ import {
   Globe,
   Lock,
   Search,
-  ChevronDown
+  ChevronDown,
+  ChevronRight
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";

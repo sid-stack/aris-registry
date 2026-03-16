@@ -11,12 +11,15 @@ import {
   ExternalLink,
   ChevronDown,
   MessageSquare,
-  X
+  X,
+  Brain,
+  Terminal,
+  Activity
 } from 'lucide-react';
 import NavBar from '../components/dashboard/NavBar';
 import ARISChat from '../components/dashboard/ARISChat';
 import '../styles/Dashboard.css';
-import './SamRep.css'; // Reuse the premium monochrome styles
+import './SamScraper.css'; // Reuse the premium monochrome styles
 
 const Discovery = ({ onBack }) => {
   const [prospects, setProspects] = useState([]);
@@ -24,15 +27,13 @@ const Discovery = ({ onBack }) => {
   const [activeNaics, setActiveNaics] = useState("541511,541512");
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 1024 : false);
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
-  const [theme, setTheme] = useState(() => {
-    try { return localStorage.getItem('bs-theme') || 'dark'; } catch { return 'dark'; }
-  });
+  const [theme, setTheme] = useState('dark');
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [selectedProspect, setSelectedProspect] = useState(null);
+  const [statusText, setStatusText] = useState('SCANNING_GOVCON_CLOUDS');
 
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    try { localStorage.setItem('bs-theme', theme); } catch {}
+    document.documentElement.setAttribute('data-theme', 'dark');
     
     const handleResize = () => {
       setIsMobile(window.innerWidth < 1024);
@@ -40,36 +41,32 @@ const Discovery = ({ onBack }) => {
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [theme]);
+  }, []);
 
-  const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');
-  
   useEffect(() => {
     fetchProspects();
   }, [activeNaics]);
 
   const fetchProspects = async () => {
     setLoading(true);
+    setStatusText('INITIALIZING_RADAR_BRIDGE...');
     try {
       const res = await fetch(`/api/discovery/search?naics=${activeNaics}`);
       const data = await res.json();
       if (data.success) {
         setProspects(data.prospects);
+        setStatusText('RADAR_LOCKED: ' + data.prospects.length + ' SECTORS');
       }
     } catch (err) {
       console.error("Discovery failed:", err);
+      setStatusText('RADAR_LINK_ERROR');
     } finally {
-      setLoading(false);
+      setTimeout(() => setLoading(false), 800);
     }
   };
 
-  const handleChatLog = (message, type = 'info') => {
-    // Chat logs handled by analytics in production
-  };
-
-  const handleCommand = (command) => {
-    // Commands handled by analytics in production
-  };
+  const handleChatLog = (message, type = 'info') => {};
+  const handleCommand = (command) => {};
 
   const handleProspectClick = (prospect) => {
     setSelectedProspect(prospect);
@@ -77,278 +74,163 @@ const Discovery = ({ onBack }) => {
   };
 
   return (
-    <div style={{ 
-      backgroundColor: 'var(--background)', 
-      color: 'var(--text-primary)', 
-      height: '100vh', 
-      width: '100%', 
-      display: 'flex', 
-      flexDirection: 'column', 
-      overflow: 'hidden' 
-    }} data-theme={theme}>
-      <NavBar theme={theme} onToggleTheme={toggleTheme} onBack={onBack} />
+    <div className="sam-scraper dark" style={{ height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      <NavBar theme="dark" onToggleTheme={null} onBack={onBack} />
 
-      {/* Masthead */}
-      <div style={{ 
-        borderBottom: '1px solid #1a1a1a', 
-        background: '#09090b', 
-        padding: isMobile ? '12px 16px' : '16px 24px',
-        flexShrink: 0
+      {/* ARIS_MARKET_RADAR Masthead */}
+      <div className="sam-scraper-header" style={{ 
+        padding: '24px 32px', 
+        marginBottom: '0', 
+        borderRadius: '0', 
+        borderLeft: 'none', 
+        borderRight: 'none',
+        background: 'var(--bg-secondary)'
       }}>
         <div style={{ 
           display: 'flex', 
-          flexDirection: isMobile ? 'column' : 'row',
           justifyContent: 'space-between', 
-          alignItems: isMobile ? 'flex-start' : 'center', 
-          gap: isMobile ? '16px' : '24px' 
+          alignItems: 'center'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ 
-              width: '32px', 
-              height: '32px', 
-              background: 'rgba(59, 130, 246, 0.1)', 
-              borderRadius: '6px', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              border: '1px solid rgba(59, 130, 246, 0.2)'
-            }}>
-              <Radar size={18} color="#3b82f6" />
+            <div className="header-badge">
+              <Radar size={12} />
+              <span>ARIS_MARKET_RADAR_v2.1</span>
             </div>
             <div>
-              <div style={{ fontSize: '12px', fontWeight: 800, color: '#f8fafc', letterSpacing: '-0.01em' }}>LIVE MARKET RADAR</div>
-              <div style={{ fontSize: '10px', color: '#52525b', fontFamily: 'Space Mono', letterSpacing: '0.05em' }}>SCANNING_GOVCON_CLOUDS (v1.1)</div>
+              <h1 style={{ fontSize: '1.25rem', margin: 0 }}>Contract Intelligence Feed</h1>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                <Terminal size={10} color="var(--accent)" />
+                <span className="status-code">{statusText}</span>
+              </div>
             </div>
           </div>
 
-          <div style={{ 
-            display: 'flex', 
-            gap: '12px', 
-            width: isMobile ? '100%' : 'auto',
-            alignItems: 'center',
-            flexWrap: 'wrap'
-          }}>
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'space-between',
-              gap: '12px', 
-              background: '#0c0c0e', 
-              border: '1px solid #1a1a1a', 
-              padding: '8px 16px', 
-              borderRadius: '4px',
-              flex: isMobile ? 1 : 'unset',
-              minWidth: isMobile ? '0' : '200px'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '10px', fontWeight: 600, color: '#52525b' }}>NAICS:</span>
-                <span style={{ fontSize: '11px', color: '#d4d4d8', fontFamily: 'Space Mono' }}>{activeNaics.split(',')[0]}...</span>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            {!isMobile && (
+              <div className="metric-box glass" style={{ minWidth: 'auto', padding: '8px 16px', flexDirection: 'row', alignItems: 'center', gap: '12px' }}>
+                <Activity size={12} color="var(--success)" className="pulse-bridge" />
+                <span className="metric-val" style={{ fontSize: '13px' }}>{prospects.length || 0}</span>
+                <span className="metric-lab" style={{ marginTop: 0 }}>ACTIVE_LEADS</span>
               </div>
-              <ChevronDown size={14} color="#52525b" />
-            </div>
+            )}
             
             <button 
-              onClick={() => window.location.href = '/app'}
-              style={{ 
-                background: 'transparent', 
-                border: '1px solid #27272a', 
-                color: '#a1a1aa', 
-                padding: '10px 16px', 
-                borderRadius: '4px', 
-                fontSize: '11px', 
-                fontWeight: 700, 
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                minHeight: '40px'
-              }}
+              className="chip active"
+              style={{ height: '40px', borderRadius: '4px' }}
             >
-              <Zap size={14} color="#3b82f6" fill="#3b82f6" />
-              GO TO WORKSPACE
-            </button>
-
-            <button style={{ 
-              background: '#1d4ed8', 
-              border: 'none', 
-              color: 'white', 
-              padding: '10px 20px', 
-              borderRadius: '4px', 
-              fontSize: '11px', 
-              fontWeight: 800, 
-              cursor: 'pointer', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              gap: '8px',
-              whiteSpace: 'nowrap',
-              minHeight: '40px',
-              flex: isMobile ? 1 : 'unset'
-            }}>
               <Filter size={14} />
-              FILTERS
+              <span>REORGANIZE</span>
             </button>
           </div>
         </div>
       </div>
 
-      <div style={{ flex: 1, display: 'flex', flexDirection: isMobile ? 'column' : 'row', overflowY: 'auto' }}>
+      <div className="sam-scraper-container" style={{ flex: 1, display: 'flex', flexDirection: isMobile ? 'column' : 'row', overflow: 'hidden', padding: 0, maxWidth: 'none' }}>
         {/* Left: Intelligence Summary */}
-        <aside style={{ 
+        <aside className="glass" style={{ 
           width: isMobile ? '100%' : '300px', 
-          borderRight: isMobile ? 'none' : '1px solid #1a1a1a', 
-          borderBottom: isMobile ? '1px solid #1a1a1a' : 'none',
-          padding: isMobile ? '16px' : '20px', 
-          background: '#09090b',
-          display: isMobile ? 'grid' : 'block',
-          gridTemplateColumns: isMobile && windowWidth > 640 ? 'repeat(3, 1fr)' : '1fr',
-          gap: '20px',
-          flexShrink: 0
+          borderRight: '1px solid var(--border)', 
+          padding: '24px', 
+          background: 'var(--bg-secondary)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '24px'
         }}>
-           <div style={{ marginBottom: isMobile ? '0' : '32px' }}>
-             <span style={{ fontSize: '9px', fontWeight: 800, color: '#52525b', letterSpacing: '0.15em', textTransform: 'uppercase' }}>Scanning Stats</span>
-             <div style={{ marginTop: '12px', display: 'flex', gap: '8px' }}>
-                <div style={{ background: '#0c0c0e', padding: '12px', borderRadius: '6px', border: '1px solid #1a1a1a', flex: 1 }}>
-                  <div style={{ fontSize: '18px', fontWeight: 700, color: '#d4d4d8' }}>{prospects.length}</div>
-                  <div style={{ fontSize: '9px', color: '#52525b', fontWeight: 600 }}>MATCHES (7D)</div>
+           <div>
+             <span className="metric-lab" style={{ color: 'var(--accent)' }}>RADAR_SCAN_METRICS</span>
+             <div style={{ marginTop: '16px', display: 'flex', gap: '8px' }}>
+                <div className="metric-box glass" style={{ minWidth: '0', flex: 1, padding: '12px' }}>
+                  <span className="metric-val" style={{ fontSize: '1.25rem' }}>{prospects.length}</span>
+                  <span className="metric-lab" style={{ fontSize: '8px' }}>MATCHES_FOUND</span>
                 </div>
-                <div style={{ background: '#0c0c0e', padding: '12px', borderRadius: '6px', border: '1px solid #1a1a1a', flex: 1 }}>
-                  <div style={{ fontSize: '18px', fontWeight: 700, color: '#22c55e' }}>87%</div>
-                  <div style={{ fontSize: '9px', color: '#52525b', fontWeight: 600 }}>STRENGTH</div>
+                <div className="metric-box glass accent" style={{ minWidth: '0', flex: 1, padding: '12px' }}>
+                  <span className="metric-val" style={{ fontSize: '1.25rem' }}>87%</span>
+                  <span className="metric-lab" style={{ fontSize: '8px' }}>AVG_CONFIDENCE</span>
                 </div>
              </div>
            </div>
 
-           {!isMobile && (
-             <div style={{ marginBottom: '32px' }}>
-               <span style={{ fontSize: '9px', fontWeight: 800, color: '#52525b', letterSpacing: '0.15em', textTransform: 'uppercase' }}>Target Sectors</span>
-               <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                  {[
-                    { label: 'Cloud Services', count: 14, active: true },
-                    { label: 'Cybersecurity', count: 8, active: false }
-                  ].map(s => (
-                    <div key={s.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px', borderRadius: '4px', background: s.active ? '#18181b' : 'transparent' }}>
-                      <span style={{ fontSize: '11px', color: s.active ? '#d4d4d8' : '#71717a' }}>{s.label}</span>
-                      <span style={{ fontSize: '9px', fontFamily: 'Space Mono', color: '#52525b' }}>{s.count}</span>
-                    </div>
-                  ))}
-               </div>
+           <div>
+             <span className="metric-lab" style={{ color: 'var(--accent)' }}>SECTOR_CONCENTRATION</span>
+             <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                {['Cloud Services', 'Cybersecurity', 'AI Infrastructure', 'Edge Computing'].map(s => (
+                  <div key={s} className="chip" style={{ justifyContent: 'space-between', padding: '6px 12px', background: 'transparent', border: 'none' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{s}</span>
+                    <span className="status-code" style={{ fontSize: '9px', color: 'var(--accent)' }}>{Math.floor(Math.random() * 20)}</span>
+                  </div>
+                ))}
              </div>
-           )}
+           </div>
 
-           <div style={{ 
-             background: '#1e1b4b', 
-             padding: '16px', 
-             borderRadius: '8px', 
-             border: '1px solid #312e81',
-             gridColumn: isMobile && windowWidth > 640 ? 'span 1' : 'auto'
-           }}>
-             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-               <Zap size={14} color="#818cf8" fill="#818cf8" />
-               <span style={{ fontSize: '10px', fontWeight: 800, color: '#f4f4f5' }}>UPGRADE</span>
-             </div>
-             <p style={{ fontSize: '10px', color: '#a5b4fc', lineHeight: 1.4, marginBottom: '12px' }}>Unlock SMS alerts and AI synthesis.</p>
-             <button style={{ width: '100%', background: 'white', color: '#1e1b4b', border: 'none', padding: '8px', borderRadius: '4px', fontSize: '10px', fontWeight: 800, cursor: 'pointer' }}>
-               ACTIVATE PRO
-             </button>
+           <div className="metric-box glass" style={{ marginTop: 'auto', background: 'rgba(59, 130, 246, 0.05)', borderColor: 'var(--accent)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                <Zap size={14} color="var(--accent)" fill="var(--accent)" />
+                <span className="metric-lab" style={{ color: '#fff', fontSize: '10px' }}>UPGRADE_PIPELINE</span>
+              </div>
+              <p style={{ fontSize: '10px', margin: 0 }}>Unlock real-time SMS alerts and agentic synthesis.</p>
            </div>
         </aside>
 
         {/* Center: Live Feed */}
         <main style={{ 
           flex: 1, 
-          padding: isMobile ? '16px' : '32px', 
-          background: '#0c0c0e',
-          width: '100%',
-          boxSizing: 'border-box'
+          padding: '24px', 
+          background: 'var(--bg-primary)',
+          overflowY: 'auto'
         }}>
           <div style={{ 
             display: 'flex', 
-            flexDirection: windowWidth < 640 ? 'column' : 'row',
             justifyContent: 'space-between', 
-            alignItems: windowWidth < 640 ? 'flex-start' : 'center', 
-            marginBottom: '24px',
-            gap: '12px'
+            alignItems: 'center', 
+            marginBottom: '24px'
           }}>
-            <h2 style={{ fontSize: '12px', fontWeight: 800, color: '#d4d4d8', margin: 0, letterSpacing: '0.05em' }}>LIVE SCAN RESULTS</h2>
+            <h2 style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '0.2em', color: 'var(--text-secondary)', margin: 0 }}>INTELLIGENCE_STREAM</h2>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                 <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 8px #22c55e' }} />
-                 <span style={{ fontSize: '10px', color: '#52525b', fontWeight: 600 }}>SAM_GOV_ONLINE</span>
-              </div>
-              <span style={{ fontSize: '10px', color: '#3f3f46' }}>UPDATED: JUST NOW</span>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div className="intel-pulse" style={{ position: 'static', width: '8px', height: '8px', background: 'var(--success)' }}></div>
+                  <span className="status-code" style={{ fontSize: '9px' }}>SAM_NODE_ACTIVE</span>
+               </div>
             </div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {loading ? (
-              <div style={{ padding: '40px', textAlign: 'center', color: '#71717a' }}>
-                 <div style={{ marginBottom: '16px', fontSize: '13px' }}>Scanning federal database...</div>
-                 <div className="animate-pulse" style={{ height: '2px', background: '#1d4ed8', width: '140px', margin: '0 auto' }} />
+              <div className="loading-grid" style={{ gridTemplateColumns: '1fr' }}>
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="skeleton-card" style={{ height: '120px' }} />
+                ))}
               </div>
             ) : prospects.map(p => (
-              <div key={p.id} style={{ 
-                background: '#09090b', 
-                border: '1px solid #1a1a1a', 
-                borderRadius: '8px', 
-                overflow: 'hidden', 
-                display: 'flex',
-                flexDirection: windowWidth < 640 ? 'column' : 'row'
-              }}>
-                <div style={{ 
-                  width: windowWidth < 640 ? '100%' : '4px', 
-                  height: windowWidth < 640 ? '4px' : 'auto',
-                  background: p.matchScore > 90 ? '#22c55e' : '#3b82f6' 
-                }} />
-                <div style={{ flex: 1, padding: '16px 20px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: '9px', fontWeight: 800, color: '#52525b', fontFamily: 'Space Mono' }}>{p.id}</span>
-                        <span style={{ fontSize: '9px', background: '#18181b', color: '#71717a', padding: '2px 6px', borderRadius: '2px', border: '1px solid #27272a' }}>{p.type.replace('_',' ')}</span>
-                      </div>
-                      <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#f4f4f5', margin: 0, lineHeight: 1.4 }}>{p.title}</h3>
-                      <div style={{ fontSize: '11px', color: '#71717a', marginTop: '6px' }}>{p.agency}</div>
-                    </div>
-                    <div style={{ textAlign: 'right', marginLeft: '16px' }}>
-                      <div style={{ fontSize: '18px', fontWeight: 800, color: p.matchScore > 90 ? '#22c55e' : '#f4f4f5' }}>{p.matchScore}%</div>
-                      <div style={{ fontSize: '8px', fontWeight: 700, color: '#52525b', letterSpacing: '0.05em' }}>MATCH</div>
-                    </div>
+              <div key={p.id} className="intel-card glass" style={{ flexDirection: 'row', padding: '16px 20px', alignItems: 'center' }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                    <span className="status-code" style={{ color: 'var(--accent)' }}>[ID_{p.id}]</span>
+                    <span className="point-status stable" style={{ fontSize: '8px' }}>{p.type.replace('_',' ')}</span>
                   </div>
-
-                  <div style={{ display: 'flex', gap: isMobile ? '12px' : '24px', marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #141416', flexWrap: 'wrap' }}>
+                  <h3 style={{ fontSize: '1rem', marginBottom: '8px' }}>{p.title}</h3>
+                  <div style={{ display: 'flex', gap: '24px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <Clock size={12} color="#52525b" />
-                      <span style={{ fontSize: '10px', color: '#71717a' }}>DUE: {p.deadline || 'Q4'}</span>
+                      <Clock size={12} color="var(--text-secondary)" />
+                      <span className="status-code" style={{ fontSize: '9px' }}>DUE: {p.deadline || 'O-24'}</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <Target size={12} color="#52525b" />
-                      <span style={{ fontSize: '10px', color: '#71717a' }}>NAICS: {p.naics}</span>
+                      <Target size={12} color="var(--text-secondary)" />
+                      <span className="status-code" style={{ fontSize: '9px' }}>{p.naics}</span>
                     </div>
                   </div>
                 </div>
-
-                <div style={{ 
-                  padding: '16px 20px', 
-                  borderLeft: windowWidth < 640 ? 'none' : '1px solid #1a1a1a', 
-                  borderTop: windowWidth < 640 ? '1px solid #1a1a1a' : 'none',
-                  background: '#0c0c0e', 
-                  display: 'flex', 
-                  flexDirection: windowWidth < 640 ? 'row' : 'column', 
-                  justifyContent: 'center', 
-                  gap: '8px', 
-                  width: windowWidth < 640 ? '100%' : '180px' 
-                }}>
-                   <button 
-                    onClick={() => window.open(p.url, '_blank')}
-                    style={{ flex: 1, background: 'transparent', border: '1px solid #27272a', color: '#a1a1aa', padding: '10px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                     SOURCE
-                   </button>
-                   <button 
-                    onClick={() => handleProspectClick(p)}
-                    style={{ flex: 1, background: '#3b82f6', border: 'none', color: 'white', padding: '10px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                     AUDIT
-                   </button>
+                
+                <div style={{ textAlign: 'right', minWidth: '140px' }}>
+                  <div className="card-badge" style={{ display: 'inline-flex', marginBottom: '12px' }}>
+                    <span>{p.matchScore}% MATCH</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button 
+                      onClick={() => handleProspectClick(p)}
+                      className="btn-ai" style={{ flex: 1, height: '36px' }}>
+                      AUDIT
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -356,137 +238,30 @@ const Discovery = ({ onBack }) => {
         </main>
       </div>
 
-      <footer style={{ 
-        height: isMobile ? 'auto' : '32px', 
-        borderTop: '1px solid #1a1a1a', 
-        background: '#09090b', 
-        display: 'flex', 
-        flexDirection: isMobile ? 'column' : 'row',
-        alignItems: 'center', 
-        padding: isMobile ? '12px' : '0 32px', 
-        justifyContent: 'space-between',
-        gap: '8px'
-      }}>
-        <div style={{ fontSize: '8px', color: '#3f3f46', fontWeight: 600 }}>BID-MATCH SNIPER v1.0.2 • PERSISTENCE: LOCAL_VOLATILE</div>
-        <div style={{ display: 'flex', gap: '20px' }}>
-           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-             <Shield size={10} color="#3f3f46" />
-             <span style={{ fontSize: '8px', color: '#3f3f46' }}>ZERO_KNOWLEDGE_VAULT</span>
-           </div>
-           {!isMobile && <span style={{ fontSize: '8px', color: '#3f3f46' }}>UPTIME: 99.9%</span>}
-        </div>
+      <footer className="vault-status-bar">
+        <div className="vault-glow flash" />
+        <span className="status-code">MARKET_RADAR_SNIPER v1.0.2 • ZERO_KNOWLEDGE_ACTIVE</span>
       </footer>
 
       {/* ── Floating Chat Interface ── */}
-      <div style={{ position: 'fixed', bottom: '20px', right: '20px', zIndex: 1000, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px' }}>
-        {isChatOpen && (
-          <div style={{ 
-            width: windowWidth < 500 ? 'calc(100vw - 32px)' : windowWidth < 768 ? '380px' : '420px', 
-            height: windowWidth < 500 ? 'calc(100vh - 80px)' : windowWidth < 768 ? '500px' : '600px', 
-            background: '#0c0c0e', 
-            borderRadius: '12px', 
-            border: '1px solid #1a1a1a',
-            boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            animation: 'slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
-          }}>
-            <style>{`
-              @keyframes slideIn {
-                from { transform: translateY(20px); opacity: 0; }
-                to { transform: translateY(0); opacity: 1; }
-              }
-            `}</style>
-            <div style={{ 
-              padding: windowWidth < 500 ? '10px 12px' : '12px 16px', 
-              borderBottom: '1px solid #1a1a1a', 
-              background: '#09090b', 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center',
-              minHeight: '48px'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Zap size={windowWidth < 500 ? 12 : 14} color="#3b82f6" fill="#3b82f6" />
-                <span style={{ 
-                  fontSize: windowWidth < 500 ? '10px' : '11px', 
-                  fontWeight: 800, 
-                  letterSpacing: '0.1em', 
-                  color: '#f4f4f5' 
-                }}>
-                  ARIS INTELLIGENCE
-                </span>
-                {selectedProspect && (
-                  <span style={{ 
-                    fontSize: '8px', 
-                    color: '#71717a', 
-                    background: '#18181b', 
-                    padding: '2px 6px', 
-                    borderRadius: '2px',
-                    border: '1px solid #27272a'
-                  }}>
-                    {selectedProspect.id}
-                  </span>
-                )}
-              </div>
-              <button 
-                onClick={() => setIsChatOpen(false)}
-                style={{ 
-                  background: 'transparent', 
-                  border: 'none', 
-                  color: '#71717a', 
-                  cursor: 'pointer', 
-                  padding: '4px',
-                  borderRadius: '4px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'background 0.2s'
-                }}
-                onMouseEnter={(e) => e.target.style.background = '#27272a'}
-                onMouseLeave={(e) => e.target.style.background = 'transparent'}
-              >
-                <X size={16} />
-              </button>
+      {isChatOpen && (
+        <div className="full-chat-overlay visible">
+          <div className="chat_header">
+            <div className="chat_title">
+              <Activity size={16} />
+              <span>ARIS_INTEL_STREAM</span>
             </div>
-            <div style={{ flex: 1, overflow: 'hidden' }}>
-              <ARISChat 
-                selectedContext={selectedProspect}
-                onLog={handleChatLog}
-                onCommand={handleCommand}
-                reportData={{}}
-              />
-            </div>
+            <button onClick={() => setIsChatOpen(false)} className="close-btn">×</button>
           </div>
-        )}
-        
-        <button
-          onClick={() => setIsChatOpen(!isChatOpen)}
-          style={{
-            width: windowWidth < 500 ? '48px' : '56px',
-            height: windowWidth < 500 ? '48px' : '56px',
-            borderRadius: '50%',
-            background: '#09090b',
-            color: 'white',
-            border: '1px solid #1a1a1a',
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-            transform: isChatOpen ? 'rotate(90deg)' : 'none'
-          }}
-          onMouseEnter={e => e.currentTarget.style.transform = isChatOpen ? 'rotate(90deg) scale(1.1)' : 'scale(1.1)'}
-          onMouseLeave={e => e.currentTarget.style.transform = isChatOpen ? 'rotate(90deg)' : 'none'}
-        >
-          {isChatOpen ? 
-            <X size={windowWidth < 500 ? 18 : 20} /> : 
-            <MessageSquare size={windowWidth < 500 ? 20 : 24} fill="#3b82f6" color="#3b82f6" />
-          }
-        </button>
-      </div>
+          <div className="chat_body">
+            <ARISChat 
+              selectedContext={selectedProspect}
+              onLog={() => {}}
+              onCommand={() => {}}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -482,6 +482,20 @@ function stripCodeFences(raw = "") {
     .trim();
 }
 
+// ─── Analytics ───────────────────────────────────────────────────────────────
+app.post("/api/track", (req, res) => {
+  const { event, uid, page, metadata } = req.body;
+  
+  // Log event to console for 'Sovereign Audit' logic
+  console.log(`[SOVEREIGN_TRACK_PIPELINE] ${new Date().toISOString()} | UID: ${uid} | EVENT: ${event} | PAGE: ${page}`);
+  if (metadata && Object.keys(metadata).length > 0) {
+    console.log(`  └─ DATA: ${JSON.stringify(metadata)}`);
+  }
+
+  // In production, this would persist to a stateless buffer or external log sink
+  res.status(202).json({ status: "ACCEPTED", protocol: "STATELESS" });
+});
+
 // ─── Health ───────────────────────────────────────────────────────────────────
 app.get("/api/health", asyncHandler(async (_req, res) => {
   res.json(okResponse({ status: "ok", version: "3.0.0" }));
@@ -1229,34 +1243,101 @@ async function downloadWithRetry(url, retries = 3) {
 }
 
 app.post("/api/analyze-link", analyzeLinkLimiter, asyncHandler(async (req, res) => {
-  const client = makeClient();
-  if (!client) return res.status(500).json({ error: "Server configuration incomplete" });
-
-  const { url } = req.body;
-  const SAM_API_KEY = process.env.SAM_API_KEY || process.env.SAM_GOV_API_KEY;
-  if (!SAM_API_KEY) return res.status(500).json({ error: "Server configuration incomplete" });
-  if (!url) return res.status(400).json({ error: "Missing url in request body." });
-
-  const noticeId = parseNoticeId(url);
-  if (!noticeId) return res.status(400).json({ error: "Invalid SAM.gov URL — could not extract notice ID." });
-
-  const cached = noticeCache.get(noticeId);
-  if (cached && Date.now() - cached.ts < 86400000) {
-    console.log(`[/api/analyze-link] Cache hit: ${noticeId}`);
-    return res.json(cached.data);
-  }
-
-  console.log(`[/api/analyze-link] Fetching SAM.gov: ${noticeId}`);
-
-  let samData;
   try {
-    const samRes = await fetch(
-      `https://api.sam.gov/opportunities/v2/search?noticeid=${noticeId}&limit=1&api_key=${SAM_API_KEY}`,
-      { headers: { Accept: "application/json" } }
-    );
+    const client = makeClient();
+    if (!client) return res.status(500).json({ error: "Server configuration incomplete" });
 
-    if (!samRes.ok) {
-      console.log(`[/api/analyze-link] SAM.gov API Error (${samRes.status}). Attempting Firecrawl fallback.`);
+    const { url } = req.body;
+    const SAM_API_KEY = process.env.SAM_API_KEY || process.env.SAM_GOV_API_KEY;
+    if (!SAM_API_KEY) return res.status(500).json({ error: "Server configuration incomplete" });
+    if (!url) return res.status(400).json({ error: "Missing url in request body." });
+
+    const noticeId = parseNoticeId(url);
+    if (!noticeId) return res.status(400).json({ error: "Invalid SAM.gov URL — could not extract notice ID." });
+
+    const cached = noticeCache.get(noticeId);
+    if (cached && Date.now() - cached.ts < 86400000) {
+      console.log(`[/api/analyze-link] Cache hit: ${noticeId}`);
+      return res.json(cached.data);
+    }
+
+    console.log(`[/api/analyze-link] Fetching SAM.gov: ${noticeId}`);
+
+    let samData;
+    try {
+      const samRes = await fetch(
+        `https://api.sam.gov/opportunities/v2/search?noticeid=${noticeId}&limit=1&api_key=${SAM_API_KEY}`,
+        { headers: { Accept: "application/json" } }
+      );
+
+      if (!samRes.ok) {
+        console.log(`[/api/analyze-link] SAM.gov API Error (${samRes.status}). Attempting Firecrawl fallback.`);
+        const fcKey = process.env.FIRECRAWL_API_KEY;
+        if (fcKey) {
+          try {
+            const fcRes = await fetch('https://api.firecrawl.dev/v1/scrape', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${fcKey}` },
+              body: JSON.stringify({ url: `https://sam.gov/opp/${noticeId}/view`, formats: ["markdown"] })
+            });
+            if (fcRes.ok) {
+              const fcData = await fcRes.json();
+              const fcText = fcData.data?.markdown || "";
+              // If Firecrawl returns thin data, attempt a targeted second scrape on the attachments section
+              if (fcText.length < 500) {
+                console.warn(`[/api/analyze-link] Firecrawl returned shallow data (${fcText.length} chars). Flagging: Insufficient Data.`);
+                return res.status(422).json({
+                  error: "Insufficient Data",
+                  instruction: "SAM.gov page returned too little content to analyze. Please upload the solicitation PDF directly.",
+                  details: `Only ${fcText.length} characters extracted via Firecrawl.`
+                });
+              }
+              if (fcText.length > 100) {
+                const raw = await llm(client, [
+                  { role: "system", content: AUDIT_PROMPT },
+                  { role: "user", content: `Audit this solicitation:\n\n---\n${fcText.slice(0, 20000)}\n---` }
+                ], 3000);
+
+                let compliance = null;
+                const deepMatch = raw.match(/\{[\s\S]*\}/);
+                if (deepMatch) {
+                  try { compliance = JSON.parse(deepMatch[0]); }
+                  catch { compliance = { parse_error: "JSON extraction failed" }; }
+                }
+                compliance = enforceDisqualification(compliance, fcText);
+                let executiveSummary = "";
+                if (deepMatch) executiveSummary = raw.slice(raw.indexOf(deepMatch[0]) + deepMatch[0].length).trim();
+
+                const result = {
+                  noticeId, title: `Opportunity: ${noticeId}`, agency: "Extracted via Firecrawl",
+                  primaryDoc: "firecrawl_extraction.md", source: "scraper_fallback",
+                  attachmentsFound: 0, compliance, executiveSummary,
+                  auditedAt: new Date().toISOString()
+                };
+                noticeCache.set(noticeId, { ts: Date.now(), data: result });
+                return res.json(result);
+              }
+            }
+            console.warn(`[/api/analyze-link] Firecrawl returned ${fcRes.status}`);
+          } catch (fcErr) {
+            console.warn(`[/api/analyze-link] Firecrawl failed:`, fcErr.message);
+          }
+        } else {
+          console.warn(`[/api/analyze-link] No FIRECRAWL_API_KEY set, skipping fallback.`);
+        }
+        return res.status(503).json({ error: "SAM.gov temporarily unavailable", instruction: "Manual upload required", details: `SAM.gov returned ${samRes.status}. Please upload the solicitation PDF directly.` });
+      }
+      samData = await samRes.json();
+    } catch (e) {
+      console.error(`[/api/analyze-link] Fetch failed:`, e);
+      return res.status(502).json({ error: "Failed to reach SAM.gov API", instruction: "Manual upload required", details: e.message });
+    }
+
+    const opportunity = samData?.opportunitiesData?.[0];
+    if (!opportunity) {
+      // SAM returned 200 but empty results — notice may be archived or have indexing lag.
+      // Attempt Firecrawl scrape as recovery before failing.
+      console.warn(`[/api/analyze-link] SAM returned empty opportunitiesData for ${noticeId}. Attempting Firecrawl recovery.`);
       const fcKey = process.env.FIRECRAWL_API_KEY;
       if (fcKey) {
         try {
@@ -1268,33 +1349,20 @@ app.post("/api/analyze-link", analyzeLinkLimiter, asyncHandler(async (req, res) 
           if (fcRes.ok) {
             const fcData = await fcRes.json();
             const fcText = fcData.data?.markdown || "";
-            // If Firecrawl returns thin data, attempt a targeted second scrape on the attachments section
-            if (fcText.length < 500) {
-              console.warn(`[/api/analyze-link] Firecrawl returned shallow data (${fcText.length} chars). Flagging: Insufficient Data.`);
-              return res.status(422).json({
-                error: "Insufficient Data",
-                instruction: "SAM.gov page returned too little content to analyze. Please upload the solicitation PDF directly.",
-                details: `Only ${fcText.length} characters extracted via Firecrawl.`
-              });
-            }
             if (fcText.length > 100) {
+              console.log(`[/api/analyze-link] Firecrawl recovery success: ${fcText.length} chars`);
               const raw = await llm(client, [
                 { role: "system", content: AUDIT_PROMPT },
                 { role: "user", content: `Audit this solicitation:\n\n---\n${fcText.slice(0, 20000)}\n---` }
               ], 3000);
-
               let compliance = null;
               const deepMatch = raw.match(/\{[\s\S]*\}/);
-              if (deepMatch) {
-                try { compliance = JSON.parse(deepMatch[0]); }
-                catch { compliance = { parse_error: "JSON extraction failed" }; }
-              }
+              if (deepMatch) { try { compliance = JSON.parse(deepMatch[0]); } catch { compliance = { parse_error: "JSON extraction failed" }; } }
               compliance = enforceDisqualification(compliance, fcText);
               let executiveSummary = "";
               if (deepMatch) executiveSummary = raw.slice(raw.indexOf(deepMatch[0]) + deepMatch[0].length).trim();
-
               const result = {
-                noticeId, title: `Opportunity: ${noticeId}`, agency: "Extracted via Firecrawl",
+                noticeId, title: `Opportunity ${noticeId}`, agency: "Extracted via Firecrawl",
                 primaryDoc: "firecrawl_extraction.md", source: "scraper_fallback",
                 attachmentsFound: 0, compliance, executiveSummary,
                 auditedAt: new Date().toISOString()
@@ -1303,139 +1371,94 @@ app.post("/api/analyze-link", analyzeLinkLimiter, asyncHandler(async (req, res) 
               return res.json(result);
             }
           }
-          console.warn(`[/api/analyze-link] Firecrawl returned ${fcRes.status}`);
+          console.warn(`[/api/analyze-link] Firecrawl recovery returned thin data or failed.`);
         } catch (fcErr) {
-          console.warn(`[/api/analyze-link] Firecrawl failed:`, fcErr.message);
+          console.warn(`[/api/analyze-link] Firecrawl recovery error:`, fcErr.message);
         }
-      } else {
-        console.warn(`[/api/analyze-link] No FIRECRAWL_API_KEY set, skipping fallback.`);
       }
-      return res.status(503).json({ error: "SAM.gov temporarily unavailable", instruction: "Manual upload required", details: `SAM.gov returned ${samRes.status}. Please upload the solicitation PDF directly.` });
+      return res.status(404).json({ error: "No opportunity found for this notice ID.", instruction: "Manual upload required", details: "SAM.gov returned no data and Firecrawl recovery failed. The notice may be archived or expired." });
     }
-    samData = await samRes.json();
-  } catch (e) {
-    console.error(`[/api/analyze-link] Fetch failed:`, e);
-    return res.status(502).json({ error: "Failed to reach SAM.gov API", instruction: "Manual upload required", details: e.message });
-  }
 
-  const opportunity = samData?.opportunitiesData?.[0];
-  if (!opportunity) {
-    // SAM returned 200 but empty results — notice may be archived or have indexing lag.
-    // Attempt Firecrawl scrape as recovery before failing.
-    console.warn(`[/api/analyze-link] SAM returned empty opportunitiesData for ${noticeId}. Attempting Firecrawl recovery.`);
-    const fcKey = process.env.FIRECRAWL_API_KEY;
-    if (fcKey) {
+
+    const title = opportunity.title || "Unknown";
+    const agency = opportunity.fullParentPathName || opportunity.organizationName || "Unknown Agency";
+    const description = opportunity.description || "";
+
+    const rawLinks = [
+      ...(opportunity.resourceLinks || []),
+      ...(opportunity.attachments || []).map(a => a.accessPointUrl || a.downloadUrl || "").filter(Boolean),
+    ].filter(l => l && l.startsWith("http"));
+
+    console.log(`[/api/analyze-link] ${rawLinks.length} attachment links found`);
+
+    const ranked = await scoreAttachments(rawLinks, SAM_API_KEY);
+    console.log(`[/api/analyze-link] Top ranked: "${ranked[0]?.name}" score=${ranked[0]?.score}`);
+
+    let auditText = "";
+    let primaryDoc = "description_text";
+    let source = "description_text";
+
+    const pdfCandidates = ranked.filter(r => r.score > 0 && /\.pdf$/i.test(r.name));
+    if (pdfCandidates.length > 0) {
+      const target = pdfCandidates[0];
+      const downloadUrl = target.url.includes("api_key") ? target.url : `${target.url}?api_key=${SAM_API_KEY}`;
       try {
-        const fcRes = await fetch('https://api.firecrawl.dev/v1/scrape', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${fcKey}` },
-          body: JSON.stringify({ url: `https://sam.gov/opp/${noticeId}/view`, formats: ["markdown"] })
-        });
-        if (fcRes.ok) {
-          const fcData = await fcRes.json();
-          const fcText = fcData.data?.markdown || "";
-          if (fcText.length > 100) {
-            console.log(`[/api/analyze-link] Firecrawl recovery success: ${fcText.length} chars`);
-            const raw = await llm(client, [
-              { role: "system", content: AUDIT_PROMPT },
-              { role: "user", content: `Audit this solicitation:\n\n---\n${fcText.slice(0, 20000)}\n---` }
-            ], 3000);
-            let compliance = null;
-            const deepMatch = raw.match(/\{[\s\S]*\}/);
-            if (deepMatch) { try { compliance = JSON.parse(deepMatch[0]); } catch { compliance = { parse_error: "JSON extraction failed" }; } }
-            compliance = enforceDisqualification(compliance, fcText);
-            let executiveSummary = "";
-            if (deepMatch) executiveSummary = raw.slice(raw.indexOf(deepMatch[0]) + deepMatch[0].length).trim();
-            const result = {
-              noticeId, title: `Opportunity ${noticeId}`, agency: "Extracted via Firecrawl",
-              primaryDoc: "firecrawl_extraction.md", source: "scraper_fallback",
-              attachmentsFound: 0, compliance, executiveSummary,
-              auditedAt: new Date().toISOString()
-            };
-            noticeCache.set(noticeId, { ts: Date.now(), data: result });
-            return res.json(result);
-          }
-        }
-        console.warn(`[/api/analyze-link] Firecrawl recovery returned thin data or failed.`);
-      } catch (fcErr) {
-        console.warn(`[/api/analyze-link] Firecrawl recovery error:`, fcErr.message);
+        console.log(`[/api/analyze-link] Downloading: ${target.name}`);
+        const buffer = await downloadWithRetry(downloadUrl);
+        auditText = await parsePDF(buffer);
+        primaryDoc = target.name;
+        source = "pdf";
+        console.log(`[/api/analyze-link] PDF extracted: ${auditText.length} chars`);
+      } catch (e) {
+        console.warn(`[/api/analyze-link] PDF download failed: ${e.message}`);
       }
     }
-    return res.status(404).json({ error: "No opportunity found for this notice ID.", instruction: "Manual upload required", details: "SAM.gov returned no data and Firecrawl recovery failed. The notice may be archived or expired." });
-  }
 
-
-  const title = opportunity.title || "Unknown";
-  const agency = opportunity.fullParentPathName || opportunity.organizationName || "Unknown Agency";
-  const description = opportunity.description || "";
-
-  const rawLinks = [
-    ...(opportunity.resourceLinks || []),
-    ...(opportunity.attachments || []).map(a => a.accessPointUrl || a.downloadUrl || "").filter(Boolean),
-  ].filter(l => l && l.startsWith("http"));
-
-  console.log(`[/api/analyze-link] ${rawLinks.length} attachment links found`);
-
-  const ranked = await scoreAttachments(rawLinks, SAM_API_KEY);
-  console.log(`[/api/analyze-link] Top ranked: "${ranked[0]?.name}" score=${ranked[0]?.score}`);
-
-  let auditText = "";
-  let primaryDoc = "description_text";
-  let source = "description_text";
-
-  const pdfCandidates = ranked.filter(r => r.score > 0 && /\.pdf$/i.test(r.name));
-  if (pdfCandidates.length > 0) {
-    const target = pdfCandidates[0];
-    const downloadUrl = target.url.includes("api_key") ? target.url : `${target.url}?api_key=${SAM_API_KEY}`;
-    try {
-      console.log(`[/api/analyze-link] Downloading: ${target.name}`);
-      const buffer = await downloadWithRetry(downloadUrl);
-      auditText = await parsePDF(buffer);
-      primaryDoc = target.name;
-      source = "pdf";
-      console.log(`[/api/analyze-link] PDF extracted: ${auditText.length} chars`);
-    } catch (e) {
-      console.warn(`[/api/analyze-link] PDF download failed: ${e.message}`);
+    if (!auditText || auditText.trim().length < 100) {
+      auditText = description;
+      source = "description_text";
+      console.log(`[/api/analyze-link] Fallback to description: ${auditText.length} chars`);
     }
+
+    if (!auditText || auditText.trim().length < 50)
+      return res.status(422).json({ error: "Insufficient solicitation text found.", instruction: "Manual upload required" });
+
+    const targetedText = extractTargetedSections(auditText);
+
+    const raw = await llm(client, [
+      { role: "system", content: AUDIT_PROMPT },
+      { role: "user", content: `Audit this solicitation:\n\n---\n${targetedText}\n---` }
+    ], 3000);
+
+    let compliance = null;
+    const deepMatch = raw.match(/\{[\s\S]*\}/);
+    if (deepMatch) {
+      try { compliance = JSON.parse(deepMatch[0]); }
+      catch { compliance = { parse_error: "JSON extraction failed" }; }
+    }
+
+    compliance = enforceDisqualification(compliance, auditText);
+
+    let executiveSummary = "";
+    if (deepMatch) executiveSummary = raw.slice(raw.indexOf(deepMatch[0]) + deepMatch[0].length).trim();
+
+    const result = {
+      noticeId, title, agency, primaryDoc, source,
+      attachmentsFound: ranked.length,
+      compliance, executiveSummary,
+      auditedAt: new Date().toISOString()
+    };
+
+    noticeCache.set(noticeId, { ts: Date.now(), data: result });
+    res.json(result);
+  } catch (err) {
+    console.error("[/api/analyze-link] SOVEREIGN_PIPELINE_CRITICAL_ERROR:", err);
+    res.status(500).json({ 
+      error: "SOVEREIGN_PIPELINE_ERROR", 
+      message: err.message,
+      instruction: "ARIS encountered a mission-critical failure. Please upload document manually to bypass the Bridge."
+    });
   }
-
-  if (!auditText || auditText.trim().length < 100) {
-    auditText = description;
-    source = "description_text";
-    console.log(`[/api/analyze-link] Fallback to description: ${auditText.length} chars`);
-  }
-
-  if (!auditText || auditText.trim().length < 50)
-    return res.status(422).json({ error: "Insufficient solicitation text found.", instruction: "Manual upload required" });
-
-  const targetedText = extractTargetedSections(auditText);
-
-  const raw = await llm(client, [
-    { role: "system", content: AUDIT_PROMPT },
-    { role: "user", content: `Audit this solicitation:\n\n---\n${targetedText}\n---` }
-  ], 3000);
-
-  let compliance = null;
-  const deepMatch = raw.match(/\{[\s\S]*\}/);
-  if (deepMatch) {
-    try { compliance = JSON.parse(deepMatch[0]); }
-    catch { compliance = { parse_error: "JSON extraction failed" }; }
-  }
-
-  compliance = enforceDisqualification(compliance, auditText);
-
-  let executiveSummary = "";
-  if (deepMatch) executiveSummary = raw.slice(raw.indexOf(deepMatch[0]) + deepMatch[0].length).trim();
-
-  const result = {
-    noticeId, title, agency, primaryDoc, source,
-    attachmentsFound: ranked.length,
-    compliance, executiveSummary,
-    auditedAt: new Date().toISOString()
-  };
-
-  noticeCache.set(noticeId, { ts: Date.now(), data: result });
-  res.json(result);
 }));
 // ─── /api/generate-report — 4-Stage Agent Pipeline (money/ pattern) ──────────
 // Stage 1: Analyst  — synthesize pillars into strategic brief
