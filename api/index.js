@@ -443,7 +443,8 @@ const FALLBACK_MODELS = [
   "inception/mercury-2",
   "anthropic/claude-3-haiku",
   "openai/gpt-4o-mini",
-  "meta-llama/llama-3-8b-instruct:free"
+  "google/gemini-2.0-flash-exp:free",
+  "qwen/qwen-2-7b-instruct:free"
 ];
 
 // LLM with non-linear Diffusion Fallback Logic — Mercury 2 Pipeline
