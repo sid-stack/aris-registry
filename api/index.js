@@ -3,9 +3,35 @@ import rateLimit from "express-rate-limit";
 import cors from "cors";
 import multer from "multer";
 import OpenAI from "openai";
-import { readFileSync } from "fs";
+import { readFileSync, existsSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
+
+// ─── Environment Setup ────────────────────────────────────────────────────────
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+function bootstrapEnv() {
+  const envPath = join(process.cwd(), '.env');
+  if (existsSync(envPath)) {
+    try {
+      const content = readFileSync(envPath, 'utf8');
+      content.split('\n').forEach(line => {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) return;
+        const [key, ...val] = trimmed.split('=');
+        if (key && val.length > 0) {
+          process.env[key.trim()] = val.join('=').trim();
+        }
+      });
+      console.log('[SOVEREIGN_ENV] .env loaded successfully');
+    } catch (err) {
+      console.warn('[SOVEREIGN_ENV] Failed to parse .env:', err.message);
+    }
+  }
+}
+
+bootstrapEnv();
+
 import { requestId } from "./middleware/requestId.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { asyncHandler } from "./utils/asyncHandler.js";
@@ -31,7 +57,6 @@ function sanitizeMarkdown(md) {
   return cleaned;
 }
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROMPTS = join(__dirname, "llm");
 const SYS_PROMPT = readFileSync(join(PROMPTS, "system_prompt.txt"), "utf8").trim();
 const CODE_AUDIT_SYSTEM_PROMPT = `You are an expert coding assistant specialized in large-scale, stateless, low-latency code generation for RFP audit pipelines.
@@ -417,7 +442,8 @@ function extractTargetedSections(text) {
 const FALLBACK_MODELS = [
   "inception/mercury-2",
   "anthropic/claude-3-haiku",
-  "openai/gpt-4o-mini"
+  "openai/gpt-4o-mini",
+  "meta-llama/llama-3-8b-instruct:free"
 ];
 
 // LLM with non-linear Diffusion Fallback Logic — Mercury 2 Pipeline
@@ -1188,6 +1214,8 @@ const noticeCache = new Map();
 function parseNoticeId(url) {
   const oppMatch = url.match(/\/opp\/([a-f0-9]{32})/i);
   if (oppMatch) return oppMatch[1];
+  const workspaceMatch = url.match(/\/opp\/([a-f0-9]+)/i);
+  if (workspaceMatch) return workspaceMatch[1];
   const qMatch = url.match(/[?&]noticeId=([^&]+)/i);
   if (qMatch) return qMatch[1];
   return null;
@@ -1196,11 +1224,13 @@ function parseNoticeId(url) {
 function scoreByName(name) {
   const n = name.toLowerCase();
   let score = 0;
-  if (/solicitation|combined|rfp/.test(n)) score += 50;
-  if (/statement.of.work|sow/.test(n)) score += 30;
-  if (/performance.work.statement|pws/.test(n)) score += 20;
-  if (/amendment|qa|questions/.test(n)) score -= 40;
-  if (/wage.determination|attachment|exhibit/.test(n)) score -= 60;
+  if (/solicitation|combined|rfp|sol_|sol-/.test(n)) score += 50;
+  if (/statement.of.work|sow/.test(n)) score += 40;
+  if (/performance.work.statement|pws/.test(n)) score += 30;
+  if (/amendment|amd|qa|questions/.test(n)) score -= 20;
+  if (/wage.determination|exhibit/.test(n)) score -= 60;
+  // If it's just 'attachment' but also an SOW, let the positive score carry it above neutral
+  if (/attachment/.test(n)) score -= 10; 
   return score;
 }
 
@@ -1398,7 +1428,7 @@ app.post("/api/analyze-link", analyzeLinkLimiter, asyncHandler(async (req, res) 
     let primaryDoc = "description_text";
     let source = "description_text";
 
-    const pdfCandidates = ranked.filter(r => r.score > 0 && /\.pdf$/i.test(r.name));
+    const pdfCandidates = ranked.filter(r => r.score >= -10 && /\.pdf$/i.test(r.name));
     if (pdfCandidates.length > 0) {
       const target = pdfCandidates[0];
       const downloadUrl = target.url.includes("api_key") ? target.url : `${target.url}?api_key=${SAM_API_KEY}`;
