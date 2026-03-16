@@ -12,6 +12,8 @@ const SamScraper = ({ onBack }) => {
   const [selectedContract, setSelectedContract] = useState(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState('all');
+  const [isActionLoading, setIsActionLoading] = useState(false);
+  const [actionLog, setActionLog] = useState('');
   const [strategicMatches, setStrategicMatches] = useState([
     {
       title: "STRATEGIC_DEFENSE_PARTNERS",
@@ -116,6 +118,25 @@ const SamScraper = ({ onBack }) => {
     <div className="sam-scraper dark">
       <NavBar theme="dark" onToggleTheme={null} onBack={onBack} />
       
+      {/* Technical Neural Bridge (Action Loading Overlay) */}
+      {isActionLoading && (
+        <div className="neural-bridge-overlay glass">
+          <div className="bridge-content">
+            <div className="ai-icon-wrapper pulse">
+              <Brain size={32} color="var(--accent)" />
+              <div className="core-glow"></div>
+            </div>
+            <div className="bridge-status">
+              <div className="status-label">ARIS_NEURAL_BRIDGE_ACTIVE</div>
+              <div className="status-log">{actionLog}</div>
+              <div className="bridge-progress">
+                <div className="progress-fill shimmer"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <div className="sam-scraper-container">
         {/* Mobile-Optimized Premium Header */}
         <header className="sam-scraper-header">
@@ -211,7 +232,7 @@ const SamScraper = ({ onBack }) => {
           {loading ? (
             <div className="loading-grid">
               {[1, 2, 3, 4].map(i => (
-                <div key={i} className="skeleton-card shimmer" />
+                <div key={i} className="skeleton-card" />
               ))}
             </div>
           ) : searchResults.length > 0 ? (
@@ -241,7 +262,13 @@ const SamScraper = ({ onBack }) => {
                   <div className="card-actions">
                     <button 
                       onClick={() => {
-                        setSelectedContract(result);
+                        setIsActionLoading(true);
+                        setActionLog('INFILTRATING_SAM_DATA_POINTS...');
+                        setTimeout(() => setActionLog('ACCESSING_ENTITY_REGISTRY...'), 400);
+                        setTimeout(() => {
+                          setSelectedContract(result);
+                          setIsActionLoading(false);
+                        }, 800);
                         trackEvent('sam_dossier_view', { businessName: result.businessName });
                       }}
                       className="btn-intel"
@@ -250,8 +277,14 @@ const SamScraper = ({ onBack }) => {
                     </button>
                     <button 
                       onClick={() => {
-                        setSelectedContract(result);
-                        setIsChatOpen(true);
+                        setIsActionLoading(true);
+                        setActionLog('INITIALIZING_AGENTIC_PROTOCOL...');
+                        setTimeout(() => setActionLog('SYNCHRONIZING_CONTEXT_MODELS...'), 600);
+                        setTimeout(() => {
+                          setSelectedContract(result);
+                          setIsChatOpen(true);
+                          setIsActionLoading(false);
+                        }, 1200);
                         trackEvent('sam_agentic_audit_trigger', { businessName: result.businessName });
                       }}
                       className="btn-ai"
@@ -329,9 +362,30 @@ const SamScraper = ({ onBack }) => {
                   <label>CAPABILITY_STATEMENT</label>
                   <p>{selectedContract.capability}</p>
                 </div>
+                <div className="dossier-footer-stats span-2 glass">
+                   <div className="stat">
+                     <label>MATCH_CONFIDENCE</label>
+                     <div className="val">{selectedContract.matchConfidence}%</div>
+                   </div>
+                   <div className="stat">
+                     <label>REGISTRY_STATUS</label>
+                     <div className="val_code">VERIFIED_ACTIVE</div>
+                   </div>
+                   <div className="stat">
+                     <label>LAST_AUDIT</label>
+                     <div className="val_date">2024-03-16</div>
+                   </div>
+                </div>
               </div>
               <div className="modal-footer">
-                <button className="primary-btn" onClick={() => setIsChatOpen(true)}>
+                <button className="primary-btn" onClick={() => {
+                   setIsActionLoading(true);
+                   setActionLog('MAPPING_COMPLIANCE_ALU...');
+                   setTimeout(() => {
+                     setIsChatOpen(true);
+                     setIsActionLoading(false);
+                   }, 800);
+                }}>
                   <Sparkles size={14} />
                   GENERATE_ALU_MATRIX
                 </button>

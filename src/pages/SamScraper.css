@@ -27,6 +27,7 @@
   margin: 0 auto;
   padding: 16px;
   padding-bottom: 100px;
+  position: relative;
 }
 
 /* ── Typography & Tags ── */
@@ -381,6 +382,11 @@ p { color: var(--text-secondary); line-height: 1.6; }
 .full-chat-overlay {
   position: fixed; top: 0; left: 0; right: 0; bottom: 0;
   background: var(--bg-primary); z-index: 2000; display: flex; flex-direction: column;
+  opacity: 0; visibility: hidden; transition: all 0.3s ease;
+}
+
+.full-chat-overlay.visible {
+  opacity: 1; visibility: visible;
 }
 
 .chat_header {
@@ -392,6 +398,131 @@ p { color: var(--text-secondary); line-height: 1.6; }
 .chat_title { display: flex; align-items: center; gap: 12px; font-family: 'Space Mono', monospace; font-size: 14px; color: var(--accent); }
 
 .chat_body { flex: 1; overflow: hidden; }
+
+/* ── Neural Bridge Overlay ── */
+.neural-bridge-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  background: rgba(9, 9, 11, 0.95);
+  backdrop-filter: blur(20px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
+.bridge-content {
+  text-align: center;
+  width: 100%;
+  max-width: 400px;
+}
+
+.ai-icon-wrapper {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 40px;
+}
+
+.ai-icon-wrapper.pulse {
+  animation: bridge-pulse 2s infinite ease-in-out;
+}
+
+.core-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100px;
+  height: 100px;
+  background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+  z-index: -1;
+}
+
+.bridge-status {
+  width: 100%;
+}
+
+.status-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.3em;
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+
+.status-log {
+  font-family: 'Space Mono', monospace;
+  font-size: 13px;
+  color: #fff;
+  margin-bottom: 24px;
+}
+
+.bridge-progress {
+  height: 2px;
+  background: rgba(255, 255, 255, 0.05);
+  width: 100%;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  animation: progress-slide 1.2s infinite linear;
+  transform-origin: left;
+}
+
+.skeleton-card {
+  height: 200px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  animation: pulse-op 1.5s infinite ease-in-out;
+}
+
+@keyframes pulse-op {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.8; }
+}
+
+/* ── Dossier Stats ── */
+.dossier-footer-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 24px;
+  padding: 20px;
+  border-radius: 12px;
+}
+
+.stat label {
+  display: block;
+  font-size: 9px;
+  font-family: 'Space Mono', monospace;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.stat .val, .stat .val_code, .stat .val_date {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.val_code { color: var(--success) !important; font-family: 'Space Mono', monospace; font-size: 12px !important; }
+
+/* ── Keyframes ── */
+@keyframes bridge-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.1); opacity: 1; }
+}
+
+@keyframes progress-slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
 
 /* ── Animations ── */
 /* Animations Removed to Fix Dizzy UI */
