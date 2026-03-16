@@ -28,7 +28,7 @@ const ARISChat = ({ selectedContext, onLog, onCommand, reportData }) => {
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      content: `🎯 **BIDSMITH INTELLIGENCE ACTIVE**\n\nI'm your GovCon AI analyst with full context of the **DHA Video Imaging Archive** solicitation (DHANOISS022426).\n\n**Current Analysis Context:**\n• Agency: Defense Health Agency\n• Risk Score: HIGH (92% confidence)\n• 142 technical requirements detected\n• RMF/ATO compliance requirements identified\n\n**Available Predictive Analyses:**\n• Win probability modeling\n• Competitive positioning\n• Risk mitigation strategies\n• Pricing optimization\n• Technical compliance mapping\n\nSelect a requirement or ask for any predictive analysis.`,
+      content: `🎯 **ARIS_PROTOCOL_INFILTRATION_SUCCESS**\n\nI've deployed our **Stateless Intelligence Bridge** to analyze the solicitation payload.\n\n**Current Mission Context:**\n• Agency: Defense Health Agency\n• Risk Score: HIGH (87% confidence)\n• 142 technical requirements detected\n• RMF/ATO compliance traps identified\n\n**Agentic Pipeline Tools:**\n• Win probability modeling\n• Competitive positioning\n• Risk mitigation strategies\n• Pricing optimization\n• Technical compliance mapping\n\nStanding by for command.`,
       isPredictive: true
     },
   ]);
@@ -247,8 +247,8 @@ const ARISChat = ({ selectedContext, onLog, onCommand, reportData }) => {
               <div className="ai-pulse" />
             </div>
             <div>
-              <span className="title-text">AI PREDICTIVE ANALYSIS</span>
-              <div className="subtitle">ARIS Engine Premium v4.2</div>
+              <span className="title-text">SOVEREIGN INTEL WORKBENCH</span>
+              <div className="subtitle">ARIS Engine Premium v4.2 // STATELESS</div>
             </div>
           </div>
           <div className="status-indicators">
@@ -269,8 +269,8 @@ const ARISChat = ({ selectedContext, onLog, onCommand, reportData }) => {
         <div className="predictive-tools shimmer">
           <div className="tools-header">
             <div className="header-label">
-              <Sparkles size={14} className="sparkle-icon" />
-              <span>PREDICTIVE WORKBENCH</span>
+              <Sparkles size={14} className="sparkle-icon" color="var(--accent)" />
+              <span>INTELLIGENCE_PIPELINE</span>
             </div>
             <button 
               className="tools-toggle glass"

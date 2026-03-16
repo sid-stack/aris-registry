@@ -27,37 +27,37 @@ import Proposal from "./Proposal";
 
 const benefits = [
   {
-    title: "AI Analysis",
-    description: "Our agentic AI 'shreds' 200+ page contracts in seconds to find hidden compliance traps.",
-    icon: <Zap size={42} color="#4338ca" />,
+    title: "Agentic Intelligence",
+    description: "Our proprietary protocol 'shreds' 200+ page technical solicitations to find hidden compliance traps.",
+    icon: <Zap size={42} color="var(--accent)" />,
   },
   {
-    title: "Zero Knowledge",
-    description: "We never see your data. Our architecture makes it impossible for us to store or access your sensitive bids.",
-    icon: <Shield size={42} color="#4338ca" />,
+    title: "Data Sovereignty",
+    description: "Your intellectual property never leaves your session. Our architecture makes it impossible for us to ever see your data.",
+    icon: <Shield size={42} color="var(--accent)" />,
   },
   {
     title: "Stateless Execution",
-    description: "Your data is processed in temporary memory and wiped instantly. No database, no local caching, no leaks.",
-    icon: <Rocket size={42} color="#4338ca" />,
+    description: "Data is processed in transient memory and wiped instantly. No database, no local caching, no leaks. 100% Secure.",
+    icon: <Rocket size={42} color="var(--accent)" />,
   },
 ];
 
 const steps = [
   {
-    title: "Paste your link",
-    description: "Simply paste the SAM.gov link of the job you want.",
-    icon: <Globe size={42} color="#4f46e5" />,
+    title: "Initialize Bridge",
+    description: "Connect your SAM.gov link to our stateless ingestion pipeline.",
+    icon: <Globe size={42} color="var(--accent)" />,
   },
   {
-    title: "Wait 60 seconds",
-    description: "Our AI reads the contract and finds the hidden rules.",
-    icon: <Rocket size={42} color="#4f46e5" />,
+    title: "Sovereign Audit",
+    description: "Our agents parse the logic, identifying FAR/DFARS disqualifiers instantly.",
+    icon: <Rocket size={42} color="var(--accent)" />,
   },
   {
-    title: "Get your report",
-    description: "We tell you if you can win and what risks to avoid.",
-    icon: <FileText size={42} color="#4f46e5" />,
+    title: "Intelligence Output",
+    description: "Secure, proposal-ready Compliance Matrix and Risk memorandum generated in-situ.",
+    icon: <FileText size={42} color="var(--accent)" />,
   },
 ];
 
@@ -490,7 +490,7 @@ export default function Landing({ onEnterApp, onViewSample }) {
             <div style={styles.navInner}>
               <a href="/" style={styles.brand}>
                 <img src="/aris-logo.png" alt="Aris" style={{ height: 22, width: 22, objectFit: "contain" }} />
-                <span>BidSmith</span>
+                <span>ARIS Labs</span>
               </a>
               <nav className="landing-nav-links">
                 <a href="/#solutions" style={styles.navLink}>Solutions</a>
@@ -501,12 +501,12 @@ export default function Landing({ onEnterApp, onViewSample }) {
               </nav>
               <button
                 type="button"
-                aria-label="Start free trial checkout"
+                aria-label="Start Sovereign Intelligence Session"
                 style={styles.navCta}
                 onClick={handleStartTrial}
                 disabled={isProcessing}
               >
-                Start Free
+                Access Terminal
               </button>
             </div>
           </header>
@@ -531,14 +531,15 @@ export default function Landing({ onEnterApp, onViewSample }) {
               </div>
 
               <div style={{ ...styles.heroInner, marginTop: '40px' }}>
-                <h1 style={{ ...styles.title, fontSize: isMobile ? '2rem' : '3.25rem' }}>Stateless Contract Intelligence</h1>
+                <h1 style={{ ...styles.title, fontSize: isMobile ? '2rem' : '3.25rem' }}>Sovereign Intelligence Terminal</h1>
                 <p style={{ ...styles.subtitle, fontSize: isMobile ? '1rem' : '1.25rem' }}>
-                  Shred the 40-hour RFP in 90 seconds. Find risks, check rules, and bid with confidence.
+                  Eliminate the 40-hour RFP shred in 90 seconds. <br/>
+                  Stateless precision for the modern defense contractor.
                 </p>
                 <div style={{ ...styles.heroActions, flexDirection: isMobile ? 'column' : 'row' }}>
-                  <button onClick={handleWorkspaceOpen} style={{ ...styles.primaryCta, width: isMobile ? '100%' : 'auto' }}>Start Free Audit</button>
-                  <button onClick={onViewSample} style={{ ...styles.secondaryCta, width: isMobile ? '100%' : 'auto' }}>See a Sample</button>
-                  <button onClick={handleSamScraperOpen} style={{ ...styles.secondaryCta, width: isMobile ? '100%' : 'auto' }}>Search Contractors</button>
+                  <button onClick={handleWorkspaceOpen} style={{ ...styles.primaryCta, width: isMobile ? '100%' : 'auto', background: 'var(--accent)', color: '#000' }}>Initialize Audit Protocol</button>
+                  <button onClick={onViewSample} style={{ ...styles.secondaryCta, width: isMobile ? '100%' : 'auto' }}>See Sample Report</button>
+                  <button onClick={handleSamScraperOpen} style={{ ...styles.secondaryCta, width: isMobile ? '100%' : 'auto' }}>Contractor Intel</button>
                 </div>
               </div>
             </div>
@@ -750,7 +751,7 @@ export default function Landing({ onEnterApp, onViewSample }) {
 
             <div style={styles.footerBottomRow}>
               <div style={styles.footerCopyright}>
-                © 2026 BidSmith, Inc. All rights reserved.
+                © 2026 ARIS Labs. Built on the Stateless Bridge.
               </div>
               <div style={styles.footerSocialIcons}>
                 <a href="https://linkedin.com/company/aris-labs" target="_blank" rel="noopener noreferrer" style={styles.footerSocialLink}>
@@ -812,9 +813,9 @@ const styles = {
   },
   page: {
     minHeight: "100vh",
-    background: "#09090b",
+    background: "#050505",
     color: "#e4e4e7",
-    fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    fontFamily: "'JetBrains Mono', 'Inter', monospace",
   },
   hero: {
     padding: "72px 20px 56px",
@@ -1252,11 +1253,11 @@ const TerminalSequence = () => {
   const [inputValue, setInputValue] = useState('');
   
   const bootLogs = [
-    "ARIS OS v1.1 : INITIALIZED",
-    "PROTOCOL : STATELESS_BRIDGE",
+    "ARIS_OS_TERMINAL_v1.1 : INITIALIZED",
+    "PROTOCOL : STATELESS_INTELLIGENCE_BRIDGE",
     "DECOY_READY : ACTIVE",
-    "MERCURY_2_DIFFUSION_ACTIVE // ZERO_KNOWLEDGE_READY",
-    "ANALYSIS COMPLETE. SYSTEM PURGE IN 120s."
+    "SOVEREIGN_AUDIT_PROTOCOL_ENGAGED // ZERO_KNOWLEDGE_S0V",
+    "ANALYSIS COMPLETE. AGENTIC PURGE IN 120s."
   ];
 
   useEffect(() => {
@@ -1287,7 +1288,7 @@ const TerminalSequence = () => {
             type="text"
             value={inputValue}
             onChange={e => setInputValue(e.target.value)}
-            placeholder="[ Enter SAM.gov Link to Shred ]"
+            placeholder="[ Initializing Sovereign Intelligence Session ]"
             style={styles.terminalInput}
             autoFocus
             onKeyDown={(e) => {
