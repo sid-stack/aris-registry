@@ -87,14 +87,16 @@ const NavBar = ({ theme, onToggleTheme, onBack }) => {
       <div className="navbar-actions">
 
         {/* Theme toggle */}
-        <button
-          className="theme-toggle"
-          onClick={onToggleTheme}
-          title={isDark ? 'Light mode' : 'Dark mode'}
-        >
-          {isDark ? <Sun size={11} /> : <Moon size={11} />}
-          <span className="nav-btn-label">{isDark ? 'LIGHT' : 'DARK'}</span>
-        </button>
+        {onToggleTheme && (
+          <button
+            className="theme-toggle"
+            onClick={onToggleTheme}
+            title={isDark ? 'Light mode' : 'Dark mode'}
+          >
+            {isDark ? <Sun size={11} /> : <Moon size={11} />}
+            <span className="nav-btn-label">{isDark ? 'LIGHT' : 'DARK'}</span>
+          </button>
+        )}
 
         {/* PDF */}
         <button
