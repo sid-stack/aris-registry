@@ -29,6 +29,9 @@ function FaqItem({ question, answer, open, onToggle }) {
         overflow: "hidden",
         marginBottom: "12px",
         transition: "all 0.2s ease-in-out",
+        width: "100%",
+        maxWidth: "100%",
+        boxSizing: "border-box"
       }}
     >
       <button
@@ -46,7 +49,9 @@ function FaqItem({ question, answer, open, onToggle }) {
           border: "none",
           cursor: "pointer",
           minHeight: "44px", // Industry standard touch target
-          boxSizing: "border-box"
+          boxSizing: "border-box",
+          overflow: "hidden",
+          maxWidth: "100%"
         }}
       >
         <span
@@ -76,7 +81,13 @@ function FaqItem({ question, answer, open, onToggle }) {
             wordWrap: "break-word",
             overflowWrap: "break-word",
             hyphens: "auto",
-            paddingRight: "8px"
+            paddingRight: "8px",
+            minWidth: 0, // Important for flexbox text truncation
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical"
           }}
         >
           {question}
@@ -103,10 +114,14 @@ function FaqItem({ question, answer, open, onToggle }) {
           transition: "all 0.3s ease-in-out",
         }}
       >
-        <div style={{ overflow: "hidden" }}>
+        <div style={{ 
+          overflow: "hidden",
+          width: "100%",
+          maxWidth: "100%"
+        }}>
           <div
             style={{
-              padding: "0 20px 20px 62px",
+              padding: "0 clamp(12px, 3vw, 20px) clamp(12px, 3vw, 20px) clamp(40px, 8vw, 62px)",
               margin: 0,
               fontSize: "clamp(0.85rem, 2vw, 0.95rem)",
               lineHeight: 1.6,
@@ -114,11 +129,22 @@ function FaqItem({ question, answer, open, onToggle }) {
               fontFamily: "'Inter', sans-serif",
               wordWrap: "break-word",
               overflowWrap: "break-word",
-              hyphens: "auto"
+              hyphens: "auto",
+              width: "100%",
+              maxWidth: "100%",
+              boxSizing: "border-box",
+              overflow: "hidden"
             }}
           >
             {answer.split('\n').map((paragraph, idx) => (
-              <p key={idx} style={{ margin: "0 0 8px 0" }}>
+              <p key={idx} style={{ 
+                margin: "0 0 8px 0",
+                wordWrap: "break-word",
+                overflowWrap: "break-word",
+                hyphens: "auto",
+                maxWidth: "100%",
+                overflow: "hidden"
+              }}>
                 {paragraph}
               </p>
             ))}
