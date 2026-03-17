@@ -289,35 +289,18 @@ export default function Landing({ onEnterApp, onViewSample }) {
   const openCheckout = async (source, plan) => {
     if (isProcessing) return;
     setIsProcessing(true);
-    trackEvent("checkout_click", { source, plan_name: plan.title || plan.key || "trial" });
-    
-    // Call the dynamic checkout API for our core plans
-    if (plan.key === "standard" || plan.key === "enterprise") {
-      try {
-        const estimatedValue = plan.key === "enterprise" ? "15M" : "1M";
-        const resp = await fetch("/api/create-dynamic-checkout-session", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            estimatedValue,
-            packType: plan.key,
-            opportunityTitle: `${plan.title} Purchase`
-          }),
-        });
-        
-        const data = await resp.json();
-        if (data.url) {
-          window.location.href = data.url;
-          return;
-        } else {
-          throw new Error(data.error || "Checkout failed");
-        }
-      } catch (err) {
-        console.error("Checkout error:", err);
-        alert("Secure checkout bridge failed. Please try again or contact support.");
-        setIsProcessing(false);
-        return;
-      }
+
+    // Track checkout initiation
+    trackKPI("checkout_initiated", { 
+      source, 
+      plan: plan.key, 
+      price: plan.price 
+    });
+
+    // For direct Stripe links, just redirect
+    if (plan.buttonLink && plan.buttonLink.startsWith('https://buy.stripe.com/')) {
+      window.location.href = plan.buttonLink;
+      return;
     }
 
     // For other plans (e.g., legacy or contact-based), handle as before
