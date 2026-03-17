@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import ARISChat from "../components/dashboard/ARISChat";
 import NavBar from "../components/dashboard/NavBar";
 import SecurityToggle from "../components/dashboard/SecurityToggle";
+import GovernmentBanner from "../components/GovernmentBanner";
+import './GovernmentBanner.css';
 import { 
   Zap, 
   ShieldCheck, 
@@ -685,6 +687,9 @@ export default function Audit({ onBack }) {
   return (
     <div className="audit-page-container aris-audit-workspace">
       <NavBar theme="dark" onToggleTheme={null} onBack={onBack} />
+      
+      {/* Government Data Sources Banner */}
+      <GovernmentBanner />
       
       {!result && !isLoading ? (
         <div className="ingestion-view">
