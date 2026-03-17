@@ -16,6 +16,7 @@ import SurveyAnalytics from "./components/SurveyAnalytics";
 import DemoAnalytics from "./components/DemoAnalytics";
 import NotFound from "./pages/NotFound";
 import ConsentBanner from "./components/ConsentBanner";
+import PlausibleBadge from "./components/PlausibleBadge";
 import { trackPageView } from "./utils/analytics";
 
 export default function App() {
@@ -158,6 +159,7 @@ export default function App() {
     <>
       {content}
       <ConsentBanner />
+      <PlausibleBadge showDetails={view === "audit"} />
     </>
   );
 }

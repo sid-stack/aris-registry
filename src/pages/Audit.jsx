@@ -27,7 +27,13 @@ import {
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { trackEvent } from "../utils/analytics";
+import { 
+  trackEvent, 
+  trackAuditStart, 
+  trackAuditComplete,
+  trackLinkAnalysis,
+  trackPdfUpload
+} from "../utils/analytics";
 import "../styles/Dashboard.css";
 import "./Audit.css";
 
@@ -493,7 +499,7 @@ export default function Audit({ onBack }) {
     setResult(null);
     setReport(null);
     addLog(`INITIATING_AUDIT_ON: ${finalUrl.split('/').pop()}`, "info");
-    trackEvent("audit_start", { url: finalUrl });
+    trackAuditStart();
     
     // Simulate streaming logs
     const stages = PIPELINE_LOGS.slice(0, -1);
@@ -516,7 +522,7 @@ export default function Audit({ onBack }) {
         setDynamicPrice(price);
         streamReport(data);
         addLog("INTELLIGENCE_SYNTHESIS_COMPLETE", "success");
-        trackEvent("audit_success", { url: finalUrl, title: data.title });
+        trackAuditComplete();
         setIsLoading(false);
       }, 7000); // Allow logs to play out
 

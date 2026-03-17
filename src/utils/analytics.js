@@ -2,6 +2,13 @@ import {
   ANALYTICS_CONSENT_EVENT,
   ANALYTICS_CONSENT_KEY,
 } from "./consent";
+import { 
+  initPlausible, 
+  trackPlausiblePageView, 
+  trackPlausibleEvent, 
+  trackPlausibleGoal,
+  PlausibleEvents
+} from "./plausible";
 
 const measurementId = import.meta.env.VITE_GA4_MEASUREMENT_ID;
 
@@ -41,8 +48,9 @@ function loadGtagScript() {
 }
 
 export function initAnalytics() {
-  if (!canTrack() || initialized || !hasConsent()) return;
+  if (!canTrack() || !hasConsent()) return;
 
+  // Initialize Google Analytics if available
   if (measurementId) {
     loadGtagScript();
     window.dataLayer = window.dataLayer || [];
@@ -54,7 +62,12 @@ export function initAnalytics() {
       anonymize_ip: true,
       send_page_view: false,
     });
+    console.log('[Analytics] Google Analytics initialized');
   }
+
+  // Initialize Plausible Analytics
+  initPlausible();
+
   initialized = true;
 }
 
@@ -82,6 +95,7 @@ export function trackPageView(path) {
   const event = (path.includes('sam-rep') || path.includes('audit')) ? 'demo_view' : 'page_view';
   sovereignTrack(event, 0, { path });
 
+  // Track with Google Analytics
   if (initialized && window.gtag && measurementId) {
     window.gtag("event", "page_view", {
       page_path: path,
@@ -89,6 +103,9 @@ export function trackPageView(path) {
       page_title: document.title,
     });
   }
+
+  // Track with Plausible Analytics
+  trackPlausiblePageView(path);
 }
 
 export function trackEvent(name, params = {}) {
@@ -96,9 +113,54 @@ export function trackEvent(name, params = {}) {
   
   sovereignTrack(name, params.value || 0, params);
 
+  // Track with Google Analytics
   if (initialized && window.gtag && measurementId) {
     window.gtag("event", name, params);
   }
+
+  // Track with Plausible Analytics
+  trackPlausibleEvent(name, params);
+}
+
+// Enhanced tracking functions for ARIS-specific events
+export function trackAuditStart() {
+  trackEvent(PlausibleEvents.AUDIT_STARTED, { category: 'Audit' });
+}
+
+export function trackAuditComplete() {
+  trackEvent(PlausibleEvents.AUDIT_COMPLETED, { category: 'Audit' });
+}
+
+export function trackSamScrape() {
+  trackEvent(PlausibleEvents.SAM_SCRAPE, { category: 'Scraping' });
+}
+
+export function trackLinkAnalysis() {
+  trackEvent(PlausibleEvents.LINK_ANALYSIS, { category: 'Analysis' });
+}
+
+export function trackPdfUpload() {
+  trackEvent(PlausibleEvents.PDF_UPLOAD, { category: 'Upload' });
+}
+
+export function trackTrialStart() {
+  trackEvent(PlausibleEvents.TRIAL_STARTED, { category: 'Conversion' });
+}
+
+export function trackCheckoutInitiated(amount = 0) {
+  trackEvent(PlausibleEvents.CHECKOUT_INITIATED, { 
+    category: 'Conversion',
+    value: amount 
+  });
+  trackPlausibleGoal(PlausibleEvents.CHECKOUT_INITIATED, amount);
+}
+
+export function trackSubscriptionUpgrade(plan = 'unknown') {
+  trackEvent(PlausibleEvents.SUBSCRIPTION_UPGRADE, { 
+    category: 'Conversion',
+    plan 
+  });
+  trackPlausibleGoal(PlausibleEvents.SUBSCRIPTION_UPGRADE);
 }
 
 export function registerConsentListener() {
