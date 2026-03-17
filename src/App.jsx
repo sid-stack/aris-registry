@@ -17,6 +17,7 @@ import DemoAnalytics from "./components/DemoAnalytics";
 import NotFound from "./pages/NotFound";
 import ConsentBanner from "./components/ConsentBanner";
 import PlausibleBadge from "./components/PlausibleBadge";
+import ErrorBoundary from "./components/ErrorBoundary";
 import { trackPageView } from "./utils/analytics";
 
 export default function App() {
@@ -156,10 +157,10 @@ export default function App() {
   }
 
   return (
-    <>
+    <ErrorBoundary reloadOnRetry={false}>
       {content}
       <ConsentBanner />
       <PlausibleBadge showDetails={view === "audit"} />
-    </>
+    </ErrorBoundary>
   );
 }
