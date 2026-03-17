@@ -441,22 +441,18 @@ const ARISChat = ({ selectedContext, onLog, onCommand, reportData }) => {
         <div ref={bottomRef} />
       </div>
 
-      {/* Minimalist Input Area */}
+      {/* Ultra-Minimalist Input Area */}
       <div style={{ 
         padding: '16px',
-        borderTop: '1px solid var(--border)',
         background: 'var(--card)'
       }}>
         <div style={{ 
           display: 'flex', 
           gap: '8px', 
-          alignItems: 'center',
-          maxWidth: '100%'
+          alignItems: 'center'
         }}>
           <textarea 
             ref={inputRef}
-            placeholder=""
-            className="chat-input"
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => {
@@ -495,8 +491,7 @@ const ARISChat = ({ selectedContext, onLog, onCommand, reportData }) => {
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              minHeight: '44px',
-              whiteSpace: 'nowrap'
+              minHeight: '44px'
             }}
           >
             {loading ? (
