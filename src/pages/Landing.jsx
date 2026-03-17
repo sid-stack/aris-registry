@@ -18,6 +18,7 @@ import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import FaqSection from "../components/FaqSection";
+import GovernmentBanner from "../components/GovernmentBanner";
 import "./Landing.css";
 import { trackEvent } from "../utils/analytics";
 import PricingCard from "../components/PricingCard";
@@ -547,6 +548,8 @@ export default function Landing({ onEnterApp, onViewSample }) {
               </div>
             </div>
           </section>
+
+          <GovernmentBanner />
 
           <section id="markets" style={styles.sectionMuted} data-reveal>
             <div style={styles.sectionInner}>
