@@ -246,8 +246,8 @@ const ARISChat = ({ selectedContext, onLog, onCommand, reportData }) => {
 
   return (
     <div className="studio-workbench aris-chat-enhanced">
-      {/* Chat Header */}
-      <div className="chat-header">
+      {/* Chat Header - Minimalist on Mobile */}
+      <div className="chat-header mobile-minimal">
         <div className="chat-title">
           <div className="title-left">
             <div className="ai-icon-wrapper">
@@ -255,11 +255,11 @@ const ARISChat = ({ selectedContext, onLog, onCommand, reportData }) => {
               <div className="ai-pulse" />
             </div>
             <div>
-              <span className="title-text">SOVEREIGN INTEL WORKBENCH</span>
-              <div className="subtitle">ARIS Engine Premium v4.2 // STATELESS</div>
+              <span className="title-text">SOVEREIGN INTEL</span>
+              <div className="subtitle hide-mobile">ARIS Engine Premium v4.2 // STATELESS</div>
             </div>
           </div>
-          <div className="status-indicators">
+          <div className="status-indicators hide-mobile">
             <div className="status-item glass">
               <Activity size={12} className="status-active" />
               <span>CONTEXT_LIVE</span>
@@ -272,9 +272,9 @@ const ARISChat = ({ selectedContext, onLog, onCommand, reportData }) => {
         </div>
       </div>
 
-      {/* Predictive Tools Bar */}
+      {/* Predictive Tools Bar - Hidden on Mobile for Minimalism */}
       {showPredictiveTools && (
-        <div className="predictive-tools shimmer">
+        <div className="predictive-tools shimmer hide-mobile">
           <div className="tools-header">
             <div className="header-label">
               <Sparkles size={14} className="sparkle-icon" color="var(--accent)" />
@@ -288,44 +288,6 @@ const ARISChat = ({ selectedContext, onLog, onCommand, reportData }) => {
             </button>
           </div>
           <div className="tools-grid">
-            {/* TEMPORARILY DISABLED PREDICTIVE ANALYSIS BUTTONS */}
-            {/* <button 
-              className="analysis-btn win-probability"
-              onClick={() => runPredictiveAnalysis('winProbability')}
-              disabled={loading}
-            >
-              <Target size={18} />
-              <span>Win Probability</span>
-              <div className="confidence-badge">78%</div>
-            </button>
-            <button 
-              className="analysis-btn risk-mitigation"
-              onClick={() => runPredictiveAnalysis('riskMitigation')}
-              disabled={loading}
-            >
-              <ShieldCheck size={18} />
-              <span>Risk Mitigation</span>
-              <div className="confidence-badge">85%</div>
-            </button>
-            <button 
-              className="analysis-btn pricing"
-              onClick={() => runPredictiveAnalysis('pricingOptimization')}
-              disabled={loading}
-            >
-              <DollarSign size={18} />
-              <span>Pricing</span>
-              <div className="confidence-badge">72%</div>
-            </button>
-            <button 
-              className="analysis-btn competitive"
-              onClick={() => runPredictiveAnalysis('competitivePositioning')}
-              disabled={loading}
-            >
-              <BarChart3 size={18} />
-              <span>Competitive</span>
-              <div className="confidence-badge">68%</div>
-            </button> */}
-            
             <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>
               <small>Analysis tools temporarily disabled</small>
             </div>
