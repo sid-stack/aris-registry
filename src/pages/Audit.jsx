@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
-import ARISChat from "../components/dashboard/ARISChat";
 import NavBar from "../components/dashboard/NavBar";
 import SecurityToggle from "../components/dashboard/SecurityToggle";
 import GovernmentBanner from "../components/GovernmentBanner";
-import './GovernmentBanner.css';
+import "../components/GovernmentBanner.css";
 import { 
   Zap, 
   ShieldCheck, 
@@ -823,16 +822,7 @@ export default function Audit({ onBack }) {
             </div>
           </main>
 
-          {/* Right: AI Assistant */}
-          <aside className="sovereign-panel sovereign-right">
-            <div className="panel-header">
-              <Cpu size={14} /> Compliance Assistant
-            </div>
-            <div style={{ flex: 1, overflow: 'hidden' }}>
-              <ARISChat reportData={result} />
-            </div>
-          </aside>
-        </div>
+          </div>
       )}
 
       {/* Vault Status Bar */}
