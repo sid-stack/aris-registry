@@ -45,9 +45,9 @@ const PIPELINE_LOGS = [
   "PARSING_SOLICITATION_STRUCTURE...",
   "IDENTIFYING_COMPLIANCE_FRICITION...",
   "EXTRACTING_SECTION_L_REQUIREMENTS...",
-  "RUNNING_RISK_MODELS...",
-  "FINALIZING_ZERO_KNOWLEDGE_REPORT...",
-  "AUDIT_COMPLETE_PIPELINE_IDLE"
+  "EXECUTING_REGULATORY_CROSS_CHECK...",
+  "GENERATING_REMEDIATION_MATRIX...",
+  "AUDIT_COMPLETE_IDLE"
 ];
 
 // ── SOVEREIGN INTELLIGENCE WORKBENCH COMPONENTS ──
@@ -81,7 +81,7 @@ const LogTerminal = ({ pipelineStatus }) => {
   return (
     <div className="log-terminal">
       <div className="terminal-header">
-        <span className="terminal-title">AGENTIC PURGE TERMINAL</span>
+        <span className="terminal-title">SYSTEM AUDIT LOG</span>
         <div className="terminal-indicators">
           <div className="indicator active"></div>
           <div className="indicator"></div>
@@ -495,6 +495,39 @@ export default function Audit({ onBack }) {
     }
   };
 
+  const handleExportExcel = async () => {
+    if (!result || !result.compliance) {
+      addLog("NO_COMPLIANCE_DATA_TO_EXPORT", "error");
+      return;
+    }
+
+    addLog("GENERATING_INDUSTRIAL_RTM_MATRIX...", "info");
+    
+    try {
+      const res = await fetch("/api/export-rtm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ complianceData: result.compliance }),
+      });
+      
+      if (!res.ok) throw new Error("EXCEL_GEN_FAILURE");
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `ARIS_Compliance_Matrix_${result.id || 'Audit'}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      
+      addLog("RTM_EXPORT_SUCCESSFUL", "success");
+      trackEvent('rtm_export_complete', { solicitation_id: result.id });
+    } catch (e) {
+      addLog(`EXPORT_FATAL: ${e.message.toUpperCase()}`, "error");
+    }
+  };
+
   const startAudit = async (url) => {
     const finalUrl = url || samUrl;
     if (!finalUrl.trim()) return;
@@ -613,16 +646,16 @@ export default function Audit({ onBack }) {
   };
 
   return (
-    <div className="audit-page-container sovereign-intelligence-workbench">
+    <div className="audit-page-container aris-audit-workspace">
       <NavBar theme="dark" onToggleTheme={null} onBack={onBack} />
       
       {!result && !isLoading ? (
         <div className="ingestion-view">
           <div className="ingestion-hero">
             <Activity className="cyber-glow" size={40} color="var(--accent)" />
-            <h1 style={{ fontSize: '2.5rem', fontWeight: 900, marginTop: '24px' }}>Sovereign Intelligence Workbench</h1>
+            <h1 style={{ fontSize: '2.5rem', fontWeight: 900, marginTop: '24px' }}>Stateless Audit Workspace</h1>
             <p style={{ color: 'var(--text-secondary)', marginTop: '16px' }}>
-              Mercury 2 Engine • Zero-Knowledge Analysis • Palantir-Grade Intelligence
+              ARIS Core • Zero-Knowledge Analysis • Federal Compliance Engine
             </p>
             
             <div className="cyber-input-wrapper">
@@ -674,13 +707,13 @@ export default function Audit({ onBack }) {
           {/* Center: Main Intelligence Workbench */}
           <main className="sovereign-panel sovereign-center">
             <div className="panel-header">
-              <ShieldCheck size={14} /> Intelligence Workbench
+              <ShieldCheck size={14} /> Audit Canvas
             </div>
             <div className="panel-content">
               {isLoading ? (
                 <div style={{ padding: '40px', textAlign: 'center' }}>
                   <div className="spinner-outer" style={{ margin: '0 auto 40px' }} />
-                  <h2 style={{ fontSize: '20px', fontWeight: 800 }}>MERCURY 2 INTELLIGENCE ACTIVE</h2>
+                  <h2 style={{ fontSize: '20px', fontWeight: 800 }}>ANALYSIS ACTIVE</h2>
                   <PipelineTerminal logs={logs} active={isLoading} />
                 </div>
               ) : (
@@ -694,12 +727,12 @@ export default function Audit({ onBack }) {
                     winProbability={0.13} 
                   />
                   
-                  {/* Critical Alert */}
-                  <div className="critical-alert">
-                    <AlertTriangle size={24} color="#FF3E3E" />
+                  {/* System finding */}
+                  <div className="critical-alert" style={{ background: 'rgba(255, 62, 62, 0.05)', border: '1px solid rgba(255, 62, 62, 0.2)' }}>
+                    <AlertTriangle size={20} color="#FF3E3E" />
                     <div className="alert-content">
-                      <h4>IL4 ATO CITATION MISSING (DQ RISK: 93%)</h4>
-                      <p>DHA/DISA JSP reciprocity agreement not cited in Section L.3.2. Technical Approach score will be disqualified regardless of AI capabilities.</p>
+                      <h4 style={{ fontSize: '12px', fontWeight: 800 }}>FINDING: MISSING_IL4_ATO_CITATION</h4>
+                      <p style={{ fontSize: '12px', color: '#a1a1aa' }}>DHA/DISA JSP reciprocity agreement not identified in Section L.3.2. High probability of technical disqualification for mission-critical systems.</p>
                     </div>
                   </div>
 
@@ -709,6 +742,24 @@ export default function Audit({ onBack }) {
                     price={dynamicPrice} 
                     isLoading={isCheckoutLoading}
                   />
+
+                  {/* Excel Export Action */}
+                  <div style={{ marginTop: '20px', padding: '16px', border: '1px solid rgba(255, 255, 255, 0.05)', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.02)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <h4 style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-primary)' }}>Compliance Matrix (RTM)</h4>
+                        <p style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Industrial-grade traceability for Section L/M requirements.</p>
+                      </div>
+                      <button 
+                        className="cyber-btn" 
+                        onClick={handleExportExcel}
+                        style={{ padding: '8px 16px', fontSize: '12px', minWidth: '140px' }}
+                      >
+                        <FileText size={14} style={{ marginRight: '8px' }} />
+                        EXPORT .XLSX
+                      </button>
+                    </div>
+                  </div>
                   
                   {/* Report Section */}
                   {report?.proposal_draft && (
@@ -733,7 +784,7 @@ export default function Audit({ onBack }) {
           {/* Right: AI Assistant */}
           <aside className="sovereign-panel sovereign-right">
             <div className="panel-header">
-              <Cpu size={14} /> Mercury 2 Engine
+              <Cpu size={14} /> Compliance Assistant
             </div>
             <div style={{ flex: 1, overflow: 'hidden' }}>
               <ARISChat reportData={result} />
@@ -745,9 +796,9 @@ export default function Audit({ onBack }) {
       {/* Vault Status Bar */}
       <div className="vault-status-bar">
         <div className="vault-glow flash" />
-        <span>SOVEREIGN_VAULT: ENCRYPTED</span>
+        <span>SECURE_VAULT: ENCRYPTED</span>
         <span style={{ opacity: 0.3 }}>|</span>
-        <span style={{ color: 'var(--text-secondary)' }}>MERCURY_2_PROTOCOL_ACTIVE</span>
+        <span style={{ color: 'var(--text-secondary)' }}>ARIS_PROTOCOL_ACTIVE</span>
       </div>
     </div>
   );

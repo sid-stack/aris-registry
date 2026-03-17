@@ -7,6 +7,7 @@ import { readFileSync, existsSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import Stripe from "stripe";
+import { spawn } from "child_process";
 
 // ─── Environment Setup ────────────────────────────────────────────────────────
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -2402,6 +2403,42 @@ app.post("/api/pulse-check", asyncHandler(async (req, res) => {
       message: err.message 
     });
   }
+}));
+
+app.post("/api/export-rtm", asyncHandler(async (req, res) => {
+  const complianceData = req.body?.complianceData;
+  if (!complianceData || !Array.isArray(complianceData)) {
+    return res.status(400).json({ error: "Missing or invalid complianceData" });
+  }
+
+  const bridgePath = join(__dirname, "..", "rfp-engine", "utils", "export_bridge.py");
+  const pythonProcess = spawn("python3", [bridgePath]);
+
+  let excelBuffer = [];
+  let errorOutput = "";
+
+  pythonProcess.stdin.write(JSON.stringify(complianceData));
+  pythonProcess.stdin.end();
+
+  pythonProcess.stdout.on("data", (data) => {
+    excelBuffer.push(data);
+  });
+
+  pythonProcess.stderr.on("data", (data) => {
+    errorOutput += data.toString();
+  });
+
+  pythonProcess.on("close", (code) => {
+    if (code !== 0) {
+      console.error("[/api/export-rtm] Python error:", errorOutput);
+      return res.status(500).json({ error: "Excel generation failed", detail: errorOutput });
+    }
+
+    const finalBuffer = Buffer.concat(excelBuffer);
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", "attachment; filename=Compliance_Matrix.xlsx");
+    res.send(finalBuffer);
+  });
 }));
 
 app.get("/favicon.ico", (req, res) => res.status(204).end());
