@@ -18,7 +18,7 @@ export const GTM_PRICING_PLANS = [
     price: "$299",
     description: "Deep-shred analysis for high-value solicitations, including capture strategy and win themes.",
     buttonLabel: "Initialize Audit",
-    buttonLink: "https://buy.stripe.com/3cIaEX66197ad9H9na2Fa00", // TODO: Create separate $299 payment link
+    buttonLink: "https://buy.stripe.com/cNibJ19id8369XvfLy2Fa01",
     tier: "enterprise"
   }
 ];
