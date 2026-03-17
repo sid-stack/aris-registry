@@ -513,7 +513,14 @@ export default function Audit({ onBack }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: finalUrl.trim() }),
       });
-      const data = await res.json();
+      
+      let data;
+      try {
+        data = await res.json();
+      } catch (jsonErr) {
+        throw new Error("SERVER_COMMUNICATION_FORMAT_ERROR: GATEWAY RETURNED NON-JSON RESPONSE.");
+      }
+
       if (!res.ok) throw new Error(data.error || "WE COULD NOT ACCESS GATEWAY. TRY DIRECT UPLOAD.");
       
       setTimeout(() => {
@@ -527,8 +534,13 @@ export default function Audit({ onBack }) {
       }, 7000); // Allow logs to play out
 
     } catch (e) {
-      setError(e.message);
-      addLog(`PIPELINE_FATAL_ERROR: ${e.message}`, "error");
+      const errMsg = e.message || "UNKNOWN_PIPELINE_ERROR";
+      if (typeof setError === 'function') {
+        setError(errMsg);
+      } else {
+        console.error("CRITICAL: setError is NOT A FUNCTION", e);
+      }
+      addLog(`PIPELINE_FATAL_ERROR: ${errMsg}`, "error");
       setIsLoading(false);
     }
   };

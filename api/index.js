@@ -1469,8 +1469,12 @@ app.post("/api/analyze-link", analyzeLinkLimiter, asyncHandler(async (req, res) 
       }
       samData = await samRes.json();
     } catch (e) {
-      console.error(`[/api/analyze-link] Fetch failed:`, e);
-      return res.status(502).json({ error: "Failed to reach SAM.gov API", instruction: "Manual upload required", details: e.message });
+      console.error(`[/api/analyze-link] SAM.gov fetch failed for ${noticeId}:`, e.message);
+      return res.status(502).json({ 
+        error: "COMMUNICATION_FAILURE", 
+        instruction: "FAILED TO REACH FEDERAL GATEWAY. TRY DIRECT UPLOAD.", 
+        details: e.message 
+      });
     }
 
     const opportunity = samData?.opportunitiesData?.[0];
@@ -1545,7 +1549,16 @@ app.post("/api/analyze-link", analyzeLinkLimiter, asyncHandler(async (req, res) 
       try {
         console.log(`[/api/analyze-link] Downloading: ${target.name}`);
         const buffer = await downloadWithRetry(downloadUrl);
-        auditText = await parsePDF(buffer);
+        try {
+          auditText = await parsePDF(buffer);
+        } catch (pdfErr) {
+          console.error(`[/api/analyze-link] parsePDF failed for ${target.name}:`, pdfErr.message);
+          return res.status(422).json({
+            error: "PARSING_FAILURE",
+            instruction: "WE COULD NOT PARSE THIS PDF AUTOMATICALLY. PLEASE SHRED LOCALLY AND UPLOAD TEXT.",
+            details: `PDF parsing engine failed: ${pdfErr.message}`
+          });
+        }
         primaryDoc = target.name;
         source = "pdf";
         console.log(`[/api/analyze-link] PDF extracted: ${auditText.length} chars`);
