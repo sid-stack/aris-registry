@@ -1067,6 +1067,23 @@
   font-size: 13px;
   line-height: 1.6;
   color: var(--text-primary);
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.report-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+  display: block;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.report-content td, .report-content th {
+  padding: 10px;
+  border: 1px solid var(--border);
+  min-width: 120px;
 }
 
 .terminate-btn {
@@ -1371,4 +1388,49 @@
 .cyber-btn:hover {
   transform: scale(1.02);
   box-shadow: 0 0 20px var(--accent-glow);
+}
+
+/* ── Additional Mobile Enhancements ── */
+@media (max-width: 768px) {
+  .hide-mobile {
+    display: none !important;
+  }
+  
+  .title-text {
+    font-size: 14px !important;
+  }
+  
+  .chat-header.mobile-minimal {
+    padding: 8px 12px;
+  }
+
+  .sovereign-intelligence-workbench h1 {
+    font-size: 1.8rem !important;
+  }
+
+  .ingestion-hero {
+    padding: 40px 16px !important;
+  }
+
+  /* Fix for broken UI on SAM reports */
+  .report-section {
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
+  .report-content {
+    font-size: 12px;
+  }
+
+  /* Make components feel more 'lovely' and cohesive on mobile */
+  .sovereign-panel {
+    margin-bottom: 12px;
+    background: rgba(5, 7, 10, 0.95);
+    border: 1px solid rgba(0, 255, 194, 0.15);
+  }
+
+  .cyber-btn {
+    padding: 14px;
+    font-size: 14px;
+  }
 }
