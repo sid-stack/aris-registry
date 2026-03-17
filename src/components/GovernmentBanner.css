@@ -48,7 +48,7 @@
   align-items: center;
   gap: 14px;
   width: max-content;
-  animation: scroll-right 34s linear infinite;
+  animation: scroll-left 34s linear infinite;
   will-change: transform;
 }
 
@@ -86,13 +86,13 @@
   font-size: 0.82rem;
 }
 
-@keyframes scroll-right {
+@keyframes scroll-left {
   0% {
-    transform: translateX(-50%);
+    transform: translateX(0);
   }
 
   100% {
-    transform: translateX(0);
+    transform: translateX(-50%);
   }
 }
 
