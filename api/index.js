@@ -1274,8 +1274,65 @@ app.post("/api/audit", upload.single("file"), asyncHandler(async (req, res) => {
   }
 }));
 
+// ─── Stripe Webhook Handler ───────────────────────────────────────────────
+app.post("/api/stripe-webhook", express.raw({ type: 'application/json' }), asyncHandler(async (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  
+  if (!webhookSecret) {
+    console.warn("[/api/stripe-webhook] STRIPE_WEBHOOK_SECRET not configured");
+    return res.status(500).json({ error: "Webhook secret not configured" });
+  }
+
+  let event;
+  try {
+    event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+  } catch (err) {
+    console.error("[/api/stripe-webhook] Webhook signature verification failed:", err.message);
+    return res.status(400).json({ error: `Webhook Error: ${err.message}` });
+  }
+
+  // Handle successful checkout
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object;
+    const clientIP = session.client_reference_id;
+    
+    if (clientIP && clientIP.startsWith('ip_')) {
+      const ip = clientIP.replace('ip_', '');
+      const usage = checkUsageLimit(ip);
+      usage.hasPaid = true;
+      
+      console.log(`[/api/stripe-webhook] Payment completed for IP ${ip} - unlimited access granted`);
+    }
+  }
+
+  res.json({ received: true });
+}));
+
 // ─── /api/analyze-link — SAM.gov URL → Full Audit Pipeline ───────────────────
 const noticeCache = new Map();
+
+// IP-based usage tracking
+const ipUsage = new Map(); // In production, use Redis or database
+
+function checkUsageLimit(clientIP) {
+  const now = new Date();
+  const currentMonth = `${now.getFullYear()}-${now.getMonth()}`;
+  
+  if (!ipUsage.has(clientIP)) {
+    ipUsage.set(clientIP, { month: currentMonth, count: 0, hasPaid: false });
+  }
+  
+  const usage = ipUsage.get(clientIP);
+  
+  // Reset monthly counter
+  if (usage.month !== currentMonth) {
+    usage.month = currentMonth;
+    usage.count = 0;
+  }
+  
+  return usage;
+}
 
 function parseNoticeId(url) {
   const oppMatch = url.match(/\/opp\/([a-f0-9]{32})/i);
@@ -1347,6 +1404,22 @@ app.post("/api/analyze-link", analyzeLinkLimiter, asyncHandler(async (req, res) 
       return res.status(500).json({ 
         error: "Server configuration incomplete", 
         details: "OpenRouter API key not configured. Please set OPENROUTER_API_KEY environment variable." 
+      });
+    }
+
+    // Check usage limits
+    const clientIP = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for']?.split(',')[0] || 'unknown';
+    const usage = checkUsageLimit(clientIP);
+    
+    if (usage.count >= 3 && !usage.hasPaid) {
+      return res.status(429).json({
+        error: "REPORT_LIMIT_EXCEEDED",
+        message: "You've used your 3 free reports this month. Upgrade to continue.",
+        paymentRequired: true,
+        paymentLink: "https://buy.stripe.com/3cIaEX66197ad9H9na2Fa00",
+        reportsUsed: usage.count,
+        reportsLimit: 3,
+        nextReset: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).toLocaleDateString()
       });
     }
 
@@ -1602,8 +1675,17 @@ app.post("/api/analyze-link", analyzeLinkLimiter, asyncHandler(async (req, res) 
       noticeId, title, agency, primaryDoc, source,
       attachmentsFound: ranked.length,
       compliance, executiveSummary,
-      auditedAt: new Date().toISOString()
+      auditedAt: new Date().toISOString(),
+      usage: {
+        reportsUsed: usage.count + 1,
+        reportsLimit: 3,
+        hasPaid: usage.hasPaid
+      }
     };
+
+    // Increment usage counter
+    usage.count++;
+    console.log(`[/api/analyze-link] Usage updated for IP ${clientIP}: ${usage.count}/3 reports used`);
 
     noticeCache.set(noticeId, { ts: Date.now(), data: result });
     res.json(result);

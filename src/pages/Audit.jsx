@@ -421,6 +421,8 @@ export default function Audit({ onBack }) {
   const [isLoading, setIsLoading] = useState(false);
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentInfo, setPaymentInfo] = useState(null);
   const [result, setResult] = useState(null);
   const [report, setReport] = useState(null);
   const [dynamicPrice, setDynamicPrice] = useState(99);
@@ -559,7 +561,26 @@ export default function Audit({ onBack }) {
         throw new Error("SERVER_COMMUNICATION_FORMAT_ERROR: GATEWAY RETURNED NON-JSON RESPONSE.");
       }
 
-      if (!res.ok) throw new Error(data.error || "WE COULD NOT ACCESS GATEWAY. TRY DIRECT UPLOAD.");
+      if (!res.ok) {
+        const data = await res.json();
+        
+        // Handle payment required response
+        if (data.paymentRequired) {
+          setShowPaymentModal(true);
+          setPaymentInfo({
+            message: data.message,
+            paymentLink: data.paymentLink,
+            reportsUsed: data.reportsUsed,
+            reportsLimit: data.reportsLimit,
+            nextReset: data.nextReset
+          });
+          addLog("PAYMENT_REQUIRED: MONTHLY_LIMIT_REACHED", "warning");
+          setIsLoading(false);
+          return;
+        }
+        
+        throw new Error(data.error || "WE COULD NOT ACCESS GATEWAY. TRY DIRECT UPLOAD.");
+      }
       
       setResult(data);
       const price = calculateDisplayPrice(data.value || data.pillars?.estimated_value?.value || "45000000");
@@ -800,6 +821,79 @@ export default function Audit({ onBack }) {
         <span style={{ opacity: 0.3 }}>|</span>
         <span style={{ color: 'var(--text-secondary)' }}>ARIS_PROTOCOL_ACTIVE</span>
       </div>
+
+      {/* Payment Modal */}
+      {showPaymentModal && paymentInfo && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.8)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000
+        }}>
+          <div style={{
+            background: '#0d0f14',
+            border: '1px solid #333',
+            borderRadius: '12px',
+            padding: '32px',
+            maxWidth: '480px',
+            width: '90%',
+            textAlign: 'center'
+          }}>
+            <h3 style={{ color: '#f4f4f5', marginBottom: '16px' }}>Report Limit Reached</h3>
+            <p style={{ color: '#a1a1aa', marginBottom: '24px' }}>
+              {paymentInfo.message}
+            </p>
+            <div style={{ 
+              background: 'rgba(255,255,255,0.05)', 
+              padding: '16px', 
+              borderRadius: '8px', 
+              marginBottom: '24px' 
+            }}>
+              <p style={{ color: '#818cf8', margin: '0' }}>
+                {paymentInfo.reportsUsed} of {paymentInfo.reportsLimit} free reports used
+              </p>
+              <p style={{ color: '#a1a1aa', fontSize: '14px', margin: '8px 0 0' }}>
+                Next reset: {paymentInfo.nextReset}
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+              <button
+                onClick={() => setShowPaymentModal(false)}
+                style={{
+                  background: 'transparent',
+                  color: '#a1a1aa',
+                  border: '1px solid #333',
+                  padding: '12px 24px',
+                  borderRadius: '8px',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => window.location.href = paymentInfo.paymentLink}
+                style={{
+                  background: '#4f46e5',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '12px 24px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: '600'
+                }}
+              >
+                Upgrade for Unlimited Reports
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
