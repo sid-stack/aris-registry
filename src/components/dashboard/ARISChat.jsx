@@ -232,194 +232,72 @@ const ARISChat = ({ selectedContext, onLog, onCommand, reportData }) => {
       } else if (query.includes('price') || query.includes('cost') || query.includes('pricing')) {
         contextualResponse = `💰 PRICING STRATEGY ANALYSIS\n\n**Market Intelligence:**\n• Estimated award value: $45M - $67M\n• Competitor range: $42M - $71M\n• DHA preference: Mid-range technical, competitive pricing\n\n**Optimal Pricing Structure:**\n\n**Technical Approach (60% weight):**\n• Target: $28M - $32M\n• Strategy: Premium with superior AI capabilities\n• Justification: RMF-ready architecture\n\n**Management Approach (30% weight):**\n• Target: $12M - $15M\n• Strategy: Competitive with DHA experience\n• Justification: Proven federal contract management\n\n**Price-to-Win Recommendation:**\n• Optimal range: $45M - $52M\n• Peak probability: $48.5M\n• Margin target: 12% - 15%\n\nThis analysis balances competitiveness with profitability.`;
       } else if (query.includes('competitive') || query.includes('competitor')) {
-        contextualResponse = `🏁 COMPETITIVE POSITIONING\n\n**Primary Competitors:**\n\n1. **Lockheed Martin**\n   • Strengths: DHA relationships, deep resources\n   • Weaknesses: Limited healthcare imaging experience\n   • Threat Level: HIGH\n\n2. **Leidos**\n   • Strengths: Recent DHA imaging contracts\n   • Weaknesses: Higher cost structure\n   • Threat Level: HIGH\n\n3. **CACI International**\n   • Strengths: Agile development, GovCon focus\n   • Weaknesses: Limited healthcare domain knowledge\n   • Threat Level: MEDIUM\n\n**Your Competitive Advantages:**\n✅ Specialized healthcare imaging expertise\n✅ RMF/ATO acceleration capability\n✅ MUMPS integration experience\n✅ Competitive pricing structure\n\n**Differentiation Strategy:**\n• AI-enhanced imaging analytics\n• Rapid ATO timeline (6 months vs 12+)\n• Lower total cost of ownership\n\nThis analysis helps position your bid effectively against likely competitors.`;
-      }
-      
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: contextualResponse,
-        isPredictive: true,
-        confidence: 75
-      }]);
-    }
-  };
-
-  return (
-    <div className="studio-workbench aris-chat-enhanced">
-      {/* Chat Header - Minimalist on Mobile */}
+        contextualResponse = `🏁 COMPETITIVE POSITIONING\n\n**Primary Competitors:**\n\n1. **Lockheed Martin**\n   • Strengths: DHA relationships, deep resources\n   • Weaknesses: Limited healthcare imaging experience\n   • Threat Level: HIGH\n\n2. **Leidos**\n   • Strengths: Recent DHA imaging contracts\n   • Weaknesses: Higher cost structure\n   • Threat Level: HIGH\n\n3. **CACI International**\n   • Strengths: Agile development, GovCon focus\n   • Weaknesses: Limited healthcare domain knowledge\n   • Threat Level: MEDIUM\n\n**Your Competitive Advantages:**\n✅ Specialized healthcare imaging expertise\n✅ RMF/ATO acceleration capability\n✅ MUMPS integration experience\n✅ Competitive pricing structure\n\n**Differentiation Strategy:**\n• AI-enhanced imaging analytics\n• Rapid ATO timeline (6 months vs 12+)\n• Lower total cost o  return (
+    <div className="studio-workbench aris-chat-enhanced minimalist-gpt">
+      {/* Ultra-Minimalist Chat Header */}
       <div className="chat-header mobile-minimal">
         <div className="chat-title">
           <div className="title-left">
             <div className="ai-icon-wrapper">
-              <Brain size={20} className="ai-icon" />
+              <Brain size={18} className="ai-icon" />
               <div className="ai-pulse" />
             </div>
-            <div>
-              <span className="title-text">SOVEREIGN INTEL</span>
-              <div className="subtitle hide-mobile">ARIS Engine Premium v4.2 // STATELESS</div>
-            </div>
+            <span className="title-text">ARIS INTELLIGENCE</span>
           </div>
           <div className="status-indicators hide-mobile">
             <div className="status-item glass">
-              <Activity size={12} className="status-active" />
-              <span>CONTEXT_LIVE</span>
-            </div>
-            <div className="status-item glass">
-              <Zap size={12} className="status-active" />
-              <span>QUANTUM_READY</span>
+              <Activity size={10} className="status-active" />
+              <span>LIVE</span>
             </div>
           </div>
         </div>
       </div>
-
-      {/* Predictive Tools Bar - Hidden on Mobile for Minimalism */}
-      {showPredictiveTools && (
-        <div className="predictive-tools shimmer hide-mobile">
-          <div className="tools-header">
-            <div className="header-label">
-              <Sparkles size={14} className="sparkle-icon" color="var(--accent)" />
-              <span>INTELLIGENCE_PIPELINE</span>
-            </div>
-            <button 
-              className="tools-toggle glass"
-              onClick={() => setShowPredictiveTools(false)}
-            >
-              <ChevronRight size={14} style={{ transform: 'rotate(90deg)' }} />
-            </button>
-          </div>
-          <div className="tools-grid">
-            <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-              <small>Analysis tools temporarily disabled</small>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Messages Area */}
       <div className="chat-messages">
         {messages.map((msg, i) => (
           <div key={i} className={`message-item ${msg.role === 'user' ? 'user-message' : 'assistant-message'}`}>
-            <div className="message-header">
-              <div className="message-sender">
-                <div className="sender-indicator" />
-                <span>{msg.role === 'user' ? 'YOU' : 'AI ANALYST'}</span>
-                {msg.isPredictive && (
-                  <div className="predictive-badge">
-                    <Brain size={10} />
-                    <span>PREDICTIVE</span>
-                  </div>
+            <div className="message-container">
+              <div className="message-icon">
+                {msg.role === 'user' ? null : <Brain size={16} color="var(--accent)" />}
+              </div>
+              <div className="message-content">
+                {msg.role === 'assistant' ? (
+                  <ReactMarkdown 
+                    remarkPlugins={[remarkGfm]} 
+                    components={{
+                      h1: ({ children }) => <h1 style={{ fontSize: '15px', fontWeight: 700, color: '#fff', marginBottom: '8px' }}>{children}</h1>,
+                      h2: ({ children }) => <h2 style={{ fontSize: '13px', fontWeight: 600, color: '#fff', marginBottom: '6px', marginTop: '12px' }}>{children}</h2>,
+                      p: ({ children }) => <p style={{ marginBottom: '8px', lineHeight: 1.5, color: '#e4e4e7' }}>{children}</p>,
+                      li: ({ children }) => <li style={{ marginBottom: '4px', lineHeight: 1.4 }}>{children}</li>,
+                      table: ({ children }) => (
+                        <div className="table-wrapper">
+                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>{children}</table>
+                        </div>
+                      )
+                    }}
+                  >
+                    {msg.content}
+                  </ReactMarkdown>
+                ) : (
+                  <div style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
                 )}
               </div>
-              {msg.confidence && (
-                <div className="confidence-indicator">
-                  <span>Confidence: {msg.confidence}%</span>
-                </div>
-              )}
             </div>
-            <div className="message-content">
-              {msg.role === 'assistant' ? (
-                <ReactMarkdown 
-                  remarkPlugins={[remarkGfm]} 
-                  components={{
-                    h1: ({ children }) => <h1 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '12px', lineHeight: 1.3 }}>{children}</h1>,
-                    h2: ({ children }) => <h2 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '10px', marginTop: '16px', lineHeight: 1.3 }}>{children}</h2>,
-                    h3: ({ children }) => <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px', marginTop: '12px', lineHeight: 1.3 }}>{children}</h3>,
-                    p: ({ children }) => <p style={{ marginBottom: '12px', lineHeight: 1.6, color: 'var(--text-primary)' }}>{children}</p>,
-                    strong: ({ children }) => <strong style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{children}</strong>,
-                    em: ({ children }) => <em style={{ fontStyle: 'italic', color: 'var(--text-secondary)' }}>{children}</em>,
-                    ul: ({ children }) => <ul style={{ marginBottom: '12px', paddingLeft: '20px', color: 'var(--text-primary)' }}>{children}</ul>,
-                    ol: ({ children }) => <ol style={{ marginBottom: '12px', paddingLeft: '20px', color: 'var(--text-primary)' }}>{children}</ol>,
-                    li: ({ children }) => <li style={{ marginBottom: '6px', lineHeight: 1.5 }}>{children}</li>,
-                    table: ({ children }) => (
-                      <div style={{ overflowX: 'auto', margin: '16px 0', border: '1px solid var(--border)', borderRadius: '8px' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>{children}</table>
-                      </div>
-                    ),
-                    thead: ({ children }) => <thead style={{ background: 'var(--nav-bg)', borderBottom: '2px solid var(--border)' }}>{children}</thead>,
-                    th: ({ children }) => <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 700, color: 'var(--text-primary)' }}>{children}</th>,
-                    td: ({ children }) => <td style={{ padding: '10px 12px', borderBottom: '1px solid var(--border)', color: 'var(--text-secondary)' }}>{children}</td>,
-                    blockquote: ({ children }) => (
-                      <blockquote style={{ 
-                        margin: '12px 0', 
-                        padding: '8px 12px', 
-                        background: 'rgba(59, 130, 246, 0.1)', 
-                        borderLeft: '3px solid var(--accent)', 
-                        color: 'var(--text-primary)',
-                        fontStyle: 'italic',
-                        borderRadius: '4px'
-                      }}>
-                        {children}
-                      </blockquote>
-                    ),
-                    code: ({ inline, children }) => (
-                      inline ? (
-                        <code style={{ 
-                          background: 'rgba(139, 92, 246, 0.1)', 
-                          color: '#8b5cf6', 
-                          padding: '2px 6px', 
-                          borderRadius: '3px', 
-                          fontSize: '11px',
-                          fontFamily: 'Space Mono, monospace'
-                        }}>
-                          {children}
-                        </code>
-                      ) : (
-                        <code style={{ 
-                          display: 'block',
-                          background: 'var(--card)', 
-                          border: '1px solid var(--border)',
-                          color: 'var(--text-primary)', 
-                          padding: '8px 12px', 
-                          borderRadius: '4px', 
-                          fontSize: '11px',
-                          fontFamily: 'Space Mono, monospace',
-                          overflowX: 'auto',
-                          margin: '8px 0'
-                        }}>
-                          {children}
-                        </code>
-                      )
-                    ),
-                    hr: () => <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: '16px 0' }} />,
-                    div: ({ children }) => <div style={{ marginBottom: '8px' }}>{children}</div>,
-                    span: ({ children }) => <span style={{ color: 'var(--text-primary)' }}>{children}</span>
-                  }}
-                >
-                  {msg.content}
-                </ReactMarkdown>
-              ) : (
-                <div style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
-              )}
-            </div>
-            {msg.role === 'assistant' && (
-              <div className="message-footer">
-                <div className="completion-status">
-                  <CheckCircle2 size={8} />
-                  <span>ANALYSIS_COMPLETE</span>
-                </div>
-              </div>
-            )}
           </div>
         ))}
         {loading && (
           <div className="loading-indicator shimmer">
-            <Brain size={16} className="ai-spin" />
-            <span>ARIS IS SYNTHESIZING...</span>
+            <div className="pulse-dot" />
+            <span>SYNTHESIZING...</span>
           </div>
         )}
         <div ref={bottomRef} />
       </div>
 
-      {/* Ultra-Minimalist Input Area */}
-      <div style={{ 
-        padding: '16px',
-        background: 'var(--card)'
-      }}>
-        <div style={{ 
-          display: 'flex', 
-          gap: '8px', 
-          alignItems: 'center'
-        }}>
+      {/* Promiscuous / Discovery Area - ChatGPT like */}
+      <div className="chat-input-area">
+        <div className="input-wrapper">
           <textarea 
             ref={inputRef}
             value={input}
@@ -430,45 +308,21 @@ const ARISChat = ({ selectedContext, onLog, onCommand, reportData }) => {
                 sendMessage();
               }
             }}
-            style={{
-              flex: 1,
-              border: '1px solid var(--border)',
-              borderRadius: '8px',
-              padding: '12px 16px',
-              fontSize: '14px',
-              fontFamily: "'Inter', sans-serif",
-              background: 'var(--background)',
-              color: 'var(--text-primary)',
-              resize: 'none',
-              minHeight: '44px',
-              maxHeight: '120px',
-              outline: 'none'
-            }}
+            placeholder="Ask ARIS about this solicitation..."
+            className="minimal-textarea"
           />
           <button 
             onClick={() => sendMessage()}
             disabled={loading || !input.trim()}
-            style={{
-              background: loading || !input.trim() ? '#94a3b8' : '#2563eb',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '8px',
-              padding: '12px 20px',
-              fontSize: '14px',
-              fontWeight: '500',
-              cursor: loading || !input.trim() ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              minHeight: '44px'
-            }}
+            className="minimal-send-btn"
           >
-            {loading ? (
-              <div style={{ 
-                width: '16px', 
-                height: '16px', 
-                border: '2px solid #ffffff', 
-                borderTop: '2px solid transparent',
+            <Send size={16} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};          borderTop: '2px solid transparent',
                 borderRadius: '50%',
                 animation: 'spin 1s linear infinite'
               }} />
