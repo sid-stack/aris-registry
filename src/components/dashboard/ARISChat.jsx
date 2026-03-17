@@ -441,35 +441,21 @@ const ARISChat = ({ selectedContext, onLog, onCommand, reportData }) => {
         <div ref={bottomRef} />
       </div>
 
-      {/* Input Area */}
-      <div className="chat-input-area">
-        {!showPredictiveTools && (
-          <button 
-            className="expand-tools-btn"
-            onClick={() => setShowPredictiveTools(true)}
-          >
-            <Sparkles size={12} />
-            <span>Show Analysis Tools</span>
-          </button>
-        )}
-        
-        {selectedContext && (
-          <div className="context-actions">
-             <button 
-              onClick={handleGhostWrite}
-              className="ghost-write-btn"
-              disabled={loading}
-            >
-              <Zap size={12} />
-              <span>GENERATE RESPONSE</span>
-            </button>
-          </div>
-        )}
-        
-        <div className="input-container">
+      {/* Minimalist Input Area */}
+      <div style={{ 
+        padding: '16px',
+        borderTop: '1px solid var(--border)',
+        background: 'var(--card)'
+      }}>
+        <div style={{ 
+          display: 'flex', 
+          gap: '8px', 
+          alignItems: 'center',
+          maxWidth: '100%'
+        }}>
           <textarea 
             ref={inputRef}
-            placeholder="Ask about risk analysis, pricing strategy, or competitive analysis..."
+            placeholder=""
             className="chat-input"
             value={input}
             onChange={e => setInput(e.target.value)}
@@ -479,23 +465,53 @@ const ARISChat = ({ selectedContext, onLog, onCommand, reportData }) => {
                 sendMessage();
               }
             }}
+            style={{
+              flex: 1,
+              border: '1px solid var(--border)',
+              borderRadius: '8px',
+              padding: '12px 16px',
+              fontSize: '14px',
+              fontFamily: "'Inter', sans-serif",
+              background: 'var(--background)',
+              color: 'var(--text-primary)',
+              resize: 'none',
+              minHeight: '44px',
+              maxHeight: '120px',
+              outline: 'none'
+            }}
           />
           <button 
             onClick={() => sendMessage()}
-            className="send-btn"
             disabled={loading || !input.trim()}
+            style={{
+              background: loading || !input.trim() ? '#94a3b8' : '#2563eb',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '12px 20px',
+              fontSize: '14px',
+              fontWeight: '500',
+              cursor: loading || !input.trim() ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              minHeight: '44px',
+              whiteSpace: 'nowrap'
+            }}
           >
-            <Send size={14} />
+            {loading ? (
+              <div style={{ 
+                width: '16px', 
+                height: '16px', 
+                border: '2px solid #ffffff', 
+                borderTop: '2px solid transparent',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite'
+              }} />
+            ) : (
+              <Send size={16} />
+            )}
           </button>
-        </div>
-        
-        <div className="input-footer">
-          <div className="suggested-prompts">
-            <span>Try:</span>
-            <button onClick={() => setInput('Analyze the risks')}>Risk analysis</button>
-            <button onClick={() => setInput('Pricing strategy')}>Pricing</button>
-            <button onClick={() => setInput('Competitive analysis')}>Competitive</button>
-          </div>
         </div>
       </div>
     </div>
