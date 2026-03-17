@@ -135,27 +135,27 @@ const ARISChat = ({ selectedContext, onLog, onCommand, reportData }) => {
     const userText = (text || input).trim();
     if (!userText || loading) return;
 
-    // Check for predictive analysis commands
-    const predictiveCommands = {
-      'win probability': () => runPredictiveAnalysis('winProbability'),
-      'win chance': () => runPredictiveAnalysis('winProbability'),
-      'risk mitigation': () => runPredictiveAnalysis('riskMitigation'),
-      'risk analysis': () => runPredictiveAnalysis('riskMitigation'),
-      'pricing': () => runPredictiveAnalysis('pricingOptimization'),
-      'price optimization': () => runPredictiveAnalysis('pricingOptimization'),
-      'competitive': () => runPredictiveAnalysis('competitivePositioning'),
-      'competitors': () => runPredictiveAnalysis('competitivePositioning')
-    };
+    // Check for predictive analysis commands - TEMPORARILY DISABLED
+    // const predictiveCommands = {
+    //   'win probability': () => runPredictiveAnalysis('winProbability'),
+    //   'win chance': () => runPredictiveAnalysis('winProbability'),
+    //   'risk mitigation': () => runPredictiveAnalysis('riskMitigation'),
+    //   'risk analysis': () => runPredictiveAnalysis('riskMitigation'),
+    //   'pricing': () => runPredictiveAnalysis('pricingOptimization'),
+    //   'price optimization': () => runPredictiveAnalysis('pricingOptimization'),
+    //   'competitive': () => runPredictiveAnalysis('competitivePositioning'),
+    //   'competitors': () => runPredictiveAnalysis('competitivePositioning')
+    // };
 
-    const command = Object.keys(predictiveCommands).find(cmd => 
-      userText.toLowerCase().includes(cmd)
-    );
+    // const command = Object.keys(predictiveCommands).find(cmd => 
+    //   userText.toLowerCase().includes(cmd)
+    // );
 
-    if (command) {
-      predictiveCommands[command]();
-      setInput('');
-      return;
-    }
+    // if (command) {
+    //   predictiveCommands[command]();
+    //   setInput('');
+    //   return;
+    // }
 
     if (userText.toLowerCase() === 'run security-audit' && onCommand) {
       const handled = onCommand(userText);
@@ -281,13 +281,14 @@ const ARISChat = ({ selectedContext, onLog, onCommand, reportData }) => {
             </button>
           </div>
           <div className="tools-grid">
-            <button 
+            {/* TEMPORARILY DISABLED PREDICTIVE ANALYSIS BUTTONS */}
+            {/* <button 
               className="analysis-btn win-probability"
               onClick={() => runPredictiveAnalysis('winProbability')}
               disabled={loading}
             >
               <Target size={18} />
-              <span>Win Prob.</span>
+              <span>Win Probability</span>
               <div className="confidence-badge">78%</div>
             </button>
             <button 
@@ -296,7 +297,7 @@ const ARISChat = ({ selectedContext, onLog, onCommand, reportData }) => {
               disabled={loading}
             >
               <ShieldCheck size={18} />
-              <span>Risk Audit</span>
+              <span>Risk Mitigation</span>
               <div className="confidence-badge">85%</div>
             </button>
             <button 
@@ -314,9 +315,13 @@ const ARISChat = ({ selectedContext, onLog, onCommand, reportData }) => {
               disabled={loading}
             >
               <BarChart3 size={18} />
-              <span>Competitors</span>
+              <span>Competitive</span>
               <div className="confidence-badge">68%</div>
-            </button>
+            </button> */}
+            
+            <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+              <small>Analysis tools temporarily disabled</small>
+            </div>
           </div>
         </div>
       )}
@@ -464,7 +469,7 @@ const ARISChat = ({ selectedContext, onLog, onCommand, reportData }) => {
         <div className="input-container">
           <textarea 
             ref={inputRef}
-            placeholder="Ask about win probability, risk mitigation, pricing strategy, or competitive analysis..."
+            placeholder="Ask about risk analysis, pricing strategy, or competitive analysis..."
             className="chat-input"
             value={input}
             onChange={e => setInput(e.target.value)}
@@ -487,9 +492,9 @@ const ARISChat = ({ selectedContext, onLog, onCommand, reportData }) => {
         <div className="input-footer">
           <div className="suggested-prompts">
             <span>Try:</span>
-            <button onClick={() => setInput('What is our win probability?')}>Win probability</button>
             <button onClick={() => setInput('Analyze the risks')}>Risk analysis</button>
             <button onClick={() => setInput('Pricing strategy')}>Pricing</button>
+            <button onClick={() => setInput('Competitive analysis')}>Competitive</button>
           </div>
         </div>
       </div>
