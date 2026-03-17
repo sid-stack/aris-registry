@@ -119,7 +119,7 @@ function FreeShredSection({ isMobile }) {
           <p style={styles.sectionEyebrow}>Digital Salesman</p>
           <h2 style={{ ...styles.sectionTitle, marginBottom: 12 }}>The Free Shred</h2>
           <p style={{ ...styles.subtitle, marginTop: 0, marginBottom: 32 }}>
-            Most primes won't pay $499 at 3:00 AM, but they will give you their email for a sample.
+            Most primes won't pay $99 at 3:00 AM, but they will give you their email for a sample.
             <br/><span style={{ color: '#60a5fa', fontWeight: 600 }}>Upload 5 pages of any RFP for an instant compliance audit.</span>
           </p>
 
@@ -290,14 +290,36 @@ export default function Landing({ onEnterApp, onViewSample }) {
     setIsProcessing(true);
     trackEvent("checkout_click", { source, plan_name: plan.title || plan.key || "trial" });
     
-    // Redirect to the app for the Standard Plan
-    if (plan.key === "standard") {
-      window.location.href = "/app";
-      setIsProcessing(false);
-      return;
+    // Call the dynamic checkout API for our core plans
+    if (plan.key === "standard" || plan.key === "enterprise") {
+      try {
+        const estimatedValue = plan.key === "enterprise" ? "15M" : "1M";
+        const resp = await fetch("/api/create-dynamic-checkout-session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            estimatedValue,
+            packType: plan.key,
+            opportunityTitle: `${plan.title} Purchase`
+          }),
+        });
+        
+        const data = await resp.json();
+        if (data.url) {
+          window.location.href = data.url;
+          return;
+        } else {
+          throw new Error(data.error || "Checkout failed");
+        }
+      } catch (err) {
+        console.error("Checkout error:", err);
+        alert("Secure checkout bridge failed. Please try again or contact support.");
+        setIsProcessing(false);
+        return;
+      }
     }
 
-    // For other plans (e.g., Enterprise), handle as before or with mailto
+    // For other plans (e.g., legacy or contact-based), handle as before
     if (plan.buttonLink && plan.buttonLink.startsWith('mailto:')) {
       trackKPI("enterprise_contact", { source: "landing_pricing_card" });
       window.location.href = plan.buttonLink;
@@ -305,11 +327,15 @@ export default function Landing({ onEnterApp, onViewSample }) {
       return;
     }
 
-    // Fallback for any other plans that might have previously used Stripe checkout
-    // Since createCheckoutSession is removed, this path should ideally not be reached
-    // or should be handled differently (e.g., redirect to a generic signup page)
-    console.warn("Attempted to open checkout for a plan without a direct app redirect or mailto link. Plan:", plan);
-    window.alert("Unable to process this plan. Please contact support.");
+    // Fallback: If it's a direct app link, just go there
+    if (plan.buttonLink && !plan.buttonLink.startsWith('http') && plan.buttonLink.startsWith('/')) {
+      window.location.href = plan.buttonLink;
+      setIsProcessing(false);
+      return;
+    }
+
+    console.warn("Unhandled plan checkout:", plan);
+    window.alert("Please contact support to initialize this plan.");
     setIsProcessing(false);
   };
 
