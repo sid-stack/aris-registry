@@ -523,15 +523,13 @@ export default function Audit({ onBack }) {
 
       if (!res.ok) throw new Error(data.error || "WE COULD NOT ACCESS GATEWAY. TRY DIRECT UPLOAD.");
       
-      setTimeout(() => {
-        setResult(data);
-        const price = calculateDisplayPrice(data.value || data.pillars?.estimated_value?.value || "45000000");
-        setDynamicPrice(price);
-        streamReport(data);
-        addLog("INTELLIGENCE_SYNTHESIS_COMPLETE", "success");
-        trackAuditComplete();
-        setIsLoading(false);
-      }, 7000); // Allow logs to play out
+      setResult(data);
+      const price = calculateDisplayPrice(data.value || data.pillars?.estimated_value?.value || "45000000");
+      setDynamicPrice(price);
+      streamReport(data);
+      addLog("INTELLIGENCE_SYNTHESIS_COMPLETE", "success");
+      trackAuditComplete();
+      setIsLoading(false);
 
     } catch (e) {
       const errMsg = e.message || "UNKNOWN_PIPELINE_ERROR";
@@ -553,12 +551,30 @@ export default function Audit({ onBack }) {
     esRef.current = es;
 
     es.onmessage = (e) => {
-      const msg = JSON.parse(e.data);
-      if (msg.type === "agent_done") {
-        if (msg.data?.proposal_draft) setReport(prev => ({ ...(prev || {}), proposal_draft: msg.data.proposal_draft }));
-      } else if (msg.type === "pipeline_complete") {
-        es.close();
+      try {
+        const msg = JSON.parse(e.data);
+        if (msg.type === "agent_done") {
+          if (msg.data?.proposal_draft) setReport(prev => ({ ...(prev || {}), proposal_draft: msg.data.proposal_draft }));
+        } else if (msg.type === "pipeline_complete") {
+          es.close();
+          addLog("MERCURY_FLOW_FINALIZED", "success");
+        } else if (msg.type === "error") {
+          addLog(`STREAM_AGENT_ERROR: ${msg.message}`, "error");
+          es.close();
+        }
+      } catch (err) {
+        console.error("Stream parse error:", err);
       }
+    };
+
+    es.onerror = (err) => {
+      console.error("EventSource failed:", err);
+      addLog("STREAM_CONNECTION_INTERRUPTED - RECOVERY_IDLE", "error");
+      es.close();
+    };
+
+    es.onopen = () => {
+      addLog("MERCURY_LIVE_STREAM_ESTABLISHED", "success");
     };
   };
 

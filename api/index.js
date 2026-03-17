@@ -1708,6 +1708,9 @@ app.post("/api/generate-report", asyncHandler(async (req, res) => {
 // Events: {type, stage, agent, status, data}
 
 app.get("/api/generate-report-stream", async (req, res) => {
+  // Prevent timeout for long-running agentic pipe
+  req.setTimeout(600000); // 10 minutes
+
   const client = makeClient();
   if (!client) { res.status(500).end(); return; }
 
@@ -1716,6 +1719,7 @@ app.get("/api/generate-report-stream", async (req, res) => {
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
   res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("X-Accel-Buffering", "no"); // For Nginx/Vercel buffering issues
   res.flushHeaders();
 
   const emit = (payload, eventName = null) => {
