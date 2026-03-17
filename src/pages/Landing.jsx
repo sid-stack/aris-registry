@@ -67,38 +67,53 @@ const heroStats = [
   { label: "Execution Layer", value: "Stateless" },
 ];
 
-function FreeShredSection({ isMobile }) {
-  const [file, setFile] = useState(null);
-  const [email, setEmail] = useState("");
+function BrandingBanner() {
+  return (
+    <div style={{
+      background: '#0c0c0e',
+      borderBottom: '1px solid #1a1a1a',
+      padding: '8px 20px',
+      textAlign: 'center',
+      fontSize: '12px',
+      color: '#71717a',
+      fontFamily: 'JetBrains Mono, monospace',
+      letterSpacing: '0.05em',
+      position: 'sticky',
+      top: 0,
+      zIndex: 100,
+    }}>
+      POWERED BY THE <span style={{ color: 'var(--accent)', fontWeight: 700 }}>ARIS LABS AUDIT ENGINE</span>
+    </div>
+  );
+}
+
+function FreePulseCheckSection({ isMobile }) {
+  const [uei, setUei] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!file || !email) return;
+    if (!uei || uei.length !== 12) return;
     setIsProcessing(true);
     
-    trackEvent("free_shred_submit", { email });
-
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("email", email);
+    trackEvent("pulse_check_submit", { uei });
 
     try {
-      const resp = await fetch("/api/free-shred", {
+      const resp = await fetch("/api/pulse-check", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uei }),
       });
       const data = await resp.json();
       if (resp.ok) {
-        setResult(data.shred);
-        trackEvent("free_shred_success", { email });
-        trackKPI("lead_capture", { source: "free_shred", email });
+        setResult(data.result);
+        trackEvent("pulse_check_success", { uei, score: data.result.score });
       } else {
-        alert(data.error || "Upload failed. Please ensure the file is a PDF.");
+        alert(data.error || "Analysis failed. Please ensure the UEI is correct.");
       }
     } catch (err) {
-      console.error("Free shred error:", err);
+      console.error("Pulse check error:", err);
       alert("A system error occurred. Please try again later.");
     } finally {
       setIsProcessing(false);
@@ -106,7 +121,7 @@ function FreeShredSection({ isMobile }) {
   };
 
   return (
-    <section id="free-shred" style={styles.sectionMuted} data-reveal>
+    <section id="pulse-check" style={styles.sectionMuted} data-reveal>
       <div style={styles.sectionInner}>
         <div style={{
           background: "linear-gradient(145deg, rgba(24,24,27,0.4) 0%, rgba(9,9,11,0.4) 100%)",
@@ -116,109 +131,95 @@ function FreeShredSection({ isMobile }) {
           textAlign: "center",
           boxShadow: "0 20px 50px rgba(0,0,0,0.3)"
         }}>
-          <p style={styles.sectionEyebrow}>Digital Salesman</p>
-          <h2 style={{ ...styles.sectionTitle, marginBottom: 12 }}>The Free Shred</h2>
+          <p style={styles.sectionEyebrow}>Zero-Trauma Lead Magnet</p>
+          <h2 style={{ ...styles.sectionTitle, marginBottom: 12 }}>Free Compliance Pulse Check</h2>
           <p style={{ ...styles.subtitle, marginTop: 0, marginBottom: 32 }}>
-            Most primes won't pay $99 at 3:00 AM, but they will give you their email for a sample.
-            <br/><span style={{ color: '#60a5fa', fontWeight: 600 }}>Upload 5 pages of any RFP for an instant compliance audit.</span>
+            Enter your 12-character UEI to get an instant federal risk score.
+            <br/><span style={{ color: 'var(--accent)', fontWeight: 600 }}>Zero commitment. Instant intelligence.</span>
           </p>
 
           {!result ? (
             <form onSubmit={handleSubmit} style={{ maxWidth: 500, margin: "0 auto" }}>
               <div style={{ marginBottom: 20 }}>
                 <div style={{
-                  border: "2px dashed rgba(59,130,246,0.2)",
+                  background: "rgba(255,255,255,0.03)",
+                  border: "1px solid rgba(255,255,255,0.1)",
                   borderRadius: 16,
-                  padding: "40px 20px",
-                  cursor: "pointer",
-                  position: "relative",
-                  transition: "all 0.2s ease",
-                  background: file ? "rgba(34,197,94,0.05)" : "rgba(255,255,255,0.02)"
-                }}
-                onDragOver={(e) => { e.preventDefault(); e.currentTarget.style.borderColor = "#3b82f6"; }}
-                onDragLeave={(e) => { e.preventDefault(); e.currentTarget.style.borderColor = "rgba(59,130,246,0.2)"; e.currentTarget.style.background = "rgba(255,255,255,0.02)"; }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  const f = e.dataTransfer.files[0];
-                  if (f && f.type === "application/pdf") setFile(f);
+                  padding: "16px 20px",
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12
                 }}>
+                  <Shield size={20} color="var(--accent)" />
                   <input 
-                    type="file" 
-                    accept=".pdf" 
-                    onChange={(e) => setFile(e.target.files[0] || null)}
-                    style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }}
+                    type="text" 
+                    maxLength={12}
+                    placeholder="ENTER 12-CHAR UEI" 
+                    value={uei} 
+                    onChange={(e) => setUei(e.target.value.toUpperCase())}
+                    style={{ 
+                      background: 'transparent',
+                      border: 'none',
+                      outline: 'none',
+                      color: '#ffffff',
+                      fontFamily: 'JetBrains Mono, monospace',
+                      fontSize: '16px',
+                      flex: 1,
+                      letterSpacing: '0.1em'
+                    }}
                   />
-                  <Zap size={32} color={file ? "#22c55e" : "#3b82f6"} style={{ marginBottom: 12, opacity: 0.8 }} />
-                  <p style={{ fontSize: 15, fontWeight: 600, color: file ? "#ffffff" : "#e4e4e7" }}>
-                    {file ? file.name : "Click to select or drop RFP PDF here"}
-                  </p>
-                  <p style={{ fontSize: 12, color: "#71717a", marginTop: 8 }}>Limit: 5 Pages for Quick Shred Processing</p>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div style={{
-                  ...styles.premiumEmailCard,
+              <button 
+                type="submit" 
+                disabled={isProcessing || uei.length !== 12}
+                style={{
+                  ...styles.primaryCta,
                   width: "100%",
                   borderRadius: 12,
-                  padding: "12px 16px",
-                  background: "rgba(255,255,255,0.03)",
-                  border: "1px solid rgba(255,255,255,0.1)"
-                }}>
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Work email (sid@bidsmith.pro)"
-                    style={{ ...styles.premiumEmailInput, padding: 0 }}
-                  />
-                </div>
-                <button 
-                  type="submit" 
-                  disabled={isProcessing || !file || !email}
-                  style={{
-                    ...styles.primaryCta,
-                    width: "100%",
-                    borderRadius: 12,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 8,
-                    background: isProcessing ? "#1e293b" : "#3b82f6",
-                    opacity: (!file || !email) && !isProcessing ? 0.5 : 1
-                  }}
-                >
-                  {isProcessing ? "Analyzing RFP..." : "Generate Instantly"}
-                  {!isProcessing && <Zap size={16} />}
-                </button>
-              </div>
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  background: isProcessing ? "#1e293b" : "var(--accent)",
+                  color: '#000',
+                  opacity: uei.length !== 12 && !isProcessing ? 0.5 : 1
+                }}
+              >
+                {isProcessing ? "Analyzing Entity..." : "Run Pulse Check"}
+                {!isProcessing && <Zap size={16} />}
+              </button>
             </form>
           ) : (
-            <div style={{ textAlign: "left", background: "#050505", padding: isMobile ? "20px" : "32px", borderRadius: 16, border: "1px solid #1a1a1a", maxWidth: 700, margin: "0 auto" }}>
-               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, borderBottom: '1px solid #1a1a1a', paddingBottom: 16 }}>
-                 <h3 style={{ fontSize: 18, color: "#ffffff", display: 'flex', alignItems: 'center', gap: 8, margin: 0 }}>
-                   <CheckCircle2 size={18} color="#22c55e" /> Compliance Shred Ready
-                 </h3>
-                 <button onClick={() => setResult(null)} style={{ background: 'transparent', border: 'none', color: '#71717a', fontSize: 12, cursor: 'pointer' }}>New Audit</button>
-               </div>
-               <div style={{ fontSize: 14, color: "#d4d4d8", lineHeight: 1.7 }} className="markdown-content">
-                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{result}</ReactMarkdown>
-               </div>
-               <div style={{ marginTop: 32, paddingTop: 24, borderTop: "1px solid #1a1a1a" }}>
-                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-                    <div style={{ background: 'rgba(59,130,246,0.1)', padding: 8, borderRadius: 8 }}>
-                      <Zap size={20} color="#3b82f6" />
-                    </div>
-                    <div>
-                      <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#ffffff' }}>Unlock the Full Suite</p>
-                      <p style={{ margin: 0, fontSize: 12, color: '#71717a' }}>Get 200+ page matrices, risk memorandums, and win themes.</p>
-                    </div>
-                 </div>
-                 <button onClick={() => window.location.href = '/app'} style={{ ...styles.primaryCta, width: "100%", borderRadius: 12 }}>
-                   Launch Full ARIS Analysis
-                 </button>
-               </div>
+            <div style={{ textAlign: "center", maxWidth: 600, margin: "0 auto" }}>
+              <div style={{ marginBottom: 24 }}>
+                <div style={{ fontSize: '48px', fontWeight: 900, color: result.score < 75 ? '#FF3E3E' : 'var(--accent)', fontFamily: 'JetBrains Mono' }}>
+                  {result.score}/100
+                </div>
+                <div style={{ fontSize: '14px', color: '#71717a', textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: 8 }}>
+                  FEDERAL RISK SCORE
+                </div>
+              </div>
+
+              <div style={{ textAlign: 'left', background: 'rgba(255,255,255,0.02)', padding: '24px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)', marginBottom: 32 }}>
+                <h4 style={{ fontSize: '14px', color: '#ffffff', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <AlertTriangle size={14} color="#FF3E3E" /> Detected Vulnerabilities:
+                </h4>
+                <ul style={{ paddingLeft: '20px', margin: 0, color: '#a1a1aa', fontSize: '14px', lineHeight: 1.8 }}>
+                  {result.risks.map((risk, i) => <li key={i}>{risk}</li>)}
+                  <li>Hidden compliance traps in Section L/M [MERCURY_2_ANALYSIS_REQUIRED]</li>
+                </ul>
+              </div>
+
+              <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '24px' }}>
+                <p style={{ fontSize: '14px', color: '#a1a1aa', marginBottom: 20 }}>
+                  Why is your score low? Mercury 2 protocol has detected 3 critical disqualifyers in your entity's bridge.
+                </p>
+                <button onClick={() => window.location.href = '/app'} style={{ ...styles.primaryCta, width: "100%", borderRadius: 12, background: 'var(--accent)', color: '#000' }}>
+                  Unlock Full $499 Audit Matrix
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -417,6 +418,7 @@ export default function Landing({ onEnterApp, onViewSample }) {
 
   return (
     <div style={styles.page}>
+      <BrandingBanner />
       {viewingSample && sampleReport ? (
         <div style={{ minHeight: "100vh", background: "#f8fafc" }}>
           <div style={{ ...styles.navbar, position: "relative" }}>
@@ -592,7 +594,7 @@ export default function Landing({ onEnterApp, onViewSample }) {
             </div>
           </section>
 
-          <FreeShredSection isMobile={isMobile} />
+          <FreePulseCheckSection isMobile={isMobile} />
 
           <section id="solutions" style={styles.sectionMuted} data-reveal>
             <div style={styles.sectionInner}>
