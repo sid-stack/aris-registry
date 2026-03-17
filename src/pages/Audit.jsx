@@ -475,6 +475,11 @@ export default function Audit({ onBack }) {
 
       const data = await res.json();
       if (data.url) {
+        // PERSIST STATE FOR REDIRECT RECOVERY
+        if (result) {
+          localStorage.setItem('aris_pending_audit', JSON.stringify(result));
+        }
+        
         addLog("BRIDGE_ESTABLISHED_REDIRECTING...", "success");
         window.location.href = data.url;
         trackEvent('purchase_initiated', { 
@@ -542,6 +547,35 @@ export default function Audit({ onBack }) {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    // Check for post-checkout success
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('checkout') === 'success') {
+      const savedResult = localStorage.getItem('aris_pending_audit');
+      if (savedResult) {
+        try {
+          const data = JSON.parse(savedResult);
+          setResult(data);
+          const price = calculateDisplayPrice(data.value || data.pillars?.estimated_value?.value || "45000000");
+          setDynamicPrice(price);
+          
+          // Clear it so we don't re-trigger on refresh
+          localStorage.removeItem('aris_pending_audit');
+          
+          // Resume streaming the full report
+          addLog("CHECKOUT_VERIFIED: RESUMING_MERCURY_FLOW", "success");
+          streamReport(data);
+          trackEvent('purchase_complete', { 
+            value: price,
+            notice_id: data.noticeId 
+          });
+        } catch (e) {
+          console.error("Failed to restore pending audit:", e);
+        }
+      }
+    }
+  }, []);
 
   const streamReport = (auditData) => {
     if (esRef.current) esRef.current.close();

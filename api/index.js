@@ -689,7 +689,7 @@ app.post("/api/checkout/session", asyncHandler(async (req, res) => {
   const origin = String(req.get("origin") || "https://www.bidsmith.pro").replace(/\/$/, "");
   const successUrlInput = String(req.body?.successUrl || "").trim();
   const cancelUrlInput = String(req.body?.cancelUrl || "").trim();
-  const successUrl = successUrlInput || `${origin}/sam-rep?session=success&premium=${encodeURIComponent(premiumTier)}&plan=${encodeURIComponent(plan)}`;
+  const successUrl = successUrlInput || `${origin}/app?checkout=success&premium=${encodeURIComponent(premiumTier)}&plan=${encodeURIComponent(plan)}`;
   const cancelUrl = cancelUrlInput || `${origin}/app?checkout=cancelled&premium=${encodeURIComponent(premiumTier)}&plan=${encodeURIComponent(plan)}`;
 
   if (!planConfig) {
@@ -869,7 +869,7 @@ app.post("/api/create-dynamic-checkout-session", asyncHandler(async (req, res) =
         quantity: 1,
       }],
       mode: 'payment',
-      success_url: `${origin}/sam-rep?session={CHECKOUT_SESSION_ID}&dynamic=true&value=${unitAmount}`,
+      success_url: `${origin}/app?checkout=success&session={CHECKOUT_SESSION_ID}&dynamic=true&value=${unitAmount}`,
       cancel_url: `${origin}/dashboard`,
       metadata: {
         estimated_value: String(estimatedValue).slice(0, 50),
