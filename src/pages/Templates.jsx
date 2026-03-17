@@ -16,10 +16,8 @@ What we can deliver in 30 days:
 - Full report with ROI (target >=30% win-rate lift)
 
 Pricing options:
-- Starter - $29/mo + $0.25/call (after 200 free calls)
-- Growth - $199/mo (1,000 calls) + $0.20/call overage
-- Pilot - $2,500 / 30 days (onboarding + 5,000 calls)
-- Enterprise - Custom (no fixed price)
+- Standard Audit - $99/month
+- Enterprise Audit - $299/month
 
 If you are interested, just reply "Yes" and I will send over the short agreement and a Calendly link for a 15-minute kickoff call.
 
@@ -27,7 +25,7 @@ Looking forward to helping [Client Name] win more SAM.gov opportunities.
 
 - [Your Name] | Bidsmith Ltd. | sid@bidsmith.pro`;
 
-const pilotAgreementTemplate = `# Bidsmith Lite - Pilot Agreement
+const pilotAgreementTemplate = `# Bidsmith Lite - Audit Service Agreement
 
 Effective Date: ___________________
 Client: ___________________
@@ -43,10 +41,8 @@ Bidsmith Ltd. (hereinafter "Provider")
 ## 2. Fees and Payment
 | Milestone | Amount (USD) | Due |
 |-----------|--------------|-----|
-| Starter | $29/mo + $0.25/call | Self-serve |
-| Growth | $199/mo includes 1,000 calls | $0.20/call overage |
-| Pilot | $2,500 / 30 days | Includes onboarding + 5,000 calls |
-| Enterprise | Custom | Contracted terms |
+| Standard Audit | $99/month | Self-serve |
+| Enterprise Audit | $299/month | Self-serve |
 
 Payments are to be made via Stripe or wire transfer to the account listed on the invoice.
 

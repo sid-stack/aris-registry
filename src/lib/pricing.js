@@ -2,24 +2,31 @@
  * Canonical GTM pricing ladder used across landing, templates, and proposal copy.
  * Simplified to two strategic plans: $99 and $299.
  */
+export const STRIPE_PAYMENT_LINKS = {
+  standard: "https://buy.stripe.com/3cIaEX66197ad9H9na2Fa00",
+  enterprise: "https://buy.stripe.com/cNibJ19id8369XvfLy2Fa01",
+};
+
 export const GTM_PRICING_PLANS = [
   {
     key: "standard",
     title: "Standard Audit",
-    price: "$99",
+    price: "$99 / month",
     description: "Full compliance matrix, FAR/DFARS extraction, and risk score for small-to-medium RFPs.",
-    buttonLabel: "Initialize Audit",
-    buttonLink: "https://buy.stripe.com/3cIaEX66197ad9H9na2Fa00",
-    tier: "standard"
+    buttonLabel: "Subscribe",
+    buttonLink: STRIPE_PAYMENT_LINKS.standard,
+    tier: "standard",
+    callout: "Standard Audit - $99/month",
   },
   {
     key: "enterprise",
     title: "Enterprise Audit",
-    price: "$299",
+    price: "$299 / month",
     description: "Deep-shred analysis for high-value solicitations, including capture strategy and win themes.",
-    buttonLabel: "Initialize Audit",
-    buttonLink: "https://buy.stripe.com/cNibJ19id8369XvfLy2Fa01",
-    tier: "enterprise"
+    buttonLabel: "Subscribe",
+    buttonLink: STRIPE_PAYMENT_LINKS.enterprise,
+    tier: "enterprise",
+    callout: "Enterprise Audit - $299/month",
   }
 ];
 
