@@ -414,6 +414,7 @@ export default function Audit({ onBack }) {
   const [samUrl, setSamUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
+  const [error, setError] = useState("");
   const [result, setResult] = useState(null);
   const [report, setReport] = useState(null);
   const [dynamicPrice, setDynamicPrice] = useState(99);
