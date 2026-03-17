@@ -87,7 +87,7 @@ function BrandingBanner() {
   );
 }
 
-function FreePulseCheckSection({ isMobile }) {
+function FreePulseCheckSection({ isMobile, onUnlockAudit }) {
   const [uei, setUei] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState(null);
@@ -216,8 +216,8 @@ function FreePulseCheckSection({ isMobile }) {
                 <p style={{ fontSize: '14px', color: '#a1a1aa', marginBottom: 20 }}>
                   Why is your score low? Mercury 2 protocol has detected 3 critical disqualifyers in your entity's bridge.
                 </p>
-                <button onClick={() => window.location.href = '/app'} style={{ ...styles.primaryCta, width: "100%", borderRadius: 12, background: 'var(--accent)', color: '#000' }}>
-                  Unlock Full $499 Audit Matrix
+                <button onClick={onUnlockAudit} style={{ ...styles.primaryCta, width: "100%", borderRadius: 12, background: 'var(--accent)', color: '#000' }}>
+                  Unlock Standard Audit - $99/month
                 </button>
               </div>
             </div>
@@ -298,7 +298,8 @@ export default function Landing({ onEnterApp, onViewSample }) {
 
     // For direct Stripe links, just redirect
     if (plan.buttonLink && plan.buttonLink.startsWith('https://buy.stripe.com/')) {
-      window.location.href = plan.buttonLink;
+      window.location.assign(plan.buttonLink);
+      window.setTimeout(() => setIsProcessing(false), 1500);
       return;
     }
 
@@ -568,7 +569,10 @@ export default function Landing({ onEnterApp, onViewSample }) {
             </div>
           </section>
 
-          <FreePulseCheckSection isMobile={isMobile} />
+          <FreePulseCheckSection
+            isMobile={isMobile}
+            onUnlockAudit={() => openCheckout("pulse_check_result", GTM_PRICING_PLANS[0])}
+          />
 
           <section id="solutions" style={styles.sectionMuted} data-reveal>
             <div style={styles.sectionInner}>
@@ -608,7 +612,7 @@ export default function Landing({ onEnterApp, onViewSample }) {
             <div style={styles.sectionInnerNarrow}>
               <p style={styles.sectionEyebrow}>Commercial model</p>
               <h2 style={styles.sectionTitle}>Simple, Transparent Pricing</h2>
-              <p style={styles.subtitleSmall}>No contracts, no hidden fees, and a clear plan progression.</p>
+              <p style={styles.subtitleSmall}>Two monthly plans, direct Stripe checkout, no extra pricing ladders.</p>
               <div style={{ ...styles.pricingGrid, gridTemplateColumns: isMobile ? "1fr" : "repeat(2, 1fr)" }}>
                 {GTM_PRICING_PLANS.map((plan) => (
                   <PricingCard
@@ -632,7 +636,7 @@ export default function Landing({ onEnterApp, onViewSample }) {
               </div>
               <p style={styles.enterpriseTrustNote}>Trusted by 12+ Federal Prime Contractors</p>
               <p style={styles.proposalCopy}>
-                Need a client-ready pilot deck? See{" "}
+                Need a client-ready audit deck? See{" "}
                 <a
                   href="/pilot-proposal-outline.md"
                   target="_blank"
@@ -642,7 +646,7 @@ export default function Landing({ onEnterApp, onViewSample }) {
                     trackEvent("pilot_outline_open_click", { source: "landing_pricing" })
                   }
                 >
-                  pilot proposal outline
+                  proposal outline
                 </a>
                 .
               </p>

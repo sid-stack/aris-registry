@@ -9,7 +9,7 @@ const faqs = [
   {
     question: 'How does the pricing work?',
     answer:
-      'We offer three tiers: Starter ($29/mo), Growth ($199/mo), and Pilot ($2,500 one-time). Each tier comes with a set number of AI calls and features. Enterprise plans are available for larger teams.',
+      'We offer two monthly plans: Standard Audit ($99/month) and Enterprise Audit ($299/month).',
   },
   {
     question: 'Is my data secure?',

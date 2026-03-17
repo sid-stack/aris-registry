@@ -169,7 +169,7 @@ export default function FaqSection() {
     },
     {
       q: "What is the pricing model?",
-      a: "We offer transparent commercial tiers: a $29/mo Starter plan (200 calls), a $199/mo Growth plan (1,000 calls), a $2,500 30-day Pilot, and Custom Enterprise options for high-volume integrators.",
+      a: "We keep pricing to two monthly plans: Standard Audit at $99 per month and Enterprise Audit at $299 per month. Both use direct Stripe checkout links and there are no additional public tiers on the landing page.",
     },
     {
       q: "Does this actually improve win rates?",
@@ -185,7 +185,7 @@ export default function FaqSection() {
     },
     {
       q: "How fast can we see ROI?",
-      a: "Most teams experience significant cycle-time compression within the first week. The 30-day pilot is specifically designed to validate compliance lift and throughput improvements before moving to production.",
+      a: "Most teams see cycle-time compression within the first week. Standard covers the core compliance workflow, and Enterprise adds deeper capture strategy for more complex bids.",
     },
   ];
 
