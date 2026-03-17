@@ -41,10 +41,12 @@ function FaqItem({ question, answer, open, onToggle }) {
           alignItems: "flex-start",
           gap: "14px",
           textAlign: "left",
-          padding: "18px 20px",
+          padding: "clamp(14px, 3vw, 18px) clamp(16px, 4vw, 20px)",
           background: "transparent",
           border: "none",
           cursor: "pointer",
+          minHeight: "44px", // Industry standard touch target
+          boxSizing: "border-box"
         }}
       >
         <span
@@ -68,9 +70,13 @@ function FaqItem({ question, answer, open, onToggle }) {
             flex: 1,
             fontWeight: 700,
             color: "#0f172a",
-            fontSize: "1.05rem",
+            fontSize: "clamp(0.95rem, 2.5vw, 1.05rem)",
             lineHeight: 1.4,
-            fontFamily: "'Inter', sans-serif"
+            fontFamily: "'Inter', sans-serif",
+            wordWrap: "break-word",
+            overflowWrap: "break-word",
+            hyphens: "auto",
+            paddingRight: "8px"
           }}
         >
           {question}
@@ -81,6 +87,7 @@ function FaqItem({ question, answer, open, onToggle }) {
             fontSize: "1.2rem",
             transform: open ? "rotate(180deg)" : "rotate(0deg)",
             transition: "transform 0.3s ease",
+            flexShrink: 0,
           }}
           aria-hidden="true"
         >
@@ -97,18 +104,25 @@ function FaqItem({ question, answer, open, onToggle }) {
         }}
       >
         <div style={{ overflow: "hidden" }}>
-          <p
+          <div
             style={{
               padding: "0 20px 20px 62px",
               margin: 0,
-              fontSize: "0.95rem",
+              fontSize: "clamp(0.85rem, 2vw, 0.95rem)",
               lineHeight: 1.6,
               color: "#475569",
-              fontFamily: "'Inter', sans-serif"
+              fontFamily: "'Inter', sans-serif",
+              wordWrap: "break-word",
+              overflowWrap: "break-word",
+              hyphens: "auto"
             }}
           >
-            {answer}
-          </p>
+            {answer.split('\n').map((paragraph, idx) => (
+              <p key={idx} style={{ margin: "0 0 8px 0" }}>
+                {paragraph}
+              </p>
+            ))}
+          </div>
         </div>
       </div>
     </div>
@@ -150,18 +164,30 @@ export default function FaqSection() {
   ];
 
   return (
-    <section style={{ padding: "80px 20px", background: "#f8fafc", borderTop: "1px solid #e2e8f0" }}>
-      <div style={{ maxWidth: "800px", margin: "0 auto" }}>
-        <div style={{ textAlign: "center", marginBottom: "40px" }}>
+    <section style={{ 
+      padding: "clamp(40px, 8vw, 80px) clamp(16px, 4vw, 20px)", 
+      background: "#f8fafc", 
+      borderTop: "1px solid #e2e8f0",
+      overflow: "hidden"
+    }}>
+      <div style={{ 
+        maxWidth: "800px", 
+        margin: "0 auto",
+        width: "100%",
+        boxSizing: "border-box"
+      }}>
+        <div style={{ textAlign: "center", marginBottom: "clamp(24px, 6vw, 40px)" }}>
           <p
             style={{
               margin: "0 0 10px",
               color: "#4f46e5",
-              fontSize: "0.8rem",
+              fontSize: "clamp(0.75rem, 2vw, 0.8rem)",
               fontWeight: 700,
               textTransform: "uppercase",
               letterSpacing: "0.12em",
-              fontFamily: "'Inter', sans-serif"
+              fontFamily: "'Inter', sans-serif",
+              wordWrap: "break-word",
+              overflowWrap: "break-word"
             }}
           >
             Common Questions
@@ -169,11 +195,16 @@ export default function FaqSection() {
           <h2
             style={{
               margin: 0,
-              fontSize: "clamp(1.75rem, 4vw, 2.5rem)",
+              fontSize: "clamp(1.5rem, 4vw, 2.5rem)",
               fontWeight: 800,
               color: "#0f172a",
               fontFamily: "'Inter', sans-serif",
-              letterSpacing: "-0.02em"
+              letterSpacing: "-0.02em",
+              lineHeight: 1.2,
+              wordWrap: "break-word",
+              overflowWrap: "break-word",
+              hyphens: "auto",
+              maxWidth: "100%"
             }}
           >
             Built for Scale and Security
@@ -181,19 +212,22 @@ export default function FaqSection() {
           <p
             style={{
               marginTop: "12px",
-              fontSize: "1.05rem",
+              fontSize: "clamp(0.9rem, 2.5vw, 1.05rem)",
               color: "#64748b",
               lineHeight: 1.6,
               maxWidth: "600px",
               margin: "12px auto 0",
-              fontFamily: "'Inter', sans-serif"
+              fontFamily: "'Inter', sans-serif",
+              wordWrap: "break-word",
+              overflowWrap: "break-word",
+              hyphens: "auto"
             }}
           >
-            Learn how the Aris Protocol transforms federal capture management.
+            Learn how Aris Protocol transforms federal capture management.
           </p>
         </div>
 
-        <div>
+        <div style={{ width: "100%", maxWidth: "100%" }}>
           {items.map((item, idx) => (
             <FaqItem
               key={item.q}
