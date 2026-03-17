@@ -2371,6 +2371,39 @@ app.get("/", (req, res) => {
   });
 });
 
+app.post("/api/pulse-check", asyncHandler(async (req, res) => {
+  const { uei } = req.body;
+  
+  if (!uei || uei.length !== 12) {
+    return res.status(400).json({ error: "Invalid UEI provided. Must be 12 characters." });
+  }
+
+  // Import exec from child_process to run the Python engine
+  const { exec } = await import("child_process");
+  const { promisify } = await import("util");
+  const execPromise = promisify(exec);
+
+  try {
+    // Execute the Python analyzer engine
+    const analyzerPath = join(__dirname, "../audit/analyzer.py");
+    const { stdout, stderr } = await execPromise(`python3 ${analyzerPath} ${uei}`);
+    
+    if (stderr) {
+      console.warn("[Pulse Check] Analyzer stderr:", stderr);
+    }
+
+    const result = JSON.parse(stdout);
+    res.json({ success: true, result });
+
+  } catch (err) {
+    console.error("[/api/pulse-check] ERROR:", err);
+    res.status(500).json({ 
+      error: "Analysis engine failure",
+      message: err.message 
+    });
+  }
+}));
+
 app.get("/favicon.ico", (req, res) => res.status(204).end());
 
 app.use(notFoundHandler);
