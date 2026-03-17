@@ -9,7 +9,7 @@ export const GTM_PRICING_PLANS = [
     price: "$99",
     description: "Full compliance matrix, FAR/DFARS extraction, and risk score for small-to-medium RFPs.",
     buttonLabel: "Initialize Audit",
-    buttonLink: "https://buy.stripe.com/6oE5kpeCz3kC9Oc144",
+    buttonLink: "https://buy.stripe.com/3cIaEX66197ad9H9na2Fa00",
     tier: "standard"
   },
   {
@@ -18,7 +18,7 @@ export const GTM_PRICING_PLANS = [
     price: "$299",
     description: "Deep-shred analysis for high-value solicitations, including capture strategy and win themes.",
     buttonLabel: "Initialize Audit",
-    buttonLink: "https://buy.stripe.com/00g5kpeCzg2C7CEcMP",
+    buttonLink: "https://buy.stripe.com/3cIaEX66197ad9H9na2Fa00",
     tier: "enterprise"
   }
 ];
