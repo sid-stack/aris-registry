@@ -250,7 +250,6 @@ function IconCard({ title, description, icon }) {
 
 export default function Landing({ onEnterApp, onViewSample }) {
   const [isProcessing, setIsProcessing] = useState(false);
-  const [contactEmail, setContactEmail] = useState("");
   const [viewingSample, setViewingSample] = useState(false);
   const [sampleReport, setSampleReport] = useState(null);
   const [loadingSample, setLoadingSample] = useState(false);
@@ -364,15 +363,7 @@ export default function Landing({ onEnterApp, onViewSample }) {
 
   const handlePilotCta = () => {
     trackKPI("pilot_cta", { source: "landing_pricing_banner" });
-    openCheckout("landing_pilot_banner", GTM_PRICING_PLANS[2]);
-  };
-
-  const handleEnterpriseContact = (event) => {
-    event.preventDefault();
-    if (!contactEmail.trim()) return;
-
-    trackKPI("enterprise_contact", { source: "landing_enterprise_form" });
-    window.location.href = `mailto:sid@bidsmith.pro?subject=Enterprise%20Plan%20Inquiry&body=Contact%20email:%20${encodeURIComponent(contactEmail.trim())}`;
+    openCheckout("landing_pilot_banner", GTM_PRICING_PLANS[1]);
   };
 
   useEffect(() => {
@@ -618,17 +609,15 @@ export default function Landing({ onEnterApp, onViewSample }) {
               <p style={styles.sectionEyebrow}>Commercial model</p>
               <h2 style={styles.sectionTitle}>Simple, Transparent Pricing</h2>
               <p style={styles.subtitleSmall}>No contracts, no hidden fees, and a clear plan progression.</p>
-              <div style={{ ...styles.pricingGrid, gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)" }}>
+              <div style={{ ...styles.pricingGrid, gridTemplateColumns: isMobile ? "1fr" : "repeat(2, 1fr)" }}>
                 {GTM_PRICING_PLANS.map((plan) => (
                   <PricingCard
                     key={plan.key}
                     title={plan.title}
                     price={plan.price}
-                    billingCycle={plan.billingCycle}
                     description={plan.description}
                     buttonLabel={plan.buttonLabel}
                     buttonLink={plan.buttonLink}
-                    featured={plan.featured}
                     disabled={isProcessing}
                     onButtonClick={() => {
                       trackEvent("pricing_cta_click", {
@@ -641,46 +630,7 @@ export default function Landing({ onEnterApp, onViewSample }) {
                   />
                 ))}
               </div>
-              <div style={styles.enterpriseContainer}>
-                <p style={styles.enterpriseSubheading}>Enterprise: Custom Registry & Private Cloud</p>
-                <form 
-                  onSubmit={handleEnterpriseContact} 
-                  style={{
-                    ...styles.premiumEmailCard,
-                    flexDirection: isMobile ? "column" : "row",
-                    borderRadius: isMobile ? "24px" : "999px",
-                    padding: isMobile ? "12px" : "6px 6px 6px 20px",
-                    gap: isMobile ? "12px" : "0",
-                    width: isMobile ? "100%" : "500px",
-                    maxWidth: "100%"
-                  }}
-                >
-                  <input
-                    id="enterprise-email"
-                    type="email"
-                    required
-                    value={contactEmail}
-                    onChange={(event) => setContactEmail(event.target.value)}
-                    placeholder="Work email (e.g. you@company.com)"
-                    style={{
-                      ...styles.premiumEmailInput,
-                      textAlign: isMobile ? "center" : "left",
-                      padding: isMobile ? "14px 0" : "12px 0"
-                    }}
-                  />
-                  <button 
-                    type="submit" 
-                    style={{
-                      ...styles.premiumEmailButton,
-                      width: isMobile ? "100%" : "auto"
-                    }} 
-                    aria-label="Contact enterprise sales"
-                  >
-                    Contact Sales
-                  </button>
-                </form>
-                <p style={styles.enterpriseTrustNote}>Trusted by 12+ Federal Prime Contractors</p>
-              </div>
+              <p style={styles.enterpriseTrustNote}>Trusted by 12+ Federal Prime Contractors</p>
               <p style={styles.proposalCopy}>
                 Need a client-ready pilot deck? See{" "}
                 <a
