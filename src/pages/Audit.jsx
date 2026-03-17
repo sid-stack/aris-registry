@@ -423,6 +423,8 @@ export default function Audit({ onBack }) {
   const [error, setError] = useState("");
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentInfo, setPaymentInfo] = useState(null);
+  const [showFatalError, setShowFatalError] = useState(false);
+  const [fatalErrorData, setFatalErrorData] = useState(null);
   const [result, setResult] = useState(null);
   const [report, setReport] = useState(null);
   const [dynamicPrice, setDynamicPrice] = useState(99);
@@ -586,6 +588,20 @@ export default function Audit({ onBack }) {
       const price = calculateDisplayPrice(data.value || data.pillars?.estimated_value?.value || "45000000");
       setDynamicPrice(price);
       streamReport(data);
+      
+      // ─── Mercury 2 Compliance Kill-Switch: Trigger Fatal Error for RED-FLAG ───────
+      if (data.fatalError && data.riskAssessment) {
+        addLog(`FATAL_ERROR: ${data.riskAssessment.verdict} - Score: ${data.riskAssessment.score}`, "error");
+        addLog(`DELTA_ANALYSIS: ${data.riskAssessment.delta_analysis}`, "warning");
+        setShowFatalError(true);
+        setFatalErrorData({
+          verdict: data.riskAssessment.verdict,
+          score: data.riskAssessment.score,
+          breakdown: data.riskAssessment.breakdown,
+          deltaAnalysis: data.riskAssessment.delta_analysis
+        });
+      }
+      
       addLog("INTELLIGENCE_SYNTHESIS_COMPLETE", "success");
       trackAuditComplete();
       setIsLoading(false);
@@ -889,6 +905,105 @@ export default function Audit({ onBack }) {
                 }}
               >
                 Upgrade for Unlimited Reports
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mercury 2 Fatal Error Banner */}
+      {showFatalError && fatalErrorData && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(220, 38, 38, 0.95)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10001,
+          backdropFilter: 'blur(8px)'
+        }}>
+          <div style={{
+            background: '#1a0000',
+            border: '2px solid #dc2626',
+            borderRadius: '12px',
+            padding: '40px',
+            maxWidth: '600px',
+            width: '90%',
+            textAlign: 'center',
+            boxShadow: '0 0 40px rgba(220, 38, 38, 0.5)'
+          }}>
+            <div style={{
+              fontSize: '48px',
+              marginBottom: '16px',
+              animation: 'pulse 2s infinite'
+            }}>
+              ⚠️
+            </div>
+            <h2 style={{ 
+              color: '#dc2626', 
+              marginBottom: '16px', 
+              fontSize: '24px',
+              fontWeight: 'bold',
+              textTransform: 'uppercase'
+            }}>
+              COMPLIANCE KILL-SWITCH ACTIVATED
+            </h2>
+            <div style={{
+              background: 'rgba(220, 38, 38, 0.2)',
+              padding: '20px',
+              borderRadius: '8px',
+              marginBottom: '24px',
+              border: '1px solid rgba(220, 38, 38, 0.3)'
+            }}>
+              <p style={{ color: '#dc2626', fontSize: '20px', margin: '0 0 8px' }}>
+                Verdict: {fatalErrorData.verdict}
+              </p>
+              <p style={{ color: '#ffffff', fontSize: '32px', margin: '8px 0', fontWeight: 'bold' }}>
+                Risk Score: {fatalErrorData.score}/99
+              </p>
+              <p style={{ color: '#a1a1aa', fontSize: '14px', margin: '8px 0 0' }}>
+                {fatalErrorData.deltaAnalysis}
+              </p>
+            </div>
+            <div style={{ 
+              background: 'rgba(255,255,255,0.05)', 
+              padding: '16px', 
+              borderRadius: '8px', 
+              marginBottom: '24px',
+              textAlign: 'left'
+            }}>
+              <p style={{ color: '#a1a1aa', margin: '0 0 8px', fontSize: '14px' }}>
+                <strong>Score Breakdown:</strong>
+              </p>
+              <p style={{ color: '#818cf8', margin: '4px 0', fontSize: '12px' }}>
+                Delta Risk: {fatalErrorData.breakdown?.delta_risk || 0} points
+              </p>
+              <p style={{ color: '#f59e0b', margin: '4px 0', fontSize: '12px' }}>
+                Hazard Penalty: {fatalErrorData.breakdown?.hazard_penalty || 0} points
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexDirection: 'column' }}>
+              <p style={{ color: '#ffffff', margin: '0 0 16px', fontSize: '16px' }}>
+                <strong>⚠️ HIGH PROBABILITY OF DISQUALIFICATION DETECTED</strong>
+              </p>
+              <button
+                onClick={() => setShowFatalError(false)}
+                style={{
+                  background: '#dc2626',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '16px 32px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  fontSize: '16px'
+                }}
+              >
+                Acknowledge Risk Assessment
               </button>
             </div>
           </div>
