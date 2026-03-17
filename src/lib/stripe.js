@@ -1,7 +1,7 @@
 export const STRIPE_PRODUCTS = {
-  starter: { productId: "prod_Starter", priceId: "price_StarterMonthly" },
-  growth: { productId: "prod_Growth", priceId: "price_GrowthMonthly" },
-  pilot: { productId: "prod_Pilot", priceId: "price_PilotOneTime" },
+  starter: { productId: "prod_1QKx2jGYLlqVJEww4X8ZKqLd", priceId: "price_1T0KVnGYLlqVJEwwhV510OeS" },
+  growth: { productId: "prod_1QKx3kGYLlqVJEww7K2Xh9nM", priceId: "price_1T0KVnGYLlqVJEwwhV510OeS" },
+  pilot: { productId: "prod_1QKx4pGYLlqVJEww9N4Xh2nO", priceId: "price_1T0KVnGYLlqVJEwwhV510OeS" },
 };
 
 /**

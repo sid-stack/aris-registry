@@ -670,7 +670,7 @@ export default function Audit({ onBack }) {
             </div>
             
             <button className="cyber-btn" onClick={() => startAudit()}>
-              DEPLOY MERCURY 2 INTELLIGENCE
+              DEPLOY MERCURY 2 INTELLIGENCE ENGINE
             </button>
           </div>
         </div>
