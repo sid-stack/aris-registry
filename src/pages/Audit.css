@@ -331,6 +331,30 @@
   align-items: flex-start;
 }
 
+.secure-compliance-shield.loading {
+  cursor: wait;
+  opacity: 0.8;
+  border-color: rgba(0, 255, 194, 0.4);
+}
+
+.secure-compliance-shield.loading .shield-icon {
+  animation: none;
+}
+
+.spinner-mini {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(0, 255, 194, 0.2);
+  border-top: 2px solid #00FFC2;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 .shield-title {
   font-size: 18px;
   margin-bottom: 4px;

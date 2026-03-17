@@ -6,6 +6,7 @@ import OpenAI from "openai";
 import { readFileSync, existsSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
+import Stripe from "stripe";
 
 // ─── Environment Setup ────────────────────────────────────────────────────────
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -30,7 +31,10 @@ function bootstrapEnv() {
   }
 }
 
+
 bootstrapEnv();
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 import { requestId } from "./middleware/requestId.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
@@ -98,55 +102,18 @@ const STRIPE_ARIS_CALL_PRICE_ID = process.env.STRIPE_PRICE_ARIS_CALL;
 
 const PRICING_TIERS = [
   {
-    id: "starter",
-    name: "Starter",
-    monthlyPriceUSD: 29,
-    credits: 200,
-    description: "Core agents with 200 free calls, then $0.25/call.",
-    features: [
-      "Bid intelligence core pipeline",
-      "200 included calls/month",
-      "Usage overage at $0.25/call",
-    ],
-  },
-  {
-    id: "growth",
-    name: "Growth",
-    monthlyPriceUSD: 199,
-    credits: 1000,
-    description: "Includes 1,000 calls/month, then $0.20/call overage.",
-    features: [
-      "Everything in Starter",
-      "1,000 included calls/month",
-      "Usage overage at $0.20/call",
-      "Priority support",
-    ],
-  },
-  {
-    id: "pilot",
-    name: "Pilot",
-    monthlyPriceUSD: 2500,
-    credits: 5000,
-    description: "30-day done-with-you onboarding plus 5,000 calls.",
-    features: [
-      "Implementation onboarding",
-      "5,000 included calls",
-      "Capture + compliance setup",
-      "Weekly delivery reviews",
-    ],
+    id: "standard",
+    name: "Standard Audit",
+    priceUSD: 99,
+    description: "Full compliance matrix and risk score.",
+    features: ["Compliance Matrix", "FAR/DFARS Extraction", "Risk Weighting"],
   },
   {
     id: "enterprise",
-    name: "Enterprise",
-    monthlyPriceUSD: null,
-    credits: -1,
-    description: "Unlimited calls, private endpoints, SLA, and private support.",
-    features: [
-      "Custom commercial terms",
-      "Private infrastructure options",
-      "SLA-backed uptime",
-      "Dedicated account management",
-    ],
+    name: "Enterprise Audit",
+    priceUSD: 299,
+    description: "Deep-shred analysis for high-value bids.",
+    features: ["Everything in Standard", "Capture Strategy", "Win Themes", "Risk Memorandum"],
   },
 ];
 
@@ -154,8 +121,7 @@ function formatPricingTier(tier) {
   return {
     id: tier.id,
     name: tier.name,
-    price: tier.monthlyPriceUSD,
-    credits: tier.credits,
+    price: tier.priceUSD,
     description: tier.description,
     features: tier.features,
   };
@@ -832,6 +798,83 @@ app.post("/api/aris-call-session", asyncHandler(async (req, res) => {
   return res.json({ url: payload.url, id: payload.id });
 }));
 
+/**
+ * STRATEGIC STRIPE: Dynamic Price-to-Value Auto-scaler
+ * Calculates checkout price based on estimated RFP value detected by the engine.
+ */
+function calculateDynamicPrice(estimatedValue) {
+  // Convert string (e.g., "$45.2M") to number
+  let val = 0;
+  if (typeof estimatedValue === 'string') {
+    const clean = estimatedValue.replace(/[$,]/g, '').toUpperCase();
+    if (clean.endsWith('M')) val = parseFloat(clean) * 1000000;
+    else if (clean.endsWith('K')) val = parseFloat(clean) * 1000;
+    else if (clean.endsWith('B')) val = parseFloat(clean) * 1000000000;
+    else val = parseFloat(clean);
+  } else {
+    val = Number(estimatedValue) || 0;
+  }
+
+  // Pricing Logic (in cents)
+  // Simplified to two plans: $99 and $299
+  if (val >= 10000000) return 29900;    // $299 (High-value enterprise)
+  return 9900;                          // $99 (Standard)
+}
+
+app.post("/api/create-dynamic-checkout-session", asyncHandler(async (req, res) => {
+  const { estimatedValue, packType, opportunityTitle } = req.body;
+  
+  if (!process.env.STRIPE_SECRET_KEY) {
+    req.log.error("stripe_config_missing");
+    return res.status(500).json({ error: "Checkout system unconfigured" });
+  }
+
+  const origin = String(req.get("origin") || "https://www.bidsmith.pro").replace(/\/$/, "");
+  const unitAmount = calculateDynamicPrice(estimatedValue);
+  const packName = String(packType || "PRO").toUpperCase().slice(0, 20);
+  const title = String(opportunityTitle || "RFP Audit").slice(0, 100);
+
+  req.log.info("creating_dynamic_checkout", { 
+    estimatedValue, 
+    calculatedPrice: unitAmount,
+    opportunity: title 
+  });
+
+  try {
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: [{
+        price_data: {
+          currency: 'usd',
+          product_data: { 
+            name: `${packName} Compliance Audit`,
+            description: `Mercury 2 High-Fidelity RFP Shred for: ${title}`
+          },
+          unit_amount: unitAmount, 
+        },
+        quantity: 1,
+      }],
+      mode: 'payment',
+      success_url: `${origin}/sam-rep?session={CHECKOUT_SESSION_ID}&dynamic=true&value=${unitAmount}`,
+      cancel_url: `${origin}/dashboard`,
+      metadata: {
+        estimated_value: String(estimatedValue).slice(0, 50),
+        opportunity_title: title,
+        pack_type: packName,
+        protocol: "MERCURY_2_DYNAMIC"
+      }
+    });
+
+    res.json({ url: session.url, sessionId: session.id });
+  } catch (err) {
+    req.log.error("stripe_session_creation_failed", { error: err.message });
+    res.status(502).json({ 
+      error: "Secure checkout gateway failed",
+      detail: process.env.NODE_ENV === "production" ? undefined : err.message
+    });
+  }
+}));
+
 app.post("/api/audit/code", asyncHandler(async (req, res) => {
   const client = makeClient();
   if (!client) return res.status(500).json({ error: "Server configuration incomplete" });
@@ -1131,7 +1174,7 @@ function enforceDisqualification(compliance, text) {
     },
     {
       category: "BONDING",
-      rgx: /(Bonding\s+capacity\s+.*?\$?\d{1, 3}(,\d{3})*(\.\d+)?|Performance\s+bond\s+.*?\$?\d{1, 3}(,\d{3})*(\.\d+)?|Payment\s+bond\s+.*?\$?\d{1, 3}(,\d{3})*(\.\d+)?|Minimum\s+bonding\s+.*?\$?\d{1, 3}(,\d{3})*(\.\d+)?)/i,
+      rgx: /(Bonding\s+capacity\s+.*?\$?\d{1,3}(,\d{3})*(\.\d+)?|Performance\s+bond\s+.*?\$?\d{1,3}(,\d{3})*(\.\d+)?|Payment\s+bond\s+.*?\$?\d{1,3}(,\d{3})*(\.\d+)?|Minimum\s+bonding\s+.*?\$?\d{1,3}(,\d{3})*(\.\d+)?)/i,
       reason: "Requires massive bonding capacity."
     },
     {
@@ -1244,7 +1287,8 @@ async function scoreAttachments(links, apiKey) {
   const sample = links.slice(0, 15);
   const results = await Promise.all(sample.map(async (url) => {
     try {
-      const fullUrl = url.includes('api_key') ? url : `${url}?api_key=${apiKey}`;
+      const sep = url.includes('?') ? '&' : '?';
+      const fullUrl = url.includes('api_key') ? url : `${url}${sep}api_key=${apiKey}`;
       const res = await fetch(fullUrl, { method: 'HEAD', redirect: 'manual' });
       const disp = res.headers.get('content-disposition') || '';
       const loc = res.headers.get('location') || '';
@@ -1885,7 +1929,7 @@ app.post("/api/subscription/upgrade", asyncHandler(async (req, res) => {
       userId,
       oldTier: "free",
       newTier: tierId,
-      price: tierId === "professional" ? 299 : tierId === "enterprise" ? 999 : 0,
+      price: tierId === "enterprise" ? 299 : tierId === "standard" ? 99 : 0,
       currency: "USD",
       billingCycle: "monthly",
       upgradedAt: new Date().toISOString(),
@@ -1925,9 +1969,8 @@ app.post("/api/credits/purchase", asyncHandler(async (req, res) => {
   try {
     // Mock credit pack purchase - in production, this would integrate with Stripe
     const creditPacks = {
-      starter_pack: { credits: 50, price: 99 },
-      professional_pack: { credits: 200, price: 299 },
-      enterprise_pack: { credits: 500, price: 499 }
+      starter_pack: { credits: 1, price: 99 },
+      professional_pack: { credits: 1, price: 299 }
     };
 
     const pack = creditPacks[packId];

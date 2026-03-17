@@ -205,25 +205,32 @@ const RevenueProtection = ({ totalValue = 45000000, winProbability = 0.13 }) => 
   );
 };
 
-const SecureComplianceShield = ({ onUnlock }) => {
+const SecureComplianceShield = ({ onUnlock, price = 99, isLoading = false }) => {
   const [isHovered, setIsHovered] = useState(false);
   
   return (
     <div className="secure-shield-container">
       <button 
-        className="secure-compliance-shield pulse-bridge"
+        className={`secure-compliance-shield pulse-bridge ${isLoading ? 'loading' : ''}`}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         onClick={onUnlock}
+        disabled={isLoading}
       >
         <div className="shield-icon">
-          <ShieldCheck size={32} />
+          {isLoading ? (
+            <div className="spinner-mini" />
+          ) : (
+            <ShieldCheck size={32} />
+          )}
         </div>
         <div className="shield-text">
-          <div className="shield-title">Secure Compliance Shield</div>
-          {isHovered && (
+          <div className="shield-title">
+            {isLoading ? "Establishing Bridge..." : "Secure Compliance Shield"}
+          </div>
+          {!isLoading && isHovered && (
             <div className="shield-tooltip">
-              Unlock 30-Page Remediation Matrix — $499
+              Unlock 30-Page Remediation Matrix — ${price}
             </div>
           )}
         </div>
@@ -347,7 +354,7 @@ const RevenueProjection = ({ estimatedValue = 50000000, riskScore = 87 }) => {
   );
 };
 
-const ConversionLayer = ({ onPurchase }) => {
+const ConversionLayer = ({ onPurchase, price = 99 }) => {
   return (
     <div className="conversion-layer">
       <button 
@@ -355,7 +362,7 @@ const ConversionLayer = ({ onPurchase }) => {
         onClick={onPurchase}
       >
         <Lock size={16} />
-        <span>Secure Full Compliance Matrix ($499)</span>
+        <span>Secure Full Compliance Matrix (${price})</span>
       </button>
       
       <div className="human-chat-bubble">
@@ -406,12 +413,11 @@ const ComplianceHeatmap = ({ intensity = [] }) => {
 export default function Audit({ onBack }) {
   const [samUrl, setSamUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [report, setReport] = useState(null);
+  const [dynamicPrice, setDynamicPrice] = useState(99);
   const [logs, setLogs] = useState([{ msg: "ARIS_BOOT_SEQUENCE_COMPLETE", type: "success" }]);
-  const [isVaultActive, setIsVaultActive] = useState(true);
-  const [sessionTime] = useState(900); // 15 minutes session
   
   const esRef = useRef(null);
 
@@ -419,10 +425,62 @@ export default function Audit({ onBack }) {
     setLogs(prev => [...prev.slice(-15), { msg, type }]);
   };
 
-  const handlePurchase = () => {
-    // Redirect to Stripe checkout
-    window.open('https://buy.stripe.com/your-stripe-link-here', '_blank');
-    trackEvent('purchase_initiated', { value: 499, currency: 'USD' });
+  const calculateDisplayPrice = (val) => {
+    let num = 0;
+    if (typeof val === 'string') {
+      const clean = val.replace(/[$,]/g, '').toUpperCase();
+      if (clean.endsWith('M')) num = parseFloat(clean) * 1000000;
+      else if (clean.endsWith('K')) num = parseFloat(clean) * 1000;
+      else if (clean.endsWith('B')) num = parseFloat(clean) * 1000000000;
+      else num = parseFloat(clean);
+    } else {
+      num = Number(val) || 0;
+    }
+
+    if (num >= 10000000) return 299;
+    return 99;
+  };
+
+  const handlePurchase = async () => {
+    if (isCheckoutLoading) return;
+    
+    const estimatedValue = result?.value || result?.pillars?.estimated_value?.value || "45000000";
+    const opportunityTitle = result?.title || "RFP Audit";
+
+    setIsCheckoutLoading(true);
+    addLog("ESTABLISHING_SECURE_CHECKOUT_BRIDGE...", "info");
+    
+    try {
+      const res = await fetch("/api/create-dynamic-checkout-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          estimatedValue, 
+          packType: 'pro',
+          opportunityTitle
+        }),
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Gateway failure");
+      }
+
+      const data = await res.json();
+      if (data.url) {
+        addLog("BRIDGE_ESTABLISHED_REDIRECTING...", "success");
+        window.location.href = data.url;
+        trackEvent('purchase_initiated', { 
+          value: calculateDisplayPrice(estimatedValue), 
+          currency: 'USD',
+          estimated_value: estimatedValue
+        });
+      }
+    } catch (e) {
+      console.error("Checkout failed:", e);
+      addLog(`CHECKOUT_FATAL: ${e.message.toUpperCase()}`, "error");
+      setIsCheckoutLoading(false);
+    }
   };
 
   const startAudit = async (url) => {
@@ -453,6 +511,8 @@ export default function Audit({ onBack }) {
       
       setTimeout(() => {
         setResult(data);
+        const price = calculateDisplayPrice(data.value || data.pillars?.estimated_value?.value || "45000000");
+        setDynamicPrice(price);
         streamReport(data);
         addLog("INTELLIGENCE_SYNTHESIS_COMPLETE", "success");
         trackEvent("audit_success", { url: finalUrl, title: data.title });
@@ -560,7 +620,10 @@ export default function Audit({ onBack }) {
                   <DisqualificationRadar hazards={result?.compliance} />
                   
                   {/* Revenue Protection */}
-                  <RevenueProtection totalValue={45000000} winProbability={0.13} />
+                  <RevenueProtection 
+                    totalValue={result?.value || result?.pillars?.estimated_value?.value || 45000000} 
+                    winProbability={0.13} 
+                  />
                   
                   {/* Critical Alert */}
                   <div className="critical-alert">
@@ -572,7 +635,11 @@ export default function Audit({ onBack }) {
                   </div>
 
                   {/* Secure Compliance Shield */}
-                  <SecureComplianceShield onUnlock={handlePurchase} />
+                  <SecureComplianceShield 
+                    onUnlock={handlePurchase} 
+                    price={dynamicPrice} 
+                    isLoading={isCheckoutLoading}
+                  />
                   
                   {/* Report Section */}
                   {report?.proposal_draft && (
