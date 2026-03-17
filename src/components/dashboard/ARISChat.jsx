@@ -135,6 +135,13 @@ const ARISChat = ({ selectedContext, onLog, onCommand, reportData }) => {
     const userText = (text || input).trim();
     if (!userText || loading) return;
 
+    // Auto-paste SAM.gov workspace link when user types "1"
+    if (userText === '1') {
+      const samLink = 'https://sam.gov/workspace/contract/opp/c3fcc8a748b3438c9b0fe7630640e674/view';
+      setInput(samLink);
+      return;
+    }
+
     // Check for predictive analysis commands - TEMPORARILY DISABLED
     // const predictiveCommands = {
     //   'win probability': () => runPredictiveAnalysis('winProbability'),
