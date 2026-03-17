@@ -1274,6 +1274,40 @@ app.post("/api/audit", upload.single("file"), asyncHandler(async (req, res) => {
   }
 }));
 
+// ─── Mercury 2 Compliance Kill-Switch Algorithm ───────────────────────────────
+function calculateRiskScore(sectionLCount, sectionMCount, fatalHazards) {
+  /**
+   * Calculates the 'Compliance Kill-Switch' score.
+   * Higher score = Higher probability of disqualification.
+   */
+  
+  // Base delta risk (Instruction vs Evaluation mismatch)
+  const delta = Math.abs(sectionLCount - sectionMCount);
+  const baseRisk = Math.min(delta * 10, 40);
+  
+  // Critical Hazard Weighting
+  const hazardPenalty = fatalHazards.reduce((sum, hazard) => {
+    return sum + (hazard.severity_weight || 20);
+  }, 0);
+  
+  // Final Score (Capped at 99 to maintain 'Mercury' precision)
+  const finalScore = Math.min(baseRisk + hazardPenalty, 99);
+  
+  const verdict = finalScore > 70 ? "RED-FLAG" : 
+                  finalScore > 40 ? "YELLOW-WATCH" : "GO-MISSION";
+  
+  return {
+    score: finalScore,
+    verdict: verdict,
+    delta_analysis: `Mismatched ${delta} requirements between L and M.`,
+    breakdown: {
+      delta_risk: baseRisk,
+      hazard_penalty: hazardPenalty,
+      total_score: finalScore
+    }
+  };
+}
+
 // ─── Stripe Webhook Handler ───────────────────────────────────────────────
 app.post("/api/stripe-webhook", express.raw({ type: 'application/json' }), asyncHandler(async (req, res) => {
   const sig = req.headers['stripe-signature'];
@@ -1668,6 +1702,47 @@ app.post("/api/analyze-link", analyzeLinkLimiter, asyncHandler(async (req, res) 
 
     compliance = enforceDisqualification(compliance, auditText);
 
+    // ─── Mercury 2 Compliance Kill-Switch Integration ─────────────────────
+    // Extract Section L and Section M requirements from compliance data
+    let sectionLCount = 0;
+    let sectionMCount = 0;
+    let fatalHazards = [];
+
+    if (compliance && compliance.requirements) {
+      // Count Section L requirements (Instructions, Conditions, etc.)
+      sectionLCount = Object.keys(compliance.requirements).filter(key => 
+        key.toLowerCase().includes('instruction') || 
+        key.toLowerCase().includes('condition') || 
+        key.toLowerCase().includes('requirement') ||
+        key.toLowerCase().includes('section l')
+      ).length;
+
+      // Count Section M requirements (Evaluation, Criteria, etc.)
+      sectionMCount = Object.keys(compliance.requirements).filter(key => 
+        key.toLowerCase().includes('evaluation') || 
+        key.toLowerCase().includes('criteria') || 
+        key.toLowerCase().includes('scoring') ||
+        key.toLowerCase().includes('section m')
+      ).length;
+
+      // Extract fatal hazards from compliance risks
+      if (compliance.risks) {
+        fatalHazards = (compliance.risks.high_risks || []).map(risk => ({
+          description: risk,
+          severity_weight: 25 // High severity for fatal hazards
+        })).concat(
+          (compliance.risks.medium_risks || []).map(risk => ({
+            description: risk,
+            severity_weight: 15 // Medium severity
+          }))
+        );
+      }
+    }
+
+    // Calculate Compliance Kill-Switch score
+    const riskAssessment = calculateRiskScore(sectionLCount, sectionMCount, fatalHazards);
+    console.log(`[/api/analyze-link] Mercury 2 Risk Score: ${riskAssessment.score} - Verdict: ${riskAssessment.verdict}`);
+
     let executiveSummary = "";
     if (deepMatch) executiveSummary = raw.slice(raw.indexOf(deepMatch[0]) + deepMatch[0].length).trim();
 
@@ -1680,7 +1755,10 @@ app.post("/api/analyze-link", analyzeLinkLimiter, asyncHandler(async (req, res) 
         reportsUsed: usage.count + 1,
         reportsLimit: 3,
         hasPaid: usage.hasPaid
-      }
+      },
+      // ─── Mercury 2 Compliance Kill-Switch Results ───────────────────────
+      riskAssessment: riskAssessment,
+      fatalError: riskAssessment.verdict === "RED-FLAG"
     };
 
     // Increment usage counter
