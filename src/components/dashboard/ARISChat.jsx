@@ -2,27 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { 
-  Sparkles, 
-  Terminal, 
   Send, 
-  Zap, 
-  MessageSquare, 
-  ShieldCheck, 
-  FileText,
-  CreditCard,
-  AlertTriangle,
-  CheckCircle2,
-  TrendingUp,
-  Target,
   Brain,
-  BarChart3,
-  Clock,
-  DollarSign,
-  Award,
-  Eye,
-  Lightbulb,
   Activity,
-  ChevronRight
 } from 'lucide-react';
 
 const ARISChat = ({ selectedContext, onLog, onCommand, reportData }) => {
@@ -35,10 +17,9 @@ const ARISChat = ({ selectedContext, onLog, onCommand, reportData }) => {
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [analysisMode, setAnalysisMode] = useState('general');
-  const [showPredictiveTools, setShowPredictiveTools] = useState(true);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
+  const quickPrompts = ['Win probability', 'Risk analysis', 'Pricing strategy'];
 
   useEffect(() => {
     if (selectedContext) {
@@ -55,55 +36,6 @@ const ARISChat = ({ selectedContext, onLog, onCommand, reportData }) => {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
-
-  // AI Predictive Analysis Functions
-  const runPredictiveAnalysis = async (analysisType) => {
-    setLoading(true);
-    setAnalysisMode(analysisType);
-    onLog(`INIT_PREDICTIVE_ANALYSIS: ${analysisType}`, 'info');
-
-    const analyses = {
-      winProbability: {
-        title: '🎯 WIN PROBABILITY ANALYSIS',
-        content: `**DHA Video Imaging Archive (DHANOISS022426)**\n\n**Predictive Win Score: 67%**\n\n**Key Factors:**\n• ✅ Technical alignment: 82%\n• ⚠️  Compliance complexity: HIGH\n• ✅ Past performance relevance: 74%\n• ⚠️  Competitive density: 8 expected bidders\n\n**Competitive Intelligence:**\n• Lockheed Martin likely to bid (strong DHA relationships)\n• Leidos has recent DHA imaging contracts\n• CACI International active in adjacent space\n\n**Win Strategy Recommendations:**\n1. Emphasize RMF-ready ATO pathway\n2. Highlight legacy system integration experience\n3. Price competitively on technical approach\n\n**Next Steps:** Request detailed competitive analysis or pricing optimization.`,
-        confidence: 78
-      },
-      riskMitigation: {
-        title: '🛡️ RISK MITIGATION STRATEGY',
-        content: `**HIGH-RISK COMPLIANCE AREAS IDENTIFIED**\n\n**Critical Path Items:**\n1. **RMF Compliance** - Must demonstrate ATO pathway\n   • Timeline: 4-6 months for full ATO\n   • Cost impact: $180K - $250K\n   • Strategy: Leverage existing DoD ATO\n\n2. **Legacy System Integration** - DHA MUMPS compatibility\n   • Technical complexity: HIGH\n   • Risk mitigation: Partner with MUMPS specialist\n   • Timeline: 8-10 weeks for integration testing\n\n3. **SPRS Requirements** - 110/110 score needed\n   • Current status: Assessment required\n   • Quick win: Focus on NIST 800-171 controls\n\n**Mitigation Timeline:**\n• Week 1-2: SPRS assessment completion\n• Week 3-6: ATO pathway documentation\n• Week 7-10: Legacy integration proof-of-concept\n\n**Recommended Actions:**\n• Engage compliance team immediately\n• Allocate budget for ATO acceleration\n• Identify MUMPS integration partner`,
-        confidence: 85
-      },
-      pricingOptimization: {
-        title: '💰 PRICING OPTIMIZATION ANALYSIS',
-        content: `**COMPETITIVE PRICING INTELLIGENCE**\n\n**Market Analysis:**\n• Estimated award value: $45M - $67M\n• Competitor pricing range: $42M - $71M\n• DHA historical preference: Mid-range technical, competitive pricing\n\n**Optimization Recommendations:**\n\n**Technical Approach (60% weight):**\n• Target: $28M - $32M\n• Strategy: Premium pricing with superior technical solution\n• Justification: Advanced AI capabilities, RMF-ready architecture\n\n**Management Approach (30% weight):**\n• Target: $12M - $15M\n• Strategy: Competitive with experienced DHA team\n• Justification: Proven DHA contract management experience\n\n**Cost Analysis:**\n• Direct labor: 65%\n• Subcontractors: 20%\n• Overhead: 15%\n\n**Price-to-Win Recommendation:**\n• **Optimal range: $45M - $52M**\n• **Win probability peak: $48.5M**\n• **Margin target: 12% - 15%**\n\n**Risk Factors:**\n• Low-ball bids (<$42M) may trigger technical concerns\n• High-end bids (>$58M) face price resistance\n\n**Next Steps:**\n• Detailed cost breakdown analysis\n• Competitor proposal intelligence gathering`,
-        confidence: 72
-      },
-      competitivePositioning: {
-        title: '🏁 COMPETITIVE POSITIONING',
-        content: `**COMPETITIVE LANDSCAPE ANALYSIS**\n\n**Primary Competitors:**\n\n1. **Lockheed Martin**\n   • Strengths: DHA relationships, deep pockets\n   • Weaknesses: Legacy integration experience\n   • Threat level: HIGH\n\n2. **Leidos**\n   • Strengths: Recent DHA imaging work\n   • Weaknesses: Higher cost structure\n   • Threat level: HIGH\n\n3. **CACI International**\n   • Strengths: Agile development, GovCon focus\n   • Weaknesses: Limited healthcare experience\n   • Threat level: MEDIUM\n\n**Your Competitive Advantages:**\n✅ **Specialized healthcare imaging expertise**\n✅ **RMF/ATO acceleration pathway**\n✅ **MUMPS integration capability**\n✅ **Competitive pricing structure**\n\n**Positioning Strategy:**\n• **Technical differentiation**: AI-enhanced imaging analytics\n• **Compliance leadership**: RMF-ready solution\n• **Value proposition**: Lower total cost of ownership\n\n**Differentiation Opportunities:**\n1. Emphasize AI/ML capabilities for image analysis\n2. Highlight rapid ATO timeline (6 months vs 12+)\n3. Showcase MUMPS integration case studies\n\n**Competitive Intelligence Gaps:**\n• Need intel on Lockheed Martin's technical approach\n• Missing Leidos pricing history\n• Unknown CACI healthcare team composition\n\n**Recommended Actions:**\n• Conduct competitive intelligence gathering\n• Develop technical whitepaper\n• Prepare price-to-win strategy`,
-        confidence: 68
-      }
-    };
-
-    const analysis = analyses[analysisType];
-    
-    // Simulate analysis pipeline
-    setTimeout(() => onLog(`ANALYZING_COMPETITIVE_DATA: Cross-referencing SAM.gov...`, 'info'), 300);
-    setTimeout(() => onLog(`CALCULATING_PROBABILITY: Running predictive models...`, 'info'), 800);
-    setTimeout(() => onLog(`GENERATING_INSIGHTS: AI synthesis complete...`, 'success'), 1200);
-
-    setTimeout(() => {
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: analysis.content,
-        isPredictive: true,
-        confidence: analysis.confidence,
-        analysisType
-      }]);
-      setLoading(false);
-      onLog(`PREDICTIVE_ANALYSIS_COMPLETE: ${analysisType}`, 'success');
-    }, 1500);
-  };
 
   const handleGhostWrite = async () => {
     if (!selectedContext) return;
@@ -270,7 +202,7 @@ const ARISChat = ({ selectedContext, onLog, onCommand, reportData }) => {
 
       {/* Input Area */}
       <div className="chat-input-area">
-        <div className="input-wrapper">
+        <div className="input-wrapper chat-composer">
           <textarea 
             ref={inputRef}
             value={input}
@@ -281,16 +213,31 @@ const ARISChat = ({ selectedContext, onLog, onCommand, reportData }) => {
                 sendMessage();
               }
             }}
-            placeholder="Ask ARIS about this solicitation..."
-            className="minimal-textarea"
+            placeholder="Ask about win probability, compliance risk, pricing strategy, or mitigation plan..."
+            className="minimal-textarea chat-composer-input"
           />
           <button 
             onClick={() => sendMessage()}
             disabled={loading || !input.trim()}
-            className="minimal-send-btn"
+            className="minimal-send-btn chat-composer-send"
+            aria-label="Send message"
           >
             <Send size={16} />
           </button>
+        </div>
+        <div className="chat-composer-hints">
+          <span>Try:</span>
+          {quickPrompts.map((prompt) => (
+            <button
+              key={prompt}
+              type="button"
+              className="chat-hint-chip"
+              onClick={() => sendMessage(prompt)}
+              disabled={loading}
+            >
+              {prompt}
+            </button>
+          ))}
         </div>
       </div>
     </div>

@@ -1,22 +1,13 @@
 import {
   Rocket,
-  CheckCircle2,
-  PiggyBank,
-  PlugZap,
-  Search,
-  KeyRound,
-  BadgeCheck,
-  BriefcaseBusiness,
   FileText,
-  ArrowLeft,
   Shield,
   Linkedin,
   Globe,
   Zap,
+  AlertTriangle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import FaqSection from "../components/FaqSection";
 import GovernmentBanner from "../components/GovernmentBanner";
 import "./Landing.css";
@@ -24,7 +15,6 @@ import { trackEvent } from "../utils/analytics";
 import PricingCard from "../components/PricingCard";
 import { trackKPI } from "../lib/analytics";
 import { GTM_PRICING_PLANS } from "../lib/pricing";
-import Proposal from "./Proposal";
 
 const benefits = [
   {
@@ -63,9 +53,63 @@ const steps = [
 ];
 
 const heroStats = [
-  { label: "Audit Turnaround", value: "4 Hours" },
-  { label: "Constraint Accuracy", value: "99%+" },
-  { label: "Execution Layer", value: "Stateless" },
+  { label: "Pages Analyzed", value: "284" },
+  { label: "Bid-Killer Flags", value: "3 + 1 DQ" },
+  { label: "Audit Turnaround", value: "41 sec" },
+];
+
+const sampleReportMeta = [
+  { label: "Agency", value: "Defense Health Agency" },
+  { label: "Solicitation", value: "HT9402-24-R-0012" },
+  { label: "Set-Aside", value: "Total Small Business" },
+  { label: "NAICS", value: "541512" },
+];
+
+const sampleReportRisks = [
+  "RMF / ATO path is referenced as an evaluation dependency.",
+  "SPRS submission is expected before proposal delivery.",
+  "CUI handling implies facility-clearance exposure.",
+];
+
+const sampleDeliverables = [
+  "Executive audit with bid / no-bid recommendation",
+  "Compliance matrix mapped to Section L / H requirements",
+  "Risk memorandum with response outline for capture review",
+];
+
+const trustSignals = [
+  {
+    title: "Literal Output",
+    detail: "You inspect a real DHA audit workflow, not demo filler copy.",
+  },
+  {
+    title: "Zero-Retention",
+    detail: "Stateless processing posture designed for sensitive capture data.",
+  },
+  {
+    title: "Federal Fit",
+    detail: "Built around DOD and civilian solicitation review requirements.",
+  },
+];
+
+const heroChips = [
+  "Section L/H extraction",
+  "RMF + ATO risk signal",
+  "Capture-ready memo in 41 sec",
+];
+
+const reportTabs = ["Executive Audit", "Compliance Matrix", "Risk Memo"];
+
+const reportTelemetry = [
+  { label: "Clauses Parsed", value: "127" },
+  { label: "Docs Reviewed", value: "16" },
+  { label: "Risk Level", value: "HIGH" },
+];
+
+const pricingPreviewStats = [
+  { label: "Manual analysis", value: "18-40 hrs" },
+  { label: "ARIS runtime", value: "41 sec" },
+  { label: "Detections", value: "3 risks + 1 DQ" },
 ];
 
 function BrandingBanner() {
@@ -251,9 +295,6 @@ function IconCard({ title, description, icon }) {
 
 export default function Landing({ onEnterApp, onViewSample }) {
   const [isProcessing, setIsProcessing] = useState(false);
-  const [viewingSample, setViewingSample] = useState(false);
-  const [sampleReport, setSampleReport] = useState(null);
-  const [loadingSample, setLoadingSample] = useState(false);
   const [isMobile, setIsMobile] = useState(
     typeof window !== "undefined" && window.innerWidth < 768
   );
@@ -263,28 +304,6 @@ export default function Landing({ onEnterApp, onViewSample }) {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
-
-  const fetchSampleReport = async () => {
-    setLoadingSample(true);
-    trackEvent("view_sample_report_click", { source: "landing_hero" });
-    try {
-      const response = await fetch("/api/sample-report");
-      if (!response.ok) throw new Error("Failed to fetch sample report");
-      const data = await response.json();
-      setSampleReport(data);
-      setViewingSample(true);
-    } catch (error) {
-      console.error("Error fetching sample report:", error);
-      alert("Unable to load demo report. Please try again.");
-    } finally {
-      setLoadingSample(false);
-    }
-  };
-
-  const handleBackToLanding = () => {
-    setViewingSample(false);
-    setSampleReport(null);
-  };
 
   const openCheckout = async (source, plan) => {
     if (isProcessing) return;
@@ -340,32 +359,9 @@ export default function Landing({ onEnterApp, onViewSample }) {
     onEnterApp();
   };
 
-  const [pstTime, setPstTime] = useState("");
-
-  useEffect(() => {
-    const updateTime = () => {
-      const now = new Date();
-      const options = {
-        timeZone: 'America/Los_Angeles',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: true
-      };
-      setPstTime(now.toLocaleString('en-US', options) + " PST");
-    };
-    updateTime();
-    const timer = setInterval(updateTime, 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-
-  const handlePilotCta = () => {
-    trackKPI("pilot_cta", { source: "landing_pricing_banner" });
-    openCheckout("landing_pilot_banner", GTM_PRICING_PLANS[1]);
+  const handleSampleView = () => {
+    trackEvent("view_sample_report_click", { source: "landing_hero" });
+    onViewSample();
   };
 
   useEffect(() => {
@@ -395,342 +391,321 @@ export default function Landing({ onEnterApp, onViewSample }) {
   return (
     <div style={styles.page}>
       <BrandingBanner />
-      {viewingSample && sampleReport ? (
-        <div style={{ minHeight: "100vh", background: "#f8fafc" }}>
-          <div style={{ ...styles.navbar, position: "relative" }}>
-            <div style={{ ...styles.navInner, justifyContent: isMobile ? "center" : "space-between" }}>
-              <button
-                onClick={handleBackToLanding}
-                style={{
-                  ...styles.secondaryCta,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  fontSize: isMobile ? 12 : undefined,
-                  padding: isMobile ? "6px 10px" : undefined
-                }}
-              >
-                <ArrowLeft size={16} />
-                {isMobile ? "Back" : "Back to Home"}
-              </button>
-              {!isMobile && (
-                <span style={{ marginLeft: "auto", color: "#4f46e5", fontWeight: 600 }}>
-                  Demo: DLA Energy Solicitation
-                </span>
-              )}
+      <header style={styles.navbar}>
+        <div style={styles.navInner}>
+          <a href="/" style={styles.brand}>
+            <img src="/aris-logo.png" alt="Aris" style={{ height: 22, width: 22, objectFit: "contain" }} />
+            <span>ARIS Labs</span>
+          </a>
+          <nav className="landing-nav-links">
+            <a href="/#solutions" style={styles.navLink}>Solutions</a>
+            <a href="/#workflow" style={styles.navLink}>Workflow</a>
+            <a href="/#pricing" style={styles.navLink}>Pricing</a>
+            <a href="https://docs.bidsmith.pro" target="_blank" rel="noopener noreferrer" style={styles.navLink}>Docs</a>
+            <a href="/#contact" style={styles.navLink}>Contact</a>
+          </nav>
+          <button
+            type="button"
+            aria-label="Start Sovereign Intelligence Session"
+            style={styles.navCta}
+            onClick={handleStartTrial}
+            disabled={isProcessing}
+          >
+            Access Terminal
+          </button>
+        </div>
+      </header>
+
+      <section className="landing-hero" style={styles.heroTerminalSection}>
+        <div className="landing-hero-layout">
+          <div className="landing-hero-copy">
+            <p style={styles.sectionEyebrow}>Sample-anchored Federal Audit</p>
+            <h1 className="landing-hero-title" style={{ ...styles.title, textAlign: "left", fontSize: isMobile ? "2rem" : "3.15rem" }}>
+              Replace 40-hour manual review with one decisive audit screen.
+            </h1>
+            <p className="landing-hero-subtitle" style={{ ...styles.subtitle, marginLeft: 0, marginRight: 0, textAlign: "left", maxWidth: "unset" }}>
+              This view mirrors the DHA Video Imaging Archive sample report your capture lead gets: structured solicitation metadata,
+              compliance-risk telemetry, and a client-ready decision path.
+            </p>
+            <div className="landing-hero-chip-row">
+              {heroChips.map((chip) => (
+                <span key={chip} className="landing-hero-chip">{chip}</span>
+              ))}
+            </div>
+            <div style={{ ...styles.heroActions, flexDirection: isMobile ? "column" : "row", justifyContent: "flex-start" }}>
+              <button onClick={handleWorkspaceOpen} style={{ ...styles.primaryCta, width: isMobile ? "100%" : "auto", background: "var(--accent)", color: "#000" }}>Run Audit</button>
+              <button onClick={handleSampleView} style={{ ...styles.secondaryCta, width: isMobile ? "100%" : "auto" }}>Open Full Sample</button>
+              <button onClick={handleSamScraperOpen} style={{ ...styles.secondaryCta, width: isMobile ? "100%" : "auto" }}>Contractor Intel</button>
+            </div>
+            <div style={styles.heroStatsGrid}>
+              {heroStats.map((stat) => (
+                <div key={stat.label} style={styles.heroStatCard}>
+                  <p style={styles.heroStatValue}>{stat.value}</p>
+                  <p style={styles.heroStatLabel}>{stat.label}</p>
+                </div>
+              ))}
             </div>
           </div>
-          <Proposal
-            proposal={{
-              document_metadata: {
-                agency: sampleReport.agency,
-                solicitation_number: sampleReport.pillars?.solicitation_id?.value,
-                naics_code: sampleReport.pillars?.naics_code?.value,
-                set_aside_type: sampleReport.pillars?.set_aside_type?.value,
-              },
-              submission_details: {
-                deadline: sampleReport.pillars?.deadline_date?.value,
-                days_until_deadline: null,
-                page_limit: null,
-              },
-              evaluation_summary: {
-                evaluation_factors: [],
-                lowest_price_technically_acceptable: false,
-              },
-              compliance_summary: {
-                bid_score: 85,
-                high_risk_count: 2,
-                mandatory_requirements: 12,
-                review_required_count: 1,
-              },
-              requirements: [],
-              gaps: sampleReport.risk_flags?.map((flag, i) => ({
-                severity: "Medium",
-                gap_reason: flag,
-                recommended_action: "Review in compliance matrix",
-              })) || [],
-              far_clauses_detected: [],
-              confidence_metrics: {
-                validator_flagged: false,
-                extraction_confidence: 0.95,
-              },
-            }}
-            onReset={handleBackToLanding}
-          />
-          <div className="sample-report-container">
-            <div className="sample-report-panel" style={{ background: "#ffffff", border: "1px solid #e5e5e5", borderRadius: 8, marginBottom: 20 }}>
-              <h3 style={{ margin: "0 0 16px", fontSize: 18, fontWeight: 600 }}>Sample Compliance Report</h3>
-              <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
-                p: ({ children }) => <p style={{ marginBottom: 14, lineHeight: 1.6, color: "#334155" }}>{children}</p>,
-                h1: ({ children }) => <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 12, color: "#0f172a" }}>{children}</h1>,
-                h2: ({ children }) => <h2 style={{ fontSize: 18, fontWeight: 600, marginTop: 20, marginBottom: 10, color: "#1e40af" }}>{children}</h2>,
-                table: ({ children }) => <div style={{ overflowX: "auto" }}><table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, marginBottom: 16 }}>{children}</table></div>,
-                th: ({ children }) => <th style={{ background: "#f8fafc", padding: "10px 12px", border: "1px solid #e2e8f0", fontWeight: 600, textAlign: "left" }}>{children}</th>,
-                td: ({ children }) => <td style={{ padding: "10px 12px", border: "1px solid #e2e8f0", color: "#334155" }}>{children}</td>,
-                blockquote: ({ children }) => <blockquote style={{ margin: "12px 0", padding: "12px 16px", background: "#eff6ff", borderLeft: "3px solid #3b82f6", color: "#1e40af", fontStyle: "italic" }}>{children}</blockquote>,
-              }}>
-                {sampleReport.compliance_report}
-              </ReactMarkdown>
+
+          <aside className="landing-hero-report" aria-label="Sample audit preview">
+            <div className="landing-report-shell">
+              <div className="landing-report-topline">
+                <span>SAMPLE AUDIT</span>
+                <span>DHA VIDEO IMAGING ARCHIVE</span>
+              </div>
+              <div className="landing-report-tabs">
+                {reportTabs.map((tab, index) => (
+                  <span
+                    key={tab}
+                    className={index === 0 ? "landing-report-tab landing-report-tab-active" : "landing-report-tab"}
+                  >
+                    {tab}
+                  </span>
+                ))}
+              </div>
+              <div className="landing-report-meta">
+                {sampleReportMeta.map((item) => (
+                  <div key={item.label} className="landing-report-meta-row">
+                    <span>{item.label}</span>
+                    <strong>{item.value}</strong>
+                  </div>
+                ))}
+              </div>
+              <div className="landing-report-telemetry">
+                {reportTelemetry.map((item) => (
+                  <div key={item.label} className="landing-report-telemetry-card">
+                    <p>{item.label}</p>
+                    <strong>{item.value}</strong>
+                  </div>
+                ))}
+              </div>
+              <div className="landing-report-riskbox">
+                <p>Bid-Killer Alerts</p>
+                <ul>
+                  {sampleReportRisks.map((risk) => (
+                    <li key={risk}>
+                      <AlertTriangle size={14} />
+                      <span>{risk}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
-            <div className="sample-report-panel" style={{ background: "#ffffff", border: "1px solid #e5e5e5", borderRadius: 8 }}>
-              <h3 style={{ margin: "0 0 16px", fontSize: 18, fontWeight: 600 }}>Risk Memorandum</h3>
-              <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
-                p: ({ children }) => <p style={{ marginBottom: 14, lineHeight: 1.6, color: "#334155" }}>{children}</p>,
-                h1: ({ children }) => <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 12, color: "#0f172a" }}>{children}</h1>,
-                h2: ({ children }) => <h2 style={{ fontSize: 18, fontWeight: 600, marginTop: 20, marginBottom: 10, color: "#1e40af" }}>{children}</h2>,
-                table: ({ children }) => <div style={{ overflowX: "auto" }}><table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, marginBottom: 16 }}>{children}</table></div>,
-                th: ({ children }) => <th style={{ background: "#f8fafc", padding: "10px 12px", border: "1px solid #e2e8f0", fontWeight: 600, textAlign: "left" }}>{children}</th>,
-                td: ({ children }) => <td style={{ padding: "10px 12px", border: "1px solid #e2e8f0", color: "#334155" }}>{children}</td>,
-                blockquote: ({ children }) => <blockquote style={{ margin: "12px 0", padding: "12px 16px", background: "#eff6ff", borderLeft: "3px solid #3b82f6", color: "#1e40af", fontStyle: "italic" }}>{children}</blockquote>,
-              }}>
-                {sampleReport.proposal_draft}
-              </ReactMarkdown>
+          </aside>
+        </div>
+      </section>
+
+      <section className="landing-trust-strip" data-reveal>
+        <div className="landing-trust-grid">
+          {trustSignals.map((signal) => (
+            <div key={signal.title} className="landing-trust-item">
+              <p>{signal.title}</p>
+              <span>{signal.detail}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <GovernmentBanner />
+
+      <section id="markets" style={styles.sectionMuted} data-reveal>
+        <div style={styles.sectionInner}>
+          <p style={styles.sectionEyebrow}>Platform Activity</p>
+          <h2 style={styles.sectionTitle}>BidSmith Activity</h2>
+          <div className="landing-activity-grid">
+            <div style={styles.activityStat}>
+              <h3 style={styles.activityNumber}>17</h3>
+              <p style={styles.activityLabel}>Reports Generated Today</p>
+            </div>
+            <div style={styles.activityStat}>
+              <h3 style={styles.activityNumber}>83s</h3>
+              <p style={styles.activityLabel}>Average Analysis Time</p>
+            </div>
+            <div style={styles.activityStat}>
+              <h3 style={styles.activityNumber}>12</h3>
+              <p style={styles.activityLabel}>Solicitations Processed</p>
             </div>
           </div>
         </div>
-      ) : (
-        <>
-          <header style={styles.navbar}>
-            <div style={styles.navInner}>
-              <a href="/" style={styles.brand}>
-                <img src="/aris-logo.png" alt="Aris" style={{ height: 22, width: 22, objectFit: "contain" }} />
-                <span>ARIS Labs</span>
-              </a>
-              <nav className="landing-nav-links">
-                <a href="/#solutions" style={styles.navLink}>Solutions</a>
-                <a href="/#workflow" style={styles.navLink}>Workflow</a>
-                <a href="/#pricing" style={styles.navLink}>Pricing</a>
-                <a href="https://docs.bidsmith.pro" target="_blank" rel="noopener noreferrer" style={styles.navLink}>Docs</a>
-                <a href="/#contact" style={styles.navLink}>Contact</a>
-              </nav>
-              <button
-                type="button"
-                aria-label="Start Sovereign Intelligence Session"
-                style={styles.navCta}
-                onClick={handleStartTrial}
+      </section>
+
+      <FreePulseCheckSection
+        isMobile={isMobile}
+        onUnlockAudit={() => openCheckout("pulse_check_result", GTM_PRICING_PLANS[0])}
+      />
+
+      <section id="solutions" style={styles.sectionMuted} data-reveal>
+        <div style={styles.sectionInner}>
+          <p style={styles.sectionEyebrow}>Why teams switch from manual workflows</p>
+          <h2 style={styles.sectionTitle}>Why Bidsmith Lite?</h2>
+          <div style={styles.gridFour}>
+            {benefits.map((benefit) => (
+              <IconCard
+                key={benefit.title}
+                title={benefit.title}
+                description={benefit.description}
+                icon={benefit.icon}
+              />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="workflow" style={styles.section} data-reveal>
+        <div style={styles.sectionInner}>
+          <p style={styles.sectionEyebrow}>Execution model</p>
+          <h2 style={styles.sectionTitle}>How It Works</h2>
+          <div style={styles.gridThree}>
+            {steps.map((step) => (
+              <IconCard
+                key={step.title}
+                title={step.title}
+                description={step.description}
+                icon={step.icon}
+              />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="pricing" style={styles.sectionMuted} data-reveal>
+        <div style={styles.sectionInnerNarrow}>
+          <p style={styles.sectionEyebrow}>Commercial model</p>
+          <h2 style={styles.sectionTitle}>Simple, Transparent Pricing</h2>
+          <p style={styles.subtitleSmall}>Two monthly plans, direct Stripe checkout, no extra pricing ladders.</p>
+          <div style={{ ...styles.pricingGrid, gridTemplateColumns: isMobile ? "1fr" : "repeat(2, 1fr)" }}>
+            {GTM_PRICING_PLANS.map((plan) => (
+              <PricingCard
+                key={plan.key}
+                title={plan.title}
+                price={plan.price}
+                description={plan.description}
+                buttonLabel={plan.buttonLabel}
+                buttonLink={plan.buttonLink}
                 disabled={isProcessing}
-              >
-                Access Terminal
-              </button>
-            </div>
-          </header>
-          <section className="landing-hero" style={styles.heroTerminalSection}>
-            <div style={styles.heroInnerFull}>
-              <div style={styles.terminalContainerFull}>
-                <div style={styles.terminalHeader}>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#333' }} />
-                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#333' }} />
-                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#333' }} />
+                onButtonClick={() => {
+                  trackEvent("pricing_cta_click", {
+                    source: "landing_pricing",
+                    plan_name: plan.title,
+                  });
+                  trackKPI("upgrade_intent", { plan: plan.key, source: "landing_pricing" });
+                  openCheckout("landing_pricing", plan);
+                }}
+              />
+            ))}
+          </div>
+
+          <div className="landing-pricing-preview">
+            <p className="landing-pricing-preview-label">Report Preview Includes</p>
+            <div className="landing-pricing-preview-grid">
+              <ul>
+                {sampleDeliverables.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+              <div className="landing-pricing-preview-metrics">
+                {pricingPreviewStats.map((item) => (
+                  <div key={item.label} className="landing-pricing-preview-metric">
+                    <span>{item.label}</span>
+                    <strong>{item.value}</strong>
                   </div>
-                  <span style={{ fontSize: '11px', color: '#52525b', fontFamily: 'Space Mono', letterSpacing: '0.1em' }}>ARIS_OS_TERMINAL_v1.1</span>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                     <Shield size={10} color="#3b82f6" />
-                     <span style={{ fontSize: '9px', color: '#3f3f46' }}>STATELESS_ENCRYPTION_ACTIVE</span>
-                  </div>
-                </div>
-                <div style={styles.terminalBodyFull}>
-                   <TerminalSequence />
-                </div>
-              </div>
-
-              <div style={{ ...styles.heroInner, marginTop: '40px' }}>
-                <h1 style={{ ...styles.title, fontSize: isMobile ? '2rem' : '3.25rem' }}>Sovereign Intelligence Terminal</h1>
-                <p style={{ ...styles.subtitle, fontSize: isMobile ? '1rem' : '1.25rem' }}>
-                  Eliminate the 40-hour RFP shred in 90 seconds. <br/>
-                  Stateless precision for the modern defense contractor.
-                </p>
-                <div style={{ ...styles.heroActions, flexDirection: isMobile ? 'column' : 'row' }}>
-                  <button onClick={handleWorkspaceOpen} style={{ ...styles.primaryCta, width: isMobile ? '100%' : 'auto', background: 'var(--accent)', color: '#000' }}>Initialize Audit Protocol</button>
-                  <button onClick={onViewSample} style={{ ...styles.secondaryCta, width: isMobile ? '100%' : 'auto' }}>See Sample Report</button>
-                  <button onClick={handleSamScraperOpen} style={{ ...styles.secondaryCta, width: isMobile ? '100%' : 'auto' }}>Contractor Intel</button>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <GovernmentBanner />
-
-          <section id="markets" style={styles.sectionMuted} data-reveal>
-            <div style={styles.sectionInner}>
-              <p style={styles.sectionEyebrow}>Platform Activity</p>
-              <h2 style={styles.sectionTitle}>BidSmith Activity</h2>
-              <div className="landing-activity-grid">
-                <div style={styles.activityStat}>
-                  <h3 style={styles.activityNumber}>17</h3>
-                  <p style={styles.activityLabel}>Reports Generated Today</p>
-                </div>
-                <div style={styles.activityStat}>
-                  <h3 style={styles.activityNumber}>83s</h3>
-                  <p style={styles.activityLabel}>Average Analysis Time</p>
-                </div>
-                <div style={styles.activityStat}>
-                  <h3 style={styles.activityNumber}>12</h3>
-                  <p style={styles.activityLabel}>Solicitations Processed</p>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <FreePulseCheckSection
-            isMobile={isMobile}
-            onUnlockAudit={() => openCheckout("pulse_check_result", GTM_PRICING_PLANS[0])}
-          />
-
-          <section id="solutions" style={styles.sectionMuted} data-reveal>
-            <div style={styles.sectionInner}>
-              <p style={styles.sectionEyebrow}>Why teams switch from manual workflows</p>
-              <h2 style={styles.sectionTitle}>Why Bidsmith Lite?</h2>
-              <div style={styles.gridFour}>
-                {benefits.map((benefit) => (
-                  <IconCard
-                    key={benefit.title}
-                    title={benefit.title}
-                    description={benefit.description}
-                    icon={benefit.icon}
-                  />
                 ))}
-              </div>
-            </div>
-          </section>
-
-          <section id="workflow" style={styles.section} data-reveal>
-            <div style={styles.sectionInner}>
-              <p style={styles.sectionEyebrow}>Execution model</p>
-              <h2 style={styles.sectionTitle}>How It Works</h2>
-              <div style={styles.gridThree}>
-                {steps.map((step) => (
-                  <IconCard
-                    key={step.title}
-                    title={step.title}
-                    description={step.description}
-                    icon={step.icon}
-                  />
-                ))}
-              </div>
-            </div>
-          </section>
-
-          <section id="pricing" style={styles.sectionMuted} data-reveal>
-            <div style={styles.sectionInnerNarrow}>
-              <p style={styles.sectionEyebrow}>Commercial model</p>
-              <h2 style={styles.sectionTitle}>Simple, Transparent Pricing</h2>
-              <p style={styles.subtitleSmall}>Two monthly plans, direct Stripe checkout, no extra pricing ladders.</p>
-              <div style={{ ...styles.pricingGrid, gridTemplateColumns: isMobile ? "1fr" : "repeat(2, 1fr)" }}>
-                {GTM_PRICING_PLANS.map((plan) => (
-                  <PricingCard
-                    key={plan.key}
-                    title={plan.title}
-                    price={plan.price}
-                    description={plan.description}
-                    buttonLabel={plan.buttonLabel}
-                    buttonLink={plan.buttonLink}
-                    disabled={isProcessing}
-                    onButtonClick={() => {
-                      trackEvent("pricing_cta_click", {
-                        source: "landing_pricing",
-                        plan_name: plan.title,
-                      });
-                      trackKPI("upgrade_intent", { plan: plan.key, source: "landing_pricing" });
-                      openCheckout("landing_pricing", plan);
-                    }}
-                  />
-                ))}
-              </div>
-              <p style={styles.enterpriseTrustNote}>Trusted by 12+ Federal Prime Contractors</p>
-              <p style={styles.proposalCopy}>
-                Need a client-ready audit deck? See{" "}
-                <a
-                  href="/pilot-proposal-outline.md"
-                  target="_blank"
-                  rel="noreferrer"
-                  style={styles.inlineLink}
-                  onClick={() =>
-                    trackEvent("pilot_outline_open_click", { source: "landing_pricing" })
-                  }
+                <button
+                  type="button"
+                  className="landing-pricing-preview-button"
+                  onClick={handleSampleView}
                 >
-                  proposal outline
-                </a>
-                .
-              </p>
-            </div>
-          </section>
-
-          <FaqSection />
-
-          <footer id="contact" style={styles.footerContainer}>
-            <div style={styles.footerInnerGrid}>
-              {/* Column 1: Brand & Description */}
-              <div style={styles.footerBrandCol}>
-                <div style={styles.footerLogoWrap}>
-                  <img src="/aris-labs.png" alt="ARIS Labs" style={{ height: '20px', width: 'auto' }} />
-                </div>
-                <p style={styles.footerTagline}>
-                  Sovereign GovCon intelligence. Powered by SAM.gov data to collect, verify, and analyze federal solicitations for precision bid management.
-                </p>
-                <div style={styles.footerAddressLine}>
-                  <a href="/about" style={{ textDecoration: 'none', color: 'inherit', transition: 'color 0.2s' }} onMouseEnter={(e) => e.target.style.color = '#fff'} onMouseLeave={(e) => e.target.style.color = 'inherit'}>
-                    Labs headquarters : San Francisco, CA
-                  </a>
-                </div>
-              </div>
-
-              {/* Link Columns Grid */}
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', 
-                gap: isMobile ? '32px' : '40px',
-                flex: 1 
-              }}>
-                {/* Column 2: Product */}
-                <div style={styles.footerLinkCol}>
-                  <h4 style={styles.footerColHeading}>Product</h4>
-                  <a href="/#solutions" style={styles.footerLinkItem}>Aris Protocol Agent</a>
-                  <a href="/#solutions" style={styles.footerLinkItem}>Compliance Sniper</a>
-                  <a href="https://docs.bidsmith.pro" target="_blank" rel="noopener noreferrer" style={styles.footerLinkItem}>Documentation</a>
-                </div>
-
-                {/* Column 3: Company */}
-                <div style={styles.footerLinkCol}>
-                  <h4 style={styles.footerColHeading}>Company</h4>
-                  <a href="/about" style={styles.footerLinkItem}>About</a>
-                  <a href="/#solutions" style={styles.footerLinkItem}>Solutions</a>
-                  <a href="/soc" style={styles.footerLinkItem}>Security</a>
-                  <a href="mailto:sid@bidsmith.pro" style={styles.footerLinkItem}>Contact</a>
-                </div>
-
-                {/* Column 4: Markets */}
-                <div style={styles.footerLinkCol}>
-                  <h4 style={styles.footerColHeading}>Markets</h4>
-                  <a href="/#markets" style={styles.footerLinkItem}>US DOD & IC</a>
-                  <a href="/#markets" style={styles.footerLinkItem}>Civilian Agencies</a>
-                  <a href="/#markets" style={styles.footerLinkItem}>Intelligence Labs</a>
-                </div>
-
-                {/* Column 5: Legal */}
-                <div style={styles.footerLinkCol}>
-                  <h4 style={styles.footerColHeading}>Legal</h4>
-                  <a href="/privacy" style={styles.footerLinkItem}>Privacy Policy</a>
-                  <a href="/terms" style={styles.footerLinkItem}>Terms of Service</a>
-                  <a href="mailto:sid@bidsmith.pro" style={styles.footerLinkItem}>Contact</a>
-                </div>
+                  Inspect Full Sample Report
+                </button>
               </div>
             </div>
+          </div>
 
-            <div style={styles.footerBottomRow}>
-              <div style={styles.footerCopyright}>
-                © 2026 ARIS Labs. Built on the Stateless Bridge.
-              </div>
-              <div style={styles.footerSocialIcons}>
-                <a href="https://linkedin.com/company/aris-labs" target="_blank" rel="noopener noreferrer" style={styles.footerSocialLink}>
-                  <Linkedin size={16} />
-                </a>
-              </div>
+          <p style={styles.enterpriseTrustNote}>Trusted by 12+ Federal Prime Contractors</p>
+          <p style={styles.proposalCopy}>
+            Need a client-ready audit deck? See{" "}
+            <a
+              href="/pilot-proposal-outline.md"
+              target="_blank"
+              rel="noreferrer"
+              style={styles.inlineLink}
+              onClick={() =>
+                trackEvent("pilot_outline_open_click", { source: "landing_pricing" })
+              }
+            >
+              proposal outline
+            </a>
+            .
+          </p>
+        </div>
+      </section>
+
+      <FaqSection />
+
+      <footer id="contact" style={styles.footerContainer}>
+        <div style={styles.footerInnerGrid}>
+          <div style={styles.footerBrandCol}>
+            <div style={styles.footerLogoWrap}>
+              <img src="/aris-labs.png" alt="ARIS Labs" style={{ height: "20px", width: "auto" }} />
             </div>
-          </footer>
-        </>
-      )}
+            <p style={styles.footerTagline}>
+              Sovereign GovCon intelligence. Powered by SAM.gov data to collect, verify, and analyze federal solicitations for precision bid management.
+            </p>
+            <div style={styles.footerAddressLine}>
+              <a href="/about" style={{ textDecoration: "none", color: "inherit", transition: "color 0.2s" }} onMouseEnter={(e) => e.target.style.color = "#fff"} onMouseLeave={(e) => e.target.style.color = "inherit"}>
+                Labs headquarters : San Francisco, CA
+              </a>
+            </div>
+          </div>
 
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)",
+            gap: isMobile ? "32px" : "40px",
+            flex: 1
+          }}>
+            <div style={styles.footerLinkCol}>
+              <h4 style={styles.footerColHeading}>Product</h4>
+              <a href="/#solutions" style={styles.footerLinkItem}>Aris Protocol Agent</a>
+              <a href="/#solutions" style={styles.footerLinkItem}>Compliance Sniper</a>
+              <a href="https://docs.bidsmith.pro" target="_blank" rel="noopener noreferrer" style={styles.footerLinkItem}>Documentation</a>
+            </div>
+
+            <div style={styles.footerLinkCol}>
+              <h4 style={styles.footerColHeading}>Company</h4>
+              <a href="/about" style={styles.footerLinkItem}>About</a>
+              <a href="/#solutions" style={styles.footerLinkItem}>Solutions</a>
+              <a href="/soc" style={styles.footerLinkItem}>Security</a>
+              <a href="mailto:sid@bidsmith.pro" style={styles.footerLinkItem}>Contact</a>
+            </div>
+
+            <div style={styles.footerLinkCol}>
+              <h4 style={styles.footerColHeading}>Markets</h4>
+              <a href="/#markets" style={styles.footerLinkItem}>US DOD & IC</a>
+              <a href="/#markets" style={styles.footerLinkItem}>Civilian Agencies</a>
+              <a href="/#markets" style={styles.footerLinkItem}>Intelligence Labs</a>
+            </div>
+
+            <div style={styles.footerLinkCol}>
+              <h4 style={styles.footerColHeading}>Legal</h4>
+              <a href="/privacy" style={styles.footerLinkItem}>Privacy Policy</a>
+              <a href="/terms" style={styles.footerLinkItem}>Terms of Service</a>
+              <a href="mailto:sid@bidsmith.pro" style={styles.footerLinkItem}>Contact</a>
+            </div>
+          </div>
+        </div>
+
+        <div style={styles.footerBottomRow}>
+          <div style={styles.footerCopyright}>
+            © 2026 ARIS Labs. Built on the Stateless Bridge.
+          </div>
+          <div style={styles.footerSocialIcons}>
+            <a href="https://linkedin.com/company/aris-labs" target="_blank" rel="noopener noreferrer" style={styles.footerSocialLink}>
+              <Linkedin size={16} />
+            </a>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
@@ -1082,7 +1057,7 @@ const styles = {
     textTransform: "uppercase",
     letterSpacing: "0.05em",
   },
-  inlineLink: { color: "#4338ca", textDecoration: "none", fontWeight: 600 },
+  inlineLink: { color: "#7dd3fc", textDecoration: "none", fontWeight: 600 },
   footerContainer: {
     background: "#000000",
     borderTop: "1px solid #141416",
@@ -1214,65 +1189,4 @@ const styles = {
     width: "100%",
     fontWeight: 700,
   }
-};
-
-const TerminalSequence = () => {
-  const [lines, setLines] = useState([]);
-  const [inputValue, setInputValue] = useState('');
-  
-  const bootLogs = [
-    "ARIS_OS_TERMINAL_v1.1 : INITIALIZED",
-    "PROTOCOL : STATELESS_INTELLIGENCE_BRIDGE",
-    "DECOY_READY : ACTIVE",
-    "SOVEREIGN_AUDIT_PROTOCOL_ENGAGED // ZERO_KNOWLEDGE_S0V",
-    "ANALYSIS COMPLETE. AGENTIC PURGE IN 120s."
-  ];
-
-  useEffect(() => {
-    let currentLine = 0;
-    const interval = setInterval(() => {
-      if (currentLine < bootLogs.length) {
-        setLines(prev => [...prev, bootLogs[currentLine]]);
-        currentLine++;
-      } else {
-        clearInterval(interval);
-      }
-    }, 400); // Faster typing
-    return () => clearInterval(interval);
-  }, []);
-
-  return (
-    <div style={{ textAlign: 'left' }}>
-      {lines.map((line, i) => (
-        <div key={i} style={{ marginBottom: '8px', fontSize: '14px', color: '#a1a1aa', letterSpacing: '0.02em' }}>
-          <span style={{ color: '#3f3f46', marginRight: '10px' }}>[{new Date().toLocaleTimeString('en-GB', { hour12: false })}]</span>
-          <span style={{ color: i === bootLogs.length - 1 ? '#22c55e' : '#a1a1aa' }}>{line}</span>
-        </div>
-      ))}
-      {lines.length === bootLogs.length && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '20px', background: '#0c0c0e', padding: '12px 16px', borderRadius: '4px', border: '1px solid #1a1a1a' }}>
-          <span style={{ color: '#3b82f6', fontWeight: 900, fontSize: '16px' }}>{'>'}</span>
-          <input 
-            type="text"
-            value={inputValue}
-            onChange={e => setInputValue(e.target.value)}
-            placeholder="[ Initializing Sovereign Intelligence Session ]"
-            style={styles.terminalInput}
-            autoFocus
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                const hasSession = localStorage.getItem('aris_session_active') === 'true';
-                if (hasSession) {
-                  window.location.href = '/app';
-                } else {
-                  // Redirect to the app for non-session users as well, removing direct Stripe link
-                  window.location.href = '/app';
-                }
-              }
-            }}
-          />
-        </div>
-      )}
-    </div>
-  );
 };
