@@ -7,6 +7,7 @@
     "dev": "vite",
     "start": "node api/index.js",
     "build": "vite build",
+    "test": "node --test tests/*.test.js",
     "lint": "eslint .",
     "preview": "vite preview",
     "cypress:open": "cypress open"
@@ -22,6 +23,7 @@
     "multer": "^1.4.5-lts.1",
     "openai": "^4.52.7",
     "pdf-parse": "^1.1.1",
+    "pg": "^8.20.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-markdown": "^10.1.0",
