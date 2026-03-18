@@ -9,6 +9,7 @@ import { dirname, join } from "path";
 import { timingSafeEqual } from "crypto";
 import Stripe from "stripe";
 import { spawn } from "child_process";
+import { Pool } from "pg";
 
 // ─── Environment Setup ────────────────────────────────────────────────────────
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -609,6 +610,22 @@ function renderWandererPage(pathname = "/") {
 // ─── Analytics ───────────────────────────────────────────────────────────────
 const ANALYTICS_EVENT_BUFFER_LIMIT = Number(process.env.ANALYTICS_EVENT_BUFFER_LIMIT || 20000);
 const analyticsEvents = [];
+const ANALYTICS_EVENT_TYPES_WITH_PAGE_VIEWS = ["page_view", "demo_view"];
+const ANALYTICS_EVENT_TYPES_WITH_SIGNUPS = ["signup_click", "signup_attempt", "waitlist_signup"];
+const ANALYTICS_EVENT_TYPES_WITH_CONVERSIONS = ["conversion", "purchase_complete", "subscription_upgrade"];
+
+const analyticsDatabaseUrl = process.env.DATABASE_URL || process.env.ANALYTICS_DATABASE_URL || "";
+const analyticsDbSslEnabled = String(process.env.ANALYTICS_DB_SSL || "").toLowerCase() === "true";
+const analyticsDb = analyticsDatabaseUrl
+  ? new Pool({
+      connectionString: analyticsDatabaseUrl,
+      ssl: analyticsDbSslEnabled ? { rejectUnauthorized: false } : undefined,
+      max: 5,
+    })
+  : null;
+
+let analyticsSchemaReady = false;
+let analyticsSchemaPromise = null;
 
 function asObject(value) {
   return value && typeof value === "object" && !Array.isArray(value) ? value : {};
@@ -847,22 +864,13 @@ function buildAnalyticsSnapshot({
   const cutoff = now - Math.max(1, sinceHours) * 60 * 60 * 1000;
   const inWindow = analyticsEvents.filter((entry) => entry.timestampMs >= cutoff);
 
-  const pageEvents = inWindow.filter((entry) => entry.eventType === "page_view" || entry.eventType === "demo_view");
+  const pageEvents = inWindow.filter((entry) => ANALYTICS_EVENT_TYPES_WITH_PAGE_VIEWS.includes(entry.eventType));
   const totalViews = pageEvents.length;
   const demoViews = inWindow.filter((entry) => entry.eventType === "demo_view").length;
   const uniqueVisitors = new Set(inWindow.map((entry) => entry.uid || "anonymous")).size;
 
-  const signupClicks = inWindow.filter((entry) =>
-    entry.eventType === "signup_click" ||
-    entry.eventType === "signup_attempt" ||
-    entry.eventType === "waitlist_signup"
-  ).length;
-
-  const conversions = inWindow.filter((entry) =>
-    entry.eventType === "conversion" ||
-    entry.eventType === "purchase_complete" ||
-    entry.eventType === "subscription_upgrade"
-  ).length;
+  const signupClicks = inWindow.filter((entry) => ANALYTICS_EVENT_TYPES_WITH_SIGNUPS.includes(entry.eventType)).length;
+  const conversions = inWindow.filter((entry) => ANALYTICS_EVENT_TYPES_WITH_CONVERSIONS.includes(entry.eventType)).length;
 
   const conversionRate = demoViews > 0
     ? Number(((signupClicks / demoViews) * 100).toFixed(1))
@@ -923,6 +931,170 @@ function buildAnalyticsSnapshot({
   };
 }
 
+async function ensureAnalyticsSchema() {
+  if (!analyticsDb || analyticsSchemaReady) return;
+  if (analyticsSchemaPromise) {
+    await analyticsSchemaPromise;
+    return;
+  }
+
+  analyticsSchemaPromise = (async () => {
+    await analyticsDb.query(`
+      CREATE TABLE IF NOT EXISTS analytics_events (
+        id BIGSERIAL PRIMARY KEY,
+        uid TEXT NOT NULL,
+        event_type TEXT NOT NULL,
+        value DOUBLE PRECISION NOT NULL DEFAULT 0,
+        page TEXT NOT NULL DEFAULT '',
+        path TEXT NOT NULL DEFAULT '/unknown',
+        metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_analytics_events_created_at ON analytics_events (created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_analytics_events_event_type_created_at ON analytics_events (event_type, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_analytics_events_path_created_at ON analytics_events (path, created_at DESC);
+    `);
+    analyticsSchemaReady = true;
+  })();
+
+  try {
+    await analyticsSchemaPromise;
+  } finally {
+    analyticsSchemaPromise = null;
+  }
+}
+
+async function persistAnalyticsEvent(eventRecord) {
+  if (!analyticsDb) return false;
+  try {
+    await ensureAnalyticsSchema();
+    await analyticsDb.query(
+      `INSERT INTO analytics_events (uid, event_type, value, page, path, metadata, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6::jsonb, to_timestamp($7 / 1000.0))`,
+      [
+        String(eventRecord.uid || "anonymous"),
+        String(eventRecord.eventType || "unknown"),
+        toFiniteNumber(eventRecord.value, 0),
+        String(eventRecord.page || ""),
+        String(eventRecord.path || "/unknown"),
+        JSON.stringify(asObject(eventRecord.metadata)),
+        Number(eventRecord.timestampMs || Date.now()),
+      ],
+    );
+    return true;
+  } catch (err) {
+    console.error("[ANALYTICS_DB] persist_failed", err.message);
+    return false;
+  }
+}
+
+async function recordAnalyticsEvent(eventRecord) {
+  pushAnalyticsEvent(eventRecord);
+  await persistAnalyticsEvent(eventRecord);
+}
+
+async function getAnalyticsSnapshot({
+  sinceHours = 24 * 30,
+  topPagesLimit = 5,
+  recentLimit = 10,
+} = {}) {
+  if (!analyticsDb) {
+    return buildAnalyticsSnapshot({ sinceHours, topPagesLimit, recentLimit });
+  }
+
+  try {
+    await ensureAnalyticsSchema();
+    const now = Date.now();
+    const cutoff = new Date(now - Math.max(1, sinceHours) * 60 * 60 * 1000);
+
+    const [summaryResult, topPagesResult, recentResult, sessionResult] = await Promise.all([
+      analyticsDb.query(
+        `SELECT
+          COUNT(*)::int AS total_events,
+          COUNT(*) FILTER (WHERE event_type = ANY($2::text[]))::int AS total_views,
+          COUNT(DISTINCT COALESCE(uid, 'anonymous'))::int AS unique_visitors,
+          COUNT(*) FILTER (WHERE event_type = 'demo_view')::int AS demo_views,
+          COUNT(*) FILTER (WHERE event_type = ANY($3::text[]))::int AS signup_clicks,
+          COUNT(*) FILTER (WHERE event_type = ANY($4::text[]))::int AS conversions
+         FROM analytics_events
+         WHERE created_at >= $1`,
+        [cutoff.toISOString(), ANALYTICS_EVENT_TYPES_WITH_PAGE_VIEWS, ANALYTICS_EVENT_TYPES_WITH_SIGNUPS, ANALYTICS_EVENT_TYPES_WITH_CONVERSIONS],
+      ),
+      analyticsDb.query(
+        `SELECT path, COUNT(*)::int AS views
+         FROM analytics_events
+         WHERE created_at >= $1 AND event_type = ANY($2::text[])
+         GROUP BY path
+         ORDER BY views DESC
+         LIMIT $3`,
+        [cutoff.toISOString(), ANALYTICS_EVENT_TYPES_WITH_PAGE_VIEWS, Math.max(1, topPagesLimit)],
+      ),
+      analyticsDb.query(
+        `SELECT event_type AS type, path AS page, created_at, value
+         FROM analytics_events
+         WHERE created_at >= $1
+         ORDER BY created_at DESC
+         LIMIT $2`,
+        [cutoff.toISOString(), Math.max(1, recentLimit)],
+      ),
+      analyticsDb.query(
+        `SELECT COALESCE(AVG(duration_seconds), 0)::int AS avg_session_duration
+         FROM (
+           SELECT LEAST(1800, GREATEST(0, EXTRACT(EPOCH FROM (MAX(created_at) - MIN(created_at))))) AS duration_seconds
+           FROM analytics_events
+           WHERE created_at >= $1 AND event_type = ANY($2::text[])
+           GROUP BY COALESCE(uid, 'anonymous')
+         ) AS session_summary`,
+        [cutoff.toISOString(), ANALYTICS_EVENT_TYPES_WITH_PAGE_VIEWS],
+      ),
+    ]);
+
+    const summary = summaryResult.rows[0] || {};
+    const totalEvents = Number(summary.total_events || 0);
+    const totalViews = Number(summary.total_views || 0);
+    const uniqueVisitors = Number(summary.unique_visitors || 0);
+    const demoViews = Number(summary.demo_views || 0);
+    const signupClicks = Number(summary.signup_clicks || 0);
+    const conversions = Number(summary.conversions || 0);
+    const conversionRate = demoViews > 0 ? Number(((signupClicks / demoViews) * 100).toFixed(1)) : 0;
+
+    const topPages = topPagesResult.rows.map((row) => {
+      const views = Number(row.views || 0);
+      return {
+        page: String(row.path || "/unknown"),
+        views,
+        percentage: totalViews > 0 ? Math.round((views / totalViews) * 100) : 0,
+      };
+    });
+
+    const recentActivity = recentResult.rows.map((row) => ({
+      type: String(row.type || "unknown"),
+      page: String(row.page || "/unknown"),
+      timestamp: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString(),
+      value: toFiniteNumber(row.value, 0),
+    }));
+
+    return {
+      totalEvents,
+      totalViews,
+      uniqueVisitors,
+      demoViews,
+      signupClicks,
+      conversions,
+      conversionRate,
+      avgSessionDuration: Number(sessionResult.rows[0]?.avg_session_duration || 0),
+      topPages,
+      recentActivity,
+      windowHours: sinceHours,
+      generatedAt: new Date(now).toISOString(),
+      storage: "postgres",
+    };
+  } catch (err) {
+    console.error("[ANALYTICS_DB] snapshot_failed", err.message);
+    return buildAnalyticsSnapshot({ sinceHours, topPagesLimit, recentLimit });
+  }
+}
+
 app.post("/api/track", asyncHandler(async (req, res) => {
   const { event, uid, page, metadata } = req.body;
   
@@ -949,14 +1121,14 @@ app.post("/api/track", asyncHandler(async (req, res) => {
     metadata: safeMetadata,
     timestampMs: Date.now(),
   };
-  pushAnalyticsEvent(eventRecord);
+  await recordAnalyticsEvent(eventRecord);
 
   res.status(202).json({ status: "ACCEPTED", protocol: "STATELESS" });
 }));
 
 app.get("/api/analytics", asyncHandler(async (req, res) => {
   const sinceHours = Math.max(1, Math.min(24 * 90, toFiniteNumber(req.query?.window_hours, 24 * 30)));
-  const snapshot = buildAnalyticsSnapshot({ sinceHours });
+  const snapshot = await getAnalyticsSnapshot({ sinceHours });
 
   res.json({
     success: true,
@@ -966,7 +1138,7 @@ app.get("/api/analytics", asyncHandler(async (req, res) => {
 
 app.get("/analytics", requireAnalyticsAuth, asyncHandler(async (req, res) => {
   const sinceHours = Math.max(1, Math.min(24 * 90, toFiniteNumber(req.query?.window_hours, 24 * 30)));
-  const snapshot = buildAnalyticsSnapshot({ sinceHours, topPagesLimit: 12, recentLimit: 30 });
+  const snapshot = await getAnalyticsSnapshot({ sinceHours, topPagesLimit: 12, recentLimit: 30 });
   res.setHeader("Content-Type", "text/html; charset=UTF-8");
   res.send(renderAnalyticsDashboard(snapshot));
 }));
@@ -3193,7 +3365,7 @@ app.post("/api/waitlist-signup", asyncHandler(async (req, res) => {
       source: waitlistEntry.source
     });
 
-    pushAnalyticsEvent({
+    await recordAnalyticsEvent({
       uid: `waitlist:${waitlistEntry.email}`,
       eventType: "waitlist_signup",
       value: 1,
@@ -3225,7 +3397,7 @@ app.post("/api/waitlist-signup", asyncHandler(async (req, res) => {
 // ─── /api/demo-analytics ─────────────────────────────────────────────
 app.get("/api/demo-analytics", asyncHandler(async (req, res) => {
   const sinceHours = Math.max(1, Math.min(24 * 90, toFiniteNumber(req.query?.window_hours, 24 * 30)));
-  const analytics = buildAnalyticsSnapshot({ sinceHours });
+  const analytics = await getAnalyticsSnapshot({ sinceHours });
   res.json({ success: true, analytics });
 }));
 
@@ -3451,6 +3623,9 @@ app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`✅ BidSmith API → http://localhost:${PORT}`);
+  if (!analyticsDb) {
+    console.warn("⚠️  DATABASE_URL not set - analytics is running in-memory only");
+  }
   if (!process.env.OPENROUTER_API_KEY) console.warn("⚠️  OPENROUTER_API_KEY not set");
   if (!process.env.SAM_GOV_API_KEY && !process.env.SAM_API_KEY) console.warn("⚠️  SAM_GOV_API_KEY not set");
 });
