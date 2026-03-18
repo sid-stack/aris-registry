@@ -494,6 +494,118 @@ function stripCodeFences(raw = "") {
     .trim();
 }
 
+function renderWandererPage(pathname = "/") {
+  const requestedPath = escapeHtml(pathname || "/");
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>404 | Uhuh Oh Wanderer!</title>
+  <style>
+    :root {
+      --bg: #05070b;
+      --panel: #0f141f;
+      --panel-2: #151d2a;
+      --text: #f4f7ff;
+      --muted: #9fb0cd;
+      --border: #2b3a54;
+      --accent: #5ca8ff;
+      --accent-2: #6ef3cb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      background:
+        radial-gradient(520px 320px at 10% 10%, rgba(92, 168, 255, 0.20), transparent 60%),
+        radial-gradient(520px 320px at 90% 90%, rgba(110, 243, 203, 0.14), transparent 60%),
+        var(--bg);
+      color: var(--text);
+      font-family: "IBM Plex Mono", "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+    }
+    .card {
+      width: min(720px, 100%);
+      background: linear-gradient(165deg, var(--panel), var(--panel-2));
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+    }
+    .code {
+      margin: 0 0 8px;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(30px, 6vw, 48px);
+      line-height: 1.08;
+    }
+    p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 14px;
+    }
+    .path {
+      margin-top: 14px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      color: var(--text);
+      background: rgba(7, 11, 18, 0.7);
+      word-break: break-all;
+      font-size: 13px;
+    }
+    .actions {
+      margin-top: 18px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    a {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 150px;
+      text-decoration: none;
+      border-radius: 10px;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 13px;
+    }
+    a.primary {
+      background: linear-gradient(90deg, rgba(92, 168, 255, 0.35), rgba(110, 243, 203, 0.28));
+      border-color: rgba(92, 168, 255, 0.65);
+    }
+    a.secondary {
+      background: rgba(7, 11, 18, 0.75);
+    }
+  </style>
+</head>
+<body>
+  <main class="card" role="main" aria-label="Not found">
+    <p class="code">404 | Unknown Route</p>
+    <h1>Uhuh Oh Wanderer!</h1>
+    <p>The path you requested is broken or not listed yet.</p>
+    <p class="path">Requested: ${requestedPath}</p>
+    <div class="actions">
+      <a class="primary" href="https://bidsmith.pro/">Return Home</a>
+      <a class="secondary" href="https://api.bidsmith.pro/">API Root</a>
+      <a class="secondary" href="https://docs.bidsmith.pro/">Open Docs</a>
+    </div>
+  </main>
+</body>
+</html>`;
+}
+
 // ─── Analytics ───────────────────────────────────────────────────────────────
 const ANALYTICS_EVENT_BUFFER_LIMIT = Number(process.env.ANALYTICS_EVENT_BUFFER_LIMIT || 20000);
 const analyticsEvents = [];
@@ -3318,6 +3430,21 @@ ${newText.slice(0, 5000)}`;
 }));
 
 app.get("/favicon.ico", (req, res) => res.status(204).end());
+
+app.get("*", (req, res, next) => {
+  if (req.path.startsWith("/api/")) return next();
+  if (req.path === "/api") return next();
+
+  const acceptHeader = String(req.get("accept") || "").toLowerCase();
+  const wantsJson = acceptHeader.includes("application/json");
+  const wantsHtml = acceptHeader.includes("text/html") || acceptHeader.includes("*/*") || !acceptHeader;
+
+  if (!wantsHtml && wantsJson) return next();
+
+  res.status(404);
+  res.setHeader("Content-Type", "text/html; charset=UTF-8");
+  res.send(renderWandererPage(req.originalUrl || req.path || "/"));
+});
 
 app.use(notFoundHandler);
 app.use(errorHandler);
