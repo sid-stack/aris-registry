@@ -6,6 +6,7 @@ import OpenAI from "openai";
 import { readFileSync, existsSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
+import { timingSafeEqual } from "crypto";
 import Stripe from "stripe";
 import { spawn } from "child_process";
 
@@ -42,6 +43,8 @@ import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { asyncHandler } from "./utils/asyncHandler.js";
 import { okResponse, failResponse } from "./utils/response.js";
 import { STAGE_PROMPTS, suppressEmptyFields } from "./src/promptBuilder.js";
+import { getInstitutionSnapshot } from "./services/fdic.js";
+import { getCachedNewsInsights } from "./news.js";
 
 // -------------------------------------------------------------
 // Markdown Sanitizer - Post-process LLM responses to ensure clean markdown
@@ -492,6 +495,322 @@ function stripCodeFences(raw = "") {
 }
 
 // ─── Analytics ───────────────────────────────────────────────────────────────
+const ANALYTICS_EVENT_BUFFER_LIMIT = Number(process.env.ANALYTICS_EVENT_BUFFER_LIMIT || 20000);
+const analyticsEvents = [];
+
+function asObject(value) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
+
+function parsePathFromPage(page = "") {
+  if (!page) return "/unknown";
+  try {
+    if (page.startsWith("/")) return page.split("?")[0] || "/";
+    const parsed = new URL(page);
+    return parsed.pathname || "/";
+  } catch {
+    return String(page).startsWith("/") ? String(page) : "/unknown";
+  }
+}
+
+function pushAnalyticsEvent(eventRecord) {
+  analyticsEvents.push(eventRecord);
+  if (analyticsEvents.length > ANALYTICS_EVENT_BUFFER_LIMIT) {
+    analyticsEvents.splice(0, analyticsEvents.length - ANALYTICS_EVENT_BUFFER_LIMIT);
+  }
+}
+
+function toFiniteNumber(value, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function escapeHtml(input = "") {
+  return String(input)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function safeCompareString(a, b) {
+  const left = Buffer.from(String(a || ""));
+  const right = Buffer.from(String(b || ""));
+  if (left.length !== right.length) return false;
+  return timingSafeEqual(left, right);
+}
+
+function parseBasicAuthHeader(header = "") {
+  if (!header || !header.startsWith("Basic ")) return null;
+
+  try {
+    const decoded = Buffer.from(header.slice(6), "base64").toString("utf8");
+    const separator = decoded.indexOf(":");
+    if (separator < 0) return null;
+    return {
+      username: decoded.slice(0, separator),
+      password: decoded.slice(separator + 1),
+    };
+  } catch {
+    return null;
+  }
+}
+
+const ANALYTICS_DASHBOARD_PASSWORD = process.env.ANALYTICS_DASHBOARD_PASSWORD || "aris369";
+
+function requireAnalyticsAuth(req, res, next) {
+  const parsed = parseBasicAuthHeader(req.headers.authorization || "");
+  if (parsed && safeCompareString(parsed.password, ANALYTICS_DASHBOARD_PASSWORD)) {
+    return next();
+  }
+
+  res.setHeader("WWW-Authenticate", 'Basic realm="Bidsmith Analytics", charset="UTF-8"');
+  return res.status(401).send("Authentication required.");
+}
+
+function renderAnalyticsDashboard(snapshot) {
+  const topPagesRows = snapshot.topPages.length
+    ? snapshot.topPages.map((entry) => (
+      `<tr><td>${escapeHtml(entry.page)}</td><td>${entry.views}</td><td>${entry.percentage}%</td></tr>`
+    )).join("")
+    : `<tr><td colspan="3">No page-view data yet.</td></tr>`;
+
+  const recentRows = snapshot.recentActivity.length
+    ? snapshot.recentActivity.map((item) => (
+      `<tr><td>${escapeHtml(item.type)}</td><td>${escapeHtml(item.page)}</td><td>${escapeHtml(item.timestamp)}</td><td>${item.value ?? 0}</td></tr>`
+    )).join("")
+    : `<tr><td colspan="4">No recent events yet.</td></tr>`;
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bidsmith Analytics</title>
+  <style>
+    :root {
+      --bg: #05070b;
+      --panel: #0f141f;
+      --panel2: #151d2a;
+      --text: #f4f7ff;
+      --muted: #9fb0cd;
+      --accent: #4da3ff;
+      --border: #243249;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "SF Mono", "Roboto Mono", ui-monospace, Menlo, Consolas, monospace;
+      background: radial-gradient(circle at top right, #10192b, var(--bg) 40%);
+      color: var(--text);
+      padding: 28px;
+    }
+    h1 { margin: 0; font-size: 26px; letter-spacing: 0.02em; }
+    .sub { margin-top: 6px; color: var(--muted); font-size: 13px; }
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 12px;
+      margin: 20px 0;
+    }
+    .card {
+      background: linear-gradient(170deg, var(--panel), var(--panel2));
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+    }
+    .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+    .value { margin-top: 8px; font-size: 24px; font-weight: 700; color: var(--accent); }
+    .tables {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      border: 1px solid var(--border);
+      background: rgba(15, 20, 31, 0.92);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid rgba(36, 50, 73, 0.7);
+      text-align: left;
+      font-size: 12px;
+      vertical-align: top;
+      word-break: break-word;
+    }
+    th { color: #bed1f3; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; }
+    .toolbar {
+      margin-top: 12px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    input[type="number"] {
+      width: 100px;
+      border: 1px solid var(--border);
+      background: #0b111d;
+      color: var(--text);
+      border-radius: 8px;
+      padding: 8px;
+    }
+    button, .json-link {
+      border: 1px solid #2f4b77;
+      background: #0f2850;
+      color: #d9e8ff;
+      border-radius: 8px;
+      padding: 8px 12px;
+      cursor: pointer;
+      font: inherit;
+      text-decoration: none;
+    }
+    button:hover, .json-link:hover {
+      background: #173b72;
+    }
+    .section-title {
+      margin: 22px 0 10px;
+      font-size: 13px;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    @media (max-width: 900px) {
+      .tables { grid-template-columns: 1fr; }
+      body { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Bidsmith Live Analytics</h1>
+  <p class="sub">Window: ${snapshot.windowHours}h | Generated: ${escapeHtml(snapshot.generatedAt)}</p>
+
+  <form class="toolbar" method="get" action="/analytics">
+    <label for="window_hours" class="label">Window (hours)</label>
+    <input id="window_hours" name="window_hours" type="number" min="1" max="2160" value="${snapshot.windowHours}">
+    <button type="submit">Update</button>
+    <a class="json-link" href="/api/analytics?window_hours=${snapshot.windowHours}" target="_blank" rel="noopener noreferrer">Open JSON</a>
+  </form>
+
+  <section class="metrics">
+    <article class="card"><div class="label">Total Events</div><div class="value">${snapshot.totalEvents}</div></article>
+    <article class="card"><div class="label">Total Views</div><div class="value">${snapshot.totalViews}</div></article>
+    <article class="card"><div class="label">Unique Visitors</div><div class="value">${snapshot.uniqueVisitors}</div></article>
+    <article class="card"><div class="label">Demo Views</div><div class="value">${snapshot.demoViews}</div></article>
+    <article class="card"><div class="label">Signup Clicks</div><div class="value">${snapshot.signupClicks}</div></article>
+    <article class="card"><div class="label">Conversion Rate</div><div class="value">${snapshot.conversionRate}%</div></article>
+    <article class="card"><div class="label">Avg Session</div><div class="value">${snapshot.avgSessionDuration}s</div></article>
+  </section>
+
+  <h2 class="section-title">Top Pages</h2>
+  <div class="tables">
+    <table>
+      <thead>
+        <tr><th>Path</th><th>Views</th><th>Share</th></tr>
+      </thead>
+      <tbody>${topPagesRows}</tbody>
+    </table>
+
+    <table>
+      <thead>
+        <tr><th>Type</th><th>Page</th><th>Timestamp</th><th>Value</th></tr>
+      </thead>
+      <tbody>${recentRows}</tbody>
+    </table>
+  </div>
+</body>
+</html>`;
+}
+
+function buildAnalyticsSnapshot({
+  sinceHours = 24 * 30,
+  topPagesLimit = 5,
+  recentLimit = 10,
+} = {}) {
+  const now = Date.now();
+  const cutoff = now - Math.max(1, sinceHours) * 60 * 60 * 1000;
+  const inWindow = analyticsEvents.filter((entry) => entry.timestampMs >= cutoff);
+
+  const pageEvents = inWindow.filter((entry) => entry.eventType === "page_view" || entry.eventType === "demo_view");
+  const totalViews = pageEvents.length;
+  const demoViews = inWindow.filter((entry) => entry.eventType === "demo_view").length;
+  const uniqueVisitors = new Set(inWindow.map((entry) => entry.uid || "anonymous")).size;
+
+  const signupClicks = inWindow.filter((entry) =>
+    entry.eventType === "signup_click" ||
+    entry.eventType === "signup_attempt" ||
+    entry.eventType === "waitlist_signup"
+  ).length;
+
+  const conversions = inWindow.filter((entry) =>
+    entry.eventType === "conversion" ||
+    entry.eventType === "purchase_complete" ||
+    entry.eventType === "subscription_upgrade"
+  ).length;
+
+  const conversionRate = demoViews > 0
+    ? Number(((signupClicks / demoViews) * 100).toFixed(1))
+    : 0;
+
+  const pageCounts = new Map();
+  pageEvents.forEach((entry) => {
+    pageCounts.set(entry.path, (pageCounts.get(entry.path) || 0) + 1);
+  });
+
+  const topPages = [...pageCounts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, topPagesLimit)
+    .map(([page, views]) => ({
+      page,
+      views,
+      percentage: totalViews > 0 ? Math.round((views / totalViews) * 100) : 0,
+    }));
+
+  const uidTimeline = new Map();
+  pageEvents.forEach((entry) => {
+    const uid = entry.uid || "anonymous";
+    const timeline = uidTimeline.get(uid) || { first: entry.timestampMs, last: entry.timestampMs };
+    timeline.first = Math.min(timeline.first, entry.timestampMs);
+    timeline.last = Math.max(timeline.last, entry.timestampMs);
+    uidTimeline.set(uid, timeline);
+  });
+  const sessionDurations = [...uidTimeline.values()].map((timeline) =>
+    Math.max(0, Math.min(1800, Math.round((timeline.last - timeline.first) / 1000)))
+  );
+  const avgSessionDuration = sessionDurations.length
+    ? Math.round(sessionDurations.reduce((sum, value) => sum + value, 0) / sessionDurations.length)
+    : 0;
+
+  const recentActivity = [...inWindow]
+    .sort((a, b) => b.timestampMs - a.timestampMs)
+    .slice(0, recentLimit)
+    .map((entry) => ({
+      type: entry.eventType,
+      page: entry.path,
+      timestamp: new Date(entry.timestampMs).toISOString(),
+      value: entry.value,
+    }));
+
+  return {
+    totalEvents: inWindow.length,
+    totalViews,
+    uniqueVisitors,
+    demoViews,
+    signupClicks,
+    conversions,
+    conversionRate,
+    avgSessionDuration,
+    topPages,
+    recentActivity,
+    windowHours: sinceHours,
+    generatedAt: new Date(now).toISOString(),
+  };
+}
+
 app.post("/api/track", asyncHandler(async (req, res) => {
   const { event, uid, page, metadata } = req.body;
   
@@ -506,8 +825,38 @@ app.post("/api/track", asyncHandler(async (req, res) => {
     console.log(`  └─ DATA: ${JSON.stringify(metadata)}`);
   }
 
-  // In production, this would persist to a stateless buffer or external log sink
+  const safeMetadata = asObject(metadata);
+  const eventType = String(event).trim().toLowerCase();
+  const path = safeMetadata.path || parsePathFromPage(page);
+  const eventRecord = {
+    uid: String(uid || "anonymous"),
+    eventType,
+    value: toFiniteNumber(req.body?.value, 0),
+    page: String(page || ""),
+    path: String(path || "/unknown"),
+    metadata: safeMetadata,
+    timestampMs: Date.now(),
+  };
+  pushAnalyticsEvent(eventRecord);
+
   res.status(202).json({ status: "ACCEPTED", protocol: "STATELESS" });
+}));
+
+app.get("/api/analytics", asyncHandler(async (req, res) => {
+  const sinceHours = Math.max(1, Math.min(24 * 90, toFiniteNumber(req.query?.window_hours, 24 * 30)));
+  const snapshot = buildAnalyticsSnapshot({ sinceHours });
+
+  res.json({
+    success: true,
+    analytics: snapshot,
+  });
+}));
+
+app.get("/analytics", requireAnalyticsAuth, asyncHandler(async (req, res) => {
+  const sinceHours = Math.max(1, Math.min(24 * 90, toFiniteNumber(req.query?.window_hours, 24 * 30)));
+  const snapshot = buildAnalyticsSnapshot({ sinceHours, topPagesLimit: 12, recentLimit: 30 });
+  res.setHeader("Content-Type", "text/html; charset=UTF-8");
+  res.send(renderAnalyticsDashboard(snapshot));
 }));
 
 // ─── Health ───────────────────────────────────────────────────────────────────
@@ -522,6 +871,23 @@ app.get("/api/examples", (_req, res) => {
 app.get("/api/sample-report", (_req, res) => {
   res.json(SAMPLE_REPORT);
 });
+
+app.get("/api/news-insights", asyncHandler(async (req, res) => {
+  const limitRaw = Number(req.query.limit);
+  const limit = Number.isFinite(limitRaw)
+    ? Math.max(1, Math.min(50, Math.floor(limitRaw)))
+    : 20;
+
+  const items = await getCachedNewsInsights({
+    totalLimit: limit,
+  });
+
+  res.json({
+    success: true,
+    count: items.length,
+    data: items,
+  });
+}));
 
 function parseCookies(cookieHeader = "") {
   return cookieHeader
@@ -1605,7 +1971,39 @@ async function fetchSBAEligibility({ pillars = {} } = {}) {
   };
 }
 
-function buildActionPlanMarkdown({ riskFlags = [], sbaEligibility = {}, incumbentData = {} } = {}) {
+async function fetchFDICSnapshot({ oid = "" } = {}) {
+  const normalizedOid = String(oid || "").trim();
+  if (!normalizedOid) {
+    return {
+      source: "fdic",
+      status: "skipped",
+      oid: null,
+      snapshot: null,
+      note: "FDIC lookup skipped because no institution OID was provided.",
+    };
+  }
+
+  try {
+    const snapshot = await getInstitutionSnapshot(normalizedOid);
+    return {
+      source: "fdic",
+      status: "ok",
+      oid: normalizedOid,
+      snapshot,
+      note: "FDIC institution snapshot attached.",
+    };
+  } catch (error) {
+    return {
+      source: "fdic",
+      status: "unavailable",
+      oid: normalizedOid,
+      snapshot: null,
+      note: `FDIC enrichment error: ${error.message}`,
+    };
+  }
+}
+
+function buildActionPlanMarkdown({ riskFlags = [], sbaEligibility = {}, incumbentData = {}, fdicData = {} } = {}) {
   const checks = Array.isArray(sbaEligibility.requiredChecks) ? sbaEligibility.requiredChecks : [];
   const incumbents = Array.isArray(incumbentData.incumbents) ? incumbentData.incumbents : [];
   const topRiskFlags = Array.isArray(riskFlags) ? riskFlags.slice(0, 3) : [];
@@ -1646,6 +2044,17 @@ function buildActionPlanMarkdown({ riskFlags = [], sbaEligibility = {}, incumben
       output: "Remediation artifact",
     });
   });
+
+  if (fdicData?.status === "ok" && fdicData?.snapshot) {
+    const institution = fdicData.snapshot.name || "target institution";
+    tasks.push({
+      priority: "P1",
+      task: `Validate FDIC financial health assumptions for ${institution}.`,
+      owner: "Pricing + Risk",
+      due: "T+4 days",
+      output: "FDIC-backed financial risk note",
+    });
+  }
 
   const rows = tasks
     .map((task) => `| ${task.priority} | ${task.task} | ${task.owner} | ${task.due} | ${task.output} |`)
@@ -2113,6 +2522,22 @@ app.post("/api/generate-report", asyncHandler(async (req, res) => {
   }
 }));
 
+const fdicEnrichmentHandler = asyncHandler(async (req, res) => {
+  const oid = String(req.params?.oid || "").trim();
+  if (!oid) {
+    return res.status(400).json({ success: false, error: "FDIC OID is required" });
+  }
+
+  const data = await fetchFDICSnapshot({ oid });
+  if (data.status !== "ok") {
+    return res.status(502).json({ success: false, error: data.note, data });
+  }
+  return res.json({ success: true, data: data.snapshot });
+});
+
+app.get("/api/enrich/fdic/:oid", fdicEnrichmentHandler);
+app.get("/enrich/fdic/:oid", fdicEnrichmentHandler);
+
 // ─── /api/generate-report-stream — SSE Agentic Pipeline ─────────────────────
 // Streams real-time agent events as each stage completes (like money/ websocket)
 // Events: {type, stage, agent, status, data}
@@ -2140,17 +2565,24 @@ app.get("/api/generate-report-stream", async (req, res) => {
   };
 
   // Read pillars from query param (base64-encoded JSON)
-  let pillars, title, agency, executiveSummary;
+  let pillars, title, agency, executiveSummary, fdicOid;
   try {
     const parsed = JSON.parse(decodeURIComponent(escape(Buffer.from(req.query.ctx, "base64").toString("binary"))));
     ({ pillars, title, agency, executiveSummary } = parsed);
+    fdicOid =
+      parsed?.fdicOid ||
+      parsed?.oid ||
+      parsed?.institutionOid ||
+      parsed?.pillars?.fdic_oid?.value ||
+      parsed?.pillars?.fdicOid?.value ||
+      "";
   } catch {
     emit({ type: "error", message: "Invalid context" });
     res.end(); return;
   }
 
   if (!pillars) { emit({ type: "error", message: "Missing pillars" }); res.end(); return; }
-  const baseContext = { title, agency, pillars, executiveSummary };
+  const baseContext = { title, agency, pillars, executiveSummary, fdicOid };
   const AGENTS = [
     { id: "analyst", label: "🧠 Analyst Agent", role: "Extracting FAR/DFARS compliance traps and bid-killer risks" },
     { id: "drafter", label: "✍️  Drafter Agent", role: "Generating Confidential Risk Memorandum" },
@@ -2227,21 +2659,22 @@ app.get("/api/generate-report-stream", async (req, res) => {
     emit({
       type: "enrichment_start",
       stage: 0,
-      layer: "fpds_usaspending_sba",
-      message: "Fetching FPDS/USASpending incumbent awards + SBA eligibility signals",
+      layer: "fpds_usaspending_sba_fdic",
+      message: "Fetching FPDS/USASpending incumbent awards + SBA eligibility + FDIC signals",
     });
 
-    const [incumbentData, sbaEligibility] = await Promise.all([
+    const [incumbentData, sbaEligibility, fdicData] = await Promise.all([
       fetchIncumbentData({ title, agency }),
       fetchSBAEligibility({ pillars }),
+      fetchFDICSnapshot({ oid: fdicOid }),
     ]);
-    const enrichment = { incumbentData, sbaEligibility };
+    const enrichment = { incumbentData, sbaEligibility, fdicData };
     const enrichedCtx = JSON.stringify({ ...baseContext, enrichment }, null, 2).slice(0, 12000);
 
     emit({
       type: "enrichment_done",
       stage: 0,
-      layer: "fpds_usaspending_sba",
+      layer: "fpds_usaspending_sba_fdic",
       data: enrichment,
     });
 
@@ -2249,7 +2682,7 @@ app.get("/api/generate-report-stream", async (req, res) => {
     emit({ type: "agent_start", stage: 1, agent: AGENTS[0] });
     const analysis = await withHeartbeat("analyst", 1, AGENTS[0], () => llm(client, [{
       role: "user",
-      content: `You are an elite Federal Proposal Capture Manager and Compliance Auditor (BidSmith Intelligence Engine).\n\nAnalyze this solicitation data and produce a COMPLIANCE INTELLIGENCE BRIEF covering:\n1. Document type and confirmed solicitation number\n2. Agency, contracting office, and mission context\n3. Contract value, period of performance, and NAICS code\n4. Core technical requirements that have FAR/DFARS compliance hooks\n5. Set-aside type and the exact FAR clause governing it\n6. Top 3 "Bid-Killer" hidden compliance traps — cite exact FAR/DFARS clause numbers AND Section L/M references where visible\n7. For each trap: the exact hidden requirement, the Phase 1 disqualification impact if missed, and the specific remediation action\n8. Top 3 risk flags for pre-submission review\n9. Include incumbent displacement and SBA eligibility implications from the enrichment layer.\n\nBe ruthless and technical. Cite clause numbers such as DFARS 252.204-7012, FAR 52.219-18, NIST SP 800-171, etc.\n\nOpportunity Data:\n${enrichedCtx}`
+      content: `You are an elite Federal Proposal Capture Manager and Compliance Auditor (BidSmith Intelligence Engine).\n\nAnalyze this solicitation data and produce a COMPLIANCE INTELLIGENCE BRIEF covering:\n1. Document type and confirmed solicitation number\n2. Agency, contracting office, and mission context\n3. Contract value, period of performance, and NAICS code\n4. Core technical requirements that have FAR/DFARS compliance hooks\n5. Set-aside type and the exact FAR clause governing it\n6. Top 3 "Bid-Killer" hidden compliance traps — cite exact FAR/DFARS clause numbers AND Section L/M references where visible\n7. For each trap: the exact hidden requirement, the Phase 1 disqualification impact if missed, and the specific remediation action\n8. Top 3 risk flags for pre-submission review\n9. Include incumbent displacement, SBA eligibility, and FDIC institutional health implications from the enrichment layer when present.\n\nBe ruthless and technical. Cite clause numbers such as DFARS 252.204-7012, FAR 52.219-18, NIST SP 800-171, etc.\n\nOpportunity Data:\n${enrichedCtx}`
     }], 2048, "analyst"));
 
     // Continue with existing processing logic...
@@ -2327,6 +2760,7 @@ ${analysis}`
       riskFlags: intel.risk_flags || [],
       sbaEligibility,
       incumbentData,
+      fdicData,
     });
     const complianceReportWithActionPlan = sanitizeMarkdown(
       `${compliance_report}\n\n${actionPlanMarkdown}`
@@ -2369,6 +2803,7 @@ Output ONLY finalized clean Markdown.`
       proposal_draft: proposalDraftWithActionPlan,
       compliance_report: complianceReportWithActionPlan,
       action_plan: actionPlanMarkdown,
+      fdic: fdicData,
       win_themes: intel.win_themes || [], risk_flags: intel.risk_flags || [],
       proposal_outline: intel.proposal_outline || [],
       title: title || "Federal Opportunity", agency: agency || "Unknown Agency",
@@ -2646,6 +3081,20 @@ app.post("/api/waitlist-signup", asyncHandler(async (req, res) => {
       source: waitlistEntry.source
     });
 
+    pushAnalyticsEvent({
+      uid: `waitlist:${waitlistEntry.email}`,
+      eventType: "waitlist_signup",
+      value: 1,
+      page: waitlistEntry.source,
+      path: "/demo-analytics",
+      metadata: {
+        source: waitlistEntry.source,
+        budget: waitlistEntry.budget,
+        useCase: waitlistEntry.useCase,
+      },
+      timestampMs: Date.now(),
+    });
+
     // Send confirmation email (in production)
     // await sendConfirmationEmail(waitlistEntry);
 
@@ -2663,39 +3112,9 @@ app.post("/api/waitlist-signup", asyncHandler(async (req, res) => {
 
 // ─── /api/demo-analytics ─────────────────────────────────────────────
 app.get("/api/demo-analytics", asyncHandler(async (req, res) => {
-  try {
-    // Mock analytics data - in production, this would come from your database
-    const analyticsData = {
-      totalViews: 1247,
-      uniqueVisitors: 892,
-      demoViews: 156,
-      signupClicks: 43,
-      conversionRate: 27.4,
-      avgSessionDuration: 245, // seconds
-      topPages: [
-        { page: '/sam-scraper', views: 523, percentage: 42 },
-        { page: '/survey', views: 234, percentage: 19 },
-        { page: '/', views: 189, percentage: 15 },
-        { page: '/survey-analytics', views: 156, percentage: 12 },
-        { page: '/demo-analytics', views: 145, percentage: 12 }
-      ],
-      recentActivity: [
-        { type: 'demo_view', page: '/sam-scraper', timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString() },
-        { type: 'signup_click', page: '/sam-scraper', timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString() },
-        { type: 'demo_view', page: '/survey', timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString() },
-        { type: 'page_view', page: '/', timestamp: new Date(Date.now() - 1000 * 60 * 45).toISOString() }
-      ]
-    };
-
-    res.json({
-      success: true,
-      analytics: analyticsData
-    });
-
-  } catch (err) {
-    console.error("[/api/demo-analytics] ERROR:", err);
-    res.status(500).json({ error: err.message });
-  }
+  const sinceHours = Math.max(1, Math.min(24 * 90, toFiniteNumber(req.query?.window_hours, 24 * 30)));
+  const analytics = buildAnalyticsSnapshot({ sinceHours });
+  res.json({ success: true, analytics });
 }));
 
 // ─── /api/sam-scrape ────────────────────────────────────────────────────────────────
