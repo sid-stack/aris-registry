@@ -1,39 +1,27 @@
+import "./NotFound.css";
+
 export default function NotFound() {
+  const requestedPath = typeof window !== "undefined" ? window.location.pathname : "/";
+
   return (
-    <main style={styles.page}>
-      <div style={styles.card}>
-        <p style={styles.code}>404</p>
-        <h1 style={styles.title}>Page not found</h1>
-        <p style={styles.copy}>
-          The page you requested does not exist or has been moved.
+    <main className="wanderer-page">
+      <div className="wanderer-glow wanderer-glow-left" />
+      <div className="wanderer-glow wanderer-glow-right" />
+
+      <section className="wanderer-card" role="region" aria-label="Not found">
+        <p className="wanderer-code">404</p>
+        <h1 className="wanderer-title">Uhuh Oh Wanderer!</h1>
+        <p className="wanderer-copy">
+          This route is outside known coordinates. The page was removed, renamed, or never existed.
         </p>
-        <a href="/" style={styles.link}>Go back to home</a>
-      </div>
+
+        <p className="wanderer-path">Requested: {requestedPath}</p>
+
+        <div className="wanderer-actions">
+          <a href="/" className="wanderer-btn wanderer-btn-primary">Return Home</a>
+          <a href="/app" className="wanderer-btn wanderer-btn-secondary">Open Workspace</a>
+        </div>
+      </section>
     </main>
   );
 }
-
-const styles = {
-  page: {
-    minHeight: "100vh",
-    display: "grid",
-    placeItems: "center",
-    background: "#f8fafc",
-    padding: 20,
-    fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-  },
-  card: {
-    width: "100%",
-    maxWidth: 560,
-    background: "#ffffff",
-    border: "1px solid #e2e8f0",
-    borderRadius: 16,
-    padding: 28,
-    textAlign: "center",
-  },
-  code: { margin: 0, color: "#4338ca", fontWeight: 800, letterSpacing: "0.04em" },
-  title: { margin: "4px 0 10px", color: "#0f172a", fontSize: "1.9rem" },
-  copy: { margin: 0, color: "#475569", lineHeight: 1.6 },
-  link: { display: "inline-block", marginTop: 14, color: "#4338ca", textDecoration: "none", fontWeight: 700 },
-};
-

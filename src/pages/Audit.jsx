@@ -650,7 +650,12 @@ export default function Audit({ onBack }) {
 
   const streamReport = (auditData) => {
     if (esRef.current) esRef.current.close();
-    const json = JSON.stringify({ pillars: auditData.compliance, title: auditData.title || "" });
+    const json = JSON.stringify({
+      pillars: auditData.compliance,
+      title: auditData.title || "",
+      agency: auditData.agency || "",
+      executiveSummary: auditData.executiveSummary || "",
+    });
     const ctx = btoa(encodeURIComponent(json));
     const es = new EventSource(`/api/generate-report-stream?ctx=${encodeURIComponent(ctx)}`);
     esRef.current = es;

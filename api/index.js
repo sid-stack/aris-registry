@@ -1430,6 +1430,238 @@ async function downloadWithRetry(url, retries = 3) {
   }
 }
 
+async function fetchFPDSAwards({ title = "", agency = "" } = {}) {
+  const endpoint = process.env.FPDS_API_URL || process.env.FPDS_ENDPOINT;
+  const fallback = {
+    source: "fpds",
+    status: "not_configured",
+    awards: [],
+    note: "FPDS endpoint not configured; set FPDS_API_URL to activate this layer.",
+  };
+  if (!endpoint) return fallback;
+
+  try {
+    const query = new URLSearchParams();
+    if (title) query.set("title", String(title).slice(0, 120));
+    if (agency) query.set("agency", String(agency).slice(0, 120));
+    query.set("limit", "3");
+    const url = `${endpoint}${endpoint.includes("?") ? "&" : "?"}${query.toString()}`;
+    const response = await fetch(url, { method: "GET" });
+    if (!response.ok) {
+      return {
+        source: "fpds",
+        status: "error",
+        awards: [],
+        note: `FPDS request failed with status ${response.status}.`,
+      };
+    }
+    const payload = await response.json();
+    const rows = Array.isArray(payload?.results) ? payload.results : [];
+    return {
+      source: "fpds",
+      status: rows.length ? "ok" : "review_required",
+      awards: rows.slice(0, 3),
+      note: rows.length ? "FPDS award rows retrieved." : "FPDS returned no rows for this opportunity.",
+    };
+  } catch (error) {
+    return {
+      source: "fpds",
+      status: "error",
+      awards: [],
+      note: `FPDS enrichment error: ${error.message}`,
+    };
+  }
+}
+
+async function fetchIncumbentData({ title = "", agency = "" } = {}) {
+  const normalizedAgency = String(agency || "").trim();
+  const normalizedTitle = String(title || "").trim();
+  if (!normalizedAgency && !normalizedTitle) {
+    return {
+      source: "fpds_usaspending",
+      status: "unavailable",
+      incumbents: [],
+      fpds: {
+        source: "fpds",
+        status: "skipped",
+        awards: [],
+        note: "Skipped FPDS lookup due to missing title/agency context.",
+      },
+      note: "Incumbent data unavailable from external source. Run manual CPARS/FPDS validation.",
+    };
+  }
+
+  const fpds = await fetchFPDSAwards({ title: normalizedTitle, agency: normalizedAgency });
+  const fallback = {
+    source: "fpds_usaspending",
+    status: "unavailable",
+    incumbents: [],
+    fpds,
+    note: "Incumbent data unavailable from external source. Run manual CPARS/FPDS validation.",
+  };
+
+  try {
+    const requestBody = {
+      filters: {
+        award_type_codes: ["A", "B", "C", "D"],
+        time_period: [{ start_date: "2021-01-01", end_date: new Date().toISOString().slice(0, 10) }],
+      },
+      fields: ["Award ID", "Recipient Name", "Award Amount", "Description"],
+      sort: "Award Amount",
+      order: "desc",
+      limit: 5,
+      page: 1,
+      subawards: false,
+    };
+
+    if (normalizedAgency) {
+      requestBody.filters.agencies = [
+        { type: "awarding", tier: "toptier", name: normalizedAgency },
+      ];
+    }
+    if (normalizedTitle) {
+      requestBody.filters.keywords = [normalizedTitle.slice(0, 120)];
+    }
+
+    const response = await fetch("https://api.usaspending.gov/api/v2/search/spending_by_award/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!response.ok) {
+      return {
+        ...fallback,
+        status: "review_required",
+        note: `USASpending request failed with status ${response.status}.`,
+      };
+    }
+
+    const payload = await response.json();
+    const rows = Array.isArray(payload?.results) ? payload.results : [];
+    const incumbents = rows.slice(0, 3).map((row) => ({
+      recipient: row["Recipient Name"] || row.recipient_name || "Unknown recipient",
+      awardId: row["Award ID"] || row.award_id || "N/A",
+      amount: row["Award Amount"] || row.award_amount || null,
+      description: row.Description || row.description || "",
+    }));
+
+    if (!incumbents.length) {
+      return {
+        ...fallback,
+        status: "review_required",
+        note: "No USASpending incumbent rows returned. Review FPDS hook output and run targeted lookup.",
+      };
+    }
+    return {
+      source: "fpds_usaspending",
+      status: "ok",
+      incumbents,
+      fpds,
+      note: "Top award recipients returned by USASpending with FPDS hook status attached.",
+    };
+  } catch (error) {
+    return {
+      ...fallback,
+      note: `Incumbent enrichment error: ${error.message}`,
+    };
+  }
+}
+
+async function fetchSBAEligibility({ pillars = {} } = {}) {
+  const setAsideType = String(pillars?.set_aside_type?.value || "Unknown").trim();
+  const naicsCode = String(pillars?.naics_code?.value || "Unknown").trim();
+  const lowered = setAsideType.toLowerCase();
+
+  const requiredChecks = [];
+  if (lowered.includes("small business")) {
+    requiredChecks.push(`Validate current SBA size standard for NAICS ${naicsCode}.`);
+  }
+  if (lowered.includes("8(a)")) {
+    requiredChecks.push("Confirm active SBA 8(a) certification and graduation window.");
+  }
+  if (lowered.includes("hubzone")) {
+    requiredChecks.push("Confirm HUBZone principal office + employee residency thresholds.");
+  }
+  if (lowered.includes("wosb")) {
+    requiredChecks.push("Confirm WOSB/EDWOSB certification and ownership documentation.");
+  }
+  if (lowered.includes("sdvosb") || lowered.includes("service-disabled")) {
+    requiredChecks.push("Confirm SDVOSB ownership/control and VA/SBA status.");
+  }
+  if (!requiredChecks.length) {
+    requiredChecks.push("Validate set-aside applicability manually against solicitation clauses.");
+  }
+
+  return {
+    source: "sba_rule_layer",
+    status: lowered.includes("unknown") ? "review_required" : "prelim_assessment_complete",
+    setAsideType,
+    naicsCode,
+    requiredChecks,
+    notes: [
+      "Automated pass is advisory only. Final eligibility must be certified by contracts/legal.",
+    ],
+  };
+}
+
+function buildActionPlanMarkdown({ riskFlags = [], sbaEligibility = {}, incumbentData = {} } = {}) {
+  const checks = Array.isArray(sbaEligibility.requiredChecks) ? sbaEligibility.requiredChecks : [];
+  const incumbents = Array.isArray(incumbentData.incumbents) ? incumbentData.incumbents : [];
+  const topRiskFlags = Array.isArray(riskFlags) ? riskFlags.slice(0, 3) : [];
+  const setAside = sbaEligibility.setAsideType || "set-aside";
+  const naics = sbaEligibility.naicsCode || "NAICS";
+  const incumbentLead = incumbents[0]?.recipient || "Top incumbent (manual validation)";
+
+  const tasks = [
+    {
+      priority: "P0",
+      task: `Lock eligibility memo for ${setAside} on ${naics}.`,
+      owner: "Contracts Lead",
+      due: "T+1 day",
+      output: "Signed eligibility packet",
+    },
+    {
+      priority: "P0",
+      task: checks[0] || "Complete SBA eligibility cross-check.",
+      owner: "Compliance",
+      due: "T+2 days",
+      output: "Evidence + clause mapping",
+    },
+    {
+      priority: "P1",
+      task: `Build competitive counter against incumbent signal: ${incumbentLead}.`,
+      owner: "Capture Manager",
+      due: "T+3 days",
+      output: "Differentiation brief",
+    },
+  ];
+
+  topRiskFlags.forEach((flag, index) => {
+    tasks.push({
+      priority: index === 0 ? "P0" : "P1",
+      task: `Mitigate risk flag: ${flag}.`,
+      owner: "Technical + PMO",
+      due: `T+${index + 3} days`,
+      output: "Remediation artifact",
+    });
+  });
+
+  const rows = tasks
+    .map((task) => `| ${task.priority} | ${task.task} | ${task.owner} | ${task.due} | ${task.output} |`)
+    .join("\n");
+
+  return [
+    "## 6) Action Plan (Project Task List)",
+    "",
+    "| Priority | Task | Owner | Due | Deliverable |",
+    "|---|---|---|---|---|",
+    rows,
+    "",
+    "Execution Note: Treat P0 items as bid/no-bid gate checks before draft finalization.",
+  ].join("\n");
+}
+
 app.post("/api/analyze-link", analyzeLinkLimiter, asyncHandler(async (req, res) => {
   try {
     const client = makeClient();
@@ -1783,6 +2015,21 @@ app.post("/api/analyze-link", analyzeLinkLimiter, asyncHandler(async (req, res) 
 app.post("/api/generate-report", asyncHandler(async (req, res) => {
   const client = makeClient();
   if (!client) return res.status(500).json({ error: "Server configuration incomplete" });
+
+  const requestBody = req.body || {};
+  const solicitationData = {
+    title: requestBody.title || requestBody?.opportunity?.title || "Unknown Opportunity",
+    agency: requestBody.agency || requestBody?.opportunity?.agency || "Unknown Agency",
+    pillars: requestBody.pillars || requestBody.compliance || {},
+    executiveSummary: requestBody.executiveSummary || "",
+  };
+  const userPermissions = {
+    tier: requestBody?.permissions?.tier || requestBody.currentTier || "free",
+    reportsUsed: Number(requestBody?.permissions?.reportsUsed ?? requestBody?.usage?.reportsUsed ?? 0),
+    reportsLimit: Number(requestBody?.permissions?.reportsLimit ?? requestBody?.usage?.reportsLimit ?? 3),
+    canRunFullReport: requestBody?.permissions?.canRunFullReport !== false,
+  };
+  const ctx = JSON.stringify({ solicitationData, userPermissions }, null, 2).slice(0, 10000);
   
   // Fallback response for reliability
   const fallbackResponse = {
@@ -1903,8 +2150,7 @@ app.get("/api/generate-report-stream", async (req, res) => {
   }
 
   if (!pillars) { emit({ type: "error", message: "Missing pillars" }); res.end(); return; }
-
-  const ctx = JSON.stringify({ title, agency, pillars, executiveSummary }, null, 2).slice(0, 8000);
+  const baseContext = { title, agency, pillars, executiveSummary };
   const AGENTS = [
     { id: "analyst", label: "🧠 Analyst Agent", role: "Extracting FAR/DFARS compliance traps and bid-killer risks" },
     { id: "drafter", label: "✍️  Drafter Agent", role: "Generating Confidential Risk Memorandum" },
@@ -1978,11 +2224,32 @@ app.get("/api/generate-report-stream", async (req, res) => {
   }
 
   try {
+    emit({
+      type: "enrichment_start",
+      stage: 0,
+      layer: "fpds_usaspending_sba",
+      message: "Fetching FPDS/USASpending incumbent awards + SBA eligibility signals",
+    });
+
+    const [incumbentData, sbaEligibility] = await Promise.all([
+      fetchIncumbentData({ title, agency }),
+      fetchSBAEligibility({ pillars }),
+    ]);
+    const enrichment = { incumbentData, sbaEligibility };
+    const enrichedCtx = JSON.stringify({ ...baseContext, enrichment }, null, 2).slice(0, 12000);
+
+    emit({
+      type: "enrichment_done",
+      stage: 0,
+      layer: "fpds_usaspending_sba",
+      data: enrichment,
+    });
+
     // Stage 1: Analyst — BidSmith Compliance Intelligence Brief
     emit({ type: "agent_start", stage: 1, agent: AGENTS[0] });
     const analysis = await withHeartbeat("analyst", 1, AGENTS[0], () => llm(client, [{
       role: "user",
-      content: `You are an elite Federal Proposal Capture Manager and Compliance Auditor (BidSmith Intelligence Engine).\n\nAnalyze this solicitation data and produce a COMPLIANCE INTELLIGENCE BRIEF covering:\n1. Document type and confirmed solicitation number\n2. Agency, contracting office, and mission context\n3. Contract value, period of performance, and NAICS code\n4. Core technical requirements that have FAR/DFARS compliance hooks\n5. Set-aside type and the exact FAR clause governing it\n6. Top 3 "Bid-Killer" hidden compliance traps — cite exact FAR/DFARS clause numbers AND Section L/M references where visible\n7. For each trap: the exact hidden requirement, the Phase 1 disqualification impact if missed, and the specific remediation action\n8. Top 3 risk flags for pre-submission review\n\nBe ruthless and technical. Cite clause numbers such as DFARS 252.204-7012, FAR 52.219-18, NIST SP 800-171, etc.\n\nOpportunity Data:\n${ctx}`
+      content: `You are an elite Federal Proposal Capture Manager and Compliance Auditor (BidSmith Intelligence Engine).\n\nAnalyze this solicitation data and produce a COMPLIANCE INTELLIGENCE BRIEF covering:\n1. Document type and confirmed solicitation number\n2. Agency, contracting office, and mission context\n3. Contract value, period of performance, and NAICS code\n4. Core technical requirements that have FAR/DFARS compliance hooks\n5. Set-aside type and the exact FAR clause governing it\n6. Top 3 "Bid-Killer" hidden compliance traps — cite exact FAR/DFARS clause numbers AND Section L/M references where visible\n7. For each trap: the exact hidden requirement, the Phase 1 disqualification impact if missed, and the specific remediation action\n8. Top 3 risk flags for pre-submission review\n9. Include incumbent displacement and SBA eligibility implications from the enrichment layer.\n\nBe ruthless and technical. Cite clause numbers such as DFARS 252.204-7012, FAR 52.219-18, NIST SP 800-171, etc.\n\nOpportunity Data:\n${enrichedCtx}`
     }], 2048, "analyst"));
 
     // Continue with existing processing logic...
@@ -2019,7 +2286,7 @@ ${analysis}`
     emit({ type: "agent_start", stage: 3, agent: AGENTS[2] });
     const compliance_report = sanitizeMarkdown(await withHeartbeat("reviewer", 3, AGENTS[2], () => llm(client, [{
       role: "user",
-      content: `You are a Federal Compliance Officer. Generate a **Federal RFP Compliance Risk Matrix Report** using the EXACT markdown structure below.\n\n# 📄 Executive Summary\n\n**Client:** [Company Name or "Prospective Client"]\n**RFP:** [Title] – **Agency:** [Agency]\n**Date:** [Current Date]\n\n## 1️⃣ Solicitation Overview\n\n| Item | Detail |\n|---|---|\n| **Solicitation ID** | [Solicitation ID] |\n| **Title** | [Title] |\n| **Agency** | [Agency] |\n| **Due Date** | [Deadline] |\n| **Key Compliance Regimes** | [List regimes like FAR, DFARS, NIST, etc.] |\n\n## 2️⃣ Methodology\n\n1. **Download & Normalize** – Solicitation documents fetched and converted to searchable text.\n2. **Clause Extraction** – AI analysis of federal compliance clauses.\n3. **Validation** – Cross-check against mandatory checklists (FedRAMP, CMMC, etc.).\n4. **Scoring** – Risk-weighted compliance score calculation.\n\n## 3️⃣ Compliance Risk Matrix\n\n| Regime/Category | Clause | Found? | Risk Weight (1-10) | Comments / Issues |\n|---|---|---|---|---|\n[Generate 10-12 rows covering: Set-Aside, Past Performance, Bonding, Security Clearance, Insurance, Certifications, Subcontracting. Use ✅/❌/⚠️ in "Found?" column.]\n\n**Overall Compliance Score:** [Calculate % based on findings]\n\n## 4️⃣ Findings & Recommendations\n\n| # | Finding | Impact | Recommended Action |\n|---|---|---|---|\n[List top 3-5 high-risk findings]\n\n## 5️⃣ Appendices\n\n- **Appendix A** – Full Clause Extraction Log\n- **Appendix B** – Solicitation Documents\n\nReturn ONLY the markdown. No preamble.\n\nOPPORTUNITY:\n${ctx}\n\nBRIEF:\n${analysis.slice(0, 2000)}`,
+      content: `You are a Federal Compliance Officer. Generate a **Federal RFP Compliance Risk Matrix Report** using the EXACT markdown structure below.\n\n# 📄 Executive Summary\n\n**Client:** [Company Name or "Prospective Client"]\n**RFP:** [Title] – **Agency:** [Agency]\n**Date:** [Current Date]\n\n## 1️⃣ Solicitation Overview\n\n| Item | Detail |\n|---|---|\n| **Solicitation ID** | [Solicitation ID] |\n| **Title** | [Title] |\n| **Agency** | [Agency] |\n| **Due Date** | [Deadline] |\n| **Key Compliance Regimes** | [List regimes like FAR, DFARS, NIST, etc.] |\n\n## 2️⃣ Methodology\n\n1. **Download & Normalize** – Solicitation documents fetched and converted to searchable text.\n2. **Clause Extraction** – AI analysis of federal compliance clauses.\n3. **Validation** – Cross-check against mandatory checklists (FedRAMP, CMMC, etc.).\n4. **Scoring** – Risk-weighted compliance score calculation.\n\n## 3️⃣ Compliance Risk Matrix\n\n| Regime/Category | Clause | Found? | Risk Weight (1-10) | Comments / Issues |\n|---|---|---|---|---|\n[Generate 10-12 rows covering: Set-Aside, Past Performance, Bonding, Security Clearance, Insurance, Certifications, Subcontracting. Use ✅/❌/⚠️ in "Found?" column.]\n\n**Overall Compliance Score:** [Calculate % based on findings]\n\n## 4️⃣ Findings & Recommendations\n\n| # | Finding | Impact | Recommended Action |\n|---|---|---|---|\n[List top 3-5 high-risk findings]\n\n## 5️⃣ Appendices\n\n- **Appendix A** – Full Clause Extraction Log\n- **Appendix B** – Solicitation Documents\n\nReturn ONLY the markdown. No preamble.\n\nOPPORTUNITY:\n${enrichedCtx}\n\nBRIEF:\n${analysis.slice(0, 2000)}`,
     }], 2048, "reviewer")));
     emit({ type: "agent_done", stage: 3, agent: AGENTS[2], data: { compliance_report } });
 
@@ -2056,6 +2323,14 @@ ${analysis}`
       if (s !== -1 && e !== -1) { try { intel = JSON.parse(intelRaw.slice(s, e + 1)); } catch { } }
     }
     emit({ type: "agent_done", stage: 4, agent: AGENTS[3], data: intel });
+    const actionPlanMarkdown = buildActionPlanMarkdown({
+      riskFlags: intel.risk_flags || [],
+      sbaEligibility,
+      incumbentData,
+    });
+    const complianceReportWithActionPlan = sanitizeMarkdown(
+      `${compliance_report}\n\n${actionPlanMarkdown}`
+    );
 
     // Stage 5: Editor-in-Chief — QA Final Review
     emit({ type: "agent_start", stage: 5, agent: AGENTS[4] });
@@ -2076,14 +2351,24 @@ Output ONLY finalized clean Markdown.`
       role: "user",
       content: `Finalize this Executive Audit Summary:\n\n${memo_draft}`,
     }], 3000, "reviewer")));
-    emit({ type: "agent_done", stage: 5, agent: AGENTS[4], data: { proposal_draft } });
+    const proposalDraftWithActionPlan = sanitizeMarkdown(
+      `${proposal_draft}\n\n${actionPlanMarkdown}`
+    );
+    emit({
+      type: "agent_done",
+      stage: 5,
+      agent: AGENTS[4],
+      data: { proposal_draft: proposalDraftWithActionPlan, action_plan: actionPlanMarkdown },
+    });
 
     emit({
       type: "pipeline_complete",
       engine: "sse_5_agent",
       pipelineStages: AGENTS.map((agent) => agent.id),
       generatedAt: new Date().toISOString(),
-      proposal_draft, compliance_report,
+      proposal_draft: proposalDraftWithActionPlan,
+      compliance_report: complianceReportWithActionPlan,
+      action_plan: actionPlanMarkdown,
       win_themes: intel.win_themes || [], risk_flags: intel.risk_flags || [],
       proposal_outline: intel.proposal_outline || [],
       title: title || "Federal Opportunity", agency: agency || "Unknown Agency",

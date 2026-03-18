@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import FatalErrorBanner from './dashboard/FatalErrorBanner';
+import NotFound from '../pages/NotFound';
 
 class ErrorBoundary extends Component {
   constructor(props) {
@@ -73,7 +74,10 @@ class ErrorBoundary extends Component {
 
   render() {
     if (this.state.hasError) {
-      const { showDetails = true, autoHide = false, autoHideDelay = 10000 } = this.props;
+      const { showDetails = true, autoHide = false, autoHideDelay = 10000, fallbackMode = "wanderer" } = this.props;
+      if (fallbackMode !== "banner") {
+        return <NotFound />;
+      }
       
       return (
         <FatalErrorBanner

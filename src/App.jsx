@@ -19,15 +19,26 @@ import ConsentBanner from "./components/ConsentBanner";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { trackPageView } from "./utils/analytics";
 
+const LANDING_SECTION_ALIASES = {
+  "/solutions": "solutions",
+  "/workflow": "workflow",
+  "/pricing": "pricing",
+  "/markets": "markets",
+  "/contact": "contact",
+};
+
 export default function App() {
   const path = window.location.pathname;
+  const aliasSection = LANDING_SECTION_ALIASES[path] || null;
   const [authenticated, setAuthenticated] = useState(false);
   const [proposal, setProposal] = useState(null);
   const [route] = useState(() =>
     window.location.search.includes("phase2=true") ? "phase2" : "audit",
   );
   const [view, setView] = useState(() =>
-    path === "/templates"
+    aliasSection
+      ? "landing"
+      : path === "/templates"
       ? "templates"
       : path === "/privacy"
         ? "privacy"
@@ -61,6 +72,17 @@ export default function App() {
   );
 
   useEffect(() => {
+    if (!aliasSection || view !== "landing") return;
+
+    window.history.replaceState({ view: "landing" }, "", `/#${aliasSection}`);
+    const timer = setTimeout(() => {
+      document.getElementById(aliasSection)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 120);
+
+    return () => clearTimeout(timer);
+  }, [aliasSection, view]);
+
+  useEffect(() => {
     let logicalPath = "/";
 
     if (view === "templates") {
@@ -84,7 +106,7 @@ export default function App() {
     } else if (view === "about") {
       logicalPath = "/about";
     } else if (view === "landing") {
-      logicalPath = "/";
+      logicalPath = aliasSection ? `/#${aliasSection}` : "/";
     } else if (view === "app") {
       logicalPath = "/app/audit";
     } else if (!authenticated) {
@@ -96,7 +118,7 @@ export default function App() {
     }
 
     trackPageView(logicalPath);
-  }, [view, authenticated, route, proposal]);
+  }, [view, authenticated, route, proposal, aliasSection]);
 
   // ── HISTORY LOCKDOWN (Trap user on site) ──
   useEffect(() => {
@@ -156,7 +178,7 @@ export default function App() {
   }
 
   return (
-    <ErrorBoundary reloadOnRetry={false}>
+    <ErrorBoundary reloadOnRetry={false} fallbackMode="wanderer">
       {content}
       <ConsentBanner />
     </ErrorBoundary>
