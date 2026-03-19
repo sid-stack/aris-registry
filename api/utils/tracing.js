@@ -29,20 +29,26 @@ export const traceLLM = traceable(
         
         // 2. Fallback Attempt (Direct Gemini API Call to avoid dependency overhead)
         try {
-          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
-          const prompt = params.messages.map(m => `${m.role.toUpperCase()}: ${m.content}`).join("\n\n");
+          const geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
           
           const gRes = await fetch(geminiUrl, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }]
+              contents: [{ 
+                role: "user",
+                parts: [{ text: params.messages.map(m => `${m.role.toUpperCase()}: ${m.content}`).join("\n\n") }] 
+              }]
             })
           });
 
-          if (!gRes.ok) throw new Error(`Gemini Fallback Failed: ${gRes.status}`);
+          if (!gRes.ok) {
+            const errData = await gRes.json().catch(() => ({}));
+            throw new Error(`Gemini Fallback Failed: ${gRes.status} - ${JSON.stringify(errData)}`);
+          }
+          
           const gData = await gRes.json();
-          return gData.candidates[0]?.content?.parts[0]?.text || "FALLBACK_FAILED";
+          return gData.candidates?.[0]?.content?.parts?.[0]?.text || "FALLBACK_FAILED_NO_CANDIDATE";
         } catch (gErr) {
           console.error(`[CRITICAL] [${agentKey}] Gemini Fallback also failed:`, gErr.message);
           throw error; // Rethrow original credit error if fallback fails
