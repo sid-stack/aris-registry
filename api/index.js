@@ -130,6 +130,44 @@ app.post("/api/beta-signup", asyncHandler(async (req, res) => {
 }));
 
 // ─── Health & Legacy ─────────────────────────────────────────────────────────
+
+app.get("/", (req, res) => {
+  const ua = req.get("User-Agent") || "";
+  const isBrowser = /Mozilla|Chrome|Safari|Firefox|Edge/.test(ua) && !/curl|wget|postman|insomnia/i.test(ua);
+  if (isBrowser) return res.redirect("https://docs.bidsmith.pro");
+
+  res.json({
+    kind: "discovery#restDescription",
+    name: "bidsmith",
+    version: "v2.1",
+    title: "Sovereign ARIS Protocol",
+    description: "Modular GovCon intelligence engine with Institutional Memory."
+  });
+});
+
+app.post("/api/pulse-check", asyncHandler(async (req, res) => {
+  const { handlePulseCheck } = await import("./services/legacy.js");
+  const result = await handlePulseCheck(req.body.uei);
+  res.json({ success: true, result });
+}));
+
+app.post("/api/sam-scrape", asyncHandler(async (req, res) => {
+  const { handleSamScrape } = await import("./services/legacy.js");
+  const result = handleSamScrape(req.body.query, req.body.filter);
+  res.json({ success: true, ...result });
+}));
+
+app.post("/api/export-rtm", asyncHandler(async (req, res) => {
+  const { handleExportRtm } = await import("./services/legacy.js");
+  await handleExportRtm(req.body.complianceData, res);
+}));
+
+app.post("/api/compare-amendments", asyncHandler(async (req, res) => {
+  const { handleCompareAmendments } = await import("./services/legacy.js");
+  const delta = await handleCompareAmendments(req.body.baseText, req.body.newText);
+  res.json({ delta, generatedAt: new Date().toISOString() });
+}));
+
 app.get("/api/health", (req, res) => res.json({ status: "ok", protocol: "mercury-2.1-modular" }));
 
 app.use(notFoundHandler);
