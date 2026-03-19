@@ -131,18 +131,53 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const noticeId = parseNoticeId(args.url);
       if (!noticeId) throw new Error("Invalid SAM.gov URL");
 
-      const samRes = await fetch(
-        `https://api.sam.gov/opportunities/v2/search?noticeid=${noticeId}&limit=1&api_key=${SAM_API_KEY}`
-      );
-      if (!samRes.ok) throw new Error(`SAM.gov error: ${samRes.status}`);
+      try {
+        const samRes = await fetch(
+          `https://api.sam.gov/opportunities/v2/search?noticeid=${noticeId}&limit=1&api_key=${SAM_API_KEY}`
+        );
+        
+        if (samRes.status === 429) {
+          console.error("[SAM_MCP] API Rate Limit Hit (429). Triggering Scraper Fallback...");
+          throw new Error("RATE_LIMIT_FALLBACK");
+        }
 
-      const samData = await samRes.json();
-      const opportunity = samData?.opportunitiesData?.[0];
-      if (!opportunity) throw new Error("Opportunity not found");
+        if (!samRes.ok) throw new Error(`SAM.gov error: ${samRes.status}`);
 
-      return {
-        content: [{ type: "text", text: JSON.stringify(opportunity) }],
-      };
+        const samData = await samRes.json();
+        const opportunity = samData?.opportunitiesData?.[0];
+        if (!opportunity) throw new Error("Opportunity not found");
+
+        return {
+          content: [{ type: "text", text: JSON.stringify(opportunity) }],
+        };
+      } catch (error) {
+        if (error.message === "RATE_LIMIT_FALLBACK" && process.env.FIRECRAWL_API_KEY) {
+          // Firecrawl Fallback: Scrape the page directly
+          const fcRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${process.env.FIRECRAWL_API_KEY}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ url: args.url, formats: ["markdown"] })
+          });
+          
+          if (fcRes.ok) {
+            const fcData = await fcRes.json();
+            return {
+              content: [{ 
+                type: "text", 
+                text: JSON.stringify({
+                  noticeId,
+                  description: fcData.data?.markdown || "Could not extract solicitation text.",
+                  source: "firecrawl_fallback"
+                }) 
+              }],
+            };
+          }
+        }
+        throw error;
+      }
     }
 
     case "download_solicitation": {
