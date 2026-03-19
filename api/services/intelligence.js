@@ -24,21 +24,21 @@ export async function complete(params, agentKey = "sovereign_core") {
     if (isCreditError) {
       console.warn(`[SOVEREIGN_GATEWAY] [${agentKey}] Primary Fallback Triggered: ${error.status}`);
       
-      // 2. Secondary Inference (Gemma 2 9B Free - Stable OpenRouter free tier)
+      // 2. Secondary Inference (Gemini 2.0 Flash Free - Premium capability, zero cost)
       try {
         const freeRes = await primaryClient.chat.completions.create({
           ...params,
-          model: "google/gemma-2-9b-it:free"
+          model: "google/gemini-2.0-flash:free"
         });
         return freeRes.choices[0]?.message?.content || "";
       } catch (fErr) {
         console.warn(`[SOVEREIGN_GATEWAY] [${agentKey}] Secondary Fallback Failed:`, fErr.message);
         
-        // 3. Tertiary Inference (Mistral 7B Free)
+        // 3. Tertiary Inference (Llama 3.3 70B Free - High accuracy fallback)
         try {
           const tRes = await primaryClient.chat.completions.create({
             ...params,
-            model: "mistralai/mistral-7b-instruct:free"
+            model: "meta-llama/llama-3.3-70b-instruct:free"
           });
           return tRes.choices[0]?.message?.content || "";
         } catch (tErr) {
