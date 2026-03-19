@@ -29,9 +29,19 @@ async function createClient(serverPath) {
   return client;
 }
 
-export const samClient = await createClient(join(SERVERS_DIR, "mcp-data-source", "sam-mcp.js"));
-export const auditClient = await createClient(join(SERVERS_DIR, "mcp-audit", "audit-mcp.js"));
-export const bankingClient = await createClient(join(SERVERS_DIR, "mcp-data-source", "fdic-mcp.js"));
+let clients = {};
+
+async function getOrInitClient(id, path) {
+  if (clients[id]) return clients[id];
+  console.log(`[MCP_BRIDGE] Initializing ${id}...`);
+  clients[id] = await createClient(path);
+  return clients[id];
+}
+
+// Lazy Getters
+export const getSamClient = () => getOrInitClient("sam", join(SERVERS_DIR, "mcp-data-source", "sam-mcp.js"));
+export const getAuditClient = () => getOrInitClient("audit", join(SERVERS_DIR, "mcp-audit", "audit-mcp.js"));
+export const getBankingClient = () => getOrInitClient("banking", join(SERVERS_DIR, "mcp-data-source", "fdic-mcp.js"));
 
 export async function callMcpTool(client, toolName, args) {
   return await client.callTool({
