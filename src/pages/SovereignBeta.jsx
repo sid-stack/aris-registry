@@ -4,10 +4,25 @@ import { Shield, Zap, Globe, Lock, ArrowRight, CheckCircle } from 'lucide-react'
 const SovereignBeta = ({ onBack }) => {
   const [submitted, setSubmitted] = useState(false);
   const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (email) setSubmitted(true);
+    if (!email) return;
+
+    setLoading(true);
+    try {
+      const resp = await fetch('/api/beta-signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, metadata: { page: 'SovereignBeta' } })
+      });
+      if (resp.ok) setSubmitted(true);
+    } catch (err) {
+      console.error("[BETA_SIGNUP] error", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -89,12 +104,13 @@ const SovereignBeta = ({ onBack }) => {
                 padding: '12px 16px', flex: 1, fontSize: '15px'
               }}
             />
-            <button type="submit" style={{
+            <button type="submit" disabled={loading} style={{
               background: '#fff', color: '#000', fontWeight: 700, padding: '12px 24px',
               borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '8px',
-              cursor: 'pointer', transition: 'transform 0.2s', border: 'none'
+              cursor: loading ? 'not-allowed' : 'pointer', transition: 'transform 0.2s', border: 'none',
+              opacity: loading ? 0.7 : 1
             }} className="hover:scale-95">
-              Apply for Sovereign Beta <ArrowRight size={16} />
+              {loading ? "Registering..." : "Apply for Sovereign Beta"} { !loading && <ArrowRight size={16} /> }
             </button>
           </form>
         ) : (

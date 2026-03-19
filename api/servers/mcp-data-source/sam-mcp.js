@@ -27,12 +27,16 @@ const server = new Server(
 // ─── Utilities (Extracted from api/index.js) ───────────────────────────────
 
 function parseNoticeId(url) {
-  const oppMatch = url.match(/\/opp\/([a-f0-9]{32})/i);
-  if (oppMatch) return oppMatch[1];
-  const workspaceMatch = url.match(/\/opp\/([a-f0-9]+)/i);
-  if (workspaceMatch) return workspaceMatch[1];
+  // Regex for 32-char UUID or similar hex ID in various positions
+  const uuidMatch = url.match(/\/opp\/([a-f0-9]{32})/i);
+  if (uuidMatch) return uuidMatch[1];
+  
+  const pathMatch = url.match(/\/opp\/([a-f0-9]+)/i);
+  if (pathMatch) return pathMatch[1];
+  
   const qMatch = url.match(/[?&]noticeId=([^&]+)/i);
   if (qMatch) return qMatch[1];
+  
   return null;
 }
 
