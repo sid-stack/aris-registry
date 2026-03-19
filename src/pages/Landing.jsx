@@ -151,141 +151,59 @@ function BrandingBanner({ onSovereignBeta }) {
   );
 }
 
-function FreePulseCheckSection({ isMobile, onUnlockAudit }) {
-  const [uei, setUei] = useState("");
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [result, setResult] = useState(null);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!uei || uei.length !== 12) return;
-    setIsProcessing(true);
-    
-    trackEvent("pulse_check_submit", { uei });
-
-    try {
-      const resp = await fetch("/api/pulse-check", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uei }),
-      });
-      const data = await resp.json();
-      if (resp.ok) {
-        setResult(data.result);
-        trackEvent("pulse_check_success", { uei, score: data.result.score });
-      } else {
-        alert(data.error || "Analysis failed. Please ensure the UEI is correct.");
-      }
-    } catch (err) {
-      console.error("Pulse check error:", err);
-      alert("A system error occurred. Please try again later.");
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
+function SovereignBetaSection({ isMobile, onSovereignBeta }) {
   return (
-    <section id="pulse-check" style={styles.sectionMuted} data-reveal>
+    <section id="sovereign-beta-cta" style={styles.sectionMuted} data-reveal>
       <div style={styles.sectionInner}>
-        <div style={{
-          background: "linear-gradient(145deg, rgba(24,24,27,0.4) 0%, rgba(9,9,11,0.4) 100%)",
-          border: "1px solid rgba(255,255,255,0.05)",
-          borderRadius: 24,
-          padding: isMobile ? "32px 20px" : "48px",
-          textAlign: "center",
-          boxShadow: "0 20px 50px rgba(0,0,0,0.3)"
-        }}>
-          <p style={styles.sectionEyebrow}>Zero-Trauma Lead Magnet</p>
-          <h2 style={{ ...styles.sectionTitle, marginBottom: 12 }}>Free Compliance Pulse Check</h2>
-          <p style={{ ...styles.subtitle, marginTop: 0, marginBottom: 32 }}>
-            Enter your 12-character UEI to get an instant federal risk score.
-            <br/><span style={{ color: 'var(--accent)', fontWeight: 600 }}>Zero commitment. Instant intelligence.</span>
+        <div 
+          onClick={onSovereignBeta}
+          style={{
+            background: "linear-gradient(145deg, #0c0c0e 0%, #161618 100%)",
+            border: "1px solid rgba(59, 130, 246, 0.1)",
+            borderRadius: 24,
+            padding: isMobile ? "40px 20px" : "64px",
+            textAlign: "center",
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            position: 'relative',
+            overflow: 'hidden'
+          }}
+          className="hover-glow"
+        >
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '2px',
+            background: 'linear-gradient(90deg, transparent, var(--accent), transparent)',
+            opacity: 0.5
+          }}></div>
+          
+          <p style={{ ...styles.sectionEyebrow, color: 'var(--accent)' }}>Institutional Intelligence Protocol</p>
+          <h2 style={{ ...styles.sectionTitle, marginBottom: 16, fontSize: isMobile ? '24px' : '36px' }}>
+            JOIN SOVEREIGN v2.1 PRIVATE BETA
+          </h2>
+          <p style={{ ...styles.subtitle, marginTop: 0, marginBottom: 32, fontSize: '18px', color: '#a1a1aa' }}>
+            Access the machine that tracks the logic the government forgets. 
+            <br/><span style={{ color: '#fff', fontWeight: 600 }}>Decisive. Sovereign. Zero-Knowledge.</span>
           </p>
 
-          {!result ? (
-            <form onSubmit={handleSubmit} style={{ maxWidth: 500, margin: "0 auto" }}>
-              <div style={{ marginBottom: 20 }}>
-                <div style={{
-                  background: "rgba(255,255,255,0.03)",
-                  border: "1px solid rgba(255,255,255,0.1)",
-                  borderRadius: 16,
-                  padding: "16px 20px",
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12
-                }}>
-                  <Shield size={20} color="var(--accent)" />
-                  <input 
-                    type="text" 
-                    maxLength={12}
-                    placeholder="ENTER 12-CHAR UEI" 
-                    value={uei} 
-                    onChange={(e) => setUei(e.target.value.toUpperCase())}
-                    style={{ 
-                      background: 'transparent',
-                      border: 'none',
-                      outline: 'none',
-                      color: '#ffffff',
-                      fontFamily: 'JetBrains Mono, monospace',
-                      fontSize: '16px',
-                      flex: 1,
-                      letterSpacing: '0.1em'
-                    }}
-                  />
-                </div>
-              </div>
-
-              <button 
-                type="submit" 
-                disabled={isProcessing || uei.length !== 12}
-                style={{
-                  ...styles.primaryCta,
-                  width: "100%",
-                  borderRadius: 12,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
-                  background: isProcessing ? "#1e293b" : "var(--accent)",
-                  color: '#000',
-                  opacity: uei.length !== 12 && !isProcessing ? 0.5 : 1
-                }}
-              >
-                {isProcessing ? "Analyzing Entity..." : "Run Pulse Check"}
-                {!isProcessing && <Zap size={16} />}
-              </button>
-            </form>
-          ) : (
-            <div style={{ textAlign: "center", maxWidth: 600, margin: "0 auto" }}>
-              <div style={{ marginBottom: 24 }}>
-                <div style={{ fontSize: '48px', fontWeight: 900, color: result.score < 75 ? '#FF3E3E' : 'var(--accent)', fontFamily: 'JetBrains Mono' }}>
-                  {result.score}/100
-                </div>
-                <div style={{ fontSize: '14px', color: '#71717a', textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: 8 }}>
-                  FEDERAL RISK SCORE
-                </div>
-              </div>
-
-              <div style={{ textAlign: 'left', background: 'rgba(255,255,255,0.02)', padding: '24px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)', marginBottom: 32 }}>
-                <h4 style={{ fontSize: '14px', color: '#ffffff', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <AlertTriangle size={14} color="#FF3E3E" /> Detected Vulnerabilities:
-                </h4>
-                <ul style={{ paddingLeft: '20px', margin: 0, color: '#a1a1aa', fontSize: '14px', lineHeight: 1.8 }}>
-                  {result.risks.map((risk, i) => <li key={i}>{risk}</li>)}
-                  <li>Hidden compliance traps in Section L/M [MERCURY_2_ANALYSIS_REQUIRED]</li>
-                </ul>
-              </div>
-
-              <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '24px' }}>
-                <p style={{ fontSize: '14px', color: '#a1a1aa', marginBottom: 20 }}>
-                  Why is your score low? Mercury 2 protocol has detected 3 critical disqualifyers in your entity's bridge.
-                </p>
-                <button onClick={onUnlockAudit} style={{ ...styles.primaryCta, width: "100%", borderRadius: 12, background: 'var(--accent)', color: '#000' }}>
-                  Unlock Standard Audit - $99/month
-                </button>
-              </div>
-            </div>
-          )}
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '12px',
+            background: 'rgba(255,255,255,0.05)',
+            padding: '12px 24px',
+            borderRadius: '99px',
+            border: '1px solid rgba(255,255,255,0.1)',
+            color: '#fff',
+            fontWeight: 700,
+            fontSize: '14px'
+          }}>
+            <Rocket size={18} color="var(--accent)" />
+            APPLY FOR STEALTH ACCESS
+          </div>
         </div>
       </div>
     </section>
@@ -565,9 +483,9 @@ export default function Landing({ onEnterApp, onViewSample, onSovereignBeta }) {
         </div>
       </section>
 
-      <FreePulseCheckSection
+      <SovereignBetaSection
         isMobile={isMobile}
-        onUnlockAudit={() => openCheckout("pulse_check_result", GTM_PRICING_PLANS[0])}
+        onSovereignBeta={onSovereignBeta}
       />
 
       <section id="solutions" style={styles.sectionMuted} data-reveal>
