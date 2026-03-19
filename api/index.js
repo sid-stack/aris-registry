@@ -44,6 +44,27 @@ app.use(cors({
 app.use(express.json());
 app.use(requestId);
 
+// Global Request Logger (Sovereign Observability)
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url} - ${req.ip}`);
+  next();
+});
+
+// ─── Analytics & Tracking ───────────────────────────────────────────────────
+
+app.post("/api/track", asyncHandler(async (req, res) => {
+  const { uid, event, value, page, metadata } = req.body;
+  await recordAnalyticsEvent({
+    uid,
+    eventType: event,
+    value,
+    page,
+    path: metadata?.path || page,
+    metadata
+  });
+  res.json({ success: true });
+}));
+
 // ─── Procurement & Audit Pipelines (Modularized) ──────────────────────────────
 
 app.post("/api/analyze-link", asyncHandler(async (req, res) => {
