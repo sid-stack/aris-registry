@@ -14,7 +14,7 @@ import { sanitizeMarkdown } from "./utils/markdown.js";
 // Services & MCP Client
 import { samClient, auditClient, callMcpTool } from "./services/mcpClient.js";
 import { createCheckoutSession } from "./services/stripe.js";
-import { recordAnalyticsEvent, renderAnalyticsDashboard } from "./services/analytics.js";
+import { recordAnalyticsEvent, renderAnalyticsDashboard, recordBetaSignup } from "./services/analytics.js";
 import { AUDIT_PROMPT } from "./src/prompts.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -107,6 +107,19 @@ app.get("/analytics", asyncHandler(async (req, res) => {
   // logic moved to analytics.js
   const dashboard = renderAnalyticsDashboard({}); 
   res.send(dashboard);
+}));
+
+app.post("/api/beta-signup", asyncHandler(async (req, res) => {
+  const { email, metadata } = req.body;
+  if (!email) return res.status(400).json({ error: "Email is required" });
+  
+  const success = await recordBetaSignup(email, { 
+    ...metadata, 
+    ip: req.ip, 
+    source: "sovereign_beta_page" 
+  });
+  
+  res.json({ success });
 }));
 
 // ─── Health & Legacy ─────────────────────────────────────────────────────────

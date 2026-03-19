@@ -41,8 +41,16 @@ export async function ensureAnalyticsSchema() {
       UNIQUE(agency_archetype, conflict_type, observation)
     );
 
+    CREATE TABLE IF NOT EXISTS beta_signups (
+      id BIGSERIAL PRIMARY KEY,
+      email TEXT NOT NULL UNIQUE,
+      metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
     CREATE INDEX IF NOT EXISTS idx_logic_library_conflict ON logic_library (conflict_type);
     CREATE INDEX IF NOT EXISTS idx_analytics_events_created_at ON analytics_events (created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_beta_signups_email ON beta_signups (email);
   `);
   
   analyticsSchemaReady = true;
@@ -103,6 +111,21 @@ export async function persistLogicPattern(pattern) {
     return true;
   } catch (err) {
     console.error("[LOGIC_LIBRARY] persist_failed", err.message);
+    return false;
+  }
+}
+
+export async function recordBetaSignup(email, metadata = {}) {
+  if (!analyticsDb) return false;
+  try {
+    await ensureAnalyticsSchema();
+    await analyticsDb.query(
+      "INSERT INTO beta_signups (email, metadata) VALUES ($1, $2::jsonb) ON CONFLICT (email) DO NOTHING",
+      [email, JSON.stringify(metadata)]
+    );
+    return true;
+  } catch (err) {
+    console.error("[BETA_SIGNUP] record_failed", err.message);
     return false;
   }
 }
