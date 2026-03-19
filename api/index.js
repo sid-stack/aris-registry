@@ -175,7 +175,45 @@ app.post("/api/chat", asyncHandler(async (req, res) => {
     ]
   }, "sovereign_chat");
 
+  // Sovereign Learning Layer: Distill logic from chat in background
+  (async () => {
+    try {
+      const { auditClient, callMcpTool } = await import("./services/mcpClient.js");
+      const { persistLogicPattern } = await import("./services/analytics.js");
+      
+      const sessionContext = history?.map(h => h.content).join("\n") || "";
+      const learningInput = `Context: ${sessionContext}\nUser: ${message}\nAssistant: ${aiResponse}`;
+      
+      // Only distill if the interaction contains high-value analysis
+      if (learningInput.length > 500) {
+        const patternData = await callMcpTool(auditClient, "distill_logic", { 
+          text: learningInput,
+          auditResult: { intent: "chat_interaction" }
+        });
+        
+        const pattern = JSON.parse(patternData.content[0].text);
+        await persistLogicPattern(pattern);
+        console.log("[LEARNING_LAYER] Chat logic distilled and persisted.");
+      }
+    } catch (err) {
+      console.error("[LEARNING_LAYER] Chat distillation failed:", err.message);
+    }
+  })();
+
   res.json({ message: aiResponse });
+}));
+
+// ─── Admin & Data Governance ───────────────────────────────────────────────
+
+app.get("/api/admin/signups", asyncHandler(async (req, res) => {
+  const adminSecret = req.query.secret;
+  if (adminSecret !== process.env.ANALYTICS_DASHBOARD_PASSWORD) {
+    return res.status(401).json({ error: "UNAUTHORIZED_INTEL_ACCESS" });
+  }
+
+  const { analyticsDb } = await import("./services/analytics.js");
+  const result = await analyticsDb.query("SELECT email, created_at, metadata FROM beta_signups ORDER BY created_at DESC");
+  res.json({ count: result.rows.length, signups: result.rows });
 }));
 
 // ─── Health & Legacy ─────────────────────────────────────────────────────────
