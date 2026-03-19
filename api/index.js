@@ -100,9 +100,16 @@ app.post("/api/analyze-link", asyncHandler(async (req, res) => {
     ]
   }, "mercury_2_engine");
 
-  // Sanitize LLM JSON (Claude often wraps in code blocks)
-  const cleanJson = rawAudit.replace(/```json\n?|```/g, "").trim();
-  const auditData = JSON.parse(cleanJson);
+  // Sanitize LLM JSON (Resilient to Markdown/Bold/Comments from smaller models)
+  let auditData;
+  try {
+    const jsonMatch = rawAudit.match(/\{[\s\S]*\}/);
+    const cleanJson = jsonMatch ? jsonMatch[0] : rawAudit.replace(/```json\n?|```/g, "").trim();
+    auditData = JSON.parse(cleanJson);
+  } catch (pErr) {
+    console.warn("[SOVEREIGN_GATEWAY] JSON Parse Failed. Fallback to raw string.", pErr.message);
+    throw new Error("Audit generation failed to yield structured data. System at high capacity. Please retry.");
+  }
 
   // 4. Learning Layer (Institutional Distillation - BACKGROUND)
   (async () => {
