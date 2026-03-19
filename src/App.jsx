@@ -12,6 +12,7 @@ import Security from "./pages/Security";
 import About from "./pages/About";
 import SamScraper from "./pages/SamScraper";
 import Labs from "./pages/Labs";
+import SovereignBeta from "./pages/SovereignBeta";
 import SurveyAnalytics from "./components/SurveyAnalytics";
 import DemoAnalytics from "./components/DemoAnalytics";
 import NotFound from "./pages/NotFound";
@@ -25,6 +26,7 @@ const LANDING_SECTION_ALIASES = {
   "/pricing": "pricing",
   "/markets": "markets",
   "/contact": "contact",
+  "/sovereign-beta": "sovereign-beta",
 };
 
 export default function App() {
@@ -64,6 +66,8 @@ export default function App() {
                     ? "app"
                   : path === "/about"
                     ? "about"
+                  : path === "/sovereign-beta"
+                    ? "sovereign-beta"
                   : path.startsWith("/labs")
                     ? "labs"
                     : path !== "/"
@@ -105,6 +109,8 @@ export default function App() {
       logicalPath = "/demo-analytics";
     } else if (view === "about") {
       logicalPath = "/about";
+    } else if (view === "sovereign-beta") {
+      logicalPath = "/sovereign-beta";
     } else if (view === "landing") {
       logicalPath = aliasSection ? `/#${aliasSection}` : "/";
     } else if (view === "app") {
@@ -164,6 +170,8 @@ export default function App() {
     content = <About onBack={() => setView("landing")} />;
   } else if (view === "labs") {
     content = <Labs onBack={() => setView("landing")} />;
+  } else if (view === "sovereign-beta") {
+    content = <SovereignBeta onBack={() => setView("landing")} />;
   } else if (view === "landing") {
     content = <Landing onEnterApp={() => setView("app")} onViewSample={() => setView("sam-rep")} />;
   } else if (view === "app") {
