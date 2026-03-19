@@ -83,8 +83,13 @@ app.post("/api/analyze-link", asyncHandler(async (req, res) => {
   }
 
   // 2. Data Acquisition (MCP)
-  const samData = await callMcpTool(samClient, "get_opportunity", { url });
+  const samMcpResult = await callMcpTool(samClient, "get_opportunity", { url });
+  const samData = JSON.parse(samMcpResult.content[0].text);
   
+  if (!samData.description) {
+    throw new Error("Solicitation content is empty or unreadable.");
+  }
+
   // 3. Agentic Reasoning (Traceable)
   const rawAudit = await traceLLM(openai, {
     model: "anthropic/claude-3.5-sonnet",
@@ -94,6 +99,10 @@ app.post("/api/analyze-link", asyncHandler(async (req, res) => {
     ]
   }, "mercury_2_engine");
 
+  // Sanitize LLM JSON (Claude often wraps in code blocks)
+  const cleanJson = rawAudit.replace(/```json\n?|```/g, "").trim();
+  const auditData = JSON.parse(cleanJson);
+
   // 4. Learning Layer (Institutional Distillation - BACKGROUND)
   (async () => {
     try {
@@ -101,7 +110,7 @@ app.post("/api/analyze-link", asyncHandler(async (req, res) => {
       const { persistLogicPattern } = await import("./services/analytics.js");
       
       const patternData = await callMcpTool(auditClient, "distill_logic", { 
-        auditResult: JSON.parse(rawAudit), 
+        auditResult: auditData, 
         text: samData.description 
       });
       
@@ -117,15 +126,15 @@ app.post("/api/analyze-link", asyncHandler(async (req, res) => {
   const { generateWinThemes } = await import("./services/winThemes.js");
   const { generateExecutiveBrief } = await import("./services/generateExecutiveBrief.js");
   
-  const winThemes = await generateWinThemes(JSON.parse(rawAudit), []); 
-  const executiveBrief = generateExecutiveBrief(JSON.parse(rawAudit), winThemes);
+  const winThemes = await generateWinThemes(auditData, []); 
+  const executiveBrief = generateExecutiveBrief(auditData, winThemes);
 
   // 6. Record Zero-Knowledge Analytics
   await recordAnalyticsEvent({ eventType: "audit_complete", uid: clientIP });
 
   res.json({
     success: true,
-    data: JSON.parse(rawAudit),
+    data: auditData,
     winThemes,
     executiveBrief,
     sanitized: sanitizeMarkdown(rawAudit),
