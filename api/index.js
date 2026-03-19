@@ -13,7 +13,7 @@ import { traceLLM } from "./utils/tracing.js";
 import { sanitizeMarkdown } from "./utils/markdown.js";
 
 // Services & MCP Client
-import { samClient, auditClient, callMcpTool } from "./services/mcpClient.js";
+import { getSamClient, getAuditClient, callMcpTool } from "./services/mcpClient.js";
 import { createCheckoutSession } from "./services/stripe.js";
 import { recordAnalyticsEvent, renderAnalyticsDashboard, recordBetaSignup } from "./services/analytics.js";
 import { AUDIT_PROMPT, SYS_PROMPT } from "./src/prompts.js";
@@ -83,6 +83,7 @@ app.post("/api/analyze-link", asyncHandler(async (req, res) => {
   }
 
   // 2. Data Acquisition (MCP)
+  const samClient = await getSamClient();
   const samMcpResult = await callMcpTool(samClient, "get_opportunity", { url });
   const samData = JSON.parse(samMcpResult.content[0].text);
   
@@ -106,9 +107,10 @@ app.post("/api/analyze-link", asyncHandler(async (req, res) => {
   // 4. Learning Layer (Institutional Distillation - BACKGROUND)
   (async () => {
     try {
-      const { auditClient, callMcpTool } = await import("./services/mcpClient.js");
+      const { getAuditClient, callMcpTool } = await import("./services/mcpClient.js");
       const { persistLogicPattern } = await import("./services/analytics.js");
       
+      const auditClient = await getAuditClient();
       const patternData = await callMcpTool(auditClient, "distill_logic", { 
         auditResult: auditData, 
         text: samData.description 
@@ -187,9 +189,10 @@ app.post("/api/chat", asyncHandler(async (req, res) => {
   // Sovereign Learning Layer: Distill logic from chat in background
   (async () => {
     try {
-      const { auditClient, callMcpTool } = await import("./services/mcpClient.js");
+      const { getAuditClient, callMcpTool } = await import("./services/mcpClient.js");
       const { persistLogicPattern } = await import("./services/analytics.js");
       
+      const auditClient = await getAuditClient();
       const sessionContext = history?.map(h => h.content).join("\n") || "";
       const learningInput = `Context: ${sessionContext}\nUser: ${message}\nAssistant: ${aiResponse}`;
       
