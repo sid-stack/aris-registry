@@ -129,6 +129,22 @@ app.post("/api/beta-signup", asyncHandler(async (req, res) => {
   res.json({ success });
 }));
 
+app.post("/api/chat", asyncHandler(async (req, res) => {
+  const { message, history } = req.body;
+  if (!message) return res.status(400).json({ error: "Message is required" });
+
+  const aiResponse = await traceLLM(null, {
+    model: "claude-3-5-sonnet",
+    messages: [
+      { role: "system", content: SYS_PROMPT },
+      ...(history || []).map(m => ({ role: m.role, content: m.content })),
+      { role: "user", content: message }
+    ]
+  }, "sovereign_chat");
+
+  res.json({ message: aiResponse });
+}));
+
 // ─── Health & Legacy ─────────────────────────────────────────────────────────
 
 app.get("/", (req, res) => {
