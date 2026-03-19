@@ -6,6 +6,14 @@ const SovereignBeta = ({ onBack }) => {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  React.useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!email) return;
@@ -34,28 +42,33 @@ const SovereignBeta = ({ onBack }) => {
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      padding: '40px 20px',
+      padding: isMobile ? '20px' : '40px 20px',
       overflowX: 'hidden',
       position: 'relative'
     }}>
       {/* Background Glow */}
       <div style={{
         position: 'absolute', top: '-10%', left: '50%', transform: 'translateX(-50%)',
-        width: '600px', height: '400px',
+        width: isMobile ? '100%' : '600px', height: '400px',
         background: 'radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%)',
         zIndex: 0, pointerEvents: 'none'
       }}></div>
 
       {/* Header */}
       <nav style={{ 
-        width: '100%', maxWidth: '1100px', display: 'flex', justifyContent: 'space-between', 
-        alignItems: 'center', marginBottom: '80px', zIndex: 1 
+        width: '100%', maxWidth: '1100px', display: 'flex', 
+        flexDirection: isMobile ? 'column' : 'row',
+        justifyContent: 'space-between', 
+        alignItems: isMobile ? 'flex-start' : 'center', 
+        gap: isMobile ? '12px' : '0',
+        marginBottom: isMobile ? '40px' : '80px', 
+        zIndex: 1 
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }} onClick={onBack} className="clickable">
           <Shield size={24} color="var(--text-primary)" />
           <span style={{ fontWeight: 800, letterSpacing: '-0.02em', fontSize: '18px' }}>ARIS SOVEREIGN</span>
         </div>
-        <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.1em' }}>
+        <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.1em' }}>
           PROTOCOL V2.1 // STABLE
         </div>
       </nav>
@@ -72,14 +85,14 @@ const SovereignBeta = ({ onBack }) => {
         </div>
 
         <h1 className="animate-in" style={{ 
-          fontSize: 'clamp(32px, 8vw, 64px)', fontWeight: 800, letterSpacing: '-0.04em',
+          fontSize: isMobile ? '36px' : 'clamp(32px, 8vw, 64px)', fontWeight: 800, letterSpacing: '-0.04em',
           lineHeight: 1.1, marginBottom: '24px'
         }}>
           The machine that tracks the <span style={{ color: 'var(--text-secondary)' }}>logic the government forgets.</span>
         </h1>
 
         <p className="animate-in" style={{ 
-          fontSize: '18px', color: 'var(--text-secondary)', lineHeight: 1.6, 
+          fontSize: isMobile ? '16px' : '18px', color: 'var(--text-secondary)', lineHeight: 1.6, 
           marginBottom: '48px', maxWidth: '600px', margin: '0 auto 48px auto'
         }}>
           We are opening Sovereign v2.1 to 5 select GovCon firms for a private boarding-level trial. 
@@ -89,9 +102,14 @@ const SovereignBeta = ({ onBack }) => {
         {/* Signup Form / Success State */}
         {!submitted ? (
           <form className="animate-in" onSubmit={handleSubmit} style={{
-            display: 'flex', gap: '12px', maxWidth: '500px', margin: '0 auto 80px auto',
-            background: 'rgba(255, 255, 255, 0.03)', padding: '8px', borderRadius: '14px',
-            border: '1px solid rgba(255, 255, 255, 0.08)', backdropFilter: 'blur(10px)'
+            display: 'flex', 
+            flexDirection: isMobile ? 'column' : 'row',
+            gap: '12px', maxWidth: '500px', margin: '0 auto 80px auto',
+            background: isMobile ? 'transparent' : 'rgba(255, 255, 255, 0.03)', 
+            padding: isMobile ? '0' : '8px', 
+            borderRadius: '14px',
+            border: isMobile ? 'none' : '1px solid rgba(255, 255, 255, 0.08)', 
+            backdropFilter: 'blur(10px)'
           }}>
             <input 
               type="email" 
@@ -100,13 +118,17 @@ const SovereignBeta = ({ onBack }) => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               style={{
-                background: 'transparent', border: 'none', outline: 'none', color: '#fff',
-                padding: '12px 16px', flex: 1, fontSize: '15px'
+                background: isMobile ? 'rgba(255,255,255,0.03)' : 'transparent', 
+                border: isMobile ? '1px solid rgba(255,255,255,0.1)' : 'none', 
+                outline: 'none', color: '#fff',
+                padding: '12px 16px', flex: 1, fontSize: '15px',
+                borderRadius: isMobile ? '12px' : '0'
               }}
             />
             <button type="submit" disabled={loading} style={{
               background: '#fff', color: '#000', fontWeight: 700, padding: '12px 24px',
-              borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '8px',
+              borderRadius: isMobile ? '12px' : '10px', display: 'flex', alignItems: 'center', 
+              justifyContent: 'center', gap: '8px',
               cursor: loading ? 'not-allowed' : 'pointer', transition: 'transform 0.2s', border: 'none',
               opacity: loading ? 0.7 : 1
             }} className="hover:scale-95">
