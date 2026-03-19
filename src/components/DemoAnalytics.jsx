@@ -33,30 +33,12 @@ const DemoAnalytics = () => {
 
   const fetchAnalytics = async () => {
     try {
-      // Mock analytics data - in production, this would come from your backend
-      const mockAnalytics = {
-        totalViews: 1247,
-        uniqueVisitors: 892,
-        demoViews: 156,
-        signupClicks: 43,
-        conversionRate: 27.4,
-        avgSessionDuration: 245, // seconds
-        topPages: [
-          { page: '/sam-scraper', views: 523, percentage: 42 },
-          { page: '/survey', views: 234, percentage: 19 },
-          { page: '/', views: 189, percentage: 15 },
-          { page: '/survey-analytics', views: 156, percentage: 12 },
-          { page: '/about', views: 145, percentage: 12 }
-        ],
-        recentActivity: [
-          { type: 'demo_view', page: '/sam-scraper', timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString() },
-          { type: 'signup_click', page: '/sam-scraper', timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString() },
-          { type: 'demo_view', page: '/survey', timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString() },
-          { type: 'page_view', page: '/', timestamp: new Date(Date.now() - 1000 * 60 * 45).toISOString() }
-        ]
-      };
-
-      setAnalytics(mockAnalytics);
+      const response = await fetch('/api/analytics?window_hours=720');
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const payload = await response.json();
+      if (payload?.analytics) {
+        setAnalytics(payload.analytics);
+      }
     } catch (error) {
       console.error('Error fetching analytics:', error);
     }
@@ -71,10 +53,23 @@ const DemoAnalytics = () => {
       });
     }
 
-    // Store in localStorage for demo purposes
-    const currentViews = parseInt(localStorage.getItem('demo_views') || '0');
-    localStorage.setItem('demo_views', (currentViews + 1).toString());
-    localStorage.setItem('last_demo_view', new Date().toISOString());
+    const uidKey = 'aris_uid';
+    let uid = localStorage.getItem(uidKey);
+    if (!uid && crypto?.randomUUID) {
+      uid = crypto.randomUUID();
+      localStorage.setItem(uidKey, uid);
+    }
+
+    fetch('/api/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        uid: uid || 'anonymous',
+        event: 'demo_view',
+        page: window.location.href,
+        metadata: { path: '/demo-analytics', source: 'demo_analytics_page' }
+      })
+    }).catch(() => {});
   };
 
   const handleSignup = async (e) => {
@@ -90,7 +85,7 @@ const DemoAnalytics = () => {
         });
       }
 
-      // Mock signup submission - in production, this would go to your backend
+      // Persist signup + analytics through backend endpoints
       const signupData = {
         ...signupForm,
         timestamp: new Date().toISOString(),
@@ -98,15 +93,28 @@ const DemoAnalytics = () => {
         source: 'demo_analytics_page'
       };
 
-      // Store for demo purposes
-      localStorage.setItem('signup_' + Date.now(), JSON.stringify(signupData));
+      await fetch('/api/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          uid: localStorage.getItem('aris_uid') || 'anonymous',
+          event: 'signup_click',
+          page: window.location.href,
+          metadata: { path: '/demo-analytics', source: 'waitlist_form' }
+        })
+      });
 
-      // In production, send to backend:
-      // const response = await fetch('/api/waitlist-signup', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(signupData)
-      // });
+      await fetch('/api/waitlist-signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: signupData.name,
+          email: signupData.email,
+          company: signupData.company,
+          useCase: signupData.useCase,
+          budget: signupData.budget
+        })
+      });
 
       console.log('Signup data:', signupData);
 
