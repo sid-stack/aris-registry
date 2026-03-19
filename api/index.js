@@ -22,7 +22,14 @@ const app = express();
 const PORT = process.env.PORT || 8080;
 
 // ─── Middleware ──────────────────────────────────────────────────────────────
-app.use(cors());
+app.use(cors({
+  origin: [
+    "http://localhost:5173", 
+    /\.vercel\.app$/, // Allow all Vercel deployments
+    process.env.STAGING_URL || "https://aris-protocol.vercel.app"
+  ],
+  credentials: true
+}));
 app.use(express.json());
 app.use(requestId);
 

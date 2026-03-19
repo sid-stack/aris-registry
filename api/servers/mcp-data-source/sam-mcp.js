@@ -30,13 +30,13 @@ function parseNoticeId(url) {
   // Regex for 32-char UUID or similar hex ID in various positions
   const uuidMatch = url.match(/\/opp\/([a-f0-9]{32})/i);
   if (uuidMatch) return uuidMatch[1];
-  
+
   const pathMatch = url.match(/\/opp\/([a-f0-9]+)/i);
   if (pathMatch) return pathMatch[1];
-  
+
   const qMatch = url.match(/[?&]noticeId=([^&]+)/i);
   if (qMatch) return qMatch[1];
-  
+
   return null;
 }
 
