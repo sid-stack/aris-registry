@@ -112,7 +112,7 @@ const pricingPreviewStats = [
   { label: "Detections", value: "3 risks + 1 DQ" },
 ];
 
-function BrandingBanner() {
+function BrandingBanner({ onSovereignBeta }) {
   return (
     <div style={{
       background: '#0c0c0e',
@@ -126,8 +126,27 @@ function BrandingBanner() {
       position: 'sticky',
       top: 0,
       zIndex: 100,
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: '12px'
     }}>
-      POWERED BY THE <span style={{ color: 'var(--accent)', fontWeight: 700 }}>ARIS LABS AUDIT ENGINE</span>
+      <span>POWERED BY THE <span style={{ color: 'var(--accent)', fontWeight: 700 }}>ARIS LABS AUDIT ENGINE</span></span>
+      <span style={{ color: '#3f3f46' }}>|</span>
+      <span 
+        onClick={onSovereignBeta}
+        className="clickable-accent"
+        style={{ 
+          color: 'var(--text-primary)', 
+          fontWeight: 800, 
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px'
+        }}
+      >
+        <Rocket size={12} /> JOIN SOVEREIGN v2.1 PRIVATE BETA
+      </span>
     </div>
   );
 }
@@ -293,7 +312,7 @@ function IconCard({ title, description, icon }) {
   );
 }
 
-export default function Landing({ onEnterApp, onViewSample }) {
+export default function Landing({ onEnterApp, onViewSample, onSovereignBeta }) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isMobile, setIsMobile] = useState(
     typeof window !== "undefined" && window.innerWidth < 768
@@ -395,7 +414,7 @@ export default function Landing({ onEnterApp, onViewSample }) {
 
   return (
     <div style={styles.page}>
-      <BrandingBanner />
+      <BrandingBanner onSovereignBeta={onSovereignBeta} />
       <header style={styles.navbar}>
         <div style={styles.navInner}>
           <a href="/" style={styles.brand}>
@@ -424,6 +443,18 @@ export default function Landing({ onEnterApp, onViewSample }) {
       <section className="landing-hero" style={styles.heroTerminalSection}>
         <div className="landing-hero-layout">
           <div className="landing-hero-copy">
+            <div 
+              onClick={onSovereignBeta}
+              className="animate-in clickable"
+              style={{ 
+                background: 'rgba(59, 130, 246, 0.1)', color: 'rgb(96, 165, 250)', 
+                padding: '4px 12px', borderRadius: '100px', fontSize: '11px', fontWeight: 800,
+                display: 'inline-block', marginBottom: '24px', border: '1px solid rgba(59, 130, 246, 0.2)',
+                letterSpacing: '0.05em', cursor: 'pointer'
+              }}
+            >
+              🚀 SOVEREIGN v2.1 PRIVATE BETA IS NOW OPEN
+            </div>
             <p style={styles.sectionEyebrow}>Sample-anchored Federal Audit</p>
             <h1 className="landing-hero-title" style={{ ...styles.title, textAlign: "left", fontSize: isMobile ? "2rem" : "3.15rem" }}>
               Replace 40-hour manual review with one decisive audit screen.

@@ -173,7 +173,11 @@ export default function App() {
   } else if (view === "sovereign-beta") {
     content = <SovereignBeta onBack={() => setView("landing")} />;
   } else if (view === "landing") {
-    content = <Landing onEnterApp={() => setView("app")} onViewSample={() => setView("sam-rep")} />;
+    content = <Landing 
+      onEnterApp={() => setView("app")} 
+      onViewSample={() => setView("sam-rep")} 
+      onSovereignBeta={() => setView("sovereign-beta")}
+    />;
   } else if (view === "app") {
     // Audit is stateless and zero-knowledge, allow guest access for the first audit
     content = <Audit onBack={() => setView("landing")} />;
