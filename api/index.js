@@ -1,3 +1,4 @@
+// ⚡ ARIS_SOVEREIGN_HEARTBEAT: 2026-03-20T00:46:21Z
 import express from "express";
 import cors from "cors";
 import { dirname, join } from "path";
