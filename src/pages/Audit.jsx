@@ -650,11 +650,18 @@ export default function Audit({ onBack }) {
 
   const streamReport = (auditData) => {
     if (esRef.current) esRef.current.close();
+    const fdicOid =
+      auditData.fdicOid ||
+      auditData.oid ||
+      auditData?.compliance?.fdic_oid?.value ||
+      auditData?.compliance?.fdicOid?.value ||
+      "";
     const json = JSON.stringify({
       pillars: auditData.compliance,
       title: auditData.title || "",
       agency: auditData.agency || "",
       executiveSummary: auditData.executiveSummary || "",
+      fdicOid,
     });
     const ctx = btoa(encodeURIComponent(json));
     const es = new EventSource(`/api/generate-report-stream?ctx=${encodeURIComponent(ctx)}`);

@@ -122,12 +122,14 @@ export default function App() {
 
   // ── HISTORY LOCKDOWN (Trap user on site) ──
   useEffect(() => {
+    const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
     // Push state to create a history entry we can intercept
-    window.history.pushState({ view }, "", window.location.pathname);
+    window.history.pushState({ view }, "", currentUrl);
 
-    const handlePopState = (event) => {
+    const handlePopState = () => {
+      const nextUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
       // Re-push state immediately to maintain the trap
-      window.history.pushState({ view }, "", window.location.pathname);
+      window.history.pushState({ view }, "", nextUrl);
       
       if (view !== "landing") {
         setView("landing");

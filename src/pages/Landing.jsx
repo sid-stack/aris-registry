@@ -364,6 +364,11 @@ export default function Landing({ onEnterApp, onViewSample }) {
     onViewSample();
   };
 
+  const handleFooterRedirect = (event, href) => {
+    event.preventDefault();
+    window.location.assign(href);
+  };
+
   useEffect(() => {
     const targets = document.querySelectorAll("[data-reveal]");
     if (!targets.length) return undefined;
@@ -652,7 +657,13 @@ export default function Landing({ onEnterApp, onViewSample }) {
               Sovereign GovCon intelligence. Powered by SAM.gov data to collect, verify, and analyze federal solicitations for precision bid management.
             </p>
             <div style={styles.footerAddressLine}>
-              <a href="/about" style={{ textDecoration: "none", color: "inherit", transition: "color 0.2s" }} onMouseEnter={(e) => e.target.style.color = "#fff"} onMouseLeave={(e) => e.target.style.color = "inherit"}>
+              <a
+                href="/about"
+                style={{ textDecoration: "none", color: "inherit", transition: "color 0.2s" }}
+                onClick={(event) => handleFooterRedirect(event, "/about")}
+                onMouseEnter={(e) => e.target.style.color = "#fff"}
+                onMouseLeave={(e) => e.target.style.color = "inherit"}
+              >
                 Labs headquarters : San Francisco, CA
               </a>
             </div>
@@ -666,30 +677,30 @@ export default function Landing({ onEnterApp, onViewSample }) {
           }}>
             <div style={styles.footerLinkCol}>
               <h4 style={styles.footerColHeading}>Product</h4>
-              <a href="/#solutions" style={styles.footerLinkItem}>Aris Protocol Agent</a>
-              <a href="/#solutions" style={styles.footerLinkItem}>Compliance Sniper</a>
+              <a href="/#solutions" style={styles.footerLinkItem} onClick={(event) => handleFooterRedirect(event, "/#solutions")}>Aris Protocol Agent</a>
+              <a href="/#solutions" style={styles.footerLinkItem} onClick={(event) => handleFooterRedirect(event, "/#solutions")}>Compliance Sniper</a>
               <a href="https://docs.bidsmith.pro" target="_blank" rel="noopener noreferrer" style={styles.footerLinkItem}>Documentation</a>
             </div>
 
             <div style={styles.footerLinkCol}>
               <h4 style={styles.footerColHeading}>Company</h4>
-              <a href="/about" style={styles.footerLinkItem}>About</a>
-              <a href="/#solutions" style={styles.footerLinkItem}>Solutions</a>
-              <a href="/soc" style={styles.footerLinkItem}>Security</a>
+              <a href="/about" style={styles.footerLinkItem} onClick={(event) => handleFooterRedirect(event, "/about")}>About</a>
+              <a href="/#solutions" style={styles.footerLinkItem} onClick={(event) => handleFooterRedirect(event, "/#solutions")}>Solutions</a>
+              <a href="/soc" style={styles.footerLinkItem} onClick={(event) => handleFooterRedirect(event, "/soc")}>Security</a>
               <a href="mailto:sid@bidsmith.pro" style={styles.footerLinkItem}>Contact</a>
             </div>
 
             <div style={styles.footerLinkCol}>
               <h4 style={styles.footerColHeading}>Markets</h4>
-              <a href="/#markets" style={styles.footerLinkItem}>US DOD & IC</a>
-              <a href="/#markets" style={styles.footerLinkItem}>Civilian Agencies</a>
-              <a href="/#markets" style={styles.footerLinkItem}>Intelligence Labs</a>
+              <a href="/#markets" style={styles.footerLinkItem} onClick={(event) => handleFooterRedirect(event, "/#markets")}>US DOD & IC</a>
+              <a href="/#markets" style={styles.footerLinkItem} onClick={(event) => handleFooterRedirect(event, "/#markets")}>Civilian Agencies</a>
+              <a href="/#markets" style={styles.footerLinkItem} onClick={(event) => handleFooterRedirect(event, "/#markets")}>Intelligence Labs</a>
             </div>
 
             <div style={styles.footerLinkCol}>
               <h4 style={styles.footerColHeading}>Legal</h4>
-              <a href="/privacy" style={styles.footerLinkItem}>Privacy Policy</a>
-              <a href="/terms" style={styles.footerLinkItem}>Terms of Service</a>
+              <a href="/privacy" style={styles.footerLinkItem} onClick={(event) => handleFooterRedirect(event, "/privacy")}>Privacy Policy</a>
+              <a href="/terms" style={styles.footerLinkItem} onClick={(event) => handleFooterRedirect(event, "/terms")}>Terms of Service</a>
               <a href="mailto:sid@bidsmith.pro" style={styles.footerLinkItem}>Contact</a>
             </div>
           </div>
