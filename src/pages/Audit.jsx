@@ -608,13 +608,19 @@ export default function Audit({ onBack }) {
       setIsLoading(false);
 
     } catch (e) {
-      const errMsg = e.message || "UNKNOWN_PIPELINE_ERROR";
-      if (typeof setError === 'function') {
-        setError(errMsg);
+      if (errMsg.toLowerCase().includes("capacity") || errMsg.toLowerCase().includes("blackout")) {
+        setShowFatalError(true);
+        setFatalErrorData({
+          verdict: "SYSTEM_AT_CAPACITY",
+          score: "503",
+          breakdown: ["All Sovereign clusters are currently processing high-concurrency audits.", "Intelligence Gateway is queueing requests for cluster stability."],
+          deltaAnalysis: "We will be live again momentarily. Please refresh in 60 seconds."
+        });
+        addLog("SYSTEM_OVER_CAPACITY: DEFERRING_INTELLIGENCE", "warning");
       } else {
-        console.error("CRITICAL: setError is NOT A FUNCTION", e);
+        setError(errMsg);
+        addLog(`PIPELINE_FATAL_ERROR: ${errMsg}`, "error");
       }
-      addLog(`PIPELINE_FATAL_ERROR: ${errMsg}`, "error");
       setIsLoading(false);
     }
   };
