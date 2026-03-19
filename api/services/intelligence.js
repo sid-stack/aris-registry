@@ -24,16 +24,27 @@ export async function complete(params, agentKey = "sovereign_core") {
     if (isCreditError) {
       console.warn(`[SOVEREIGN_GATEWAY] [${agentKey}] Primary Fallback Triggered: ${error.status}`);
       
-      // 2. Secondary Inference (Gemma 7B Free - OpenRouter fallback)
+      // 2. Secondary Inference (Gemma 2 9B Free - Stable OpenRouter free tier)
       try {
         const freeRes = await primaryClient.chat.completions.create({
           ...params,
-          model: "google/gemma-7b-it:free"
+          model: "google/gemma-2-9b-it:free"
         });
         return freeRes.choices[0]?.message?.content || "";
       } catch (fErr) {
-        console.error(`[SOVEREIGN_GATEWAY] [${agentKey}] TOTAL INTELLIGENCE BLACKOUT:`, fErr.message);
-        throw error;
+        console.warn(`[SOVEREIGN_GATEWAY] [${agentKey}] Secondary Fallback Failed:`, fErr.message);
+        
+        // 3. Tertiary Inference (Mistral 7B Free)
+        try {
+          const tRes = await primaryClient.chat.completions.create({
+            ...params,
+            model: "mistralai/mistral-7b-instruct:free"
+          });
+          return tRes.choices[0]?.message?.content || "";
+        } catch (tErr) {
+          console.error(`[SOVEREIGN_GATEWAY] [${agentKey}] TOTAL INTELLIGENCE BLACKOUT`);
+          throw error;
+        }
       }
     }
     throw error;

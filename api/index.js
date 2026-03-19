@@ -267,6 +267,8 @@ app.post("/api/compare-amendments", asyncHandler(async (req, res) => {
   res.json({ delta, generatedAt: new Date().toISOString() });
 }));
 
+app.post("/api/privacy/consent", (req, res) => res.json({ success: true, timestamp: new Date().toISOString() }));
+
 app.get("/api/health", (req, res) => res.json({ status: "ok", protocol: "mercury-2.1-modular" }));
 
 app.use(notFoundHandler);
