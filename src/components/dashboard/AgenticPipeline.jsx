@@ -9,7 +9,7 @@ const agents = [
   { icon: TrendingUp,  label: 'Win-Theme Architect',  desc: 'Extracting win themes, risk flags & technical outline', delay: 0.4 },
 ];
 
-const AgenticPipeline = () => (
+const AgenticPipeline = ({ initializing = false }) => (
   <div className="dashboard-card animate-in" style={{ 
     animationDelay: '0.05s', 
     background: 'rgba(255, 255, 255, 0.03)', 
@@ -17,8 +17,27 @@ const AgenticPipeline = () => (
     WebkitBackdropFilter: 'blur(12px)',
     border: '1px solid rgba(255, 255, 255, 0.05)', 
     padding: '16px',
-    borderRadius: '12px'
+    borderRadius: '12px',
+    position: 'relative'
   }}>
+    {initializing && (
+      <div style={{
+        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+        background: 'rgba(5, 7, 11, 0.8)',
+        backdropFilter: 'blur(4px)',
+        zIndex: 10,
+        borderRadius: '12px',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        gap: '12px'
+      }}>
+        <div className="pattern-badge" style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
+          Initializing Sovereign Registry...
+        </div>
+        <div style={{ width: '100px', height: '1px', background: 'rgba(255, 255, 255, 0.1)', overflow: 'hidden' }}>
+          <div className="pattern-badge" style={{ width: '40px', height: '100%', background: 'var(--text-primary)' }}></div>
+        </div>
+      </div>
+    )}
     <style>{`
       @keyframes pattern-pulse {
         0% { opacity: 0.6; transform: scale(0.98); }

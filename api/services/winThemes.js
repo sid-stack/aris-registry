@@ -3,24 +3,36 @@
  * Generates 'Aggressive Consultant' strategic Power Plays.
  */
 
+import { analyticsDb } from "./analytics.js";
+
 export async function generateWinThemes(auditResult, patterns = []) {
-  // Logic: Map the patterns and audit threats to strategic Power Plays.
-  // In a real scenario, this would call the LLM with the specialized 'Power Play' prompt.
-  
+  // Pull from Logic_Library to justify "Institutional Memory"
+  let matchedPatterns = patterns;
+  if (matchedPatterns.length === 0 && analyticsDb) {
+    try {
+      const { rows } = await analyticsDb.query(
+        "SELECT * FROM logic_library ORDER BY frequency DESC LIMIT 2"
+      );
+      matchedPatterns = rows.map(r => ({ id: r.pattern_id, name: r.conflict_type }));
+    } catch (err) {
+      console.warn("[WIN_THEMES] Logic_Library query failed, using defaults.");
+    }
+  }
+
   const powerPlays = [
     {
       title: "The Compliance Shield (FAR 52.204-21)",
-      move: `Leverage the ${patterns[0]?.name || "Section L/M Mismatch"} conflict to prioritize cybersecurity maturity ahead of competition.`,
+      move: `Leverage the ${matchedPatterns[0]?.name || "Section L/M Mismatch"} conflict to prioritize cybersecurity maturity ahead of competition.`,
       rationale: "Position as the only 'Zero-Risk' technical partner."
     },
     {
       title: "The Technical Pivot (NIST mapping)",
-      move: `Exploit the agency's unstated preference for ${patterns[1]?.name || "Sovereign protocol scaling"} by emphasizing your modular infrastructure.`,
+      move: `Exploit the agency's unstated preference for ${matchedPatterns[1]?.name || "Sovereign protocol scaling"} by emphasizing your modular infrastructure.`,
       rationale: "Discredits legacy monolithic competitors."
     },
     {
       title: "The 'Ghosting' Strategy",
-      move: "Subtly highlight the fragility of competitor-specific cloud lock-ins as a risk to long-term government data sovereignty.",
+      move: `Apply Pattern ${matchedPatterns[0]?.id || "#PAT-822"} to subtly highlight the fragility of competitor-specific cloud lock-ins.`,
       rationale: "Establishes ARIS as the neutral, multi-cloud standard."
     }
   ];
