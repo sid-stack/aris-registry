@@ -26,7 +26,6 @@ const LANDING_SECTION_ALIASES = {
   "/pricing": "pricing",
   "/markets": "markets",
   "/contact": "contact",
-  "/sovereign-beta": "sovereign-beta",
 };
 
 export default function App() {
