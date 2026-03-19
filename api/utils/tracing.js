@@ -24,34 +24,31 @@ export const traceLLM = traceable(
     } catch (error) {
       const isCreditError = error.status === 402 || error.message?.includes("credits") || error.status === 429;
       
-      if (isCreditError && process.env.GEMINI_API_KEY) {
-        console.warn(`[FAILOVER] [${agentKey}] Primary LLM failed (${error.status}). Activating Sovereign Gemini Fallback...`);
+      if (isCreditError) {
+        console.warn(`[FAILOVER] [${agentKey}] Primary LLM failed (${error.status}). Activating Sovereign FREE-Tier Fallback...`);
         
-        // 2. Fallback Attempt (Direct Gemini API Call to avoid dependency overhead)
+        // 2. Fallback Attempt (OpenRouter FREE model - works with 0 balance)
         try {
-          const geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
+          const freeParams = {
+            ...params,
+            model: "google/gemma-7b-it:free" // Highest quality free model on OpenRouter
+          };
           
-          const gRes = await fetch(geminiUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [{ 
-                role: "user",
-                parts: [{ text: params.messages.map(m => `${m.role.toUpperCase()}: ${m.content}`).join("\n\n") }] 
-              }]
-            })
-          });
-
-          if (!gRes.ok) {
-            const errData = await gRes.json().catch(() => ({}));
-            throw new Error(`Gemini Fallback Failed: ${gRes.status} - ${JSON.stringify(errData)}`);
+          const freeRes = await clientOpenAI.chat.completions.create(freeParams);
+          return freeRes.choices[0]?.message?.content || "FALLBACK_FAILED_EMPTY_RESPONSE";
+        } catch (fErr) {
+          console.error(`[CRITICAL] [${agentKey}] Free Fallback also failed:`, fErr.message);
+          
+          // 3. Final Hail Mary (Mistral 7B Free)
+          try {
+            const finalRes = await clientOpenAI.chat.completions.create({
+              ...params,
+              model: "mistralai/mistral-7b-instruct:free"
+            });
+            return finalRes.choices[0]?.message?.content || "SHREDDED_OUTPUT_FAILURE";
+          } catch (mErr) {
+            throw error; // Rethrow original credit error if all fallbacks fail
           }
-          
-          const gData = await gRes.json();
-          return gData.candidates?.[0]?.content?.parts?.[0]?.text || "FALLBACK_FAILED_NO_CANDIDATE";
-        } catch (gErr) {
-          console.error(`[CRITICAL] [${agentKey}] Gemini Fallback also failed:`, gErr.message);
-          throw error; // Rethrow original credit error if fallback fails
         }
       }
       
