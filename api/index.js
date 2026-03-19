@@ -131,25 +131,34 @@ app.post("/api/analyze-link", asyncHandler(async (req, res) => {
     }
   })();
 
-  // 5. Generate Win-Themes & Executive Brief (Phase 2 Upgrade)
-  const { generateWinThemes } = await import("./services/winThemes.js");
-  const { generateExecutiveBrief } = await import("./services/generateExecutiveBrief.js");
+  // 5. Generate Win-Themes & Executive Brief (Phase 2 Upgrade - DEFERRED or BACKGROUND)
+  // We return the core audit data immediately to avoid 502 timeouts. 
+  // Win-Themes and Brief can be generated on-demand by the frontend if needed.
   
-  const winThemes = await generateWinThemes(auditData, []); 
-  const executiveBrief = generateExecutiveBrief(auditData, winThemes);
-
-  // 6. Record Zero-Knowledge Analytics
-  await recordAnalyticsEvent({ eventType: "audit_complete", uid: clientIP });
-
   res.json({
     success: true,
     data: auditData,
-    winThemes,
-    executiveBrief,
+    // Provide placeholders for phased loading in frontend
+    winThemes: [], 
+    executiveBrief: "Win-Themes and Executive Brief are being synthesized in the background. Please wait...",
     sanitized: sanitizeMarkdown(rawAudit),
     requestId: req.id,
     version: "v2.1-sovereign"
   });
+
+  // Background heavy lifting
+  (async () => {
+    try {
+      const { generateWinThemes } = await import("./services/winThemes.js");
+      const { generateExecutiveBrief } = await import("./services/generateExecutiveBrief.js");
+      const winThemes = await generateWinThemes(auditData, []); 
+      const executiveBrief = generateExecutiveBrief(auditData, winThemes); // Ensure executiveBrief is generated here
+      await recordAnalyticsEvent({ eventType: "audit_complete", uid: clientIP, metadata: { hasWinThemes: true } });
+      console.log("[SOVEREIGN_ORCHESTRATOR] Background Intelligence Synthesis Complete.");
+    } catch (bErr) {
+      console.error("[SOVEREIGN_ORCHESTRATOR] Background synthesis failed:", bErr.message);
+    }
+  })();
 }));
 
 // ─── Traditional Services (Extracted) ────────────────────────────────────────
