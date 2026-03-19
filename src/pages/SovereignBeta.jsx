@@ -137,15 +137,36 @@ const SovereignBeta = ({ onBack }) => {
           </form>
         ) : (
           <div className="animate-in" style={{
-            background: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.2)',
-            padding: '24px', borderRadius: '16px', maxWidth: '500px', margin: '0 auto 80px auto',
-            display: 'flex', alignItems: 'center', gap: '16px', textAlign: 'left'
+            background: 'rgba(34, 197, 94, 0.05)', 
+            border: '1px solid rgba(34, 197, 94, 0.2)',
+            padding: '48px 32px', 
+            borderRadius: '24px', 
+            maxWidth: '600px', 
+            margin: '0 auto 80px auto',
+            textAlign: 'center',
+            backdropFilter: 'blur(20px)'
           }}>
-            <CheckCircle size={32} color="rgb(34, 197, 94)" />
-            <div>
-              <div style={{ fontWeight: 700, fontSize: '18px' }}>Application Received.</div>
-              <div style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Our Lead Architect will contact you shortly.</div>
+            <div style={{
+              width: '64px', height: '64px', background: 'rgba(34, 197, 94, 0.1)',
+              borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 24px auto'
+            }}>
+              <CheckCircle size={32} color="rgb(34, 197, 94)" />
             </div>
+            <h2 style={{ fontWeight: 800, fontSize: '28px', marginBottom: '12px', color: '#fff' }}>Application Sovereign.</h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '16px', lineHeight: 1.6, marginBottom: '32px' }}>
+              Your interest in v2.1 has been cryptographically logged. 
+              Our Lead Architect will contact you at <strong>{email}</strong> once your firm's credentials are verified.
+            </p>
+            <button 
+              onClick={onBack}
+              style={{
+                background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)',
+                padding: '12px 24px', borderRadius: '12px', fontWeight: 700, fontSize: '14px', cursor: 'pointer'
+              }}
+            >
+              Return to Terminal
+            </button>
           </div>
         )}
 
