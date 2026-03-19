@@ -15,11 +15,22 @@ import { sanitizeMarkdown } from "./utils/markdown.js";
 import { samClient, auditClient, callMcpTool } from "./services/mcpClient.js";
 import { createCheckoutSession } from "./services/stripe.js";
 import { recordAnalyticsEvent, renderAnalyticsDashboard, recordBetaSignup } from "./services/analytics.js";
-import { AUDIT_PROMPT } from "./src/prompts.js";
+import { AUDIT_PROMPT, SYS_PROMPT } from "./src/prompts.js";
+import OpenAI from "openai";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 8080;
+
+// Initialize LLM Client (OpenRouter by default)
+const openai = new OpenAI({
+  apiKey: process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY,
+  baseURL: process.env.OPENROUTER_API_KEY ? "https://openrouter.ai/api/v1" : undefined,
+  defaultHeaders: {
+    "HTTP-Referer": "https://bidsmith.pro",
+    "X-Title": "ARIS Sovereign v2.1",
+  }
+});
 
 // ─── Middleware ──────────────────────────────────────────────────────────────
 app.use(cors({
@@ -53,8 +64,8 @@ app.post("/api/analyze-link", asyncHandler(async (req, res) => {
   const samData = await callMcpTool(samClient, "get_opportunity", { url });
   
   // 3. Agentic Reasoning (Traceable)
-  const rawAudit = await traceLLM(null, {
-    model: "claude-3-5-sonnet",
+  const rawAudit = await traceLLM(openai, {
+    model: "anthropic/claude-3.5-sonnet",
     messages: [
       { role: "system", content: AUDIT_PROMPT },
       { role: "user", content: `Audit this solicitation:\n\n${samData.description}` }
@@ -133,8 +144,8 @@ app.post("/api/chat", asyncHandler(async (req, res) => {
   const { message, history } = req.body;
   if (!message) return res.status(400).json({ error: "Message is required" });
 
-  const aiResponse = await traceLLM(null, {
-    model: "claude-3-5-sonnet",
+  const aiResponse = await traceLLM(openai, {
+    model: "anthropic/claude-3.5-sonnet",
     messages: [
       { role: "system", content: SYS_PROMPT },
       ...(history || []).map(m => ({ role: m.role, content: m.content })),
