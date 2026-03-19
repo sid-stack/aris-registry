@@ -12,13 +12,45 @@ const client = new Client({
 });
 
 /**
- * Traceable wrapper for OpenRouter / OpenAI calls.
- * Captures inputs, outputs, and agentic metadata.
+ * Traceable wrapper for LLM calls with Automatic Failover.
+ * Tries Primary (OpenRouter/Claude) -> Fallback (Google Gemini).
  */
 export const traceLLM = traceable(
   async (clientOpenAI, params, agentKey) => {
-    const res = await clientOpenAI.chat.completions.create(params);
-    return res.choices[0]?.message?.content || "";
+    try {
+      // 1. Primary Attempt (OpenRouter)
+      const res = await clientOpenAI.chat.completions.create(params);
+      return res.choices[0]?.message?.content || "";
+    } catch (error) {
+      const isCreditError = error.status === 402 || error.message?.includes("credits") || error.status === 429;
+      
+      if (isCreditError && process.env.GEMINI_API_KEY) {
+        console.warn(`[FAILOVER] [${agentKey}] Primary LLM failed (${error.status}). Activating Sovereign Gemini Fallback...`);
+        
+        // 2. Fallback Attempt (Direct Gemini API Call to avoid dependency overhead)
+        try {
+          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
+          const prompt = params.messages.map(m => `${m.role.toUpperCase()}: ${m.content}`).join("\n\n");
+          
+          const gRes = await fetch(geminiUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }]
+            })
+          });
+
+          if (!gRes.ok) throw new Error(`Gemini Fallback Failed: ${gRes.status}`);
+          const gData = await gRes.json();
+          return gData.candidates[0]?.content?.parts[0]?.text || "FALLBACK_FAILED";
+        } catch (gErr) {
+          console.error(`[CRITICAL] [${agentKey}] Gemini Fallback also failed:`, gErr.message);
+          throw error; // Rethrow original credit error if fallback fails
+        }
+      }
+      
+      throw error;
+    }
   },
   {
     name: "ARIS_Agentic_Trajectory",
