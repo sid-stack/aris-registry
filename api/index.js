@@ -110,10 +110,10 @@ startHarvester();
 // ─── API Endpoints ───────────────────────────────────────────────────────────
 
 app.post("/api/fed-search", asyncHandler(async (req, res) => {
-  const { query, limit = 20, expand = true } = req.body;
+  const { query, limit = 20, expand = true, region = "US" } = req.body;
   if (!query) return res.status(400).json({ error: "Query is required" });
 
-  console.log(`[FED_SEARCH] [US] Table Lookup: "${query}"`);
+  console.log(`[FED_SEARCH] [${region}] Table Lookup: "${query}"`);
 
   // 1. STRICT READ-ONLY LOOKUP
   // This is sub-millisecond and never rate-limited.
