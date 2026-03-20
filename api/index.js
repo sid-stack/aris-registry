@@ -85,7 +85,7 @@ async function startHarvester() {
   };
 
   // Initial Pulse
-  setTimeout(pulse, 5000);
+  setTimeout(pulse, 1000);
   // Recurring pulses
   setInterval(pulse, HARVEST_INTERVAL);
 }
