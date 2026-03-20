@@ -94,7 +94,7 @@ app.post("/api/analyze-link", asyncHandler(async (req, res) => {
 
   // 3. Agentic Reasoning (Traceable)
   const rawAudit = await traceLLM(openai, {
-    model: "anthropic/claude-3.5-sonnet",
+    model: "google/gemini-2.0-flash:free",
     messages: [
       { role: "system", content: AUDIT_PROMPT },
       { role: "user", content: `Audit this solicitation:\n\n${samData.description}` }

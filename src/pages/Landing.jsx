@@ -348,12 +348,12 @@ export default function Landing({ onEnterApp, onViewSample, onSovereignBeta }) {
           </nav>
           <button
             type="button"
-            aria-label="Start Sovereign Intelligence Session"
+            aria-label="Join Sovereign Beta"
             style={styles.navCta}
-            onClick={handleStartTrial}
+            onClick={onSovereignBeta}
             disabled={isProcessing}
           >
-            Access Terminal
+            Sovereign Beta
           </button>
         </div>
       </header>
@@ -387,9 +387,8 @@ export default function Landing({ onEnterApp, onViewSample, onSovereignBeta }) {
               ))}
             </div>
             <div style={{ ...styles.heroActions, flexDirection: isMobile ? "column" : "row", justifyContent: "flex-start" }}>
-              <button onClick={handleWorkspaceOpen} style={{ ...styles.primaryCta, width: isMobile ? "100%" : "auto", background: "var(--accent)", color: "#000" }}>Run Audit</button>
+              <button onClick={onSovereignBeta} style={{ ...styles.primaryCta, width: isMobile ? "100%" : "auto", background: "var(--accent)", color: "#000" }}>Launch Sovereign Session</button>
               <button onClick={handleSampleView} style={{ ...styles.secondaryCta, width: isMobile ? "100%" : "auto" }}>Open Full Sample</button>
-              <button onClick={handleSamScraperOpen} style={{ ...styles.secondaryCta, width: isMobile ? "100%" : "auto" }}>Contractor Intel</button>
             </div>
             <div style={styles.heroStatsGrid}>
               {heroStats.map((stat) => (
