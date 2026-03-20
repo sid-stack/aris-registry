@@ -6,12 +6,14 @@ import {
   Shield,
   ChevronRight,
   Mic,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Globe
 } from 'lucide-react';
 import NavBar from '../components/dashboard/NavBar';
 
 const SovereignSearch = ({ onBack }) => {
   const [query, setQuery] = useState('');
+  const [region, setRegion] = useState('US'); // 'US' or 'IN'
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(true);
@@ -32,9 +34,12 @@ const SovereignSearch = ({ onBack }) => {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const q = params.get('q') || params.get('query');
+    const r = params.get('region') || 'US';
+    
     if (q) {
       setQuery(q);
-      executeSearch(q, expanded);
+      setRegion(r);
+      executeSearch(q, expanded, r);
     }
   }, []);
 
@@ -42,22 +47,27 @@ const SovereignSearch = ({ onBack }) => {
     if (e) e.preventDefault();
     if (!query) return;
     
-    // Update URL with query param (Google-style)
-    const newUrl = `${window.location.pathname}?q=${encodeURIComponent(query)}`;
+    // Update URL with query param & region (Google-style)
+    const newUrl = `${window.location.pathname}?q=${encodeURIComponent(query)}&region=${region}`;
     window.history.pushState({ path: newUrl }, '', newUrl);
 
-    await executeSearch(query, expanded);
+    await executeSearch(query, expanded, region);
   };
 
-  const executeSearch = async (targetQuery, isExpanded) => {
+  const executeSearch = async (targetQuery, isExpanded, targetRegion) => {
     setLoading(true);
-    setStatus('Searching the Sovereign Mesh...');
+    setStatus(targetRegion === 'US' ? 'Searching the Sovereign Mesh...' : 'Scanning Aris Bharat (GeM/CPPP)...');
     
     try {
       const res = await fetch('/api/fed-search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: targetQuery, expand: isExpanded, limit: 10 })
+        body: JSON.stringify({ 
+          query: targetQuery, 
+          expand: isExpanded, 
+          limit: 10,
+          region: targetRegion 
+        })
       });
       
       const data = await res.json();
@@ -110,6 +120,17 @@ const SovereignSearch = ({ onBack }) => {
           }}>
             ARIS
           </h1>
+          {region === 'IN' && (
+            <span style={{ 
+              fontSize: '12px', 
+              color: 'var(--accent)', 
+              letterSpacing: '0.4em', 
+              textTransform: 'uppercase',
+              display: 'block',
+              marginTop: '-10px',
+              fontWeight: 500
+            }}>Bharat</span>
+          )}
         </div>
 
         {/* GOOGLE-STYLE SEARCH BOX */}
@@ -134,7 +155,7 @@ const SovereignSearch = ({ onBack }) => {
             <input 
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder=""
+              placeholder={region === 'US' ? 'Search SAM.gov...' : 'Search GeM / CPPP...'}
               style={{ 
                 flex: 1,
                 background: 'transparent',
@@ -152,15 +173,33 @@ const SovereignSearch = ({ onBack }) => {
             </div>
           </div>
 
+          {/* REGION SELECTOR */}
           <div style={{ 
             display: 'flex', 
             justifyContent: 'center', 
             gap: '12px', 
             marginTop: '28px'
           }}>
-             <button type="submit" className="g-btn">ARIS Search</button>
-             <button type="button" onClick={() => setExpanded(!expanded)} className="g-btn">
-               {expanded ? 'AI Mode' : 'Standard'}
+             <button 
+              type="submit" 
+              className="g-btn" 
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
+               {region === 'US' ? '🇺🇸' : '🇮🇳'} Search
+             </button>
+             
+             <button 
+              type="button" 
+              onClick={() => {
+                const nextRegion = region === 'US' ? 'IN' : 'US';
+                setRegion(nextRegion);
+                if (results.length > 0) {
+                   executeSearch(query, expanded, nextRegion);
+                }
+              }} 
+              className="g-btn"
+              style={{ border: region === 'IN' ? '1px solid var(--accent)' : '1px solid #303134' }}
+            >
+               Switch to {region === 'US' ? 'Bharat 🇮🇳' : 'US 🇺🇸'}
              </button>
           </div>
         </form>
@@ -173,17 +212,18 @@ const SovereignSearch = ({ onBack }) => {
             marginTop: '30px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '24px'
+            gap: '32px'
           }}>
             {results.map((res, i) => (
               <div 
                 key={res.id} 
                 className="g-result"
-                onClick={() => window.location.assign(`/app/audit?url=${encodeURIComponent(res.url)}`)}
+                onClick={() => window.location.assign(`/app/audit?url=${encodeURIComponent(res.url)}&region=${res.region}`)}
                 style={{ cursor: 'pointer' }}
               >
-                <div style={{ fontSize: '14px', color: COLORS.textDim, marginBottom: '4px' }}>
-                  {res.agency} › {res.id.substring(0,10)}
+                <div style={{ fontSize: '14px', color: COLORS.textDim, marginBottom: '4px', display: 'flex', justifyContent: 'space-between' }}>
+                  <span>{res.agency}</span>
+                  <span style={{ color: COLORS.blue, fontSize: '10px', opacity: 0.6 }}>{res.region === 'IN' ? 'CPPP' : 'SAM'} Discovery</span>
                 </div>
                 <h3 style={{ 
                   fontSize: '20px', 
@@ -203,7 +243,7 @@ const SovereignSearch = ({ onBack }) => {
         )}
 
         {status && (
-          <p style={{ marginTop: '20px', fontSize: '11px', color: COLORS.blue, opacity: 0.6 }}>
+          <p style={{ marginTop: '20px', fontSize: '11px', color: COLORS.blue, opacity: 0.8, letterSpacing: '0.05em' }}>
             {status}
           </p>
         )}
@@ -237,11 +277,12 @@ const SovereignSearch = ({ onBack }) => {
           border-radius: 4px;
           font-size: 14px;
           cursor: pointer;
-          min-width: 120px;
+          min-width: 140px;
+          transition: all 0.2s ease;
         }
         .g-btn:hover {
           border-color: #5f6368;
-          box-shadow: 0 1px 1px rgba(0,0,0,0.1);
+          background-color: #3c4043;
         }
         .search-bar-inner:hover, .search-bar-inner:focus-within {
           background-color: #3c4043;
