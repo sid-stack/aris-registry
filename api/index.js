@@ -19,6 +19,7 @@ import { recordAnalyticsEvent, renderAnalyticsDashboard, recordBetaSignup } from
 import { AUDIT_PROMPT, SYS_PROMPT } from "./src/prompts.js";
 import { sovereignSearch } from "./services/fedSearch.js";
 import { indiaGovScanner } from "./services/indiaGov.js";
+import { usaspending } from "./services/usaspending.js";
 import OpenAI from "openai";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -203,24 +204,48 @@ app.post("/api/fed-search", asyncHandler(async (req, res) => {
   try {
     if (region === "US") {
       const samClient = await getSamClient();
+      console.log(`[FED_SEARCH] [US] Requesting SAM Discovery for query: "${query}"`);
       const samMcpResult = await callMcpTool(samClient, "search_opportunities", { q: query, limit: 30 });
-      const opportunities = JSON.parse(samMcpResult.content[0].text);
-      if (opportunities?.length > 0) {
-        await sovereignSearch.ingest(opportunities, "US");
+      
+      const rawText = samMcpResult.content[0].text;
+      console.log(`[FED_SEARCH] [US] SAM Raw Result Length: ${rawText.length}`);
+      
+      try {
+        const opportunities = JSON.parse(rawText);
+        console.log(`[FED_SEARCH] [US] Parsed ${opportunities?.length || 0} opportunities`);
+        if (opportunities?.length > 0) {
+          await sovereignSearch.ingest(opportunities, "US");
+        }
+      } catch (parseErr) {
+        console.error(`[FED_SEARCH] [US] SAM JSON Parse Error:`, parseErr.message);
+        console.log(`[FED_SEARCH] [US] Sample Raw Content:`, rawText.substring(0, 200));
       }
     } else if (region === "IN") {
-      // Aris Bharat Scanner (CPPP / GeM)
       await indiaGovScanner.scan(query);
     }
   } catch (err) {
-    console.warn(`[FED_SEARCH] [${region}] Remote Harvest Partial Failure:`, err.message);
+    console.error(`[FED_SEARCH] [${region}] Ingress Critical Failure:`, err.message);
   }
 
   // 2. Perform Hybrid Search (Multi-Regional)
   const results = await sovereignSearch.search(query, expand, region);
   const topResults = results.slice(0, limit);
 
-  // 3. Agentic Synthesis (Executive Briefing)
+  // 3. Historical Discovery (USAspending) - US only for now
+  let awardContext = "";
+  if (region === "US") {
+    try {
+      const awards = await usaspending.getAwardsSummary(query);
+      if (awards?.length > 0) {
+        awardContext = "\nHistorical Awards (Last Winners):\n" + 
+          awards.slice(0, 5).map(a => `- ${a["Recipient Name"]}: $${Number(a["Award Amount"]).toLocaleString()} (${a["Awarding Agency"]} - ${a["Start Date"]})`).join("\n");
+      }
+    } catch (err) {
+      console.warn("[US_DISCOVERY] Award Context Retrieval Failed:", err.message);
+    }
+  }
+
+  // 4. Agentic Synthesis (Executive Briefing)
   let briefing = null;
   if (topResults.length > 0) {
     try {
@@ -228,8 +253,8 @@ app.post("/api/fed-search", asyncHandler(async (req, res) => {
       const synthesis = await traceLLM(openai, {
         model: "google/gemini-2.0-flash:free",
         messages: [
-          { role: "system", content: `You are the ARIS Intelligence Liaison. Summarize the following procurement landscape for a CEO. Focus on the most active agencies and high-value trends. Keep it to 3 concise bullet points. Citation format: [DocumentID]. Region: ${region}` },
-          { role: "user", content: `Query: ${query}\nResults:\n${resultContext}` }
+          { role: "system", content: `You are the ARIS Intelligence Liaison. Summarize the following procurement landscape for a CEO. Integrate BOTH live solicitations AND historical award context to reveal competitive trends. Keep it to 3 concise bullet points. Citation format: [DocumentID]. Region: ${region}` },
+          { role: "user", content: `Query: ${query}\nResults:\n${resultContext}\n${awardContext}` }
         ],
         temperature: 0.1
       }, "fed_search_synthesis");
