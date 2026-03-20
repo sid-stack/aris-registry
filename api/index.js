@@ -18,6 +18,7 @@ import { createCheckoutSession } from "./services/stripe.js";
 import { recordAnalyticsEvent, renderAnalyticsDashboard, recordBetaSignup } from "./services/analytics.js";
 import { AUDIT_PROMPT, SYS_PROMPT } from "./src/prompts.js";
 import { sovereignSearch } from "./services/fedSearch.js";
+import { indiaGovScanner } from "./services/indiaGov.js";
 import OpenAI from "openai";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -193,31 +194,35 @@ app.post("/api/beta-signup", asyncHandler(async (req, res) => {
 // ─── Sovereign Fed Search (Inverted Index + AI Expansion) ─────────────────────
 
 app.post("/api/fed-search", asyncHandler(async (req, res) => {
-  const { query, limit = 20, expand = true } = req.body;
+  const { query, limit = 20, expand = true, region = "US" } = req.body;
   if (!query) return res.status(400).json({ error: "Query is required" });
 
-  console.log(`[FED_SEARCH] Initiating Hybrid Search V3: "${query}" (Expansion: ${expand})`);
+  console.log(`[FED_SEARCH] [${region}] Initiating Hybrid Search V3: "${query}" (Expansion: ${expand})`);
 
-  // 1. Fresh Harvest (SAM.gov)
+  // 1. Fresh Harvest based on Region
   try {
-    const samClient = await getSamClient();
-    const samMcpResult = await callMcpTool(samClient, "search_opportunities", { q: query, limit: 30 });
-    const opportunities = JSON.parse(samMcpResult.content[0].text);
-    
-    if (opportunities?.length > 0) {
-      // Ingest into Hybrid Mesh (Keyword + Vector)
-      await sovereignSearch.ingest(opportunities);
+    if (region === "US") {
+      const samClient = await getSamClient();
+      const samMcpResult = await callMcpTool(samClient, "search_opportunities", { q: query, limit: 30 });
+      const opportunities = JSON.parse(samMcpResult.content[0].text);
+      if (opportunities?.length > 0) {
+        await sovereignSearch.ingest(opportunities, "US");
+      }
+    } else if (region === "IN") {
+      // Aris Bharat Scanner (CPPP / GeM)
+      await indiaGovScanner.scan(query);
     }
   } catch (err) {
-    console.warn("[FED_SEARCH] Remote Harvest Partial Failure:", err.message);
+    console.warn(`[FED_SEARCH] [${region}] Remote Harvest Partial Failure:`, err.message);
   }
 
-  // 2. Perform Hybrid Search (Async Semantic + Keywords)
-  const results = await sovereignSearch.search(query, expand);
+  // 2. Perform Hybrid Search (Multi-Regional)
+  const results = await sovereignSearch.search(query, expand, region);
   
   res.json({
     success: true,
     query,
+    region,
     count: results.length,
     results: results.slice(0, limit),
     version: "v3.0-hybrid"
