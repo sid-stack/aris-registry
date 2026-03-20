@@ -4,17 +4,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ARIS | Sovereign Intelligence Terminal</title>
+  <title>ARIS | Federal RFP Compliance &amp; Audit Software for Government Contractors</title>
   <meta name="description"
-    content="Stateless, zero-knowledge federal solicitation audit engine. Disqualification filtering and compliance matrixes in seconds." />
-  <meta property="og:title" content="ARIS | Sovereign Intelligence Terminal" />
-  <meta property="og:description" content="Sovereign Intelligence Protocol: Stateless AI-powered RFP auditor. Analyze SAM.gov opportunities with zero data persistence." />
+    content="ARIS analyzes SAM.gov solicitations in under 90 seconds. Instant compliance matrix, FAR/DFARS risk flags, and bid/no-bid recommendation. Trusted by federal prime contractors." />
+  <meta property="og:title" content="ARIS — Federal RFP Audit Software for Government Contractors" />
+  <meta property="og:description" content="Analyze SAM.gov solicitations in 90 seconds. Compliance matrix, FAR/DFARS disqualification flags, and executive brief — automatically." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://bidsmith.pro/" />
-  <meta property="og:image" content="https://bidsmith.pro/favicon.png" />
+  <meta property="og:image" content="https://bidsmith.pro/og-social.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="ARIS | Sovereign Intelligence Terminal" />
-  <meta name="twitter:description" content="ARIS Protocol: Stateless AI-powered RFP auditor. Zero-knowledge federal intelligence." />
+  <meta name="twitter:title" content="ARIS — Federal RFP Audit Software for Government Contractors" />
+  <meta name="twitter:description" content="90-second compliance matrix from any SAM.gov solicitation. The audit engine for GovCon capture teams." />
+  <meta name="twitter:image" content="https://bidsmith.pro/og-social.png" />
   <link rel="manifest" href="/manifest.json" />
   <link rel="canonical" href="https://bidsmith.pro/" />
   <link rel="icon" type="image/png" href="/aris-logo.png" />
@@ -38,47 +41,101 @@
       rel="stylesheet" />
   </noscript>
   <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@graph": [
-          {
-            "@type": "Organization",
-            "name": "BidSmith",
-            "url": "https://bidsmith.pro",
-            "logo": "https://bidsmith.pro/favicon.png"
-          },
-          {
-            "@type": "FAQPage",
-            "mainEntity": [
-              {
-                "@type": "Question",
-                "name": "What does BidSmith do?",
-                "acceptedAnswer": {
-                  "@type": "Answer",
-                  "text": "BidSmith helps teams audit federal solicitations, improve compliance quality, and generate proposal-ready outputs faster."
-                }
-              },
-              {
-                "@type": "Question",
-                "name": "Can I start with a pilot?",
-                "acceptedAnswer": {
-                  "@type": "Answer",
-                  "text": "Yes. BidSmith offers a 30-day pilot package with onboarding and 5,000 included calls."
-                }
-              }
-            ]
-          },
-          {
-            "@type": "BreadcrumbList",
-            "itemListElement": [
-              { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://bidsmith.pro/" },
-              { "@type": "ListItem", "position": 2, "name": "Features", "item": "https://bidsmith.pro/#features" },
-              { "@type": "ListItem", "position": 3, "name": "Pricing", "item": "https://bidsmith.pro/#pricing" }
-            ]
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "name": "ARIS Labs / BidSmith",
+          "url": "https://bidsmith.pro",
+          "logo": "https://bidsmith.pro/aris-logo.png",
+          "contactPoint": {
+            "@type": "ContactPoint",
+            "email": "sid@bidsmith.pro",
+            "contactType": "customer support"
           }
-        ]
-      }
-    </script>
+        },
+        {
+          "@type": "SoftwareApplication",
+          "name": "ARIS — Federal RFP Audit Engine",
+          "applicationCategory": "BusinessApplication",
+          "operatingSystem": "Web",
+          "url": "https://bidsmith.pro",
+          "description": "ARIS analyzes federal solicitations from SAM.gov and generates a compliance matrix, FAR/DFARS disqualification risk report, and executive bid/no-bid recommendation in under 90 seconds.",
+          "offers": [
+            { "@type": "Offer", "name": "Free", "price": "0", "priceCurrency": "USD" },
+            { "@type": "Offer", "name": "Starter", "price": "49", "priceCurrency": "USD", "priceSpecification": { "@type": "UnitPriceSpecification", "price": "49", "priceCurrency": "USD", "unitCode": "MON" } },
+            { "@type": "Offer", "name": "Standard", "price": "99", "priceCurrency": "USD", "priceSpecification": { "@type": "UnitPriceSpecification", "price": "99", "priceCurrency": "USD", "unitCode": "MON" } },
+            { "@type": "Offer", "name": "Enterprise", "price": "299", "priceCurrency": "USD", "priceSpecification": { "@type": "UnitPriceSpecification", "price": "299", "priceCurrency": "USD", "unitCode": "MON" } }
+          ]
+        },
+        {
+          "@type": "FAQPage",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "What is ARIS and what does it do for government contractors?",
+              "acceptedAnswer": { "@type": "Answer", "text": "ARIS is an AI-powered federal solicitation audit engine built for government contractors. It reads any SAM.gov RFP and produces a structured compliance matrix, FAR/DFARS clause extraction, disqualification risk flags, and a bid/no-bid recommendation — all in under 90 seconds. It replaces 18–40 hours of manual solicitation review with one automated audit screen." }
+            },
+            {
+              "@type": "Question",
+              "name": "How does ARIS generate a compliance matrix from an RFP?",
+              "acceptedAnswer": { "@type": "Answer", "text": "ARIS ingests the full solicitation text from SAM.gov, parses every clause and requirement, then maps each item to the relevant FAR/DFARS section. The output is a structured compliance matrix showing which requirements are met, which are missing, and which carry disqualification risk — formatted for immediate use by your capture and proposal team." }
+            },
+            {
+              "@type": "Question",
+              "name": "Does ARIS integrate with SAM.gov?",
+              "acceptedAnswer": { "@type": "Answer", "text": "Yes. ARIS connects directly to SAM.gov to pull solicitation documents, amendments, and attachments. You can paste a SAM.gov notice ID or URL and ARIS will retrieve and audit the full opportunity automatically. The Discovery feed also surfaces new relevant solicitations matched to your NAICS codes without manual searching." }
+            },
+            {
+              "@type": "Question",
+              "name": "What FAR and DFARS clauses does ARIS check?",
+              "acceptedAnswer": { "@type": "Answer", "text": "ARIS checks all standard FAR Part 52 clauses and DFARS 252 clauses present in a solicitation, including common disqualifiers like unique entity registration requirements, small business set-aside eligibility, cybersecurity certifications (CMMC), and past performance thresholds. The audit flags any clause where a contractor mismatch could result in disqualification before your team invests proposal resources." }
+            },
+            {
+              "@type": "Question",
+              "name": "Is my solicitation data stored or shared?",
+              "acceptedAnswer": { "@type": "Answer", "text": "No. ARIS uses a zero-knowledge execution architecture. Solicitation data is processed transiently in memory during your session and is not persisted, indexed, or shared with any third party. Each session is isolated and wiped on completion. You can review our full data handling policy at bidsmith.pro/soc." }
+            },
+            {
+              "@type": "Question",
+              "name": "How much does ARIS cost?",
+              "acceptedAnswer": { "@type": "Answer", "text": "ARIS offers four tiers. Free: 3 audits per month, no credit card required. Starter: $49/month for 10 audits per month. Standard: $99/month for unlimited audits with full FAR/DFARS analysis, compliance matrix, risk score, and bid/no-bid recommendation. Enterprise: $299/month for deep-shred analysis including capture strategy, win themes, and competitive positioning. Annual billing saves 20% on paid plans." }
+            },
+            {
+              "@type": "Question",
+              "name": "Can ARIS help with bid/no-bid decisions?",
+              "acceptedAnswer": { "@type": "Answer", "text": "Yes. Every ARIS audit concludes with a structured bid/no-bid recommendation based on your compliance posture, risk score, and the solicitation's stated evaluation criteria. The recommendation includes specific reasons for each factor so your capture lead can make an informed go/no-go decision in minutes rather than days." }
+            },
+            {
+              "@type": "Question",
+              "name": "What is the difference between Standard and Enterprise plans?",
+              "acceptedAnswer": { "@type": "Answer", "text": "Standard ($99/month) covers unlimited solicitation audits with the full compliance matrix, FAR/DFARS risk scoring, and bid/no-bid recommendation — ideal for capture managers tracking an active pipeline. Enterprise ($299/month) adds a deep-shred analysis layer: capture strategy, win theme development, competitive positioning, and executive-ready briefing outputs for high-value single opportunities." }
+            },
+            {
+              "@type": "Question",
+              "name": "How fast does ARIS produce an audit?",
+              "acceptedAnswer": { "@type": "Answer", "text": "A standard ARIS audit completes in under 90 seconds for most solicitations. Complex multi-attachment RFPs may take up to 3 minutes. The Enterprise deep-shred analysis typically completes in under 10 minutes. Compare that to 18–40 hours of manual review by a capture analyst or $5,000–$15,000 for a compliance consultant engagement." }
+            },
+            {
+              "@type": "Question",
+              "name": "Does ARIS replace a proposal writer or capture manager?",
+              "acceptedAnswer": { "@type": "Answer", "text": "No — ARIS augments your team, it does not replace it. ARIS handles the mechanical compliance audit and risk analysis that consumes most of a capture manager's time. Your team retains full control over proposal strategy, win theme development, and final submission. Think of ARIS as giving every proposal professional a 40-hour head start on every bid." }
+            }
+          ]
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://bidsmith.pro/" },
+            { "@type": "ListItem", "position": 2, "name": "Templates", "item": "https://bidsmith.pro/templates" },
+            { "@type": "ListItem", "position": 3, "name": "About", "item": "https://bidsmith.pro/about" },
+            { "@type": "ListItem", "position": 4, "name": "Security", "item": "https://bidsmith.pro/soc" }
+          ]
+        }
+      ]
+    }
+  </script>
   <style>
     * {
       margin: 0;

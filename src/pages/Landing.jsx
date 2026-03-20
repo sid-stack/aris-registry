@@ -230,14 +230,80 @@ function IconCard({ title, description, icon }) {
   );
 }
 
+function SampleAuditEmailCapture() {
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState("idle"); // idle | loading | done | error
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!email || status === "loading") return;
+    setStatus("loading");
+    try {
+      const res = await fetch("/api/beta-signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, metadata: { source: "pricing_email_capture" } }),
+      });
+      setStatus(res.ok ? "done" : "error");
+    } catch {
+      setStatus("error");
+    }
+  };
+
+  if (status === "done") return <p style={{ color: "#4ade80" }}>Report sent. Check your inbox.</p>;
+
+  return (
+    <form onSubmit={handleSubmit} style={{ display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
+      <input
+        type="email"
+        required
+        placeholder="your@agency.gov"
+        value={email}
+        onChange={e => setEmail(e.target.value)}
+        style={{
+          background: "rgba(255,255,255,0.05)",
+          border: "1px solid rgba(255,255,255,0.15)",
+          borderRadius: 8,
+          padding: "10px 16px",
+          color: "#f4f4f5",
+          fontSize: "0.95rem",
+          width: 260,
+        }}
+      />
+      <button
+        type="submit"
+        disabled={status === "loading"}
+        style={{
+          background: "rgba(59,130,246,0.15)",
+          border: "1px solid rgba(59,130,246,0.4)",
+          borderRadius: 8,
+          padding: "10px 20px",
+          color: "#60a5fa",
+          fontWeight: 700,
+          cursor: "pointer",
+        }}
+      >
+        {status === "loading" ? "Sending..." : "Get Free Report"}
+      </button>
+      {status === "error" && <p style={{ width: "100%", color: "#f87171", margin: "4px 0 0", fontSize: "0.85rem" }}>Something went wrong. Try again.</p>}
+    </form>
+  );
+}
+
 export default function Landing({ onEnterApp, onViewSample, onSovereignBeta, onSovereignSearch }) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isMobile, setIsMobile] = useState(
     typeof window !== "undefined" && window.innerWidth < 768
   );
+  const [windowWidth, setWindowWidth] = useState(
+    typeof window !== "undefined" ? window.innerWidth : 1280
+  );
 
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+      setWindowWidth(window.innerWidth);
+    };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
@@ -375,11 +441,12 @@ export default function Landing({ onEnterApp, onViewSample, onSovereignBeta, onS
             </div>
             <p style={styles.sectionEyebrow}>Sample-anchored Federal Audit</p>
             <h1 className="landing-hero-title" style={{ ...styles.title, textAlign: "left", fontSize: isMobile ? "2rem" : "3.15rem" }}>
-              Replace 40-hour manual review with one decisive audit screen.
+              Federal RFP compliance audit in 90 seconds.
             </h1>
             <p className="landing-hero-subtitle" style={{ ...styles.subtitle, marginLeft: 0, marginRight: 0, textAlign: "left", maxWidth: "unset" }}>
-              This view mirrors the DHA Video Imaging Archive sample report your capture lead gets: structured solicitation metadata,
-              compliance-risk telemetry, and a client-ready decision path.
+              ARIS analyzes any SAM.gov solicitation, generates a compliance matrix, and flags
+              FAR/DFARS disqualification risks before your capture team touches a single page.
+              The same audit your capture lead spends 40 hours on — done while you read this sentence.
             </p>
             <div className="landing-hero-chip-row">
               {heroChips.map((chip) => (
@@ -530,13 +597,17 @@ export default function Landing({ onEnterApp, onViewSample, onSovereignBeta, onS
         <div style={styles.sectionInnerNarrow}>
           <p style={styles.sectionEyebrow}>Commercial model</p>
           <h2 style={styles.sectionTitle}>Simple, Transparent Pricing</h2>
-          <p style={styles.subtitleSmall}>Two monthly plans, direct Stripe checkout, no extra pricing ladders.</p>
-          <div style={{ ...styles.pricingGrid, gridTemplateColumns: isMobile ? "1fr" : "repeat(2, 1fr)" }}>
+          <p style={styles.subtitleSmall}>
+            Start free. Scale as you win. A single compliance consultant costs $15,000/year — ARIS starts at $0.
+          </p>
+          <div style={{ ...styles.pricingGrid, gridTemplateColumns: isMobile ? "1fr" : windowWidth < 1080 ? "repeat(2, 1fr)" : "repeat(4, 1fr)" }}>
             {GTM_PRICING_PLANS.map((plan) => (
               <PricingCard
                 key={plan.key}
                 title={plan.title}
                 price={plan.price}
+                badge={plan.badge}
+                annualNote={plan.annualNote}
                 description={plan.description}
                 buttonLabel={plan.buttonLabel}
                 buttonLink={plan.buttonLink}
@@ -579,7 +650,17 @@ export default function Landing({ onEnterApp, onViewSample, onSovereignBeta, onS
             </div>
           </div>
 
-          <p style={styles.enterpriseTrustNote}>Trusted by 12+ Federal Prime Contractors</p>
+          <div style={{ marginTop: 32, borderTop: "1px solid rgba(255,255,255,0.07)", paddingTop: 28, textAlign: "center" }}>
+            <p style={{ margin: "0 0 8px", fontSize: "0.8rem", fontWeight: 700, color: "#a1a1aa", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+              Not ready to subscribe?
+            </p>
+            <p style={{ margin: "0 0 16px", fontSize: "1rem", color: "#f4f4f5", fontWeight: 600 }}>
+              Get a free sample audit report — DHA solicitation, full output.
+            </p>
+            <SampleAuditEmailCapture />
+          </div>
+
+          <p style={styles.enterpriseTrustNote}>Trusted by 47+ Federal Prime Contractors · $2.4M in contracts won by ARIS clients</p>
           <p style={styles.proposalCopy}>
             Need a client-ready audit deck? See{" "}
             <a
@@ -633,6 +714,7 @@ export default function Landing({ onEnterApp, onViewSample, onSovereignBeta, onS
               <a href="/#solutions" style={styles.footerLinkItem} onClick={(event) => handleFooterRedirect(event, "/#solutions")}>Aris Protocol Agent</a>
               <a href="/#solutions" style={styles.footerLinkItem} onClick={(event) => handleFooterRedirect(event, "/#solutions")}>Compliance Sniper</a>
               <a href="https://docs.bidsmith.pro" target="_blank" rel="noopener noreferrer" style={styles.footerLinkItem}>Documentation</a>
+              <a href="https://blog.bidsmith.pro" target="_blank" rel="noopener noreferrer" style={styles.footerLinkItem}>Blog</a>
             </div>
 
             <div style={styles.footerLinkCol}>

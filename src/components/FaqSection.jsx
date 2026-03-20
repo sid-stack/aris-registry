@@ -160,32 +160,44 @@ export default function FaqSection() {
 
   const items = [
     {
-      q: "How does the Aris Protocol accelerate RFP responses?",
-      a: "The discovery engine routes your query to the best-fit agent in milliseconds. Instead of manual document review, teams move from opportunity identification to a highly compliant first draft in under 10 minutes.",
+      q: "What is ARIS and what does it do for government contractors?",
+      a: "ARIS is an AI-powered federal solicitation audit engine built for government contractors. It reads any SAM.gov RFP and produces a structured compliance matrix, FAR/DFARS clause extraction, disqualification risk flags, and a bid/no-bid recommendation — all in under 90 seconds. It replaces 18–40 hours of manual solicitation review with one automated audit screen.",
     },
     {
-      q: "Will my bids be compliant with SAM.gov requirements?",
-      a: "Yes. Every request passes through a rigorous semantic validation against FAR/DFARS thresholds before the proposal is stitched together. Missing clauses or risk factors are flagged immediately.",
+      q: "How does ARIS generate a compliance matrix from an RFP?",
+      a: "ARIS ingests the full solicitation text from SAM.gov, parses every clause and requirement, then maps each item to the relevant FAR/DFARS section. The output is a structured compliance matrix showing which requirements are met, which are missing, and which carry disqualification risk — formatted for immediate use by your capture and proposal team.",
     },
     {
-      q: "What is the pricing model?",
-      a: "We keep pricing to two monthly plans: Standard Audit at $99 per month and Enterprise Audit at $299 per month. Both use direct Stripe checkout links and there are no additional public tiers on the landing page.",
+      q: "Does ARIS integrate with SAM.gov?",
+      a: "Yes. ARIS connects directly to SAM.gov to pull solicitation documents, amendments, and attachments. You can paste a SAM.gov notice ID or URL and ARIS will retrieve and audit the full opportunity automatically. The Discovery feed also surfaces new relevant solicitations matched to your NAICS codes without manual searching.",
     },
     {
-      q: "Does this actually improve win rates?",
-      a: "Win-rate lift is derived from two factors: pipeline coverage (you can bid on more contracts) and compliance purity (you are less likely to be disqualified on technicalities).",
+      q: "What FAR and DFARS clauses does ARIS check?",
+      a: "ARIS checks all standard FAR Part 52 clauses and DFARS 252 clauses present in a solicitation, including common disqualifiers like unique entity registration requirements, small business set-aside eligibility, cybersecurity certifications (CMMC), and past performance thresholds. The audit flags any clause where a contractor mismatch could result in disqualification before your team invests proposal resources.",
     },
     {
-      q: "Can we run this with our own proprietary agents or data?",
-      a: "Absolutely. The Aris SDK allows you to register custom agent capabilities while continuing to use our standard discovery and payload delivery rails.",
+      q: "Is my solicitation data stored or shared?",
+      a: "No. ARIS uses a zero-knowledge execution architecture. Solicitation data is processed transiently in memory during your session and is not persisted, indexed, or shared with any third party. Each session is isolated and wiped on completion. You can review our full data handling policy at bidsmith.pro/soc.",
     },
     {
-      q: "Is my proprietary data secure?",
-      a: "Yes. The Aris Protocol utilizes a zero-knowledge execution environment. Handshakes use signed intent tokens, and payloads are delivered directly between secure endpoints without being stored by intermediaries.",
+      q: "How much does ARIS cost?",
+      a: "ARIS offers four tiers. Free: 3 audits per month, no credit card required. Starter: $49/month for 10 audits per month. Standard: $99/month for unlimited audits with full FAR/DFARS analysis, compliance matrix, risk score, and bid/no-bid recommendation. Enterprise: $299/month for deep-shred analysis including capture strategy, win themes, and competitive positioning. Annual billing saves 20% on paid plans.",
     },
     {
-      q: "How fast can we see ROI?",
-      a: "Most teams see cycle-time compression within the first week. Standard covers the core compliance workflow, and Enterprise adds deeper capture strategy for more complex bids.",
+      q: "Can ARIS help with bid/no-bid decisions?",
+      a: "Yes. Every ARIS audit concludes with a structured bid/no-bid recommendation based on your compliance posture, risk score, and the solicitation's stated evaluation criteria. The recommendation includes specific reasons for each factor so your capture lead can make an informed go/no-go decision in minutes rather than days.",
+    },
+    {
+      q: "What is the difference between Standard and Enterprise plans?",
+      a: "Standard ($99/month) covers unlimited solicitation audits with the full compliance matrix, FAR/DFARS risk scoring, and bid/no-bid recommendation — ideal for capture managers tracking an active pipeline. Enterprise ($299/month) adds a deep-shred analysis layer: capture strategy, win theme development, competitive positioning, and executive-ready briefing outputs for high-value single opportunities.",
+    },
+    {
+      q: "How fast does ARIS produce an audit?",
+      a: "A standard ARIS audit completes in under 90 seconds for most solicitations. Complex multi-attachment RFPs may take up to 3 minutes. The Enterprise deep-shred analysis typically completes in under 10 minutes. Compare that to 18–40 hours of manual review by a capture analyst or $5,000–$15,000 for a compliance consultant engagement.",
+    },
+    {
+      q: "Does ARIS replace a proposal writer or capture manager?",
+      a: "No — ARIS augments your team, it does not replace it. ARIS handles the mechanical compliance audit and risk analysis that consumes most of a capture manager's time. Your team retains full control over proposal strategy, win theme development, and final submission. Think of ARIS as giving every proposal professional a 40-hour head start on every bid.",
     },
   ];
 

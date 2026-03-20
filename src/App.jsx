@@ -21,6 +21,35 @@ import ConsentBanner from "./components/ConsentBanner";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { trackPageView } from "./utils/analytics";
 
+function usePageMeta(view) {
+  useEffect(() => {
+    const PAGE_META = {
+      landing:          { title: "ARIS | Federal RFP Compliance & Audit Software for Government Contractors", description: "Analyze SAM.gov solicitations in 90 seconds. Compliance matrix, FAR/DFARS risk flags, and bid/no-bid brief — automatically." },
+      templates:        { title: "ARIS Templates | Federal Proposal & Compliance Matrix Templates", description: "Download pre-built compliance matrix templates, proposal outlines, and RFP shred worksheets for government contractors." },
+      about:            { title: "About ARIS Labs | Federal GovCon Intelligence Platform", description: "ARIS Labs builds agentic intelligence for federal capture teams. Zero-knowledge architecture, SAM.gov native." },
+      soc:              { title: "ARIS Security | Zero-Knowledge Data Architecture", description: "ARIS processes solicitation data in transient memory. No persistence, no storage, no leaks." },
+      "sam-rep":        { title: "ARIS Sample Audit | DHA Federal Solicitation Report", description: "Inspect a real ARIS audit output for a Defense Health Agency solicitation." },
+      discovery:        { title: "ARIS Discovery | Federal Opportunity Discovery Engine", description: "Surface federal contracting opportunities matched to your NAICS codes and capability profile." },
+      "sam-scraper":    { title: "ARIS SAM Scraper | SAM.gov Bulk Opportunity Export", description: "Extract and filter SAM.gov opportunities in bulk by NAICS, agency, set-aside, and dollar threshold." },
+      "fed-search":     { title: "ARIS Sovereign Search | Federal Intelligence Search", description: "Search federal solicitations, award history, and agency patterns with natural language queries." },
+      "sovereign-beta": { title: "ARIS Sovereign v2.1 Private Beta | Early Access", description: "Apply for early access to Sovereign v2.1 — the next generation of ARIS federal intelligence." },
+      labs:             { title: "ARIS Labs | Experimental Federal Intelligence Tools", description: "Experimental tools from ARIS Labs for federal capture management and GovCon intelligence." },
+      privacy:          { title: "Privacy Policy | ARIS / BidSmith", description: "ARIS Labs privacy policy. How we handle data and your rights." },
+      terms:            { title: "Terms of Service | ARIS / BidSmith", description: "Terms of service governing use of the BidSmith platform." },
+      cookies:          { title: "Cookie Policy | ARIS / BidSmith", description: "How ARIS uses cookies and local storage on bidsmith.pro." },
+      app:              { title: "ARIS Audit Workspace", description: "Your ARIS federal solicitation audit workspace." },
+    };
+    const meta = PAGE_META[view] || PAGE_META.landing;
+    document.title = meta.title;
+    const d = document.querySelector('meta[name="description"]');
+    if (d) d.setAttribute("content", meta.description);
+    const ot = document.querySelector('meta[property="og:title"]');
+    if (ot) ot.setAttribute("content", meta.title);
+    const od = document.querySelector('meta[property="og:description"]');
+    if (od) od.setAttribute("content", meta.description);
+  }, [view]);
+}
+
 const LANDING_SECTION_ALIASES = {
   "/solutions": "solutions",
   "/workflow": "workflow",
@@ -76,6 +105,8 @@ export default function App() {
                       ? "404"
                       : "landing",
   );
+
+  usePageMeta(view);
 
   useEffect(() => {
     if (!aliasSection || view !== "landing") return;
