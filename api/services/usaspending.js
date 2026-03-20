@@ -20,8 +20,10 @@ export class USAspendingClient {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          filters: { keywords: [query] },
-          limit: 10,
+          filters: { 
+            keywords: Array.isArray(query) ? query : [query] 
+          },
+          limit: 20,
           fields: ["Award ID", "Recipient Name", "Award Amount", "Awarding Agency", "Start Date"]
         })
       });
