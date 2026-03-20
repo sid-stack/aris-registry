@@ -144,7 +144,7 @@ app.post("/api/fed-search", asyncHandler(async (req, res) => {
       : "No direct solicitations found in the immediate Sovereign Table.";
 
     const synthesis = await traceLLM(openai, {
-      model: "google/gemini-2.0-flash:free",
+      model: "google/gemini-2.0-flash-001",
       messages: [
         { 
           role: "system", 
