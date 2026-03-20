@@ -218,14 +218,36 @@ app.post("/api/fed-search", asyncHandler(async (req, res) => {
 
   // 2. Perform Hybrid Search (Multi-Regional)
   const results = await sovereignSearch.search(query, expand, region);
+  const topResults = results.slice(0, limit);
+
+  // 3. Agentic Synthesis (Executive Briefing)
+  let briefing = null;
+  if (topResults.length > 0) {
+    try {
+      const resultContext = topResults.map(r => `[${r.id}] ${r.title} (${r.agency}): ${r.postedDate}`).join("\n");
+      const synthesis = await traceLLM(openai, {
+        model: "google/gemini-2.0-flash:free",
+        messages: [
+          { role: "system", content: `You are the ARIS Intelligence Liaison. Summarize the following procurement landscape for a CEO. Focus on the most active agencies and high-value trends. Keep it to 3 concise bullet points. Citation format: [DocumentID]. Region: ${region}` },
+          { role: "user", content: `Query: ${query}\nResults:\n${resultContext}` }
+        ],
+        temperature: 0.1
+      }, "fed_search_synthesis");
+      
+      briefing = synthesis;
+    } catch (err) {
+      console.warn("[FED_SEARCH] Synthesis failed:", err.message);
+    }
+  }
   
   res.json({
     success: true,
     query,
     region,
     count: results.length,
-    results: results.slice(0, limit),
-    version: "v3.0-hybrid"
+    results: topResults,
+    briefing,
+    version: "v3.1-synthesis"
   });
 }));
 
