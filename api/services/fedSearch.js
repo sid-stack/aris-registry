@@ -46,7 +46,7 @@ export class FedSearchEngine {
     if (openai && ontologicalterms.length < 3) {
       try {
         const response = await openai.chat.completions.create({
-          model: "google/gemini-2.0-flash:free",
+          model: "google/gemini-2.0-flash-001",
           messages: [
             { role: "system", content: "You are a Federal Capture Strategists. Expand the query into 5 procurement-grade synonyms. ONLY the terms." },
             { role: "user", content: `Query: ${query}` }
