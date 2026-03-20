@@ -1,37 +1,43 @@
 /**
- * 📊 Aris Intelligence Layer: USAspending Integrator
+ * Aris Intelligence Layer: USAspending Integrator
  * Handles historical award data analysis to provide "Winner Hub" context for searches.
  */
+
+// Required by USAspending API on every request
+const CONTRACT_TYPES = ["A", "B", "C", "D"];
+const AWARD_FIELDS = ["Award ID", "Recipient Name", "Award Amount", "Awarding Agency", "Start Date"];
+
 export class USAspendingClient {
   constructor() {
     this.baseUrl = "https://api.usaspending.gov/api/v2";
   }
 
   /**
-   * Searches for historical award winners for a given query (keyword based)
+   * Searches for historical award winners for a given keyword query.
    */
   async getAwardsSummary(query) {
-    console.log(`[US_DISCOVERY] FETCHING AWARD HISTORIES FOR: "${query}"`);
-    
     try {
-      // POST /api/v2/search/spending_by_award/
-      // Example body: { filters: { keywords: ["AI"] }, limit: 10, fields: ["Award ID", "Recipient Name", "Award Amount"] }
       const resp = await fetch(`${this.baseUrl}/search/spending_by_award/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          filters: { 
-            keywords: Array.isArray(query) ? query : [query] 
+          filters: {
+            keywords: Array.isArray(query) ? query : [query],
+            award_type_codes: CONTRACT_TYPES
           },
           limit: 20,
-          fields: ["Award ID", "Recipient Name", "Award Amount", "Awarding Agency", "Start Date"]
+          fields: AWARD_FIELDS
         })
       });
-      
+
       const data = await resp.json();
+      if (data.detail) {
+        console.warn("[US_DISCOVERY] API error:", data.detail);
+        return [];
+      }
       return data.results || [];
     } catch (err) {
-      console.error("[US_DISCOVERY] USAspending Retrieval Failed:", err.message);
+      console.error("[US_DISCOVERY] getAwardsSummary failed:", err.message);
       return [];
     }
   }
@@ -48,23 +54,26 @@ export class USAspendingClient {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           filters: {
-            naics_codes: { require: codes }
+            naics_codes: codes,
+            award_type_codes: CONTRACT_TYPES
           },
           limit: 25,
-          fields: ["Award ID", "Recipient Name", "Award Amount", "Awarding Agency", "Start Date", "Description"]
+          fields: AWARD_FIELDS
         })
       });
+
       const data = await resp.json();
+      if (data.detail) {
+        console.warn("[US_DISCOVERY] NAICS API error:", data.detail);
+        return [];
+      }
       return data.results || [];
     } catch (err) {
-      console.error("[US_DISCOVERY] NAICS Awards Retrieval Failed:", err.message);
+      console.error("[US_DISCOVERY] getAwardsByNaics failed:", err.message);
       return [];
     }
   }
 
-  /**
-   * Fetches the top agencies for a specific NAICS or keyword
-   */
   async getAgencyRankings(query) {
     return [];
   }
