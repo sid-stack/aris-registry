@@ -28,10 +28,28 @@ const SovereignSearch = ({ onBack }) => {
     blue: '#8ab4f8'
   };
 
+  // 1. Sync state with URL on mount (Handle deep linking)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get('q') || params.get('query');
+    if (q) {
+      setQuery(q);
+      executeSearch(q, expanded);
+    }
+  }, []);
+
   const handleSearch = async (e) => {
     if (e) e.preventDefault();
     if (!query) return;
+    
+    // Update URL with query param (Google-style)
+    const newUrl = `${window.location.pathname}?q=${encodeURIComponent(query)}`;
+    window.history.pushState({ path: newUrl }, '', newUrl);
 
+    await executeSearch(query, expanded);
+  };
+
+  const executeSearch = async (targetQuery, isExpanded) => {
     setLoading(true);
     setStatus('Searching the Sovereign Mesh...');
     
@@ -39,7 +57,7 @@ const SovereignSearch = ({ onBack }) => {
       const res = await fetch('/api/fed-search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, expand: expanded, limit: 10 })
+        body: JSON.stringify({ query: targetQuery, expand: isExpanded, limit: 10 })
       });
       
       const data = await res.json();
@@ -182,6 +200,12 @@ const SovereignSearch = ({ onBack }) => {
               </div>
             ))}
           </div>
+        )}
+
+        {status && (
+          <p style={{ marginTop: '20px', fontSize: '11px', color: COLORS.blue, opacity: 0.6 }}>
+            {status}
+          </p>
         )}
 
       </main>
