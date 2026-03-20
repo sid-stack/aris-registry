@@ -90,8 +90,8 @@ export class FedSearchEngine {
           data: finalQuery,
           topK: 15,
           includeMetadata: true,
-          includeVectors: false,
-          filter: `region = '${region}'` 
+          includeVectors: false
+          // Removed strict region filter to allow all historical discovery
         });
 
         semanticMatches.forEach(match => {
@@ -103,7 +103,7 @@ export class FedSearchEngine {
               agency: match.metadata.agency || match.metadata.organization,
               postedDate: match.metadata.postedDate || match.metadata.publishDate,
               url: match.metadata.url || match.metadata.link,
-              region: match.metadata.region,
+              region: match.metadata.region || 'US',
               score: match.score,
               matchType: 'semantic'
             });
