@@ -144,7 +144,7 @@ app.post("/api/fed-search", asyncHandler(async (req, res) => {
       : "No direct solicitations found in the immediate Sovereign Table.";
 
     const synthesis = await traceLLM(openai, {
-      model: "google/gemini-2.0-flash:free",
+      model: "google/gemini-2.0-flash-001",
       messages: [
         { 
           role: "system", 
@@ -176,10 +176,14 @@ app.get("/api/mesh-status", asyncHandler(async (req, res) => {
 app.get("/api/sovereign-table", asyncHandler(async (req, res) => {
   const { auth } = req.query;
   try {
-    const data = sovereignSearch.getTableData(auth);
+    const data = await sovereignSearch.getTableData(auth);
     res.json({ success: true, count: data.length, table: data });
   } catch (err) {
-    res.status(401).json({ error: "UNAUTHORIZED_TERMINAL_ACCESS" });
+    if (err.message === "UNAUTHORIZED") {
+      res.status(401).json({ error: "UNAUTHORIZED_TERMINAL_ACCESS", message: "Invalid auth credentials provided." });
+    } else {
+      res.status(500).json({ error: "INFRASTRUCTURE_ERROR", message: "Sovereign Mesh (Redis) is currently unreachable or unconfigured." });
+    }
   }
 }));
 
@@ -191,7 +195,8 @@ app.post("/api/track", asyncHandler(async (req, res) => {
 }));
 
 app.post("/api/beta-signup", asyncHandler(async (req, res) => {
-  await recordBetaSignup(req.body);
+  const { email, metadata } = req.body;
+  await recordBetaSignup(email, metadata);
   res.json({ success: true });
 }));
 
@@ -206,7 +211,11 @@ app.get("/api/usage", asyncHandler(async (req, res) => {
 }));
 
 app.get("/api/analytics", asyncHandler(async (req, res) => {
-  const dashboard = await renderAnalyticsDashboard();
+  const { auth } = req.query;
+  if (auth !== "aris3690") return res.status(401).send("Unauthorized Access Denied.");
+  
+  const stats = await sovereignSearch.getStats();
+  const dashboard = renderAnalyticsDashboard(stats);
   res.send(dashboard);
 }));
 
