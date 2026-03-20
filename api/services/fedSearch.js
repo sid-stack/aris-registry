@@ -204,13 +204,19 @@ export class FedSearchEngine {
 
   normalizeDoc(opt, region) {
     const docId = opt.noticeId || opt.id || opt["Award ID"] || opt.pageid || `gen:${Math.random().toString(36).slice(2, 9)}`;
+    const isAward = !!(opt["Award ID"] || opt["Award Amount"]);
     return {
       id: docId,
       title: opt.title || opt["Award ID"] || "Federal Opportunity",
       agency: opt.agency || opt.organization || opt["Awarding Agency"] || "Federal Agency",
       postedDate: opt.postedDate || opt.publishDate || opt["Start Date"] || new Date().toISOString().split("T")[0],
       region: region || "US",
-      url: opt.url || (opt.noticeId ? `https://sam.gov/opp/${docId}/view` : "")
+      url: opt.url || (opt.noticeId ? `https://sam.gov/opp/${docId}/view` : ""),
+      // Preserve award-specific fields for rich snippets
+      recipient: opt["Recipient Name"] || opt.recipient || null,
+      amount: opt["Award Amount"] || opt.amount || null,
+      description: opt.description || opt.synopsis || null,
+      matchType: isAward ? "award_fallback" : (opt.matchType || "keyword_mesh"),
     };
   }
 

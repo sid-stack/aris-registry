@@ -128,6 +128,45 @@ export async function getBetaSignupCount() {
   }
 }
 
+export async function getAdminStats() {
+  if (!analyticsDb) return { error: "Database not configured" };
+  try {
+    await ensureAnalyticsSchema();
+
+    const [signupCount, recentSignups, topEvents, recentEvents] = await Promise.all([
+      analyticsDb.query("SELECT COUNT(*) FROM beta_signups"),
+      analyticsDb.query("SELECT email, created_at FROM beta_signups ORDER BY created_at DESC LIMIT 20"),
+      analyticsDb.query(`
+        SELECT event_type, COUNT(*) as count, SUM(value) as total_value
+        FROM analytics_events
+        GROUP BY event_type
+        ORDER BY count DESC
+        LIMIT 20
+      `),
+      analyticsDb.query(`
+        SELECT uid, event_type, page, path, value, created_at
+        FROM analytics_events
+        ORDER BY created_at DESC
+        LIMIT 50
+      `),
+    ]);
+
+    return {
+      beta_signups: {
+        total: parseInt(signupCount.rows[0].count),
+        recent: recentSignups.rows,
+      },
+      events: {
+        by_type: topEvents.rows,
+        recent: recentEvents.rows,
+      },
+      generated_at: new Date().toISOString(),
+    };
+  } catch (err) {
+    return { error: err.message };
+  }
+}
+
 export function renderAnalyticsDashboard(snapshot) {
   return `
     <html>

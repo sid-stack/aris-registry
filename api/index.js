@@ -16,7 +16,7 @@ import { sanitizeMarkdown } from "./utils/markdown.js";
 // Services & MCP Client
 import { getSamClient, getAuditClient, callMcpTool } from "./services/mcpClient.js";
 import { createCheckoutSession } from "./services/stripe.js";
-import { recordAnalyticsEvent, renderAnalyticsDashboard, recordBetaSignup } from "./services/analytics.js";
+import { recordAnalyticsEvent, renderAnalyticsDashboard, recordBetaSignup, getAdminStats, getBetaSignupCount } from "./services/analytics.js";
 import { AUDIT_PROMPT, SYS_PROMPT } from "./src/prompts.js";
 import { sovereignSearch } from "./services/fedSearch.js";
 import { usaspending } from "./services/usaspending.js";
@@ -267,10 +267,26 @@ app.get("/api/usage", asyncHandler(async (req, res) => {
 app.get("/api/analytics", asyncHandler(async (req, res) => {
   const auth = req.headers["x-admin-key"];
   if (!auth || auth !== process.env.ADMIN_PASSWORD) return res.status(401).send("Unauthorized Access Denied.");
-  
+
   const stats = await sovereignSearch.getStats();
   const dashboard = renderAnalyticsDashboard(stats);
   res.send(dashboard);
+}));
+
+// Quick JSON stats endpoint — curl https://api.bidsmith.pro/api/admin/stats -H "x-admin-key: YOUR_KEY"
+app.get("/api/admin/stats", asyncHandler(async (req, res) => {
+  const auth = req.headers["x-admin-key"];
+  if (!auth || auth !== process.env.ADMIN_PASSWORD) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  const [meshStats, dbStats] = await Promise.all([
+    sovereignSearch.getStats(),
+    getAdminStats(),
+  ]);
+  res.json({
+    mesh: meshStats,
+    ...dbStats,
+  });
 }));
 
 // Previous endpoints...
