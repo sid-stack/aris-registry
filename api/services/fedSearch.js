@@ -1,15 +1,19 @@
 import { indexGlobalOpportunities, vectorIndex, redis } from "../utils/upstash.js";
 
 /**
- * 🚢 Sovereign Discovery Table V5.1 (Deep Intelligence & Append-Only)
- * Architecture: Single-Writer / Read-Only Lookup / Restricted Terminal Access
+ * 🚢 Sovereign Discovery Table V5.2 (Data-Preservation Armor)
+ * Architecture: Atomic Ingress / Persistence Guard
  */
 export class FedSearchEngine {
   constructor() {
     this.index = new Map(); 
     this.docStore = new Map(); 
     this.stopWords = new Set(["the", "and", "for", "with", "from", "that", "this", "are", "was"]);
+    
     this.isLoaded = false;
+    this.isLoading = false;
+
+    // Baseline Sovereign Seeds (US Sector)
     this.primeSafetyNet();
   }
 
@@ -23,13 +27,19 @@ export class FedSearchEngine {
   }
 
   /**
-   * 🚨 THE SINGLE WRITER
-   * Append-only ingestion to the Sovereign Table.
+   * 🚨 THE SINGLE WRITER (APPEND-ONLY)
+   * This is protected by a Persistence Guard to prevent data loss during startup.
    */
   async syncSovereignTable(opportunities, region = "US") {
+    // 🛡️ DATA PRESERVATION GUARD
+    // Never persist a partial index before the archive has been loaded.
+    if (!this.isLoaded && this.isLoading) {
+      console.warn("🛡️ [TABLE] Sync Deferred: Archive restoration in progress.");
+      return;
+    }
+
     if (!opportunities || !Array.isArray(opportunities) || opportunities.length === 0) return;
     
-    // Only add if not already present (Append-Only)
     let addedCount = 0;
     for (const opt of opportunities) {
        const docId = opt.noticeId || opt.id || opt["Award ID"] || opt.pageid;
@@ -45,15 +55,19 @@ export class FedSearchEngine {
           await indexGlobalOpportunities(opportunities.slice(0, 50).map(o => ({ ...o, region })));
         } catch (err) { console.error("🛡️ [TABLE] Vector Sync Fail:", err.message); }
       }
-      await this.persistToArchive();
+      
+      // Critical check before overwriting the remote archive
+      if (this.isLoaded || !this.isLoading) {
+        await this.persistToArchive();
+        console.log(`🛡️ [TABLE] Mesh Expanded: +${addedCount} rows. Total: ${this.docStore.size}`);
+      } else {
+        console.warn("🛡️ [TABLE] Persist Blocked: Final state not confirmed.");
+      }
     }
   }
 
-  /**
-   * 📘 Wikipedia Intelligence Layer
-   * Fetches context and summaries for core seeds to broaden the Mesh.
-   */
   async ingestWikipedia(term) {
+    if (!this.isLoaded && this.isLoading) return;
     try {
       const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(term)}`;
       const resp = await fetch(url);
@@ -71,13 +85,9 @@ export class FedSearchEngine {
       };
 
       this.addToMemoryIndex(wikiDoc, "GLOBAL");
-      await this.persistToArchive();
-      
+      if (this.isLoaded) await this.persistToArchive();
       return true;
-    } catch (err) {
-      console.warn(`[WIKI_DISCOVERY] Failed for "${term}":`, err.message);
-      return false;
-    }
+    } catch (err) { return false; }
   }
 
   addToMemoryIndex(opt, region = "US") {
@@ -106,25 +116,39 @@ export class FedSearchEngine {
 
   async loadFromArchive() {
     if (!redis) return;
+    if (this.isLoading) return;
+    
+    this.isLoading = true;
     try {
+      console.log("🚢 [ARCHIVE] Atomic Restoration Initiated...");
       const snapshot = await redis.get("aris:mesh:docstore:v1");
+      
       if (snapshot) {
         const docs = typeof snapshot === 'string' ? JSON.parse(snapshot) : snapshot;
         if (Array.isArray(docs)) {
           docs.forEach(d => this.addToMemoryIndex(d));
-          this.isLoaded = true;
-          console.log(`📦 [TABLE] Sovereign Sync Complete. Rows: ${this.docStore.size}`);
+          console.log(`📦 [TABLE] Snapshot Recovered: ${docs.length} rows.`);
         }
+      } else {
+        console.log("📦 [TABLE] Remote Archive Empty. Initializing new baseline.");
       }
-    } catch (err) { console.error("📦 [TABLE] Load Error:", err.message); }
+      this.isLoaded = true;
+      this.isLoading = false;
+    } catch (err) { 
+      console.error("📦 [TABLE] Critical Load Error:", err.message); 
+      this.isLoading = false; // Allow retry
+    }
   }
 
   async persistToArchive() {
-    if (!redis) return;
+    // 🛡️ DOUBLE PROTECTION
+    if (!redis || !this.isLoaded) return;
     try {
       const data = Array.from(this.docStore.values());
-      await redis.set("aris:mesh:docstore:v1", JSON.stringify(data));
-      await redis.expire("aris:mesh:docstore:v1", 30 * 24 * 60 * 60);
+      if (data.length > 5) { // Sanity check: don't persist if we lost too much data
+        await redis.set("aris:mesh:docstore:v1", JSON.stringify(data));
+        await redis.expire("aris:mesh:docstore:v1", 30 * 24 * 60 * 60);
+      }
     } catch (err) { console.error("📦 [TABLE] Archival Sync Failed:", err.message); }
   }
 
@@ -133,20 +157,13 @@ export class FedSearchEngine {
     return text.toLowerCase().replace(/[^a-z0-9\s]/g, "").split(/\s+/).filter(word => word.length >= 2 && !this.stopWords.has(word));
   }
 
-  /**
-   * 🔍 READ-ONLY SEARCH
-   * Strictly performs lookups in the memory-resident mirror of the Sovereign Table.
-   */
   async search(query, expand = false, region = "US") {
-    if (!this.isLoaded) await this.loadFromArchive();
+    if (!this.isLoaded && !this.isLoading) await this.loadFromArchive();
 
     const results = new Map();
     let finalQuery = query;
 
-    if (expand) {
-      finalQuery = await this.expandQuery(query, region);
-    }
-
+    if (expand) finalQuery = await this.expandQuery(query, region);
     const queryTerms = this.tokenize(finalQuery);
     
     if (queryTerms.length > 0) {
@@ -179,9 +196,6 @@ export class FedSearchEngine {
     return Array.from(results.values()).sort((a,b) => b.score - a.score);
   }
 
-  /**
-   * 🔓 Sovereign Table Browser (Password Protected)
-   */
   getTableData(password) {
     if (password !== "aris3690") throw new Error("UNAUTHORIZED_TERMINAL_ACCESS");
     return Array.from(this.docStore.values());
