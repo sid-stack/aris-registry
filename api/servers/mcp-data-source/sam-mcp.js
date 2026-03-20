@@ -119,6 +119,18 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           required: ["links"],
         },
       },
+      {
+        name: "search_opportunities",
+        description: "Search for opportunities on SAM.gov using keywords",
+        inputSchema: {
+          type: "object",
+          properties: {
+            q: { type: "string", description: "Search query or keywords" },
+            limit: { type: "number", description: "Max results (default 10)", default: 10 },
+          },
+          required: ["q"],
+        },
+      },
     ],
   };
 });
@@ -176,6 +188,28 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             };
           }
         }
+        throw error;
+      }
+    }
+
+    case "search_opportunities": {
+      try {
+        const query = encodeURIComponent(args.q);
+        const limit = args.limit || 10;
+        const samRes = await fetch(
+          `https://api.sam.gov/opportunities/v2/search?q=${query}&limit=${limit}&api_key=${SAM_API_KEY}`
+        );
+        
+        if (samRes.status === 429) throw new Error("RATE_LIMIT_HIT");
+        if (!samRes.ok) throw new Error(`SAM.gov error: ${samRes.status}`);
+
+        const samData = await samRes.json();
+        const opportunities = samData?.opportunitiesData || [];
+
+        return {
+          content: [{ type: "text", text: JSON.stringify(opportunities) }],
+        };
+      } catch (error) {
         throw error;
       }
     }
