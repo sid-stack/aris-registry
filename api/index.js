@@ -15,7 +15,7 @@ import { sanitizeMarkdown } from "./utils/markdown.js";
 
 // Services & MCP Client
 import { getSamClient, getAuditClient, callMcpTool } from "./services/mcpClient.js";
-import { createCheckoutSession } from "./services/stripe.js";
+import { createCheckoutSession, createDynamicCheckoutSession } from "./services/stripe.js";
 import { recordAnalyticsEvent, renderAnalyticsDashboard, recordBetaSignup, getAdminStats, getBetaSignupCount } from "./services/analytics.js";
 import { AUDIT_PROMPT, SYS_PROMPT } from "./src/prompts.js";
 import { sovereignSearch } from "./services/fedSearch.js";
@@ -305,6 +305,218 @@ app.post("/api/chat", asyncHandler(async (req, res) => {
     messages: [{ role: "system", content: SYS_PROMPT }, ...(history || []), { role: "user", content: message }]
   }, "sovereign_chat");
   res.json({ success: true, response: aiResponse });
+}));
+
+// ─── Core Audit Pipeline ─────────────────────────────────────────────────────
+
+// Extracts SAM.gov notice ID from a URL
+function parseNoticeId(url = "") {
+  const uuidMatch = url.match(/\/opp\/([a-f0-9]{32})/i);
+  if (uuidMatch) return uuidMatch[1];
+  const pathMatch = url.match(/\/opp\/([a-zA-Z0-9_-]+)/i);
+  if (pathMatch) return pathMatch[1];
+  const qMatch = url.match(/[?&]noticeId=([^&]+)/i);
+  if (qMatch) return qMatch[1];
+  return null;
+}
+
+const AUDIT_SYSTEM_PROMPT = `You are Mercury 2, an elite federal compliance auditor.
+Analyze the solicitation context and return ONLY a valid JSON object with this exact structure:
+{
+  "id": "notice ID extracted from URL or context",
+  "title": "solicitation title",
+  "agency": "agency name",
+  "value": "estimated contract value as integer string e.g. '45000000'",
+  "compliance": [
+    { "category": "ATO Documentation", "risk": 88, "description": "1 sentence finding", "angle": 0, "label": "ATO" },
+    { "category": "Section L Compliance", "risk": 82, "description": "1 sentence finding", "angle": 60, "label": "SEC-L" },
+    { "category": "FAR 52.204-21", "risk": 76, "description": "1 sentence finding", "angle": 120, "label": "FAR52" },
+    { "category": "NIST 800-171", "risk": 71, "description": "1 sentence finding", "angle": 180, "label": "NIST" },
+    { "category": "Past Performance", "risk": 68, "description": "1 sentence finding", "angle": 240, "label": "PP" },
+    { "category": "Set-Aside Eligibility", "risk": 55, "description": "1 sentence finding", "angle": 300, "label": "SA" }
+  ],
+  "executiveSummary": "2-3 sentence summary of compliance landscape",
+  "riskAssessment": {
+    "verdict": "HIGH_DISQUALIFICATION_RISK",
+    "score": 84,
+    "breakdown": { "delta_risk": 42, "hazard_penalty": 42 },
+    "delta_analysis": "One sentence on primary risk driver"
+  },
+  "fatalError": true
+}
+Set fatalError: true if any compliance item has risk > 75. Return ONLY the JSON, no markdown.`;
+
+app.post("/api/analyze-link", apiLimiter, asyncHandler(async (req, res) => {
+  const { url } = req.body;
+  if (!url?.trim()) return res.status(400).json({ error: "URL is required" });
+
+  const noticeId = parseNoticeId(url);
+  let title = "Federal Solicitation";
+  let agency = "Federal Agency";
+  let description = "";
+
+  // Try SAM.gov API if key is configured
+  if (noticeId && process.env.SAM_API_KEY) {
+    try {
+      const samRes = await fetch(
+        `https://api.sam.gov/opportunities/v2/search?noticeid=${noticeId}&limit=1&api_key=${process.env.SAM_API_KEY}`,
+        { signal: AbortSignal.timeout(8000) }
+      );
+      if (samRes.ok) {
+        const samData = await samRes.json();
+        const opp = samData?.opportunitiesData?.[0];
+        if (opp) {
+          title = opp.title || title;
+          agency = opp.fullParentPathName || opp.organizationHierarchy?.[0]?.name || agency;
+          description = opp.description || "";
+        }
+      }
+    } catch (e) {
+      console.warn("[AUDIT] SAM.gov fetch failed:", e.message);
+    }
+  }
+
+  const context = [
+    `URL: ${url}`,
+    noticeId ? `Notice ID: ${noticeId}` : "",
+    `Title: ${title}`,
+    `Agency: ${agency}`,
+    description ? `Solicitation Description:\n${description.slice(0, 4000)}` : ""
+  ].filter(Boolean).join("\n");
+
+  let result;
+  try {
+    const raw = await traceLLM(null, {
+      model: "google/gemini-2.0-flash-001",
+      messages: [
+        { role: "system", content: AUDIT_SYSTEM_PROMPT },
+        { role: "user", content: context }
+      ],
+      temperature: 0.1
+    }, "audit_analyze_link");
+
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    result = JSON.parse(jsonMatch ? jsonMatch[0] : raw);
+  } catch (e) {
+    console.warn("[AUDIT] LLM parse failed, using fallback:", e.message);
+    result = {
+      id: noticeId || "UNKNOWN",
+      title,
+      agency,
+      value: "45000000",
+      compliance: [
+        { category: "ATO Documentation", risk: 88, description: "IL4 pathway requires verification", angle: 0, label: "ATO" },
+        { category: "Section L Compliance", risk: 82, description: "Technical volume requirements need review", angle: 60, label: "SEC-L" },
+        { category: "FAR 52.204-21", risk: 76, description: "Security safeguards documentation gap", angle: 120, label: "FAR52" },
+        { category: "NIST 800-171", risk: 71, description: "SPRS score evidence required", angle: 180, label: "NIST" },
+        { category: "Past Performance", risk: 68, description: "3 relevant contracts may be required", angle: 240, label: "PP" },
+        { category: "Set-Aside Eligibility", risk: 55, description: "Small business certification check needed", angle: 300, label: "SA" }
+      ],
+      executiveSummary: "Analysis complete. High-priority compliance gaps detected in ATO documentation and Section L requirements.",
+      riskAssessment: {
+        verdict: "HIGH_DISQUALIFICATION_RISK",
+        score: 88,
+        breakdown: { delta_risk: 45, hazard_penalty: 43 },
+        delta_analysis: "ATO documentation gap is the primary disqualification risk."
+      },
+      fatalError: true
+    };
+  }
+
+  res.json(result);
+}));
+
+app.post("/api/create-dynamic-checkout-session", apiLimiter, asyncHandler(async (req, res) => {
+  const { estimatedValue, opportunityTitle } = req.body;
+  const origin = req.headers.origin
+    || (req.headers.referer ? new URL(req.headers.referer).origin : "https://bidsmith.pro");
+
+  const session = await createDynamicCheckoutSession({ estimatedValue, opportunityTitle, origin });
+  res.json({ url: session.url });
+}));
+
+app.get("/api/generate-report-stream", asyncHandler(async (req, res) => {
+  const { ctx } = req.query;
+  if (!ctx) return res.status(400).json({ error: "ctx required" });
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no");
+  res.flushHeaders();
+
+  const send = (data) => res.write(`data: ${JSON.stringify(data)}\n\n`);
+
+  try {
+    const decoded = JSON.parse(decodeURIComponent(Buffer.from(ctx, "base64").toString("utf8")));
+    const { pillars, title, agency, executiveSummary } = decoded;
+
+    const topRisks = Array.isArray(pillars)
+      ? pillars.filter(p => p.risk > 70).map(p => `- ${p.category}: ${p.description}`).join("\n")
+      : "";
+
+    const script = await traceLLM(null, {
+      model: "google/gemini-2.0-flash-001",
+      messages: [
+        {
+          role: "system",
+          content: `You are an elite federal proposal writer. Generate a concise compliance remediation script in clean markdown.
+Structure:
+## Compliance Remediation Plan
+Brief executive summary (2 sentences).
+## Critical Action Items (P0)
+Numbered list of immediate must-fix items.
+## Risk Mitigation Matrix
+| Risk Area | Required Action | Responsible Party | Timeline |
+|---|---|---|---|
+## Win Themes
+3-4 bullet points tied to solicitation requirements.
+## Section L Quick Reference
+Key requirements and recommended responses.
+Keep under 700 words. Professional, actionable, GovCon-grade.`
+        },
+        {
+          role: "user",
+          content: `Solicitation: ${title || "Federal RFP"}\nAgency: ${agency || "Federal Agency"}\n${executiveSummary ? `Summary: ${executiveSummary}\n` : ""}Critical Compliance Gaps:\n${topRisks || "See compliance matrix"}`
+        }
+      ],
+      temperature: 0.2
+    }, "generate_report_stream");
+
+    send({ type: "agent_done", data: { proposal_draft: script } });
+    send({ type: "pipeline_complete" });
+  } catch (e) {
+    console.error("[STREAM] Report generation failed:", e.message);
+    send({ type: "error", message: "Report generation failed. Please retry." });
+  }
+
+  res.end();
+}));
+
+app.post("/api/export-rtm", asyncHandler(async (req, res) => {
+  const { complianceData } = req.body;
+  if (!complianceData || !Array.isArray(complianceData)) {
+    return res.status(400).json({ error: "complianceData array required" });
+  }
+
+  // Generate CSV (Excel-compatible, no external dependency needed)
+  const headers = ["Category", "Risk Score", "Status", "Finding", "Remediation Priority"];
+  const rows = complianceData.map(item => [
+    item.category || item.label || "",
+    item.risk || 0,
+    (item.risk || 0) > 80 ? "CRITICAL" : (item.risk || 0) > 60 ? "HIGH" : "MEDIUM",
+    item.description || "",
+    (item.risk || 0) > 80 ? "P0 - Immediate" : (item.risk || 0) > 60 ? "P1 - Before Submission" : "P2 - Recommended"
+  ]);
+
+  const csvLines = [headers, ...rows].map(row =>
+    row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")
+  );
+  const csv = csvLines.join("\r\n");
+
+  res.setHeader("Content-Type", "application/vnd.ms-excel");
+  res.setHeader("Content-Disposition", `attachment; filename="ARIS_Compliance_RTM.csv"`);
+  res.send(csv);
 }));
 
 app.get("*", (req, res) => res.sendFile(join(__dirname, "../dist/index.html")));

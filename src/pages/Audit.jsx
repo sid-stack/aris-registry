@@ -521,7 +521,7 @@ export default function Audit({ onBack }) {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `ARIS_Compliance_Matrix_${result.id || 'Audit'}.xlsx`;
+      a.download = `ARIS_Compliance_Matrix_${result.id || 'Audit'}.csv`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -565,8 +565,6 @@ export default function Audit({ onBack }) {
       }
 
       if (!res.ok) {
-        const data = await res.json();
-        
         // Handle payment required response
         if (data.paymentRequired) {
           setShowPaymentModal(true);
@@ -608,6 +606,7 @@ export default function Audit({ onBack }) {
       setIsLoading(false);
 
     } catch (e) {
+      const errMsg = e.message || "UNKNOWN_ERROR";
       if (errMsg.toLowerCase().includes("capacity") || errMsg.toLowerCase().includes("blackout")) {
         setShowFatalError(true);
         setFatalErrorData({

@@ -13,6 +13,39 @@ export const STRIPE_PREMIUM_PRODUCTS = {
   express: { priceId: process.env.STRIPE_PRICE_PREMIUM_EXPRESS, turnaroundHours: "24" },
 };
 
+export async function createDynamicCheckoutSession({ estimatedValue, opportunityTitle, origin }) {
+  const numericValue = parseFloat(String(estimatedValue || "0").replace(/[$,MKB]/gi, "")) || 0;
+  const isHighValue = numericValue >= 10_000_000;
+  const priceAmount = isHighValue ? 29900 : 9900; // cents
+  const planName = isHighValue ? "Enterprise Audit" : "Standard Audit";
+
+  const session = await stripe.checkout.sessions.create({
+    mode: "payment",
+    payment_method_types: ["card"],
+    line_items: [{
+      price_data: {
+        currency: "usd",
+        product_data: {
+          name: `ARIS ${planName} — Compliance Matrix`,
+          description: opportunityTitle
+            ? `Full FAR/DFARS remediation script for: ${opportunityTitle}`
+            : "Full compliance matrix, risk flags, remediation script, and bid/no-bid brief",
+        },
+        unit_amount: priceAmount,
+      },
+      quantity: 1,
+    }],
+    metadata: {
+      opportunityTitle: opportunityTitle || "",
+      estimatedValue: String(estimatedValue || ""),
+    },
+    success_url: `${origin}/app?checkout=success`,
+    cancel_url: `${origin}/app?checkout=cancelled`,
+  });
+
+  return session;
+}
+
 export async function createCheckoutSession({ plan, premiumTier, context, origin }) {
   const planConfig = STRIPE_PRODUCTS[plan];
   if (!planConfig) throw new Error("Unsupported plan");

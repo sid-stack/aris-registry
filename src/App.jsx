@@ -161,21 +161,13 @@ export default function App() {
     trackPageView(logicalPath);
   }, [view, authenticated, route, proposal, aliasSection]);
 
-  // ── HISTORY LOCKDOWN (Trap user on site) ──
+  // ── Back navigation: pop state goes back to landing ──
   useEffect(() => {
     const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-    // Push state to create a history entry we can intercept
-    window.history.pushState({ view }, "", currentUrl);
+    window.history.replaceState({ view }, "", currentUrl);
 
     const handlePopState = () => {
-      const nextUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-      // Re-push state immediately to maintain the trap
-      window.history.pushState({ view }, "", nextUrl);
-      
-      if (view !== "landing") {
-        setView("landing");
-      }
-      // If already on landing, the pushState above keeps us there
+      if (view !== "landing") setView("landing");
     };
 
     window.addEventListener("popstate", handlePopState);
