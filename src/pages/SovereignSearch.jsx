@@ -17,7 +17,6 @@ import NavBar from '../components/dashboard/NavBar';
 
 const SovereignSearch = ({ onBack }) => {
   const [query, setQuery] = useState('');
-  const [region, setRegion] = useState('US'); 
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(true);
@@ -38,12 +37,9 @@ const SovereignSearch = ({ onBack }) => {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const q = params.get('q') || params.get('query');
-    const r = params.get('region') || 'US';
-    
     if (q) {
       setQuery(q);
-      setRegion(r);
-      executeSearch(q, expanded, r);
+      executeSearch(q, expanded);
     }
   }, []);
 
@@ -51,17 +47,18 @@ const SovereignSearch = ({ onBack }) => {
     if (e) e.preventDefault();
     if (!query) return;
     
-    const newUrl = `${window.location.pathname}?q=${encodeURIComponent(query)}&region=${region}`;
+    // Update URL with query param (Google-style)
+    const newUrl = `${window.location.pathname}?q=${encodeURIComponent(query)}`;
     window.history.pushState({ path: newUrl }, '', newUrl);
 
-    await executeSearch(query, expanded, region);
+    await executeSearch(query, expanded);
   };
 
-  const executeSearch = async (targetQuery, isExpanded, targetRegion) => {
+  const executeSearch = async (targetQuery, isExpanded) => {
     setLoading(true);
     setResults([]);
     setBriefing(null);
-    setStatus(targetRegion === 'US' ? 'Synthesizing Federal Mesh...' : 'Aggregating Bharat Discovery...');
+    setStatus('Synthesizing Federal Mesh...');
     
     try {
       const res = await fetch('/api/fed-search', {
@@ -71,15 +68,17 @@ const SovereignSearch = ({ onBack }) => {
           query: targetQuery, 
           expand: isExpanded, 
           limit: 10,
-          region: targetRegion 
+          region: 'US' // Strictly US for now
         })
       });
       
       const data = await res.json();
       if (data.success) {
-        setResults(data.results);
+        setResults(data.results || []);
         setBriefing(data.briefing);
-        setStatus('');
+        setStatus(data.results?.length === 0 ? 'No results found in today\'s mesh.' : '');
+      } else {
+        setStatus('Analysis interrupted');
       }
     } catch (err) {
       console.error("Search failed:", err);
@@ -105,8 +104,8 @@ const SovereignSearch = ({ onBack }) => {
         display: 'flex', 
         flexDirection: 'column', 
         alignItems: 'center',
-        padding: results.length > 0 ? '40px 20px' : '0 20px',
-        justifyContent: results.length > 0 ? 'flex-start' : 'center',
+        padding: (results.length > 0 || briefing) ? '40px 20px' : '0 20px',
+        justifyContent: (results.length > 0 || briefing) ? 'flex-start' : 'center',
         transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
       }}>
         
@@ -126,12 +125,9 @@ const SovereignSearch = ({ onBack }) => {
           }}>
             ARIS
           </h1>
-          {region === 'IN' && (
-            <span style={{ fontSize: '12px', color: COLORS.accent, letterSpacing: '0.4em', textTransform: 'uppercase', display: 'block', marginTop: '-10px', fontWeight: 500 }}>Bharat</span>
-          )}
         </div>
 
-        {/* SEARCH BOX */}
+        {/* GOOGLE-STYLE SEARCH BOX */}
         <form onSubmit={handleSearch} style={{ 
           width: '100%', 
           maxWidth: '584px',
@@ -152,7 +148,7 @@ const SovereignSearch = ({ onBack }) => {
             <input 
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder={region === 'US' ? 'Search Federal Mesh...' : 'Search Bharat Tenders...'}
+              placeholder="Search SAM.gov / US Discovery Mesh..."
               style={{ flex: 1, background: 'transparent', border: 'none', color: '#fff', fontSize: '16px', padding: '0 12px', outline: 'none' }}
             />
             <div style={{ display: 'flex', gap: '16px', alignItems: 'center', color: COLORS.blue }}>
@@ -163,25 +159,21 @@ const SovereignSearch = ({ onBack }) => {
 
           <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginTop: '28px' }}>
              <button type="submit" className="g-btn">ARIS Search</button>
-             <button type="button" onClick={() => {
-                const nr = region === 'US' ? 'IN' : 'US';
-                setRegion(nr);
-                if (results.length > 0) executeSearch(query, expanded, nr);
-             }} className="g-btn">
-               Switch to {region === 'US' ? 'Bharat 🇮🇳' : 'US 🇺🇸'}
+             <button type="button" onClick={() => setExpanded(!expanded)} className="g-btn">
+               {expanded ? 'AI Mode' : 'Standard'}
              </button>
           </div>
         </form>
 
         {/* LOADING STATE */}
         {loading && (
-          <div style={{ marginTop: '40px', textAlign: 'center' }}>
+          <div style={{ marginTop: '40px', textAlign: 'center', animation: 'fadeIn 0.5s ease' }}>
              <div className="dot-pulse" style={{ margin: '0 auto 16px' }} />
-             <p style={{ fontSize: '12px', color: COLORS.blue, opacity: 0.8, letterSpacing: '0.1em' }}>{status}</p>
+             <p style={{ fontSize: '12px', color: COLORS.blue, opacity: 0.8 }}>{status}</p>
           </div>
         )}
 
-        {/* EXECUTIVE BRIEFING (Synthesis Layer) */}
+        {/* EXECUTIVE BRIEFING */}
         {briefing && !loading && (
           <div style={{ 
             width: '100%', 
@@ -197,12 +189,7 @@ const SovereignSearch = ({ onBack }) => {
                <Sparkles size={18} />
                <span style={{ fontSize: '13px', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Executive Briefing</span>
             </div>
-            <div style={{ 
-              fontSize: '15px', 
-              color: COLORS.textWhite, 
-              lineHeight: '1.7',
-              fontFamily: 'arial, sans-serif'
-            }} className="briefing-content">
+            <div style={{ fontSize: '15px', color: COLORS.textWhite, lineHeight: '1.7' }}>
                {briefing.split('\n').map((line, i) => (
                  <p key={i} style={{ marginBottom: line.startsWith('-') ? '8px' : '12px' }}>{line}</p>
                ))}
@@ -215,7 +202,7 @@ const SovereignSearch = ({ onBack }) => {
           <div style={{ 
             width: '100%', 
             maxWidth: '652px',
-            marginTop: results.length > 0 ? '32px' : '0',
+            marginTop: '32px',
             display: 'flex',
             flexDirection: 'column',
             gap: '30px'
@@ -255,6 +242,12 @@ const SovereignSearch = ({ onBack }) => {
           </div>
         )}
 
+        {status && !loading && results.length === 0 && (
+          <p style={{ marginTop: '40px', fontSize: '14px', color: COLORS.textDim, opacity: 0.8 }}>
+            {status}
+          </p>
+        )}
+
       </main>
 
       <footer style={{ background: '#171717', padding: '14px 20px', fontSize: '13px', color: COLORS.textDim, borderTop: '1px solid #3c4043', display: 'flex', gap: '24px' }}>
@@ -292,7 +285,6 @@ const SovereignSearch = ({ onBack }) => {
           border-radius: 100px;
           font-size: 12px;
           cursor: pointer;
-          transition: all 0.2s ease;
         }
         .action-pill:hover { background: rgba(138, 180, 248, 0.2); }
         .action-pill.secondary { color: ${COLORS.textDim}; border-color: transparent; background: transparent; }
