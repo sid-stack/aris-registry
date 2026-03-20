@@ -62,8 +62,6 @@ const HARVEST_INTERVAL = 12 * 60 * 60 * 1000; // 12-hour sweep
 async function startHarvester() {
   console.log("🚢 [HARVESTER] Mobilizing 50-Term Sovereign Matrix...");
   
-  await sovereignSearch.loadFromArchive();
-
   const pulse = async () => {
     const now = Date.now();
     if (now - lastHarvestTime < 10 * 60 * 1000) return; // Min 10 min between pulses
