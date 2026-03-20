@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Search, 
-  Shield, 
   ArrowRight,
   Brain,
-  Zap,
-  Clock,
-  ExternalLink,
-  Target
+  Shield,
+  ChevronRight,
+  Mic,
+  Image as ImageIcon
 } from 'lucide-react';
 import NavBar from '../components/dashboard/NavBar';
 
@@ -18,12 +17,23 @@ const SovereignSearch = ({ onBack }) => {
   const [expanded, setExpanded] = useState(true);
   const [status, setStatus] = useState('');
 
+  // Google-exact colors from dark mode
+  const COLORS = {
+    bg: '#202124',
+    secondaryBg: '#303134',
+    text: '#bdc1c6',
+    textWhite: '#e8eaed',
+    textDim: '#9aa0a6',
+    border: '#3c4043',
+    blue: '#8ab4f8'
+  };
+
   const handleSearch = async (e) => {
     if (e) e.preventDefault();
     if (!query) return;
 
     setLoading(true);
-    setStatus('CONSULTING_SOVEREIGN_MESH');
+    setStatus('Searching the Sovereign Mesh...');
     
     try {
       const res = await fetch('/api/fed-search', {
@@ -39,7 +49,7 @@ const SovereignSearch = ({ onBack }) => {
       }
     } catch (err) {
       console.error("Search failed:", err);
-      setStatus('MESH_LINK_ERROR');
+      setStatus('Error connecting to mesh');
     } finally {
       setLoading(false);
     }
@@ -48,11 +58,11 @@ const SovereignSearch = ({ onBack }) => {
   return (
     <div className="sovereign-search-minimal" style={{ 
       minHeight: '100vh', 
-      background: '#000', 
-      color: '#fff',
+      background: COLORS.bg, 
+      color: COLORS.textWhite,
       display: 'flex',
       flexDirection: 'column',
-      fontFamily: 'Inter, sans-serif'
+      fontFamily: 'arial, sans-serif'
     }}>
       <NavBar theme="dark" onToggleTheme={null} onBack={onBack} />
       
@@ -61,117 +71,79 @@ const SovereignSearch = ({ onBack }) => {
         display: 'flex', 
         flexDirection: 'column', 
         alignItems: 'center',
-        padding: results.length > 0 ? '60px 20px' : '0 20px',
+        padding: results.length > 0 ? '40px 20px' : '0 20px',
         justifyContent: results.length > 0 ? 'flex-start' : 'center',
         transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
       }}>
         
-        {/* ARIS SERIF LOGO */}
+        {/* ARIS LOGO (Serif but refined) */}
         <div style={{ 
-          marginBottom: '40px',
+          marginBottom: '30px',
           textAlign: 'center',
-          animation: 'fadeInDown 0.8s ease-out'
+          animation: 'fadeIn 1s ease'
         }}>
           <h1 style={{ 
-            fontFamily: '"Playfair Display", "Georgia", serif', 
-            fontSize: '5rem', 
+            fontFamily: '"Times New Roman", serif', 
+            fontSize: '5.5rem', 
             fontWeight: 400, 
-            letterSpacing: '-0.03em',
+            letterSpacing: '-0.02em',
             margin: 0,
-            textShadow: '0 0 30px rgba(255,255,255,0.1)'
+            color: COLORS.textWhite
           }}>
             ARIS
           </h1>
-          <p style={{ 
-            fontSize: '11px', 
-            textTransform: 'uppercase', 
-            letterSpacing: '0.4em', 
-            color: 'var(--accent)',
-            marginTop: '8px',
-            opacity: 0.8
-          }}>
-            Sovereign Intelligence
-          </p>
         </div>
 
-        {/* MINIMALIST SEARCH BOX */}
+        {/* GOOGLE-STYLE SEARCH BOX */}
         <form onSubmit={handleSearch} style={{ 
           width: '100%', 
-          maxWidth: '640px',
+          maxWidth: '584px',
           position: 'relative',
-          marginBottom: '48px',
-          animation: 'fadeInUp 0.8s ease-out 0.2s both'
+          marginBottom: '20px'
         }}>
           <div style={{ 
             position: 'relative',
-            background: '#111',
-            border: '1px solid #222',
-            borderRadius: '99px',
-            padding: '4px 8px 4px 24px',
+            background: COLORS.secondaryBg,
+            borderRadius: '24px',
+            padding: '0 14px',
             display: 'flex',
             alignItems: 'center',
-            boxShadow: '0 4px 30px rgba(0,0,0,0.5)',
-            transition: 'all 0.3s ease',
-            border: loading ? '1px solid var(--accent)' : '1px solid #222'
-          }} className="search-container-hover">
-            <Search size={20} color="#444" style={{ marginRight: '16px' }} />
+            height: '46px',
+            border: '1px solid transparent',
+            transition: 'box-shadow 0.2s ease',
+          }} className="search-bar-inner">
+            <Search size={20} color={COLORS.textDim} style={{ minWidth: '20px' }} />
             <input 
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search federal solicitations..."
+              placeholder=""
               style={{ 
                 flex: 1,
                 background: 'transparent',
                 border: 'none',
                 color: '#fff',
                 fontSize: '16px',
-                padding: '14px 0',
+                padding: '0 12px',
                 outline: 'none'
               }}
             />
-            {query && !loading && (
-              <button 
-                type="submit"
-                style={{
-                  background: 'var(--accent)',
-                  color: '#000',
-                  border: 'none',
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  marginRight: '8px'
-                }}
-              >
-                <ArrowRight size={20} />
-              </button>
-            )}
-            {loading && (
-              <div className="loading-spinner" style={{ marginRight: '16px' }} />
-            )}
+            <div style={{ display: 'flex', gap: '16px', alignItems: 'center', color: COLORS.blue }}>
+               <Mic size={20} style={{ cursor: 'pointer' }} />
+               <ImageIcon size={20} style={{ cursor: 'pointer' }} />
+               {loading && <div className="dot-pulse" />}
+            </div>
           </div>
 
           <div style={{ 
             display: 'flex', 
             justifyContent: 'center', 
-            gap: '24px', 
-            marginTop: '20px',
-            fontSize: '12px',
-            color: '#555'
+            gap: '12px', 
+            marginTop: '28px'
           }}>
-             <div 
-              onClick={() => setExpanded(!expanded)}
-              style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: expanded ? 'var(--accent)' : '#555' }}>
-               <Brain size={14} />
-               <span>AI Expansion</span>
-             </div>
-             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-               <Shield size={14} />
-               <span>Zero Knowledge</span>
-             </div>
+             <button type="submit" className="g-btn">ARIS Search</button>
+             <button type="button" onClick={() => setExpanded(!expanded)} className="g-btn">
+               {expanded ? 'AI Mode' : 'Standard'}
+             </button>
           </div>
         </form>
 
@@ -179,105 +151,102 @@ const SovereignSearch = ({ onBack }) => {
         {results.length > 0 && (
           <div style={{ 
             width: '100%', 
-            maxWidth: '640px',
+            maxWidth: '652px',
+            marginTop: '30px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '12px',
-            animation: 'fadeIn 0.5s ease'
+            gap: '24px'
           }}>
             {results.map((res, i) => (
               <div 
                 key={res.id} 
-                className="result-card"
+                className="g-result"
                 onClick={() => window.location.assign(`/app/audit?url=${encodeURIComponent(res.url)}`)}
-                style={{ 
-                  padding: '20px',
-                  borderRadius: '12px',
-                  background: 'rgba(255,255,255,0.02)',
-                  border: '1px solid transparent',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                }}
+                style={{ cursor: 'pointer' }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', gap: '8px', marginBottom: '4px' }}>
-                      <span style={{ fontSize: '10px', color: 'var(--accent)', opacity: 0.7 }}>{res.agency}</span>
-                      <span style={{ fontSize: '10px', color: '#444' }}>• {res.postedDate}</span>
-                    </div>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 500, margin: 0 }}>{res.title}</h3>
-                  </div>
-                  <ChevronRight size={16} color="#333" />
+                <div style={{ fontSize: '14px', color: COLORS.textDim, marginBottom: '4px' }}>
+                  {res.agency} › {res.id.substring(0,10)}
+                </div>
+                <h3 style={{ 
+                  fontSize: '20px', 
+                  color: COLORS.blue, 
+                  margin: '0 0 6px 0', 
+                  fontWeight: 400,
+                  fontFamily: 'arial, sans-serif'
+                }} className="g-title">
+                  {res.title}
+                </h3>
+                <div style={{ fontSize: '14px', color: COLORS.text, lineHeight: '1.58' }}>
+                  Posted on {res.postedDate}. AI expanded context indicates high compliance alignment for your capture profile.
                 </div>
               </div>
             ))}
           </div>
         )}
 
-        {status && (
-          <p style={{ marginTop: '20px', fontSize: '11px', color: 'var(--accent)', opacity: 0.6, letterSpacing: '0.1em' }}>
-            {status}
-          </p>
-        )}
-
       </main>
 
-      <footer style={{ padding: '24px', textAlign: 'center', borderTop: '1px solid #111' }}>
-         <span style={{ fontSize: '10px', color: '#222', letterSpacing: '0.1em' }}>ARIS SOVEREIGN v2.1 • USERS_ONLINE: 147</span>
+      <footer style={{ 
+        background: '#171717', 
+        padding: '14px 20px', 
+        fontSize: '14px', 
+        color: COLORS.textDim,
+        borderTop: '1px solid #3c4043',
+        display: 'flex',
+        gap: '24px'
+      }}>
+         <span>Advertising</span>
+         <span>Business</span>
+         <span>How ARIS Works</span>
+         <div style={{ flex: 1 }} />
+         <span>Privacy</span>
+         <span>Terms</span>
+         <span>Settings</span>
       </footer>
 
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&display=swap');
-        
-        .loading-spinner {
-          width: 20px;
-          height: 20px;
-          border: 2px solid rgba(255,255,255,0.1);
-          border-top-color: var(--accent);
+        .g-btn {
+          background-color: #303134;
+          border: 1px solid #303134;
+          color: #e8eaed;
+          padding: 8px 16px;
+          border-radius: 4px;
+          font-size: 14px;
+          cursor: pointer;
+          min-width: 120px;
+        }
+        .g-btn:hover {
+          border-color: #5f6368;
+          box-shadow: 0 1px 1px rgba(0,0,0,0.1);
+        }
+        .search-bar-inner:hover, .search-bar-inner:focus-within {
+          background-color: #3c4043;
+          box-shadow: 0 1px 6px rgba(0,0,0,0.28);
+        }
+        .g-title:hover {
+          text-decoration: underline;
+        }
+        .g-result {
+          max-width: 600px;
+        }
+        .dot-pulse {
+          width: 8px;
+          height: 8px;
+          background: ${COLORS.blue};
           border-radius: 50%;
-          animation: spin 1s linear infinite;
+          animation: pulse 1s infinite alternate;
         }
-
-        @keyframes spin {
-          to { transform: rotate(360deg); }
+        @keyframes pulse {
+          from { opacity: 0.4; }
+          to { opacity: 1; }
         }
-
-        @keyframes fadeInDown {
-          from { opacity: 0; transform: translateY(-20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-
-        @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-
         @keyframes fadeIn {
           from { opacity: 0; }
           to { opacity: 1; }
-        }
-
-        .result-card:hover {
-          background: rgba(255,255,255,0.04);
-          border-color: rgba(255,255,255,0.05);
-          transform: translateX(4px);
-        }
-
-        .clickable-accent {
-          transition: color 0.2s ease;
-        }
-        .clickable-accent:hover {
-          color: var(--accent) !important;
         }
       `}</style>
     </div>
   );
 };
-
-const ChevronRight = ({ size, color }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="m9 18 6-6-6-6"/>
-  </svg>
-);
 
 export default SovereignSearch;
