@@ -61,8 +61,8 @@ export async function recordAnalyticsEvent(event) {
   try {
     await ensureAnalyticsSchema();
     await analyticsDb.query(
-      \`INSERT INTO analytics_events (uid, event_type, value, page, path, metadata)
-       VALUES ($1, $2, $3, $4, $5, $6::jsonb)\`,
+      `INSERT INTO analytics_events (uid, event_type, value, page, path, metadata)
+       VALUES ($1, $2, $3, $4, $5, $6::jsonb)`,
       [
         event.uid || "anonymous",
         event.eventType || "unknown",
@@ -94,10 +94,10 @@ export async function persistLogicPattern(pattern) {
     } = pattern;
 
     await analyticsDb.query(
-      \`INSERT INTO logic_library (agency_archetype, conflict_type, observation, constraint_severity, remediation_strategy, metadata, logic_vector)
+      `INSERT INTO logic_library (agency_archetype, conflict_type, observation, constraint_severity, remediation_strategy, metadata, logic_vector)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
        ON CONFLICT (agency_archetype, conflict_type, observation) 
-       DO UPDATE SET frequency = logic_library.frequency + 1, updated_at = NOW()\`,
+       DO UPDATE SET frequency = logic_library.frequency + 1, updated_at = NOW()`,
       [
         agencyArchetype, 
         conflictType, 
@@ -141,7 +141,7 @@ export async function getBetaSignupCount() {
 }
 
 export function renderAnalyticsDashboard(snapshot) {
-  return \`
+  return `
     <html>
       <head>
         <title>ARIS Analytics</title>
@@ -158,7 +158,7 @@ export function renderAnalyticsDashboard(snapshot) {
         
         <div class="card">
           <h2>Sovereign Matrix Stats</h2>
-          <pre>\${JSON.stringify(snapshot, null, 2)}</pre>
+          <pre>${JSON.stringify(snapshot, null, 2)}</pre>
         </div>
         
         <div class="card">
@@ -167,5 +167,5 @@ export function renderAnalyticsDashboard(snapshot) {
         </div>
       </body>
     </html>
-  \`;
+  `;
 }
