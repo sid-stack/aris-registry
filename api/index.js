@@ -1,6 +1,7 @@
 // ⚡ ARIS_SOVEREIGN_HEARTBEAT: 2026-03-20T09:05:21Z
 import express from "express";
 import cors from "cors";
+import rateLimit from "express-rate-limit";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import { requestId } from "./middleware/requestId.js";
@@ -19,15 +20,17 @@ import { recordAnalyticsEvent, renderAnalyticsDashboard, recordBetaSignup } from
 import { AUDIT_PROMPT, SYS_PROMPT } from "./src/prompts.js";
 import { sovereignSearch } from "./services/fedSearch.js";
 import { usaspending } from "./services/usaspending.js";
-import OpenAI from "openai";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// Initialize LLM Client
-const openai = new OpenAI({
-  apiKey: process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY,
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 50,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests, please try again later." }
 });
 
 app.use(cors());
@@ -60,15 +63,15 @@ const HARVEST_INTERVAL = 12 * 60 * 60 * 1000; // 12-hour sweep
  * Perform a background harvest of federal opportunities and global intelligence.
  */
 async function startHarvester() {
-  console.log("🚢 [HARVESTER] Mobilizing 50-Term Sovereign Matrix...");
-  
+  console.log("[HARVESTER] Starting. Interval: 12h, Seeds:", DISCOVERY_SEEDS.length);
+
   const pulse = async () => {
     try {
       const now = Date.now();
       if (now - lastHarvestTime < 10 * 60 * 1000) return;
-      
-      console.log("🚢 [HARVESTER] Sweep Initiated. Reconstructing the Distributed Mesh...");
-      
+
+      console.log("[HARVESTER] Sweep started.");
+
       for (const seed of DISCOVERY_SEEDS) {
         // 1. Live SAM.gov
         try {
@@ -78,7 +81,7 @@ async function startHarvester() {
           if (opportunities?.length > 0) {
             await sovereignSearch.syncSovereignTable(opportunities, "US");
           }
-        } catch (err) { /* Silent bypass */ }
+        } catch (err) { console.warn(`[HARVESTER] SAM.gov failed for "${seed}":`, err.message); }
 
         // 2. Historical USAspending
         try {
@@ -86,19 +89,15 @@ async function startHarvester() {
           if (awards?.length > 0) {
             await sovereignSearch.syncSovereignTable(awards, "US");
           }
-        } catch (err) { /* Silent bypass */ }
+        } catch (err) { console.warn(`[HARVESTER] USAspending failed for "${seed}":`, err.message); }
 
-        // 3. Wikipedia General Intelligence
-        try {
-          await sovereignSearch.ingestWikipedia(seed);
-        } catch (err) { /* Silent bypass */ }
-        
         await new Promise(r => setTimeout(r, 2000));
       }
-      
+
       lastHarvestTime = Date.now();
+      console.log("[HARVESTER] Sweep complete.");
     } catch (err) {
-      console.error("🚢 [HARVESTER] Critical Pulse Failure:", err.message);
+      console.error("[HARVESTER] Critical failure:", err.message);
     }
   };
 
@@ -111,7 +110,7 @@ startHarvester();
 
 // ─── API Endpoints ───────────────────────────────────────────────────────────
 
-app.post("/api/fed-search", asyncHandler(async (req, res) => {
+app.post("/api/fed-search", apiLimiter, asyncHandler(async (req, res) => {
   const { query, limit = 20, expand = true, region = "US" } = req.body;
   if (!query) return res.status(400).json({ error: "Query is required" });
 
@@ -143,7 +142,7 @@ app.post("/api/fed-search", asyncHandler(async (req, res) => {
       ? topResults.map(r => `[${r.id}] ${r.title} (${r.agency}): ${r.postedDate}`).join("\n")
       : "No direct solicitations found in the immediate Sovereign Table.";
 
-    const synthesis = await traceLLM(openai, {
+    const synthesis = await traceLLM(null, {
       model: "google/gemini-2.0-flash-001",
       messages: [
         { 
@@ -155,7 +154,7 @@ app.post("/api/fed-search", asyncHandler(async (req, res) => {
       temperature: 0.1
     }, "fed_search_synthesis");
     
-    briefing = synthesis;
+    briefing = synthesis || null;
   } catch (err) {
     console.warn("[FED_SEARCH] Synthesis failed:", err.message);
   }
@@ -174,7 +173,7 @@ app.get("/api/mesh-status", asyncHandler(async (req, res) => {
 }));
 
 app.get("/api/sovereign-table", asyncHandler(async (req, res) => {
-  const { auth } = req.query;
+  const auth = req.headers["x-admin-key"];
   try {
     const data = await sovereignSearch.getTableData(auth);
     res.json({ success: true, count: data.length, table: data });
@@ -187,9 +186,63 @@ app.get("/api/sovereign-table", asyncHandler(async (req, res) => {
   }
 }));
 
+// ─── Discovery Feed ──────────────────────────────────────────────────────────
+
+app.get("/api/discovery/search", apiLimiter, asyncHandler(async (req, res) => {
+  const { naics = "" } = req.query;
+  const naicsCodes = naics.split(",").map(n => n.trim()).filter(Boolean);
+
+  // Run mesh search and NAICS-filtered awards in parallel
+  const keywordQuery = naicsCodes.join(" ") || "technology services";
+  const [meshResults, naicsAwards] = await Promise.allSettled([
+    sovereignSearch.search(keywordQuery, false),
+    naicsCodes.length > 0 ? usaspending.getAwardsByNaics(naicsCodes) : Promise.resolve([])
+  ]);
+
+  const seen = new Set();
+  const prospects = [];
+
+  // From sovereign mesh
+  const mesh = meshResults.status === "fulfilled" ? meshResults.value : [];
+  mesh.slice(0, 10).forEach(r => {
+    if (seen.has(r.id)) return;
+    seen.add(r.id);
+    prospects.push({
+      id: r.id,
+      title: r.title,
+      type: r.matchType === "award_fallback" ? "PAST_AWARD" : "SOLICITATION",
+      deadline: r.responseDeadLine || null,
+      naics: naics,
+      matchScore: Math.min(99, Math.round((r.authorityScore || 0.7) * 100)),
+      agency: r.agency,
+      url: r.url
+    });
+  });
+
+  // From USAspending NAICS-filtered awards
+  const awards = naicsAwards.status === "fulfilled" ? naicsAwards.value : [];
+  awards.slice(0, 15).forEach(a => {
+    const id = a["Award ID"] || `award:${a["Recipient Name"]}`;
+    if (seen.has(id)) return;
+    seen.add(id);
+    prospects.push({
+      id,
+      title: `${a["Recipient Name"]} — ${a["Awarding Agency"]}`,
+      type: "PAST_AWARD",
+      deadline: a["Start Date"] || null,
+      naics: naics,
+      matchScore: 75,
+      agency: a["Awarding Agency"] || "Federal Agency",
+      url: ""
+    });
+  });
+
+  res.json({ success: true, prospects, count: prospects.length });
+}));
+
 // ─── SaaS & Analytics ────────────────────────────────────────────────────────
 
-app.post("/api/track", asyncHandler(async (req, res) => {
+app.post("/api/track", apiLimiter, asyncHandler(async (req, res) => {
   await recordAnalyticsEvent(req.body);
   res.json({ success: true });
 }));
@@ -200,19 +253,20 @@ app.post("/api/beta-signup", asyncHandler(async (req, res) => {
   res.json({ success: true });
 }));
 
-app.post("/api/checkout", asyncHandler(async (req, res) => {
+app.post("/api/checkout", apiLimiter, asyncHandler(async (req, res) => {
   const session = await createCheckoutSession(req.body);
   res.json({ url: session.url });
 }));
 
 app.get("/api/usage", asyncHandler(async (req, res) => {
-  const usage = await incrMonthlyUsage(req.ip);
+  const clientId = req.headers["x-user-id"] || req.ip;
+  const usage = await incrMonthlyUsage(clientId);
   res.json(usage);
 }));
 
 app.get("/api/analytics", asyncHandler(async (req, res) => {
-  const { auth } = req.query;
-  if (auth !== "aris3690") return res.status(401).send("Unauthorized Access Denied.");
+  const auth = req.headers["x-admin-key"];
+  if (!auth || auth !== process.env.ADMIN_PASSWORD) return res.status(401).send("Unauthorized Access Denied.");
   
   const stats = await sovereignSearch.getStats();
   const dashboard = renderAnalyticsDashboard(stats);
