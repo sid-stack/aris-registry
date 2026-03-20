@@ -44,7 +44,7 @@ const SubscriptionManager = ({ currentTier, onUpgrade, onManageBilling }) => {
       credits: 50,
       price: '$99',
       description: 'Perfect for testing',
-     性价比: '1.98 per search'
+      pricePerSearch: '1.98 per search'
     },
     {
       id: 'professional',
@@ -52,7 +52,7 @@ const SubscriptionManager = ({ currentTier, onUpgrade, onManageBilling }) => {
       credits: 200,
       price: '$299',
       description: 'Best value for regular use',
-     性价比: '1.50 per search',
+      pricePerSearch: '1.50 per search',
       popular: true
     },
     {
@@ -61,7 +61,7 @@ const SubscriptionManager = ({ currentTier, onUpgrade, onManageBilling }) => {
       credits: 500,
       price: '$499',
       description: 'Maximum value for teams',
-     性价比: '1.00 per search'
+      pricePerSearch: '1.00 per search'
     }
   ];
 
@@ -172,7 +172,7 @@ const SubscriptionManager = ({ currentTier, onUpgrade, onManageBilling }) => {
                 </div>
                 <div className="efficiency-info">
                   <Zap size={14} className="efficiency-icon" />
-                  <span>{pack.性价比}</span>
+                  <span>{pack.pricePerSearch}</span>
                 </div>
               </div>
 

@@ -13,7 +13,7 @@ export const STRIPE_PREMIUM_PRODUCTS = {
   express: { priceId: process.env.STRIPE_PRICE_PREMIUM_EXPRESS, turnaroundHours: "24" },
 };
 
-export async function createCheckoutSession(plan, premiumTier, context, origin) {
+export async function createCheckoutSession({ plan, premiumTier, context, origin }) {
   const planConfig = STRIPE_PRODUCTS[plan];
   if (!planConfig) throw new Error("Unsupported plan");
 
@@ -22,12 +22,11 @@ export async function createCheckoutSession(plan, premiumTier, context, origin) 
     payment_method_types: ["card"],
     line_items: [
       { price: planConfig.priceId, quantity: 1 },
-      // ... rest of implementation (using native stripe lib instead of manual fetch)
     ],
     metadata: { ...context, premium_tier: premiumTier },
     success_url: `${origin}/app?checkout=success`,
     cancel_url: `${origin}/app?checkout=cancelled`,
   });
 
-  return session.url;
+  return session;
 }
