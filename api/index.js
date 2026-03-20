@@ -63,42 +63,46 @@ async function startHarvester() {
   console.log("🚢 [HARVESTER] Mobilizing 50-Term Sovereign Matrix...");
   
   const pulse = async () => {
-    const now = Date.now();
-    if (now - lastHarvestTime < 10 * 60 * 1000) return; // Min 10 min between pulses
-    
-    console.log("🚢 [HARVESTER] Sweep Initiated. Reconstructing the Table...");
-    
-    for (const seed of DISCOVERY_SEEDS) {
-      // 1. Live SAM.gov
-      try {
-        const samClient = await getSamClient();
-        const samMcpResult = await callMcpTool(samClient, "search_opportunities", { q: seed, limit: 30 });
-        const opportunities = JSON.parse(samMcpResult.content[0].text);
-        if (opportunities?.length > 0) {
-          await sovereignSearch.syncSovereignTable(opportunities, "US");
-        }
-      } catch (err) { /* Silent bypass to prevent stalling */ }
-
-      // 2. Historical USAspending
-      try {
-        const awards = await usaspending.getAwardsSummary(seed);
-        if (awards?.length > 0) {
-          await sovereignSearch.syncSovereignTable(awards, "US");
-        }
-      } catch (err) { /* Silent bypass */ }
-
-      // 3. Wikipedia General Intelligence
-      try {
-        await sovereignSearch.ingestWikipedia(seed);
-      } catch (err) { /* Silent bypass */ }
+    try {
+      const now = Date.now();
+      if (now - lastHarvestTime < 10 * 60 * 1000) return;
       
-      await new Promise(r => setTimeout(r, 2000));
+      console.log("🚢 [HARVESTER] Sweep Initiated. Reconstructing the Distributed Mesh...");
+      
+      for (const seed of DISCOVERY_SEEDS) {
+        // 1. Live SAM.gov
+        try {
+          const samClient = await getSamClient();
+          const samMcpResult = await callMcpTool(samClient, "search_opportunities", { q: seed, limit: 30 });
+          const opportunities = JSON.parse(samMcpResult.content[0].text);
+          if (opportunities?.length > 0) {
+            await sovereignSearch.syncSovereignTable(opportunities, "US");
+          }
+        } catch (err) { /* Silent bypass */ }
+
+        // 2. Historical USAspending
+        try {
+          const awards = await usaspending.getAwardsSummary(seed);
+          if (awards?.length > 0) {
+            await sovereignSearch.syncSovereignTable(awards, "US");
+          }
+        } catch (err) { /* Silent bypass */ }
+
+        // 3. Wikipedia General Intelligence
+        try {
+          await sovereignSearch.ingestWikipedia(seed);
+        } catch (err) { /* Silent bypass */ }
+        
+        await new Promise(r => setTimeout(r, 2000));
+      }
+      
+      lastHarvestTime = Date.now();
+    } catch (err) {
+      console.error("🚢 [HARVESTER] Critical Pulse Failure:", err.message);
     }
-    
-    lastHarvestTime = Date.now();
   };
 
-  setTimeout(pulse, 1000);
+  setTimeout(pulse, 5000); // 5s boot safety delay
   setInterval(pulse, HARVEST_INTERVAL);
 }
 
