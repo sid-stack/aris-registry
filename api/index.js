@@ -52,11 +52,13 @@ const HARVEST_INTERVAL = 15 * 60 * 1000; // 15 mins
 
 /**
  * Perform a background harvest of federal opportunities to keep the mesh fresh.
- * This removes the rate-limit bottleneck from the user's search path.
  */
 async function startHarvester() {
   console.log("🚢 [HARVESTER] Initializing Sovereign Discovery Loop...");
   
+  // Restore from Archive on Startup
+  await sovereignSearch.loadFromArchive();
+
   const pulse = async () => {
     const now = Date.now();
     if (now - lastHarvestTime < HARVEST_INTERVAL) return;
@@ -64,29 +66,39 @@ async function startHarvester() {
     console.log("🚢 [HARVESTER] Pulse started. Walking the Federal Mesh...");
     
     for (const seed of DISCOVERY_SEEDS) {
+      // 1. Live SAM.gov (Discovery Mode)
       try {
         const samClient = await getSamClient();
-        console.log(`🚢 [HARVESTER] [US] Scouring for: "${seed}"`);
         const samMcpResult = await callMcpTool(samClient, "search_opportunities", { q: seed, limit: 50 });
         const opportunities = JSON.parse(samMcpResult.content[0].text);
-        
         if (opportunities?.length > 0) {
           await sovereignSearch.ingest(opportunities, "US");
-          console.log(`🚢 [HARVESTER] [US] Successfully archived ${opportunities.length} opportunities for "${seed}"`);
+          console.log(`🚢 [HARVESTER] [US] SAM.gov Discovery: "${seed}" (+${opportunities.length})`);
         }
       } catch (err) {
-        console.warn(`🚢 [HARVESTER] [US] Failed to scour "${seed}":`, err.message);
+        console.warn(`🚢 [HARVESTER] [US] SAM.gov bypass for "${seed}":`, err.message);
       }
-      // Small stagger to respect rate limits
+
+      // 2. Historical USAspending (Resilience Mode)
+      try {
+        console.log(`🚢 [HARVESTER] [US] Archiving Award Histories for: "${seed}"`);
+        const awards = await usaspending.getAwardsSummary(seed);
+        if (awards?.length > 0) {
+          await sovereignSearch.ingest(awards, "US");
+          console.log(`🚢 [HARVESTER] [US] USAspending Discovery: "${seed}" (+${awards.length})`);
+        }
+      } catch (err) {
+        console.warn(`🚢 [HARVESTER] [US] USAspending bypass for "${seed}":`, err.message);
+      }
+      
       await new Promise(r => setTimeout(r, 2000));
     }
     
     lastHarvestTime = Date.now();
+    await sovereignSearch.persistToArchive();
   };
 
-  // Initial Pulse
   setTimeout(pulse, 1000);
-  // Recurring pulses
   setInterval(pulse, HARVEST_INTERVAL);
 }
 
