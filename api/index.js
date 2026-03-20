@@ -1,4 +1,4 @@
-// ⚡ ARIS_SOVEREIGN_HEARTBEAT: 2026-03-20T00:46:21Z
+// ⚡ ARIS_SOVEREIGN_HEARTBEAT: 2026-03-20T09:05:21Z
 import express from "express";
 import cors from "cors";
 import { dirname, join } from "path";
@@ -18,7 +18,6 @@ import { createCheckoutSession } from "./services/stripe.js";
 import { recordAnalyticsEvent, renderAnalyticsDashboard, recordBetaSignup } from "./services/analytics.js";
 import { AUDIT_PROMPT, SYS_PROMPT } from "./src/prompts.js";
 import { sovereignSearch } from "./services/fedSearch.js";
-import { indiaGovScanner } from "./services/indiaGov.js";
 import { usaspending } from "./services/usaspending.js";
 import OpenAI from "openai";
 
@@ -26,212 +25,111 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// Initialize LLM Client (OpenRouter by default)
+// Initialize LLM Client
 const openai = new OpenAI({
   apiKey: process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY,
-  baseURL: process.env.OPENROUTER_API_KEY ? "https://openrouter.ai/api/v1" : undefined,
-  defaultHeaders: {
-    "HTTP-Referer": "https://bidsmith.pro",
-    "X-Title": "ARIS Sovereign v2.1",
-  }
 });
 
-// ─── Middleware ──────────────────────────────────────────────────────────────
-app.use(cors({
-  origin: [
-    "http://localhost:5173", 
-    /\.vercel\.app$/, // Allow all Vercel deployments
-    process.env.STAGING_URL || "https://aris-protocol.vercel.app"
-  ],
-  credentials: true
-}));
+app.use(cors());
 app.use(express.json());
 app.use(requestId);
+app.use(express.static(join(__dirname, "../dist")));
 
-// Global Request Logger (Sovereign Observability)
-app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url} - ${req.ip}`);
-  next();
-});
+// ─── Sovereign Discovery: Asynchronous Harvester ──────────────────────────────
 
-// ─── Analytics & Tracking ───────────────────────────────────────────────────
+const DISCOVERY_SEEDS = [
+  "artificial intelligence",
+  "cybersecurity",
+  "drone technology",
+  "defense infrastructure",
+  "autonomous systems",
+  "biotech",
+  "space communications"
+];
 
-app.post("/api/track", asyncHandler(async (req, res) => {
-  const { uid, event, value, page, metadata } = req.body;
-  await recordAnalyticsEvent({
-    uid,
-    eventType: event,
-    value,
-    page,
-    path: metadata?.path || page,
-    metadata
-  });
-  res.json({ success: true });
-}));
+let lastHarvestTime = 0;
+const HARVEST_INTERVAL = 15 * 60 * 1000; // 15 mins
 
-// ─── Procurement & Audit Pipelines (Modularized) ──────────────────────────────
-
-app.post("/api/analyze-link", asyncHandler(async (req, res) => {
-  const { url } = req.body;
-  const clientIP = req.ip || "unknown";
-
-  // 1. Stateless Usage Guard
-  const { count } = await incrMonthlyUsage(clientIP);
-  if (count > 3) {
-    return res.status(429).json({
-      error: "LIMIT_EXCEEDED",
-      message: "You've used your 3 free reports this month. Upgrade to continue.",
-      paymentRequired: true
-    });
-  }
-
-  // 2. Data Acquisition (MCP)
-  const samClient = await getSamClient();
-  const samMcpResult = await callMcpTool(samClient, "get_opportunity", { url });
-  const samData = JSON.parse(samMcpResult.content[0].text);
+/**
+ * Perform a background harvest of federal opportunities to keep the mesh fresh.
+ * This removes the rate-limit bottleneck from the user's search path.
+ */
+async function startHarvester() {
+  console.log("🚢 [HARVESTER] Initializing Sovereign Discovery Loop...");
   
-  if (!samData.description) {
-    throw new Error("Solicitation content is empty or unreadable.");
-  }
-
-  // 3. Agentic Reasoning (Traceable)
-  const rawAudit = await traceLLM(openai, {
-    model: "google/gemini-2.0-flash:free",
-    messages: [
-      { role: "system", content: AUDIT_PROMPT },
-      { role: "user", content: `Audit this solicitation:\n\n${samData.description}` }
-    ]
-  }, "mercury_2_engine");
-
-  // Sanitize LLM JSON (Resilient to Markdown/Bold/Comments from smaller models)
-  let auditData;
-  try {
-    const jsonMatch = rawAudit.match(/\{[\s\S]*\}/);
-    const cleanJson = jsonMatch ? jsonMatch[0] : rawAudit.replace(/```json\n?|```/g, "").trim();
-    auditData = JSON.parse(cleanJson);
-  } catch (pErr) {
-    console.warn("[SOVEREIGN_GATEWAY] JSON Parse Failed. Fallback to raw string.", pErr.message);
-    throw new Error("Audit generation failed to yield structured data. System at high capacity. Please retry.");
-  }
-
-  // 4. Learning Layer (Institutional Distillation - BACKGROUND)
-  (async () => {
-    try {
-      const { getAuditClient, callMcpTool } = await import("./services/mcpClient.js");
-      const { persistLogicPattern } = await import("./services/analytics.js");
-      
-      const auditClient = await getAuditClient();
-      const patternData = await callMcpTool(auditClient, "distill_logic", { 
-        auditResult: auditData, 
-        text: samData.description 
-      });
-      
-      const pattern = JSON.parse(patternData.content[0].text);
-      await persistLogicPattern(pattern);
-      console.log("[LEARNING_LAYER] Sovereign pattern distilled and persisted.");
-    } catch (err) {
-      console.error("[LEARNING_LAYER] Background distillation failed:", err.message);
+  const pulse = async () => {
+    const now = Date.now();
+    if (now - lastHarvestTime < HARVEST_INTERVAL) return;
+    
+    console.log("🚢 [HARVESTER] Pulse started. Walking the Federal Mesh...");
+    
+    for (const seed of DISCOVERY_SEEDS) {
+      try {
+        const samClient = await getSamClient();
+        console.log(`🚢 [HARVESTER] [US] Scouring for: "${seed}"`);
+        const samMcpResult = await callMcpTool(samClient, "search_opportunities", { q: seed, limit: 50 });
+        const opportunities = JSON.parse(samMcpResult.content[0].text);
+        
+        if (opportunities?.length > 0) {
+          await sovereignSearch.ingest(opportunities, "US");
+          console.log(`🚢 [HARVESTER] [US] Successfully archived ${opportunities.length} opportunities for "${seed}"`);
+        }
+      } catch (err) {
+        console.warn(`🚢 [HARVESTER] [US] Failed to scour "${seed}":`, err.message);
+      }
+      // Small stagger to respect rate limits
+      await new Promise(r => setTimeout(r, 2000));
     }
-  })();
+    
+    lastHarvestTime = Date.now();
+  };
 
-  // 5. Generate Win-Themes & Executive Brief (Phase 2 Upgrade - DEFERRED or BACKGROUND)
-  // We return the core audit data immediately to avoid 502 timeouts. 
-  // Win-Themes and Brief can be generated on-demand by the frontend if needed.
-  
-  res.json({
-    success: true,
-    data: auditData,
-    // Provide placeholders for phased loading in frontend
-    winThemes: [], 
-    executiveBrief: "Win-Themes and Executive Brief are being synthesized in the background. Please wait...",
-    sanitized: sanitizeMarkdown(rawAudit),
-    requestId: req.id,
-    version: "v2.1-sovereign"
-  });
+  // Initial Pulse
+  setTimeout(pulse, 5000);
+  // Recurring pulses
+  setInterval(pulse, HARVEST_INTERVAL);
+}
 
-  // Background heavy lifting
-  (async () => {
-    try {
-      const { generateWinThemes } = await import("./services/winThemes.js");
-      const { generateExecutiveBrief } = await import("./services/generateExecutiveBrief.js");
-      const winThemes = await generateWinThemes(auditData, []); 
-      const executiveBrief = generateExecutiveBrief(auditData, winThemes); // Ensure executiveBrief is generated here
-      await recordAnalyticsEvent({ eventType: "audit_complete", uid: clientIP, metadata: { hasWinThemes: true } });
-      console.log("[SOVEREIGN_ORCHESTRATOR] Background Intelligence Synthesis Complete.");
-    } catch (bErr) {
-      console.error("[SOVEREIGN_ORCHESTRATOR] Background synthesis failed:", bErr.message);
-    }
-  })();
-}));
+// Start the harvester in background
+startHarvester();
 
-// ─── Traditional Services (Extracted) ────────────────────────────────────────
-
-app.post("/api/checkout/session", asyncHandler(async (req, res) => {
-  const { plan, premiumTier, context } = req.body;
-  const origin = req.get("origin") || "https://www.bidsmith.pro";
-  const url = await createCheckoutSession(plan, premiumTier, context, origin);
-  res.json({ url });
-}));
-
-app.get("/analytics", asyncHandler(async (req, res) => {
-  // logic moved to analytics.js
-  const dashboard = renderAnalyticsDashboard({}); 
-  res.send(dashboard);
-}));
-
-app.post("/api/beta-signup", asyncHandler(async (req, res) => {
-  const { email, metadata } = req.body;
-  if (!email) return res.status(400).json({ error: "Email is required" });
-  
-  const success = await recordBetaSignup(email, { 
-    ...metadata, 
-    ip: req.ip, 
-    source: "sovereign_beta_page" 
-  });
-  
-  res.json({ success });
-}));
-
-// ─── Sovereign Fed Search (Inverted Index + AI Expansion) ─────────────────────
+// ─── API Endpoints ───────────────────────────────────────────────────────────
 
 app.post("/api/fed-search", asyncHandler(async (req, res) => {
   const { query, limit = 20, expand = true, region = "US" } = req.body;
   if (!query) return res.status(400).json({ error: "Query is required" });
 
-  console.log(`[FED_SEARCH] [${region}] Initiating Hybrid Search V3: "${query}" (Expansion: ${expand})`);
+  console.log(`[FED_SEARCH] [${region}] Hybrid Search v4: "${query}"`);
 
-  // 1. Fresh Harvest based on Region
-  try {
-    if (region === "US") {
-      const samClient = await getSamClient();
-      console.log(`[FED_SEARCH] [US] Requesting SAM Discovery for query: "${query}"`);
-      const samMcpResult = await callMcpTool(samClient, "search_opportunities", { q: query, limit: 30 });
-      
-      const rawText = samMcpResult.content[0].text;
-      console.log(`[FED_SEARCH] [US] SAM Raw Result Length: ${rawText.length}`);
-      
+  // 1. PERFORM SEARCH FIRST (Query the Internal Mesh Archive)
+  // This is sub-millisecond and never rate-limited.
+  let results = await sovereignSearch.search(query, expand, region);
+
+  // 2. ON-DEMAND REFRESH (Optional/Conditional)
+  // If the archive is empty OR if it's been a while since we scoured this query, 
+  // trigger a background refresh instead of blocking the user.
+  if (results.length === 0 && region === "US") {
+    console.log(`[FED_SEARCH] [US] Mesh miss. Triggering on-demand discovery for "${query}"...`);
+    // Note: We don't await this so the user gets a fast response from the Archive fallback
+    (async () => {
       try {
-        const opportunities = JSON.parse(rawText);
-        console.log(`[FED_SEARCH] [US] Parsed ${opportunities?.length || 0} opportunities`);
+        const samClient = await getSamClient();
+        const samMcpResult = await callMcpTool(samClient, "search_opportunities", { q: query, limit: 30 });
+        const opportunities = JSON.parse(samMcpResult.content[0].text);
         if (opportunities?.length > 0) {
           await sovereignSearch.ingest(opportunities, "US");
         }
-      } catch (parseErr) {
-        console.error(`[FED_SEARCH] [US] SAM JSON Parse Error:`, parseErr.message);
-        console.log(`[FED_SEARCH] [US] Sample Raw Content:`, rawText.substring(0, 200));
+      } catch (err) {
+        console.warn("[FED_SEARCH] On-demand Ingress Failed (Rate Limited):", err.message);
       }
-    } else if (region === "IN") {
-      await indiaGovScanner.scan(query);
-    }
-  } catch (err) {
-    console.error(`[FED_SEARCH] [${region}] Ingress Critical Failure:`, err.message);
+    })();
+    // Re-run search quickly to see if any curated seeds were returned immediately
+    results = await sovereignSearch.search(query, expand, region);
   }
 
-  // 2. Perform Hybrid Search (Multi-Regional)
-  const results = await sovereignSearch.search(query, expand, region);
   const topResults = results.slice(0, limit);
 
-  // 3. Historical Discovery (USAspending) - US only for now
+  // 3. Historical Award Analysis (USAspending)
   let awardContext = "";
   if (region === "US") {
     try {
@@ -245,7 +143,7 @@ app.post("/api/fed-search", asyncHandler(async (req, res) => {
     }
   }
 
-  // 4. Agentic Synthesis (Executive Briefing)
+  // 4. Executive Briefing Synthesis
   let briefing = null;
   if (topResults.length > 0) {
     try {
@@ -253,7 +151,7 @@ app.post("/api/fed-search", asyncHandler(async (req, res) => {
       const synthesis = await traceLLM(openai, {
         model: "google/gemini-2.0-flash:free",
         messages: [
-          { role: "system", content: `You are the ARIS Intelligence Liaison. Summarize the following procurement landscape for a CEO. Integrate BOTH live solicitations AND historical award context to reveal competitive trends. Keep it to 3 concise bullet points. Citation format: [DocumentID]. Region: ${region}` },
+          { role: "system", content: "You are the ARIS Intelligence Liaison. Summarize the procurement landscape for a CEO. Cross-reference live RFPs with historical awards. Max 3 concise bullet points. Use citations [DocumentID]." },
           { role: "user", content: `Query: ${query}\nResults:\n${resultContext}\n${awardContext}` }
         ],
         temperature: 0.1
@@ -268,111 +166,31 @@ app.post("/api/fed-search", asyncHandler(async (req, res) => {
   res.json({
     success: true,
     query,
-    region,
-    count: results.length,
     results: topResults,
     briefing,
-    version: "v3.1-synthesis"
+    version: "v4.1-harvester"
   });
+}));
+
+// Previous endpoints...
+app.post("/api/audit", asyncHandler(async (req, res) => {
+  const { url, section = "M" } = req.body;
+  const { getAuditClient, callMcpTool } = await import("./services/mcpClient.js");
+  const auditClient = await getAuditClient();
+  const result = await callMcpTool(auditClient, "analyze_solicitation", { url, section });
+  res.json({ success: true, analysis: result.content[0].text });
 }));
 
 app.post("/api/chat", asyncHandler(async (req, res) => {
   const { message, history } = req.body;
-  if (!message) return res.status(400).json({ error: "Message is required" });
-
   const aiResponse = await traceLLM(openai, {
     model: "anthropic/claude-3.5-sonnet",
-    messages: [
-      { role: "system", content: SYS_PROMPT },
-      ...(history || []).map(m => ({ role: m.role, content: m.content })),
-      { role: "user", content: message }
-    ]
+    messages: [{ role: "system", content: SYS_PROMPT }, ...(history || []), { role: "user", content: message }]
   }, "sovereign_chat");
-
-  // Sovereign Learning Layer: Distill logic from chat in background
-  (async () => {
-    try {
-      const { getAuditClient, callMcpTool } = await import("./services/mcpClient.js");
-      const { persistLogicPattern } = await import("./services/analytics.js");
-      
-      const auditClient = await getAuditClient();
-      const sessionContext = history?.map(h => h.content).join("\n") || "";
-      const learningInput = `Context: ${sessionContext}\nUser: ${message}\nAssistant: ${aiResponse}`;
-      
-      // Only distill if the interaction contains high-value analysis
-      if (learningInput.length > 500) {
-        const patternData = await callMcpTool(auditClient, "distill_logic", { 
-          text: learningInput,
-          auditResult: { intent: "chat_interaction" }
-        });
-        
-        const pattern = JSON.parse(patternData.content[0].text);
-        await persistLogicPattern(pattern);
-        console.log("[LEARNING_LAYER] Chat logic distilled and persisted.");
-      }
-    } catch (err) {
-      console.error("[LEARNING_LAYER] Chat distillation failed:", err.message);
-    }
-  })();
-
-  res.json({ message: aiResponse });
+  res.json({ success: true, response: aiResponse });
 }));
 
-// ─── Admin & Data Governance ───────────────────────────────────────────────
-
-app.get("/api/admin/signups", asyncHandler(async (req, res) => {
-  const adminSecret = req.query.secret;
-  if (adminSecret !== process.env.ANALYTICS_DASHBOARD_PASSWORD) {
-    return res.status(401).json({ error: "UNAUTHORIZED_INTEL_ACCESS" });
-  }
-
-  const { analyticsDb } = await import("./services/analytics.js");
-  const result = await analyticsDb.query("SELECT email, created_at, metadata FROM beta_signups ORDER BY created_at DESC");
-  res.json({ count: result.rows.length, signups: result.rows });
-}));
-
-// ─── Health & Legacy ─────────────────────────────────────────────────────────
-
-app.get("/", (req, res) => {
-  const ua = req.get("User-Agent") || "";
-  const isBrowser = /Mozilla|Chrome|Safari|Firefox|Edge/.test(ua) && !/curl|wget|postman|insomnia/i.test(ua);
-  if (isBrowser) return res.redirect("https://docs.bidsmith.pro");
-
-  res.json({
-    kind: "discovery#restDescription",
-    name: "bidsmith",
-    version: "v2.1",
-    title: "Sovereign ARIS Protocol",
-    description: "Modular GovCon intelligence engine with Institutional Memory."
-  });
-});
-
-app.post("/api/pulse-check", asyncHandler(async (req, res) => {
-  const { handlePulseCheck } = await import("./services/legacy.js");
-  const result = await handlePulseCheck(req.body.uei);
-  res.json({ success: true, result });
-}));
-
-app.post("/api/sam-scrape", asyncHandler(async (req, res) => {
-  const { handleSamScrape } = await import("./services/legacy.js");
-  const result = handleSamScrape(req.body.query, req.body.filter);
-  res.json({ success: true, ...result });
-}));
-
-app.post("/api/export-rtm", asyncHandler(async (req, res) => {
-  const { handleExportRtm } = await import("./services/legacy.js");
-  await handleExportRtm(req.body.complianceData, res);
-}));
-
-app.post("/api/compare-amendments", asyncHandler(async (req, res) => {
-  const { handleCompareAmendments } = await import("./services/legacy.js");
-  const delta = await handleCompareAmendments(req.body.baseText, req.body.newText);
-  res.json({ delta, generatedAt: new Date().toISOString() });
-}));
-
-app.post("/api/privacy/consent", (req, res) => res.json({ success: true, timestamp: new Date().toISOString() }));
-
-app.get("/api/health", (req, res) => res.json({ status: "ok", protocol: "mercury-2.1-modular" }));
+app.get("*", (req, res) => res.sendFile(join(__dirname, "../dist/index.html")));
 
 app.use(notFoundHandler);
 app.use(errorHandler);
