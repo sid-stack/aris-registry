@@ -38,20 +38,19 @@ app.use(express.static(join(__dirname, "../dist")));
 // ─── Sovereign Discovery: Asynchronous Harvester ──────────────────────────────
 
 const DISCOVERY_SEEDS = [
-  "Artificial Intelligence", "Machine Learning", "Cybersecurity", "Zero Trust",
-  "Cloud Modernization", "Unmanned Aerial Systems", "UAV Detection", "Counter-UAS",
-  "Autonomous Systems", "Defense Infrastructure", "Tactical Computing",
+  // 🦅 TIER 1: HIGH PRIORITY (CEO FOCUS)
+  "Artificial Intelligence", "Generative AI", "Cybersecurity", "Zero Trust",
+  "Petroleum", "Oil & Gas", "Energy Security", "Land Acquisition",
+  "Defense Procurement", "Weapon Systems", "Military Logistics", "Wars",
+  
+  // 🛡️ TIER 2: STRATEGIC DISCOVERY
+  "Critical Infrastructure", "Threat Intelligence", "Advanced Technology",
+  "Infrastructure", "Real Estate", "Public Lands", "Energy Intelligence",
+  "UAV Detection", "Counter-UAS", "Autonomous Systems", "Defense Infrastructure",
   "Space Communications", "Satellite Technology", "Biotechnology", "Genomics",
-  "Quantum Computing", "Cybersecurity Operations", "Threat Intelligence",
-  "Logistics Automation", "Predictive Maintenance", "Additive Manufacturing",
-  "Advanced Materials", "Robotics", "Secure Networking", "5G Technology",
-  "Microelectronics", "Hypersonic Systems", "Directed Energy", "Electronic Warfare",
-  "C4ISR", "Data Analytics", "Smart Grids", "Renewable Energy", "Healthcare IT",
-  "Medical Devices", "Pharmaceuticals", "Vaccine Development", "Emergency Management",
-  "Disaster Recovery", "Border Security", "Surveillance Systems", "Biometrics",
-  "Physical Security", "Training & Simulation", "Virtual Reality", "Augmented Reality",
-  "Telecommunications", "Fleet Management", "Weapon Systems", "Marine Technology",
-  "Aircraft Components", "Vehicle Maintenance"
+  "Quantum Computing", "Additive Manufacturing", "Advanced Materials", "Robotics",
+  "Secure Networking", "5G Technology", "Microelectronics", "Hypersonic Systems",
+  "Directed Energy", "Electronic Warfare", "C4ISR", "Data Analytics", "Smart Grids"
 ];
 
 let lastHarvestTime = 0;
