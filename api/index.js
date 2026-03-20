@@ -134,24 +134,28 @@ app.post("/api/fed-search", asyncHandler(async (req, res) => {
     }
   }
 
-  // 4. Executive Briefing Synthesis
+  // 4. Executive Briefing Synthesis (Sovereign AI Overview)
   let briefing = null;
-  if (topResults.length > 0) {
-    try {
-      const resultContext = topResults.map(r => `[${r.id}] ${r.title} (${r.agency}): ${r.postedDate}`).join("\n");
-      const synthesis = await traceLLM(openai, {
-        model: "google/gemini-2.0-flash:free",
-        messages: [
-          { role: "system", content: "You are the ARIS Intelligence Liaison. Summarize the procurement landscape for a CEO. Cross-reference live RFPs with historical awards. Max 3 concise bullet points. Use citations [DocumentID]." },
-          { role: "user", content: `Query: ${query}\nResults:\n${resultContext}\n${awardContext}` }
-        ],
-        temperature: 0.1
-      }, "fed_search_synthesis");
-      
-      briefing = synthesis;
-    } catch (err) {
-      console.warn("[FED_SEARCH] Synthesis failed:", err.message);
-    }
+  try {
+    const resultContext = topResults.length > 0
+      ? topResults.map(r => `[${r.id}] ${r.title} (${r.agency}): ${r.postedDate}`).join("\n")
+      : "No direct solicitations found in the immediate Sovereign Table.";
+
+    const synthesis = await traceLLM(openai, {
+      model: "google/gemini-2.0-flash:free",
+      messages: [
+        { 
+          role: "system", 
+          content: "You are the ARIS Intelligence Liaison. If solicitations are provided, summarize the landscape. If NO solicitations are provided, generate a 3-bullet 'Sovereign Market Intel' briefing based on known federal trends for this industry. Max 3 concise bullets. Focus on LAND, OIL, AI, CYBER, or DEFENSE context where applicable." 
+        },
+        { role: "user", content: `Query: ${query}\nSystem Context:\n${resultContext}\n${awardContext}` }
+      ],
+      temperature: 0.1
+    }, "fed_search_synthesis");
+    
+    briefing = synthesis;
+  } catch (err) {
+    console.warn("[FED_SEARCH] Synthesis failed:", err.message);
   }
   
   res.json({
