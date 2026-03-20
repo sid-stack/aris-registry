@@ -1,4 +1,5 @@
 import { vectorIndex, redis } from "../utils/upstash.js";
+import { usaspending } from "./usaspending.js";
 import OpenAI from "openai";
 
 const openai = process.env.OPENROUTER_API_KEY ? new OpenAI({
@@ -8,61 +9,60 @@ const openai = process.env.OPENROUTER_API_KEY ? new OpenAI({
 }) : null;
 
 /**
- * 🚢 Sovereign Intelligence V7 (The Knowledge Architecture)
- * Features: 
- * 1. Distributed Inverted Index (Dictionary-style)
+ * Sovereign Intelligence V7 (The Knowledge Architecture)
+ * Features:
+ * 1. Distributed Inverted Index (Union-based, not intersection)
  * 2. Knowledge Graph / Ontology Mesh
  * 3. PageRank-inspired Authority Reranking
- * 4. In-place Atomic Deduplication
+ * 4. Live USAspending fallback when mesh is empty
  */
 export class FedSearchEngine {
   constructor() {
     this.stopWords = new Set(["the", "and", "for", "with", "from", "that", "this", "are", "was", "is"]);
-    
-    // 🧠 SOVEREIGN ONTOLOGY (Knowledge Graph)
-    // Maps core sectors to semantic descendants and related agencies.
+
+    // SOVEREIGN ONTOLOGY (Knowledge Graph)
     this.ontology = {
-      "artificial intelligence": ["machine learning", "neural networks", "llm", "cv", "generative ai", "darpa", "nsf"],
-      "cybersecurity": ["zero trust", "threat intelligence", "nist", "cisa", "encryption", "offensive cyber"],
-      "oil": ["petroleum", "energy security", "offshore", "renewable energy", "doe", "fossil fuels"],
-      "land": ["real estate", "infrastructure", "military base", "territorial", "blm", "gsa"],
+      "artificial intelligence": ["machine learning", "neural networks", "llm", "generative ai", "darpa", "nsf"],
+      "cybersecurity": ["zero trust", "threat intelligence", "nist", "cisa", "encryption"],
+      "oil": ["petroleum", "energy security", "offshore", "doe", "fossil fuels"],
+      "land": ["real estate", "infrastructure", "military base", "blm", "gsa"],
       "defense": ["weaponry", "uav", "tactical", "c4isr", "navy", "army", "air force", "dod"]
     };
   }
 
   /**
-   * 🦅 Strategic Query Expansion (V7: Ontology-First)
+   * Strategic Query Expansion (Ontology-first, LLM fallback)
    */
-  async expandQuery(query, region = "US") {
+  async expandQuery(query) {
     const q = query.toLowerCase();
-    let ontologicalterms = [];
-    
-    // Layer 1: Knowledge Graph Lookup (Zero-Latency)
+    let terms = [];
+
     for (const [parent, kids] of Object.entries(this.ontology)) {
-      if (q.includes(parent)) ontologicalterms.push(...kids);
+      if (q.includes(parent)) terms.push(...kids);
     }
 
-    // Layer 2: LLM Strategic Expansion (High-Intent)
-    if (openai && ontologicalterms.length < 3) {
+    if (openai && terms.length < 3) {
       try {
         const response = await openai.chat.completions.create({
           model: "google/gemini-2.0-flash-001",
           messages: [
-            { role: "system", content: "You are a Federal Capture Strategists. Expand the query into 5 procurement-grade synonyms. ONLY the terms." },
+            { role: "system", content: "You are a Federal Capture Strategist. Expand the query into 5 procurement-grade synonyms. Return ONLY the terms, space-separated." },
             { role: "user", content: `Query: ${query}` }
           ],
           temperature: 0.1
         });
         const aiTerms = response.choices[0].message.content.trim().split(/\s+/);
-        ontologicalterms.push(...aiTerms);
-      } catch (err) { /* Silent fallback */ }
+        terms.push(...aiTerms);
+      } catch (err) {
+        console.warn("[SEARCH] LLM query expansion failed:", err.message);
+      }
     }
 
-    return Array.from(new Set([query, ...ontologicalterms])).join(" ");
+    return Array.from(new Set([query, ...terms])).join(" ");
   }
 
   /**
-   * 🚨 THE SINGLE WRITER (APPEND-ONLY & DEDUPLICATED)
+   * THE SINGLE WRITER (append-only, deduplicated)
    */
   async syncSovereignTable(opportunities, region = "US") {
     if (!opportunities || !Array.isArray(opportunities) || opportunities.length === 0) return;
@@ -73,35 +73,41 @@ export class FedSearchEngine {
       let addedCount = 0;
 
       for (const opt of opportunities) {
-         const docId = opt.noticeId || opt.id || opt["Award ID"] || opt.pageid;
-         if (!docId) continue;
+        const docId = opt.noticeId || opt.id || opt["Award ID"] || opt.pageid;
+        if (!docId) continue;
 
-         const docData = this.normalizeDoc(opt, region);
-         
-         // 🛡️ ATOMIC DEDUPLICATION: Sync to Hash only if NEW
-         pipeline.hsetnx("aris:mesh:docs", docId, JSON.stringify(docData));
-         
-         const terms = this.tokenize(`${docData.title} ${opt.agency} ${opt.description || ""}`);
-         for (const term of terms) {
-           pipeline.sadd(`aris:mesh:term:${term}`, docId);
-         }
-         addedCount++;
+        const docData = this.normalizeDoc(opt, region);
+
+        // Atomic deduplication: only write if new
+        pipeline.hsetnx("aris:mesh:docs", docId, JSON.stringify(docData));
+
+        const terms = this.tokenize(`${docData.title} ${docData.agency}`);
+        for (const term of terms) {
+          pipeline.sadd(`aris:mesh:term:${term}`, docId);
+        }
+        addedCount++;
       }
 
       await pipeline.exec();
-      
+
+      // Vector upsert: include `data` field so Upstash auto-embeds the text
       if (vectorIndex && addedCount > 0) {
-        await vectorIndex.upsert(opportunities.slice(0, 50).map(o => ({
-          id: `opt:${o.noticeId || o.id}`,
-          metadata: this.normalizeDoc(o, region)
-        })));
+        await vectorIndex.upsert(opportunities.slice(0, 50).map(o => {
+          const doc = this.normalizeDoc(o, region);
+          return {
+            id: `opt:${o.noticeId || o.id}`,
+            data: `${doc.title} ${doc.agency}`,
+            metadata: doc
+          };
+        }));
       }
-    } catch (err) { console.error("🛡️ [V7] Sync Fail:", err.message); }
+    } catch (err) {
+      console.error("[V7] Sync failed:", err.message);
+    }
   }
 
   /**
-   * 🔍 SOVEREIGN RERANKER (PageRank-style Authority Scoring)
-   * Weights: Recency (40%), Agency Authority (30%), Semantic Depth (30%)
+   * SOVEREIGN RERANKER (PageRank-style authority + recency scoring)
    */
   rankResults(results) {
     const now = new Date();
@@ -109,71 +115,100 @@ export class FedSearchEngine {
 
     return results.map(r => {
       let authorityScore = 1.0;
-      
-      // 1. Agency Authority (PageRank)
+
       const agencyNorm = (r.agency || "").toLowerCase();
       if (highAuthorityAgencies.has(agencyNorm)) authorityScore += 0.5;
 
-      // 2. Recency Decay
       const postDate = new Date(r.postedDate);
       const daysOld = (now - postDate) / (1000 * 60 * 60 * 24);
-      const recencyScore = Math.max(0, 1 - (daysOld / 365)); // 1.0 if today, 0 if > 1 year
+      const recencyScore = Math.max(0, 1 - (daysOld / 365));
 
-      // 3. Final Composite Score
-      const finalScore = (r.score * 0.4) + (authorityScore * 0.3) + (recencyScore * 0.3);
-      
+      const finalScore = ((r.score || 0.5) * 0.4) + (authorityScore * 0.3) + (recencyScore * 0.3);
       return { ...r, authorityScore: finalScore };
     }).sort((a, b) => b.authorityScore - a.authorityScore);
   }
 
-  async search(query, expand = false, region = "US") {
+  async search(query, expand = false) {
     const results = new Map();
     let finalQuery = query;
 
-    if (expand) finalQuery = await this.expandQuery(query, region);
+    if (expand) finalQuery = await this.expandQuery(query);
     const queryTerms = this.tokenize(finalQuery);
-    
+
+    // Layer 1: Redis inverted index (union — any term match counts)
     if (queryTerms.length > 0 && redis) {
-       try {
-         const termKeys = queryTerms.map(t => `aris:mesh:term:${t}`);
-         const matchedIds = await redis.sinter(...termKeys.slice(0, 10));
-         
-         if (matchedIds?.length > 0) {
-           const docs = await redis.hmget("aris:mesh:docs", ...matchedIds.slice(0, 50));
-           docs.forEach((docStr, i) => {
-             if (docStr) {
-                const doc = typeof docStr === 'string' ? JSON.parse(docStr) : docStr;
-                results.set(matchedIds[i], { ...doc, score: 1.0, matchType: 'keyword_mesh' });
-             }
-           });
-         }
-       } catch (err) { /* silent */ }
+      try {
+        const termKeys = queryTerms.map(t => `aris:mesh:term:${t}`);
+        // sunion returns docs matching ANY of the query terms (much broader than sinter)
+        const matchedIds = termKeys.length === 1
+          ? await redis.smembers(termKeys[0])
+          : await redis.sunion(...termKeys.slice(0, 10));
+
+        if (matchedIds?.length > 0) {
+          const docs = await redis.hmget("aris:mesh:docs", ...matchedIds.slice(0, 50));
+          docs.forEach((docStr, i) => {
+            if (docStr) {
+              const doc = typeof docStr === "string" ? JSON.parse(docStr) : docStr;
+              results.set(matchedIds[i], { ...doc, score: 1.0, matchType: "keyword_mesh" });
+            }
+          });
+        }
+      } catch (err) {
+        console.warn("[SEARCH] Redis mesh query failed:", err.message);
+      }
     }
 
+    // Layer 2: Vector semantic search
     if (vectorIndex) {
       try {
         const semanticMatches = await vectorIndex.query({ data: query, topK: 20, includeMetadata: true });
         semanticMatches.forEach(match => {
-          const id = match.id.replace('opt:', '');
+          const id = match.id.replace("opt:", "");
           if (!results.has(id)) {
-            results.set(id, { id, ...match.metadata, score: match.score, matchType: 'semantic' });
-          } else { results.get(id).score += match.score; }
+            results.set(id, { id, ...match.metadata, score: match.score, matchType: "semantic" });
+          } else {
+            results.get(id).score += match.score;
+          }
         });
-      } catch (err) { /* silent */ }
+      } catch (err) {
+        console.warn("[SEARCH] Vector query failed:", err.message);
+      }
     }
 
-    // V7: Apply PageRank-inspired Reranking
-    const finalResults = this.rankResults(Array.from(results.values()));
-    return finalResults;
+    // Layer 3: Live USAspending fallback when mesh has no data
+    if (results.size === 0) {
+      try {
+        const awards = await usaspending.getAwardsSummary(query);
+        awards.forEach(a => {
+          const id = a["Award ID"] || `award:${Math.random().toString(36).slice(2, 7)}`;
+          if (!results.has(id)) {
+            results.set(id, {
+              id,
+              title: `${a["Recipient Name"]} — ${a["Awarding Agency"]}`,
+              agency: a["Awarding Agency"] || "Federal Agency",
+              postedDate: a["Start Date"] || new Date().toISOString().split("T")[0],
+              region: "US",
+              url: "",
+              score: 0.5,
+              matchType: "award_fallback"
+            });
+          }
+        });
+      } catch (err) {
+        console.warn("[SEARCH] USAspending fallback failed:", err.message);
+      }
+    }
+
+    return this.rankResults(Array.from(results.values()));
   }
 
   normalizeDoc(opt, region) {
     const docId = opt.noticeId || opt.id || opt["Award ID"] || opt.pageid || `gen:${Math.random().toString(36).slice(2, 9)}`;
     return {
       id: docId,
-      title: opt.title || opt["Award ID"] || "Sovereign Intelligence",
+      title: opt.title || opt["Award ID"] || "Federal Opportunity",
       agency: opt.agency || opt.organization || opt["Awarding Agency"] || "Federal Agency",
-      postedDate: opt.postedDate || opt.publishDate || opt["Start Date"] || new Date().toISOString().split('T')[0],
+      postedDate: opt.postedDate || opt.publishDate || opt["Start Date"] || new Date().toISOString().split("T")[0],
       region: region || "US",
       url: opt.url || (opt.noticeId ? `https://sam.gov/opp/${docId}/view` : "")
     };
@@ -181,32 +216,20 @@ export class FedSearchEngine {
 
   tokenize(text) {
     if (!text) return [];
-    return text.toLowerCase().replace(/[^a-z0-9\s]/g, "").split(/\s+/).filter(word => word.length >= 2 && !this.stopWords.has(word));
-  }
-
-  async ingestWikipedia(term) {
-    try {
-      const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(term)}`;
-      const resp = await fetch(url);
-      if (!resp.ok) return;
-      const data = await resp.json();
-      await this.syncSovereignTable([{
-        id: `wiki:${data.pageid}`,
-        title: data.title,
-        agency: "Wikipedia (Global Intelligence)",
-        description: data.extract,
-        url: data.content_urls?.desktop?.page,
-        pageid: data.pageid
-      }], "GLOBAL");
-    } catch (err) { return false; }
+    return text.toLowerCase()
+      .replace(/[^a-z0-9\s]/g, " ")
+      .split(/\s+/)
+      .filter(word => word.length >= 2 && !this.stopWords.has(word));
   }
 
   getTableData(password) {
-    if (password !== "aris3690") throw new Error("UNAUTHORIZED");
-    return redis.hvals("aris:mesh:docs").then(all => all.map(d => typeof d === 'string' ? JSON.parse(d) : d));
+    if (!password || password !== process.env.ADMIN_PASSWORD) throw new Error("UNAUTHORIZED");
+    if (!redis) throw new Error("REDIS_UNAVAILABLE");
+    return redis.hvals("aris:mesh:docs").then(all => all.map(d => typeof d === "string" ? JSON.parse(d) : d));
   }
 
   getStats() {
+    if (!redis) return Promise.resolve({ tableRows: 0, status: "Redis_Unconfigured", architecture: "Sovereign_V7_Mesh" });
     return redis.hlen("aris:mesh:docs").then(count => ({
       tableRows: count,
       status: "Operational",

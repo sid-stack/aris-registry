@@ -28,11 +28,9 @@ export async function ensureAnalyticsSchema() {
 
     CREATE TABLE IF NOT EXISTS logic_library (
       pattern_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      agency_archetype TEXT NOT NULL, -- e.g. 'FINANCE_REGULATOR', 'DEFENSE_DLA'
-      conflict_type TEXT NOT NULL,    -- e.g. 'SECTION_L_M_MISMATCH'
-      logic_vector VECTOR(1536),      -- Semantic mapping of the pattern
-      constraint_severity INT DEFAULT 1, -- 1-5 scale
-      remediation_strategy TEXT,      -- The "Win" advice
+      agency_archetype TEXT NOT NULL,
+      conflict_type TEXT NOT NULL,
+      remediation_strategy TEXT,
       observation TEXT NOT NULL,
       frequency INT DEFAULT 1,
       metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
@@ -83,29 +81,19 @@ export async function persistLogicPattern(pattern) {
   if (!analyticsDb) return false;
   try {
     await ensureAnalyticsSchema();
-    const { 
-      agencyArchetype, 
-      conflictType, 
-      observation, 
-      severity, 
-      remediation, 
-      metadata,
-      vector 
-    } = pattern;
+    const { agencyArchetype, conflictType, observation, remediation, metadata } = pattern;
 
     await analyticsDb.query(
-      `INSERT INTO logic_library (agency_archetype, conflict_type, observation, constraint_severity, remediation_strategy, metadata, logic_vector)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
-       ON CONFLICT (agency_archetype, conflict_type, observation) 
+      `INSERT INTO logic_library (agency_archetype, conflict_type, observation, remediation_strategy, metadata)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (agency_archetype, conflict_type, observation)
        DO UPDATE SET frequency = logic_library.frequency + 1, updated_at = NOW()`,
       [
-        agencyArchetype, 
-        conflictType, 
-        observation, 
-        severity || 1, 
-        remediation || "", 
-        JSON.stringify(metadata || {}),
-        vector 
+        agencyArchetype,
+        conflictType,
+        observation,
+        remediation || "",
+        JSON.stringify(metadata || {})
       ]
     );
     return true;

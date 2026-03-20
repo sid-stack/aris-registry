@@ -15,20 +15,21 @@ export const redis = (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_
   : null;
 
 /**
- * Atomic monthly usage increment
+ * Atomic monthly usage increment.
+ * Accepts a userId (preferred) or falls back to IP for anonymous users.
  */
-export async function incrMonthlyUsage(clientIP) {
+export async function incrMonthlyUsage(clientId) {
   if (!redis) return { count: 1, reset: "static" }; // Fallback to limited trace
-  
+
   const now = new Date();
-  const monthKey = `aris:usage:${clientIP}:${now.getFullYear()}-${now.getMonth()}`;
-  
+  const monthKey = `aris:usage:${clientId}:${now.getFullYear()}-${now.getMonth()}`;
+
   const count = await redis.incr(monthKey);
   if (count === 1) {
     // Set expiry to 32 days on first hit of the month
     await redis.expire(monthKey, 32 * 24 * 60 * 60);
   }
-  
+
   return { count };
 }
 
@@ -83,18 +84,31 @@ export async function indexGlobalOpportunities(opportunities) {
 }
 
 /**
+ * Validate sessionId to prevent filter injection.
+ * Only allows alphanumeric characters, hyphens, and underscores.
+ */
+function validateSessionId(sessionId) {
+  if (!sessionId || !/^[a-zA-Z0-9_-]+$/.test(sessionId)) {
+    throw new Error("Invalid sessionId format");
+  }
+  return sessionId;
+}
+
+/**
  * Query specifically for this session's documents.
  */
 export async function querySolicitation(sessionId, queryVector, topK = 5) {
   if (!vectorIndex) return [];
-  
+
+  validateSessionId(sessionId);
+
   const results = await vectorIndex.query({
     vector: queryVector,
     topK,
     filter: `sessionId = '${sessionId}'`,
     includeMetadata: true
   });
-  
+
   return results.map(r => r.metadata?.text).filter(Boolean);
 }
 
@@ -103,8 +117,22 @@ export async function querySolicitation(sessionId, queryVector, topK = 5) {
  */
 export async function wipeSessionVectors(sessionId) {
   if (!vectorIndex) return;
-  
-  // In a real implementation with high volume, consider using Namespaces for easier wiping.
-  // For now, delete by IDs generated during indexing.
-  // ... delete logic
+
+  validateSessionId(sessionId);
+
+  try {
+    // Fetch all vector IDs belonging to this session, then delete them
+    const results = await vectorIndex.query({
+      data: sessionId,
+      topK: 1000,
+      filter: `sessionId = '${sessionId}'`,
+      includeMetadata: false
+    });
+
+    if (results.length > 0) {
+      await vectorIndex.delete(results.map(r => r.id));
+    }
+  } catch (err) {
+    console.error("[VECTOR] Failed to wipe session vectors:", err.message);
+  }
 }

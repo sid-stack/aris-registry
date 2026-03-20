@@ -37,10 +37,35 @@ export class USAspendingClient {
   }
 
   /**
+   * Searches for awards filtered by NAICS code(s).
+   * Used by the Discovery feed to find relevant past awards.
+   */
+  async getAwardsByNaics(naicsCodes) {
+    const codes = Array.isArray(naicsCodes) ? naicsCodes : [naicsCodes];
+    try {
+      const resp = await fetch(`${this.baseUrl}/search/spending_by_award/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          filters: {
+            naics_codes: { require: codes }
+          },
+          limit: 25,
+          fields: ["Award ID", "Recipient Name", "Award Amount", "Awarding Agency", "Start Date", "Description"]
+        })
+      });
+      const data = await resp.json();
+      return data.results || [];
+    } catch (err) {
+      console.error("[US_DISCOVERY] NAICS Awards Retrieval Failed:", err.message);
+      return [];
+    }
+  }
+
+  /**
    * Fetches the top agencies for a specific NAICS or keyword
    */
   async getAgencyRankings(query) {
-    // ...
     return [];
   }
 }
