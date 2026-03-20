@@ -172,6 +172,33 @@ app.post("/api/fed-search", asyncHandler(async (req, res) => {
   });
 }));
 
+// ─── SaaS & Analytics ────────────────────────────────────────────────────────
+
+app.post("/api/track", asyncHandler(async (req, res) => {
+  await recordAnalyticsEvent(req.body);
+  res.json({ success: true });
+}));
+
+app.post("/api/beta-signup", asyncHandler(async (req, res) => {
+  await recordBetaSignup(req.body);
+  res.json({ success: true });
+}));
+
+app.post("/api/checkout", asyncHandler(async (req, res) => {
+  const session = await createCheckoutSession(req.body);
+  res.json({ url: session.url });
+}));
+
+app.get("/api/usage", asyncHandler(async (req, res) => {
+  const usage = await incrMonthlyUsage(req.ip);
+  res.json(usage);
+}));
+
+app.get("/api/analytics", asyncHandler(async (req, res) => {
+  const dashboard = await renderAnalyticsDashboard();
+  res.send(dashboard);
+}));
+
 // Previous endpoints...
 app.post("/api/audit", asyncHandler(async (req, res) => {
   const { url, section = "M" } = req.body;
