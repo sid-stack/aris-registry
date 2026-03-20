@@ -17,6 +17,7 @@ import { getSamClient, getAuditClient, callMcpTool } from "./services/mcpClient.
 import { createCheckoutSession } from "./services/stripe.js";
 import { recordAnalyticsEvent, renderAnalyticsDashboard, recordBetaSignup } from "./services/analytics.js";
 import { AUDIT_PROMPT, SYS_PROMPT } from "./src/prompts.js";
+import { sovereignSearch } from "./services/fedSearch.js";
 import OpenAI from "openai";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -187,6 +188,55 @@ app.post("/api/beta-signup", asyncHandler(async (req, res) => {
   });
   
   res.json({ success });
+}));
+
+// ─── Sovereign Fed Search (Inverted Index + AI Expansion) ─────────────────────
+
+app.post("/api/fed-search", asyncHandler(async (req, res) => {
+  const { query, limit = 20, expand = true } = req.body;
+  if (!query) return res.status(400).json({ error: "Query is required" });
+
+  console.log(`[FED_SEARCH] Processing query: "${query}" (Expansion: ${expand})`);
+
+  let effectiveQuery = query;
+
+  // 1. AI Query Expansion (Optional)
+  if (expand) {
+    try {
+      const expansionResult = await traceLLM(openai, {
+        model: "google/gemini-2.0-flash:free",
+        messages: [
+          { role: "system", content: "You are a Federal Capture Expert. Expand the search query into 3-5 related procurement terms. Output ONLY a comma-separated list." },
+          { role: "user", content: `Expand: ${query}` }
+        ]
+      }, "query_expansion");
+      
+      const expandedTerms = expansionResult.split(",").map(t => t.trim()).join(" ");
+      effectiveQuery = `${query} ${expandedTerms}`;
+      console.log(`[FED_SEARCH] Query expanded to: "${effectiveQuery}"`);
+    } catch (err) {
+      console.warn("[FED_SEARCH] Query expansion failed:", err.message);
+    }
+  }
+
+  // 2. Fetch Fresh Data (SAM MCP)
+  const samClient = await getSamClient();
+  const samMcpResult = await callMcpTool(samClient, "search_opportunities", { q: query, limit });
+  const opportunities = JSON.parse(samMcpResult.content[0].text);
+
+  // 3. Update Inverted Index (Stateless/Session-Based)
+  await sovereignSearch.ingest(opportunities);
+
+  // 4. Perform Ranked Search
+  const results = sovereignSearch.search(effectiveQuery);
+
+  res.json({
+    success: true,
+    query: effectiveQuery,
+    count: results.length,
+    results,
+    version: "v1.0-fedsearch"
+  });
 }));
 
 app.post("/api/chat", asyncHandler(async (req, res) => {
