@@ -13,6 +13,7 @@ import About from "./pages/About";
 import SamScraper from "./pages/SamScraper";
 import Labs from "./pages/Labs";
 import SovereignBeta from "./pages/SovereignBeta";
+import SovereignSearch from "./pages/SovereignSearch";
 import SurveyAnalytics from "./components/SurveyAnalytics";
 import DemoAnalytics from "./components/DemoAnalytics";
 import NotFound from "./pages/NotFound";
@@ -55,6 +56,8 @@ export default function App() {
                   ? "soc"
                   : path === "/sam-scraper"
                     ? "sam-scraper"
+                  : path === "/fed-search" || path === "/search"
+                    ? "fed-search"
                   : path === "/survey-analytics"
                     ? "survey-analytics"
                   : path === "/demo-analytics"
@@ -102,6 +105,8 @@ export default function App() {
       logicalPath = "/soc";
     } else if (view === "sam-scraper") {
       logicalPath = "/sam-scraper";
+    } else if (view === "fed-search") {
+      logicalPath = "/fed-search";
     } else if (view === "survey-analytics") {
       logicalPath = "/survey-analytics";
     } else if (view === "demo-analytics") {
@@ -161,6 +166,8 @@ export default function App() {
     content = <Security onBack={() => setView("landing")} />;
   } else if (view === "sam-scraper") {
     content = <SamScraper onBack={() => setView("landing")} />;
+  } else if (view === "fed-search") {
+    content = <SovereignSearch onBack={() => setView("landing")} />;
   } else if (view === "survey-analytics") {
     content = <SurveyAnalytics />;
   } else if (view === "demo-analytics") {
@@ -176,6 +183,7 @@ export default function App() {
       onEnterApp={() => setView("app")} 
       onViewSample={() => setView("sam-rep")} 
       onSovereignBeta={() => setView("sovereign-beta")}
+      onSovereignSearch={() => setView("fed-search")}
     />;
   } else if (view === "app") {
     // Audit is stateless and zero-knowledge, allow guest access for the first audit
