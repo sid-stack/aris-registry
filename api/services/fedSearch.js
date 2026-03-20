@@ -133,11 +133,21 @@ export class FedSearchEngine {
     return text.toLowerCase().replace(/[^a-z0-9\s]/g, "").split(/\s+/).filter(word => word.length >= 2 && !this.stopWords.has(word));
   }
 
-  async search(query, expand = false) {
+  /**
+   * 🔍 READ-ONLY SEARCH
+   * Strictly performs lookups in the memory-resident mirror of the Sovereign Table.
+   */
+  async search(query, expand = false, region = "US") {
     if (!this.isLoaded) await this.loadFromArchive();
 
     const results = new Map();
-    const queryTerms = this.tokenize(query);
+    let finalQuery = query;
+
+    if (expand) {
+      finalQuery = await this.expandQuery(query, region);
+    }
+
+    const queryTerms = this.tokenize(finalQuery);
     
     if (queryTerms.length > 0) {
       let resultSet = null;
