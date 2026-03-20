@@ -71,9 +71,10 @@ export async function indexGlobalOpportunities(opportunities) {
     metadata: { 
       type: "global_opportunity",
       title: opt.title,
-      agency: opt.agency,
-      postedDate: opt.postedDate,
-      url: opt.url || `https://sam.gov/opp/${opt.noticeId || opt.id}/view`
+      agency: opt.agency || opt.organization,
+      postedDate: opt.postedDate || opt.publishDate,
+      region: opt.region || "US",
+      url: opt.url || (opt.region === "IN" ? opt.link : `https://sam.gov/opp/${opt.noticeId || opt.id}/view`)
     }
   }));
 
