@@ -10,6 +10,7 @@ import {
 import { useEffect, useState } from "react";
 import FaqSection from "../components/FaqSection";
 import GovernmentBanner from "../components/GovernmentBanner";
+import AdSenseContainer from "../components/AdSenseContainer";
 import "./Landing.css";
 import { trackEvent } from "../utils/analytics";
 import PricingCard from "../components/PricingCard";
@@ -599,6 +600,11 @@ export default function Landing({ onEnterApp, onViewSample, onSovereignBeta, onS
       </section>
 
       <FaqSection />
+
+      {/* ── AdSense: inserted between FAQ and footer, isolated from page layout ── */}
+      <div style={{ width: '100%', maxWidth: 728, margin: '0 auto', padding: '0 20px' }}>
+        <AdSenseContainer slot="" format="horizontal" />
+      </div>
 
       <footer id="contact" style={styles.footerContainer}>
         <div style={styles.footerInnerGrid}>
