@@ -230,7 +230,7 @@ function IconCard({ title, description, icon }) {
   );
 }
 
-export default function Landing({ onEnterApp, onViewSample, onSovereignBeta }) {
+export default function Landing({ onEnterApp, onViewSample, onSovereignBeta, onSovereignSearch }) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isMobile, setIsMobile] = useState(
     typeof window !== "undefined" && window.innerWidth < 768
@@ -350,7 +350,7 @@ export default function Landing({ onEnterApp, onViewSample, onSovereignBeta }) {
             type="button"
             aria-label="Join Sovereign Beta"
             style={styles.navCta}
-            onClick={onSovereignBeta}
+            onClick={onSovereignSearch}
             disabled={isProcessing}
           >
             Sovereign Beta
@@ -387,7 +387,12 @@ export default function Landing({ onEnterApp, onViewSample, onSovereignBeta }) {
               ))}
             </div>
             <div style={{ ...styles.heroActions, flexDirection: isMobile ? "column" : "row", justifyContent: "flex-start" }}>
-              <button onClick={onSovereignBeta} style={{ ...styles.primaryCta, width: isMobile ? "100%" : "auto", background: "var(--accent)", color: "#000" }}>Launch Sovereign Session</button>
+              <button 
+                onClick={onSovereignSearch} 
+                style={{ ...styles.primaryCta, width: isMobile ? "100%" : "auto", background: "var(--accent)", color: "#000" }}
+              >
+                Launch Sovereign Session
+              </button>
               <button onClick={handleSampleView} style={{ ...styles.secondaryCta, width: isMobile ? "100%" : "auto" }}>Open Full Sample</button>
             </div>
             <div style={styles.heroStatsGrid}>
