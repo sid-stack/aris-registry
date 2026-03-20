@@ -60,6 +60,28 @@ export async function indexSolicitation(sessionId, chunks) {
 }
 
 /**
+ * Global Indexing for Sovereign Search V3 (Cross-Session)
+ * Used to build the "Google of Federal Data" repository.
+ */
+export async function indexGlobalOpportunities(opportunities) {
+  if (!vectorIndex) return false;
+  
+  const records = opportunities.map(opt => ({
+    id: `opt:${opt.noticeId || opt.id}`,
+    metadata: { 
+      type: "global_opportunity",
+      title: opt.title,
+      agency: opt.agency,
+      postedDate: opt.postedDate,
+      url: opt.url || `https://sam.gov/opp/${opt.noticeId || opt.id}/view`
+    }
+  }));
+
+  await vectorIndex.upsert(records);
+  return true;
+}
+
+/**
  * Query specifically for this session's documents.
  */
 export async function querySolicitation(sessionId, queryVector, topK = 5) {
