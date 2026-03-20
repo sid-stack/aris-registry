@@ -38,63 +38,67 @@ app.use(express.static(join(__dirname, "../dist")));
 // ─── Sovereign Discovery: Asynchronous Harvester ──────────────────────────────
 
 const DISCOVERY_SEEDS = [
-  "artificial intelligence",
-  "cybersecurity",
-  "drone technology",
-  "defense infrastructure",
-  "autonomous systems",
-  "biotech",
-  "space communications"
+  "Artificial Intelligence", "Machine Learning", "Cybersecurity", "Zero Trust",
+  "Cloud Modernization", "Unmanned Aerial Systems", "UAV Detection", "Counter-UAS",
+  "Autonomous Systems", "Defense Infrastructure", "Tactical Computing",
+  "Space Communications", "Satellite Technology", "Biotechnology", "Genomics",
+  "Quantum Computing", "Cybersecurity Operations", "Threat Intelligence",
+  "Logistics Automation", "Predictive Maintenance", "Additive Manufacturing",
+  "Advanced Materials", "Robotics", "Secure Networking", "5G Technology",
+  "Microelectronics", "Hypersonic Systems", "Directed Energy", "Electronic Warfare",
+  "C4ISR", "Data Analytics", "Smart Grids", "Renewable Energy", "Healthcare IT",
+  "Medical Devices", "Pharmaceuticals", "Vaccine Development", "Emergency Management",
+  "Disaster Recovery", "Border Security", "Surveillance Systems", "Biometrics",
+  "Physical Security", "Training & Simulation", "Virtual Reality", "Augmented Reality",
+  "Telecommunications", "Fleet Management", "Weapon Systems", "Marine Technology",
+  "Aircraft Components", "Vehicle Maintenance"
 ];
 
 let lastHarvestTime = 0;
-const HARVEST_INTERVAL = 15 * 60 * 1000; // 15 mins
+const HARVEST_INTERVAL = 12 * 60 * 60 * 1000; // 12-hour sweep
 
 /**
- * Perform a background harvest of federal opportunities to keep the mesh fresh.
+ * Perform a background harvest of federal opportunities and global intelligence.
  */
 async function startHarvester() {
-  console.log("🚢 [HARVESTER] Initializing Sovereign Discovery Loop...");
+  console.log("🚢 [HARVESTER] Mobilizing 50-Term Sovereign Matrix...");
   
-  // Restore from Archive on Startup
   await sovereignSearch.loadFromArchive();
 
   const pulse = async () => {
     const now = Date.now();
-    if (now - lastHarvestTime < HARVEST_INTERVAL) return;
+    if (now - lastHarvestTime < 10 * 60 * 1000) return; // Min 10 min between pulses
     
-    console.log("🚢 [HARVESTER] Pulse started. Walking the Federal Mesh...");
+    console.log("🚢 [HARVESTER] Sweep Initiated. Reconstructing the Table...");
     
     for (const seed of DISCOVERY_SEEDS) {
-      // 1. Live SAM.gov (Discovery Mode)
+      // 1. Live SAM.gov
       try {
         const samClient = await getSamClient();
-        const samMcpResult = await callMcpTool(samClient, "search_opportunities", { q: seed, limit: 50 });
+        const samMcpResult = await callMcpTool(samClient, "search_opportunities", { q: seed, limit: 30 });
         const opportunities = JSON.parse(samMcpResult.content[0].text);
         if (opportunities?.length > 0) {
           await sovereignSearch.syncSovereignTable(opportunities, "US");
-          console.log(`🚢 [HARVESTER] [US] SAM.gov Sync: "${seed}" (+${opportunities.length})`);
         }
-      } catch (err) {
-        console.warn(`🚢 [HARVESTER] [US] SAM.gov bypass for "${seed}":`, err.message);
-      }
+      } catch (err) { /* Silent bypass to prevent stalling */ }
 
-      // 2. Historical USAspending (Resilience Mode)
+      // 2. Historical USAspending
       try {
         const awards = await usaspending.getAwardsSummary(seed);
         if (awards?.length > 0) {
           await sovereignSearch.syncSovereignTable(awards, "US");
-          console.log(`🚢 [HARVESTER] [US] USAspending Sync: "${seed}" (+${awards.length})`);
         }
-      } catch (err) {
-        console.warn(`🚢 [HARVESTER] [US] USAspending bypass for "${seed}":`, err.message);
-      }
+      } catch (err) { /* Silent bypass */ }
+
+      // 3. Wikipedia General Intelligence
+      try {
+        await sovereignSearch.ingestWikipedia(seed);
+      } catch (err) { /* Silent bypass */ }
       
       await new Promise(r => setTimeout(r, 2000));
     }
     
     lastHarvestTime = Date.now();
-    await sovereignSearch.persistToArchive();
   };
 
   setTimeout(pulse, 1000);
@@ -162,6 +166,16 @@ app.post("/api/fed-search", asyncHandler(async (req, res) => {
 
 app.get("/api/mesh-status", asyncHandler(async (req, res) => {
   res.json(sovereignSearch.getStats());
+}));
+
+app.get("/api/sovereign-table", asyncHandler(async (req, res) => {
+  const { auth } = req.query;
+  try {
+    const data = sovereignSearch.getTableData(auth);
+    res.json({ success: true, count: data.length, table: data });
+  } catch (err) {
+    res.status(401).json({ error: "UNAUTHORIZED_TERMINAL_ACCESS" });
+  }
 }));
 
 // ─── SaaS & Analytics ────────────────────────────────────────────────────────
