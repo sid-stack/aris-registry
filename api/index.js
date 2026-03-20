@@ -72,8 +72,8 @@ async function startHarvester() {
         const samMcpResult = await callMcpTool(samClient, "search_opportunities", { q: seed, limit: 50 });
         const opportunities = JSON.parse(samMcpResult.content[0].text);
         if (opportunities?.length > 0) {
-          await sovereignSearch.ingest(opportunities, "US");
-          console.log(`🚢 [HARVESTER] [US] SAM.gov Discovery: "${seed}" (+${opportunities.length})`);
+          await sovereignSearch.syncSovereignTable(opportunities, "US");
+          console.log(`🚢 [HARVESTER] [US] SAM.gov Sync: "${seed}" (+${opportunities.length})`);
         }
       } catch (err) {
         console.warn(`🚢 [HARVESTER] [US] SAM.gov bypass for "${seed}":`, err.message);
@@ -81,11 +81,10 @@ async function startHarvester() {
 
       // 2. Historical USAspending (Resilience Mode)
       try {
-        console.log(`🚢 [HARVESTER] [US] Archiving Award Histories for: "${seed}"`);
         const awards = await usaspending.getAwardsSummary(seed);
         if (awards?.length > 0) {
-          await sovereignSearch.ingest(awards, "US");
-          console.log(`🚢 [HARVESTER] [US] USAspending Discovery: "${seed}" (+${awards.length})`);
+          await sovereignSearch.syncSovereignTable(awards, "US");
+          console.log(`🚢 [HARVESTER] [US] USAspending Sync: "${seed}" (+${awards.length})`);
         }
       } catch (err) {
         console.warn(`🚢 [HARVESTER] [US] USAspending bypass for "${seed}":`, err.message);
@@ -108,37 +107,14 @@ startHarvester();
 // ─── API Endpoints ───────────────────────────────────────────────────────────
 
 app.post("/api/fed-search", asyncHandler(async (req, res) => {
-  const { query, limit = 20, expand = true, region = "US" } = req.body;
+  const { query, limit = 20, expand = true } = req.body;
   if (!query) return res.status(400).json({ error: "Query is required" });
 
-  console.log(`[FED_SEARCH] [${region}] Hybrid Search v4: "${query}"`);
+  console.log(`[FED_SEARCH] [US] Table Lookup: "${query}"`);
 
-  // 1. PERFORM SEARCH FIRST (Query the Internal Mesh Archive)
+  // 1. STRICT READ-ONLY LOOKUP
   // This is sub-millisecond and never rate-limited.
-  let results = await sovereignSearch.search(query, expand, region);
-
-  // 2. ON-DEMAND REFRESH (Optional/Conditional)
-  // If the archive is empty OR if it's been a while since we scoured this query, 
-  // trigger a background refresh instead of blocking the user.
-  if (results.length === 0 && region === "US") {
-    console.log(`[FED_SEARCH] [US] Mesh miss. Triggering on-demand discovery for "${query}"...`);
-    // Note: We don't await this so the user gets a fast response from the Archive fallback
-    (async () => {
-      try {
-        const samClient = await getSamClient();
-        const samMcpResult = await callMcpTool(samClient, "search_opportunities", { q: query, limit: 30 });
-        const opportunities = JSON.parse(samMcpResult.content[0].text);
-        if (opportunities?.length > 0) {
-          await sovereignSearch.ingest(opportunities, "US");
-        }
-      } catch (err) {
-        console.warn("[FED_SEARCH] On-demand Ingress Failed (Rate Limited):", err.message);
-      }
-    })();
-    // Re-run search quickly to see if any curated seeds were returned immediately
-    results = await sovereignSearch.search(query, expand, region);
-  }
-
+  const results = await sovereignSearch.search(query, expand);
   const topResults = results.slice(0, limit);
 
   // 3. Historical Award Analysis (USAspending)
