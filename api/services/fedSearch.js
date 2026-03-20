@@ -247,6 +247,17 @@ export class FedSearchEngine {
 
     return [];
   }
+
+  /**
+   * Internal Mesh Telemetry
+   */
+  getStats() {
+    return {
+      docCount: this.docStore.size,
+      termCount: this.index.size,
+      samples: Array.from(this.docStore.values()).slice(0, 5)
+    };
+  }
 }
 
 export const sovereignSearch = new FedSearchEngine();

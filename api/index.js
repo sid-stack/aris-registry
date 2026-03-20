@@ -172,6 +172,10 @@ app.post("/api/fed-search", asyncHandler(async (req, res) => {
   });
 }));
 
+app.get("/api/mesh-status", asyncHandler(async (req, res) => {
+  res.json(sovereignSearch.getStats());
+}));
+
 // ─── SaaS & Analytics ────────────────────────────────────────────────────────
 
 app.post("/api/track", asyncHandler(async (req, res) => {
