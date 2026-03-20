@@ -519,7 +519,7 @@ app.post("/api/export-rtm", asyncHandler(async (req, res) => {
   res.send(csv);
 }));
 
-app.get("*", (req, res) => res.sendFile(join(__dirname, "../dist/index.html")));
+app.get(/.*/, (req, res) => res.sendFile(join(__dirname, "../dist/index.html")));
 
 app.use(notFoundHandler);
 app.use(errorHandler);
