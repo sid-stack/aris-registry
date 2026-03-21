@@ -36,7 +36,17 @@ const apiLimiter = rateLimit({
 app.use(cors());
 app.use(express.json());
 app.use(requestId);
-app.use(express.static(join(__dirname, "../dist")));
+// Fingerprinted assets (JS/CSS with hashes) get long cache; HTML never cached
+app.use(express.static(join(__dirname, "../dist"), {
+  setHeaders(res, filePath) {
+    if (filePath.endsWith(".html")) {
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.setHeader("Pragma", "no-cache");
+    } else if (/\.[0-9a-f]{8,}\.(js|css)$/.test(filePath)) {
+      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+    }
+  },
+}));
 
 // ─── Sovereign Discovery: Asynchronous Harvester ──────────────────────────────
 
