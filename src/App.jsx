@@ -1,26 +1,29 @@
-import { useEffect, useState } from "react";
-import Upload from "./pages/Upload";
-import Proposal from "./pages/Proposal";
-import Login from "./pages/Login";
-import Audit from "./pages/Audit";
+import { lazy, Suspense, useEffect, useState } from "react";
+// Landing is the entry point — eager load for instant first paint
 import Landing from "./pages/Landing";
-import Templates from "./pages/Templates";
-import Legal from "./pages/Legal";
-import SamRep from "./pages/SamRep";
-import Discovery from "./pages/Discovery";
-import Security from "./pages/Security";
-import About from "./pages/About";
-import SamScraper from "./pages/SamScraper";
-import Labs from "./pages/Labs";
-import SovereignBeta from "./pages/SovereignBeta";
-import SovereignSearch from "./pages/SovereignSearch";
-import CompliancePage from "./pages/CompliancePage";
-import SurveyAnalytics from "./components/SurveyAnalytics";
-import DemoAnalytics from "./components/DemoAnalytics";
-import NotFound from "./pages/NotFound";
 import ConsentBanner from "./components/ConsentBanner";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { trackPageView } from "./utils/analytics";
+
+// All other pages lazy-loaded — only downloaded when the user navigates to them
+const Upload         = lazy(() => import("./pages/Upload"));
+const Proposal       = lazy(() => import("./pages/Proposal"));
+const Login          = lazy(() => import("./pages/Login"));
+const Audit          = lazy(() => import("./pages/Audit"));
+const Templates      = lazy(() => import("./pages/Templates"));
+const Legal          = lazy(() => import("./pages/Legal"));
+const SamRep         = lazy(() => import("./pages/SamRep"));
+const Discovery      = lazy(() => import("./pages/Discovery"));
+const Security       = lazy(() => import("./pages/Security"));
+const About          = lazy(() => import("./pages/About"));
+const SamScraper     = lazy(() => import("./pages/SamScraper"));
+const Labs           = lazy(() => import("./pages/Labs"));
+const SovereignBeta  = lazy(() => import("./pages/SovereignBeta"));
+const SovereignSearch= lazy(() => import("./pages/SovereignSearch"));
+const CompliancePage = lazy(() => import("./pages/CompliancePage"));
+const SurveyAnalytics= lazy(() => import("./components/SurveyAnalytics"));
+const DemoAnalytics  = lazy(() => import("./components/DemoAnalytics"));
+const NotFound       = lazy(() => import("./pages/NotFound"));
 
 const BASE_URL = "https://www.bidsmith.pro";
 
@@ -256,7 +259,9 @@ export default function App() {
 
   return (
     <ErrorBoundary reloadOnRetry={false} fallbackMode="wanderer">
-      {content}
+      <Suspense fallback={<div style={{ minHeight: "100vh", background: "#0d0f14" }} />}>
+        {content}
+      </Suspense>
       <ConsentBanner />
     </ErrorBoundary>
   );

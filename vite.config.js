@@ -14,5 +14,31 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
+    build: {
+      // Raise warning threshold — html2pdf is legitimately large and already lazy
+      chunkSizeWarningLimit: 600,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            // React core — tiny, loads first
+            if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
+              return 'vendor-react';
+            }
+            // Markdown renderer — only used in Audit page
+            if (id.includes('react-markdown') || id.includes('remark') || id.includes('micromark') || id.includes('mdast') || id.includes('unist')) {
+              return 'vendor-markdown';
+            }
+            // Lucide icons — tree-shaken but isolate for caching
+            if (id.includes('node_modules/lucide-react')) {
+              return 'vendor-icons';
+            }
+            // Stripe.js
+            if (id.includes('@stripe')) {
+              return 'vendor-stripe';
+            }
+          },
+        },
+      },
+    },
   };
 });
