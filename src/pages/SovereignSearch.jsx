@@ -8,9 +8,10 @@ import {
   TrendingUp,
   ExternalLink,
   Lock,
-  Zap
+  Zap,
+  ArrowLeft,
+  Shield
 } from 'lucide-react';
-import NavBar from '../components/dashboard/NavBar';
 
 // ── Agency icon: colored initials badge ───────────────────────────────────────
 const AGENCY_COLORS = {
@@ -223,7 +224,31 @@ const SovereignSearch = ({ onBack }) => {
       minHeight: '100vh', background: COLORS.bg, color: COLORS.textWhite,
       display: 'flex', flexDirection: 'column', fontFamily: 'arial, sans-serif'
     }}>
-      <NavBar theme="dark" onToggleTheme={null} onBack={onBack} />
+      {/* Minimal top bar — Back + branding only, no audit actions */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 10,
+        padding: '10px 20px', borderBottom: '1px solid #3c4043',
+        background: COLORS.bg, position: 'sticky', top: 0, zIndex: 10,
+      }}>
+        {onBack && (
+          <button onClick={onBack} style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            background: 'none', border: 'none', color: '#9aa0a6',
+            cursor: 'pointer', fontSize: '13px', padding: '4px 8px',
+            borderRadius: 4,
+          }}>
+            <ArrowLeft size={15} /> Back
+          </button>
+        )}
+        <Shield size={14} color="#a8ff00" />
+        <span style={{ fontSize: '13px', fontWeight: 700, color: '#e8eaed', letterSpacing: '0.05em' }}>
+          ARIS <span style={{ color: '#a8ff00' }}>SOVEREIGN SEARCH</span>
+        </span>
+        <div style={{ flex: 1 }} />
+        <a href="/app" style={{ fontSize: '12px', color: '#9aa0a6', textDecoration: 'none' }}>
+          Run Audit →
+        </a>
+      </div>
 
       {showUpgradeWall && <UpgradeWall onDismiss={() => setShowUpgradeWall(false)} />}
 
