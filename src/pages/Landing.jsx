@@ -12,9 +12,9 @@ import FaqSection from "../components/FaqSection";
 import GovernmentBanner from "../components/GovernmentBanner";
 import "./Landing.css";
 import { trackEvent } from "../utils/analytics";
-import PricingCard from "../components/PricingCard";
 import { trackKPI } from "../lib/analytics";
 import { GTM_PRICING_PLANS } from "../lib/pricing";
+import PricingComparison from "../components/PricingComparison";
 
 const benefits = [
   {
@@ -600,29 +600,17 @@ export default function Landing({ onEnterApp, onViewSample, onSovereignBeta, onS
           <p style={styles.subtitleSmall}>
             Start free. Scale as you win. A single compliance consultant costs $15,000/year — ARIS starts at $0.
           </p>
-          <div style={{ ...styles.pricingGrid, gridTemplateColumns: isMobile ? "1fr" : windowWidth < 1080 ? "repeat(2, 1fr)" : "repeat(4, 1fr)" }}>
-            {GTM_PRICING_PLANS.map((plan) => (
-              <PricingCard
-                key={plan.key}
-                title={plan.title}
-                price={plan.price}
-                badge={plan.badge}
-                annualNote={plan.annualNote}
-                description={plan.description}
-                buttonLabel={plan.buttonLabel}
-                buttonLink={plan.buttonLink}
-                disabled={isProcessing}
-                onButtonClick={() => {
-                  trackEvent("pricing_cta_click", {
-                    source: "landing_pricing",
-                    plan_name: plan.title,
-                  });
-                  trackKPI("upgrade_intent", { plan: plan.key, source: "landing_pricing" });
-                  openCheckout("landing_pricing", plan);
-                }}
-              />
-            ))}
-          </div>
+          <PricingComparison
+            disabled={isProcessing}
+            onPlanClick={(plan) => {
+              trackEvent("pricing_cta_click", {
+                source: "landing_pricing",
+                plan_name: plan.title,
+              });
+              trackKPI("upgrade_intent", { plan: plan.key, source: "landing_pricing" });
+              openCheckout("landing_pricing", plan);
+            }}
+          />
 
           <div className="landing-pricing-preview">
             <p className="landing-pricing-preview-label">Report Preview Includes</p>
