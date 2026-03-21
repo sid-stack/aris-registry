@@ -6,6 +6,8 @@ import {
   Globe,
   Zap,
   AlertTriangle,
+  ShieldCheck,
+  Search,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import FaqSection from "../components/FaqSection";
@@ -533,36 +535,120 @@ export default function Landing({ onEnterApp, onViewSample, onSovereignBeta, onS
 
       <GovernmentBanner />
 
-      <section id="markets" style={styles.sectionMuted} data-reveal>
+      {/* ── Products Suite ── */}
+      <section id="markets" style={styles.section} data-reveal>
         <div style={styles.sectionInner}>
-          <p style={styles.sectionEyebrow}>Platform Activity</p>
-          <h2 style={styles.sectionTitle}>BidSmith Activity</h2>
-          <div className="landing-activity-grid">
-            <div style={styles.activityStat}>
-              <h3 style={styles.activityNumber}>17</h3>
-              <p style={styles.activityLabel}>Reports Generated Today</p>
+          <p style={styles.sectionEyebrow}>Product Suite</p>
+          <h2 style={styles.sectionTitle}>Three Tools. One Intelligence Layer.</h2>
+          <p style={{ ...styles.subtitleSmall, marginBottom: 40 }}>
+            Each tool is sovereign — stateless, zero-knowledge, and purpose-built for federal capture teams.
+          </p>
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)",
+            gap: 20,
+          }}>
+            {/* Product 1: ARIS Audit */}
+            <div style={styles.productCard}>
+              <div style={{ ...styles.productIcon, background: "rgba(0,255,194,0.08)", border: "1px solid rgba(0,255,194,0.2)" }}>
+                <ShieldCheck size={24} color="#00FFC2" />
+              </div>
+              <h3 style={styles.productCardTitle}>Mercury 2 Audit</h3>
+              <p style={styles.productCardSubtitle}>RFP compliance engine</p>
+              <p style={styles.productCardCopy}>
+                Paste a SAM.gov URL. Get a full compliance matrix, FAR/DFARS risk flags, and a bid/no-bid recommendation in under 90 seconds.
+              </p>
+              <div style={styles.productMeta}>
+                <span style={styles.productTag}>FAR · DFARS</span>
+                <span style={styles.productTag}>Section L/M</span>
+                <span style={styles.productTag}>CSV Export</span>
+              </div>
+              <button
+                type="button"
+                style={styles.productCta}
+                onClick={onEnterApp}
+              >
+                Launch Audit Workspace →
+              </button>
             </div>
-            <div style={styles.activityStat}>
-              <h3 style={styles.activityNumber}>83s</h3>
-              <p style={styles.activityLabel}>Average Analysis Time</p>
+
+            {/* Product 2: Sovereign Search */}
+            <div style={{ ...styles.productCard, borderColor: "rgba(99,102,241,0.25)" }}>
+              <div style={{ ...styles.productIcon, background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.2)" }}>
+                <Search size={24} color="#818cf8" />
+              </div>
+              <h3 style={styles.productCardTitle}>Sovereign Search</h3>
+              <p style={styles.productCardSubtitle}>Federal intelligence search</p>
+              <p style={styles.productCardCopy}>
+                Search across SAM.gov opportunities, USAspending award history, and agency patterns — with natural language, not keyword guessing.
+              </p>
+              <div style={styles.productMeta}>
+                <span style={styles.productTag}>SAM.gov</span>
+                <span style={styles.productTag}>USAspending</span>
+                <span style={styles.productTag}>Vector search</span>
+              </div>
+              <button
+                type="button"
+                style={{ ...styles.productCta, background: "rgba(99,102,241,0.12)", color: "#818cf8", border: "1px solid rgba(99,102,241,0.3)" }}
+                onClick={onSovereignSearch}
+              >
+                Open Search →
+              </button>
             </div>
-            <div style={styles.activityStat}>
-              <h3 style={styles.activityNumber}>12</h3>
-              <p style={styles.activityLabel}>Solicitations Processed</p>
+
+            {/* Product 3: SAM Scraper */}
+            <div style={{ ...styles.productCard, borderColor: "rgba(251,146,60,0.2)" }}>
+              <div style={{ ...styles.productIcon, background: "rgba(251,146,60,0.08)", border: "1px solid rgba(251,146,60,0.2)" }}>
+                <FileText size={24} color="#fb923c" />
+              </div>
+              <h3 style={styles.productCardTitle}>SAM Scraper</h3>
+              <p style={styles.productCardSubtitle}>Bulk opportunity export</p>
+              <p style={styles.productCardCopy}>
+                Filter SAM.gov by NAICS code, agency, set-aside type, and dollar threshold. Export clean CSVs your BD team can actually use.
+              </p>
+              <div style={styles.productMeta}>
+                <span style={styles.productTag}>NAICS filter</span>
+                <span style={styles.productTag}>Set-aside</span>
+                <span style={styles.productTag}>Bulk CSV</span>
+              </div>
+              <button
+                type="button"
+                style={{ ...styles.productCta, background: "rgba(251,146,60,0.1)", color: "#fb923c", border: "1px solid rgba(251,146,60,0.25)" }}
+                onClick={() => { window.location.href = "/sam-scraper"; }}
+              >
+                Open SAM Scraper →
+              </button>
             </div>
+          </div>
+
+          {/* Activity strip */}
+          <div style={{
+            display: "flex",
+            gap: isMobile ? 16 : 40,
+            justifyContent: "center",
+            flexWrap: "wrap",
+            marginTop: 48,
+            paddingTop: 32,
+            borderTop: "1px solid rgba(255,255,255,0.06)"
+          }}>
+            {[
+              { n: "17", label: "Reports generated today" },
+              { n: "83s", label: "Avg. analysis time" },
+              { n: "3", label: "Data sources unified" },
+            ].map(({ n, label }) => (
+              <div key={label} style={{ textAlign: "center" }}>
+                <p style={{ margin: 0, fontSize: "2rem", fontWeight: 800, color: "#00FFC2" }}>{n}</p>
+                <p style={{ margin: "4px 0 0", fontSize: "0.8rem", color: "#71717a", textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      <SovereignBetaSection
-        isMobile={isMobile}
-        onSovereignBeta={onSovereignBeta}
-      />
-
       <section id="solutions" style={styles.sectionMuted} data-reveal>
         <div style={styles.sectionInner}>
           <p style={styles.sectionEyebrow}>Why teams switch from manual workflows</p>
-          <h2 style={styles.sectionTitle}>Why Bidsmith Lite?</h2>
+          <h2 style={styles.sectionTitle}>Why ARIS?</h2>
           <div style={styles.gridFour}>
             {benefits.map((benefit) => (
               <IconCard
@@ -1092,6 +1178,50 @@ const styles = {
     letterSpacing: "0.05em",
   },
   inlineLink: { color: "#7dd3fc", textDecoration: "none", fontWeight: 600 },
+  productCard: {
+    background: "rgba(255,255,255,0.025)",
+    border: "1px solid rgba(0,255,194,0.15)",
+    borderRadius: 16,
+    padding: 28,
+    display: "flex",
+    flexDirection: "column",
+    gap: 10,
+  },
+  productIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 4,
+  },
+  productCardTitle: { margin: 0, fontSize: "1.1rem", fontWeight: 700, color: "#f4f4f5" },
+  productCardSubtitle: { margin: 0, fontSize: "0.75rem", color: "#52525b", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" },
+  productCardCopy: { margin: 0, fontSize: "0.9rem", color: "#a1a1aa", lineHeight: 1.55, flexGrow: 1 },
+  productMeta: { display: "flex", gap: 6, flexWrap: "wrap", marginTop: 4 },
+  productTag: {
+    background: "rgba(255,255,255,0.05)",
+    border: "1px solid rgba(255,255,255,0.08)",
+    borderRadius: 999,
+    padding: "2px 9px",
+    fontSize: "0.7rem",
+    color: "#71717a",
+    fontWeight: 600,
+    letterSpacing: "0.04em",
+  },
+  productCta: {
+    marginTop: 8,
+    background: "rgba(0,255,194,0.08)",
+    color: "#00FFC2",
+    border: "1px solid rgba(0,255,194,0.25)",
+    borderRadius: 8,
+    padding: "9px 16px",
+    fontWeight: 700,
+    cursor: "pointer",
+    fontSize: "0.85rem",
+    textAlign: "left",
+  },
   footerContainer: {
     background: "#000000",
     borderTop: "1px solid #141416",

@@ -6,13 +6,23 @@
   position: relative;
 }
 
+/* Ingestion View — full-height centered container */
+.ingestion-view {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 80px);
+  padding: 40px 20px;
+}
+
 .sovereign-layout {
   display: grid;
-  grid-template-columns: 320px 1fr 360px;
+  grid-template-columns: 300px 1fr;
   gap: 16px;
   height: calc(100vh - 80px);
   margin-top: 80px;
   padding: 0 16px;
+  overflow: hidden;
 }
 
 .sovereign-panel {
@@ -412,7 +422,7 @@
 /* Large Tablets and Small Desktops */
 @media (max-width: 1200px) {
   .sovereign-layout {
-    grid-template-columns: 280px 1fr 320px;
+    grid-template-columns: 260px 1fr;
     gap: 12px;
   }
 }
