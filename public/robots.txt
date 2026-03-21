@@ -2,5 +2,7 @@ User-agent: *
 Allow: /
 Disallow: /admin/
 Disallow: /private/
+Disallow: /survey-analytics
+Disallow: /demo-analytics
 
-Sitemap: https://bidsmith.pro/sitemap.xml
+Sitemap: https://www.bidsmith.pro/sitemap.xml

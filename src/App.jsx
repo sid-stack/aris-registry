@@ -14,6 +14,7 @@ import SamScraper from "./pages/SamScraper";
 import Labs from "./pages/Labs";
 import SovereignBeta from "./pages/SovereignBeta";
 import SovereignSearch from "./pages/SovereignSearch";
+import CompliancePage from "./pages/CompliancePage";
 import SurveyAnalytics from "./components/SurveyAnalytics";
 import DemoAnalytics from "./components/DemoAnalytics";
 import NotFound from "./pages/NotFound";
@@ -101,9 +102,11 @@ export default function App() {
                     ? "sovereign-beta"
                   : path.startsWith("/labs")
                     ? "labs"
-                    : path !== "/"
-                      ? "404"
-                      : "landing",
+                    : path.startsWith("/compliance/")
+                      ? "compliance"
+                      : path !== "/"
+                        ? "404"
+                        : "landing",
   );
 
   usePageMeta(view);
@@ -146,6 +149,8 @@ export default function App() {
       logicalPath = "/about";
     } else if (view === "sovereign-beta") {
       logicalPath = "/sovereign-beta";
+    } else if (view === "compliance") {
+      logicalPath = window.location.pathname;
     } else if (view === "landing") {
       logicalPath = aliasSection ? `/#${aliasSection}` : "/";
     } else if (view === "app") {
@@ -199,6 +204,9 @@ export default function App() {
     content = <About onBack={() => setView("landing")} />;
   } else if (view === "labs") {
     content = <Labs onBack={() => setView("landing")} />;
+  } else if (view === "compliance") {
+    const slug = window.location.pathname.replace("/compliance/", "");
+    content = <CompliancePage slug={slug} onBack={() => setView("app")} />;
   } else if (view === "sovereign-beta") {
     content = <SovereignBeta onBack={() => setView("landing")} />;
   } else if (view === "landing") {
