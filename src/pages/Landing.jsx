@@ -810,6 +810,7 @@ export default function Landing({ onEnterApp, onViewSample, onSovereignBeta, onS
               <h4 style={styles.footerColHeading}>Legal</h4>
               <a href="/privacy" style={styles.footerLinkItem} onClick={(event) => handleFooterRedirect(event, "/privacy")}>Privacy Policy</a>
               <a href="/terms" style={styles.footerLinkItem} onClick={(event) => handleFooterRedirect(event, "/terms")}>Terms of Service</a>
+              <a href="/cookies" style={styles.footerLinkItem} onClick={(event) => handleFooterRedirect(event, "/cookies")}>Cookie Policy</a>
               <a href="mailto:sid@bidsmith.pro" style={styles.footerLinkItem}>Contact</a>
             </div>
           </div>
