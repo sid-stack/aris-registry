@@ -22,32 +22,57 @@ import ConsentBanner from "./components/ConsentBanner";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { trackPageView } from "./utils/analytics";
 
+const BASE_URL = "https://www.bidsmith.pro";
+
+const PAGE_META = {
+  landing:          { title: "ARIS | Federal RFP Compliance & Audit Software for Government Contractors", description: "Analyze SAM.gov solicitations in 90 seconds. Compliance matrix, FAR/DFARS risk flags, and bid/no-bid brief — automatically.", path: "/" },
+  templates:        { title: "ARIS Templates | Federal Proposal & Compliance Matrix Templates", description: "Download pre-built compliance matrix templates, proposal outlines, and RFP shred worksheets for government contractors.", path: "/templates" },
+  about:            { title: "About ARIS Labs | Federal GovCon Intelligence Platform", description: "ARIS Labs builds agentic intelligence for federal capture teams. Zero-knowledge architecture, SAM.gov native.", path: "/about" },
+  soc:              { title: "ARIS Security | Zero-Knowledge Data Architecture", description: "ARIS processes solicitation data in transient memory. No persistence, no storage, no leaks.", path: "/soc" },
+  "sam-rep":        { title: "ARIS Sample Audit | DHA Federal Solicitation Report", description: "Inspect a real ARIS audit output for a Defense Health Agency solicitation.", path: "/sam-rep" },
+  discovery:        { title: "ARIS Discovery | Federal Opportunity Discovery Engine", description: "Surface federal contracting opportunities matched to your NAICS codes and capability profile.", path: "/discovery" },
+  "sam-scraper":    { title: "ARIS SAM Scraper | SAM.gov Bulk Opportunity Export", description: "Extract and filter SAM.gov opportunities in bulk by NAICS, agency, set-aside, and dollar threshold.", path: "/sam-scraper" },
+  "fed-search":     { title: "ARIS Sovereign Search | Federal Intelligence Search", description: "Search federal solicitations, award history, and agency patterns with natural language queries.", path: "/fed-search" },
+  "sovereign-beta": { title: "ARIS Sovereign v2.1 Private Beta | Early Access", description: "Apply for early access to Sovereign v2.1 — the next generation of ARIS federal intelligence.", path: "/sovereign-beta" },
+  labs:             { title: "ARIS Labs | Experimental Federal Intelligence Tools", description: "Experimental tools from ARIS Labs for federal capture management and GovCon intelligence.", path: "/labs" },
+  privacy:          { title: "Privacy Policy | ARIS / BidSmith", description: "ARIS Labs privacy policy. How we handle data and your rights.", path: "/privacy" },
+  terms:            { title: "Terms of Service | ARIS / BidSmith", description: "Terms of service governing use of the BidSmith platform.", path: "/terms" },
+  cookies:          { title: "Cookie Policy | ARIS / BidSmith", description: "How ARIS uses cookies and local storage on bidsmith.pro.", path: "/cookies" },
+  app:              { title: "ARIS Audit Workspace", description: "Your ARIS federal solicitation audit workspace.", path: "/app" },
+};
+
 function usePageMeta(view) {
   useEffect(() => {
-    const PAGE_META = {
-      landing:          { title: "ARIS | Federal RFP Compliance & Audit Software for Government Contractors", description: "Analyze SAM.gov solicitations in 90 seconds. Compliance matrix, FAR/DFARS risk flags, and bid/no-bid brief — automatically." },
-      templates:        { title: "ARIS Templates | Federal Proposal & Compliance Matrix Templates", description: "Download pre-built compliance matrix templates, proposal outlines, and RFP shred worksheets for government contractors." },
-      about:            { title: "About ARIS Labs | Federal GovCon Intelligence Platform", description: "ARIS Labs builds agentic intelligence for federal capture teams. Zero-knowledge architecture, SAM.gov native." },
-      soc:              { title: "ARIS Security | Zero-Knowledge Data Architecture", description: "ARIS processes solicitation data in transient memory. No persistence, no storage, no leaks." },
-      "sam-rep":        { title: "ARIS Sample Audit | DHA Federal Solicitation Report", description: "Inspect a real ARIS audit output for a Defense Health Agency solicitation." },
-      discovery:        { title: "ARIS Discovery | Federal Opportunity Discovery Engine", description: "Surface federal contracting opportunities matched to your NAICS codes and capability profile." },
-      "sam-scraper":    { title: "ARIS SAM Scraper | SAM.gov Bulk Opportunity Export", description: "Extract and filter SAM.gov opportunities in bulk by NAICS, agency, set-aside, and dollar threshold." },
-      "fed-search":     { title: "ARIS Sovereign Search | Federal Intelligence Search", description: "Search federal solicitations, award history, and agency patterns with natural language queries." },
-      "sovereign-beta": { title: "ARIS Sovereign v2.1 Private Beta | Early Access", description: "Apply for early access to Sovereign v2.1 — the next generation of ARIS federal intelligence." },
-      labs:             { title: "ARIS Labs | Experimental Federal Intelligence Tools", description: "Experimental tools from ARIS Labs for federal capture management and GovCon intelligence." },
-      privacy:          { title: "Privacy Policy | ARIS / BidSmith", description: "ARIS Labs privacy policy. How we handle data and your rights." },
-      terms:            { title: "Terms of Service | ARIS / BidSmith", description: "Terms of service governing use of the BidSmith platform." },
-      cookies:          { title: "Cookie Policy | ARIS / BidSmith", description: "How ARIS uses cookies and local storage on bidsmith.pro." },
-      app:              { title: "ARIS Audit Workspace", description: "Your ARIS federal solicitation audit workspace." },
-    };
+    // For compliance/* pages the real path is already in window.location.pathname
+    const isCompliance = view === "compliance";
     const meta = PAGE_META[view] || PAGE_META.landing;
+
     document.title = meta.title;
-    const d = document.querySelector('meta[name="description"]');
-    if (d) d.setAttribute("content", meta.description);
+
+    const desc = document.querySelector('meta[name="description"]');
+    if (desc) desc.setAttribute("content", meta.description);
     const ot = document.querySelector('meta[property="og:title"]');
     if (ot) ot.setAttribute("content", meta.title);
     const od = document.querySelector('meta[property="og:description"]');
     if (od) od.setAttribute("content", meta.description);
+
+    // Update canonical to match the actual page — prevents every page looking
+    // like a duplicate of the homepage to Google
+    const canonicalPath = isCompliance
+      ? window.location.pathname          // e.g. /compliance/far-52-212-1
+      : (meta.path || "/");
+    const canonicalUrl = `${BASE_URL}${canonicalPath}`;
+    let canonical = document.querySelector('link[rel="canonical"]');
+    if (!canonical) {
+      canonical = document.createElement("link");
+      canonical.setAttribute("rel", "canonical");
+      document.head.appendChild(canonical);
+    }
+    canonical.setAttribute("href", canonicalUrl);
+
+    // Keep OG url in sync too
+    const ogUrl = document.querySelector('meta[property="og:url"]');
+    if (ogUrl) ogUrl.setAttribute("content", canonicalUrl);
   }, [view]);
 }
 
