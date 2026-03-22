@@ -408,10 +408,10 @@ export default function Landing({ onEnterApp, onViewSample, onSovereignBeta, onS
             <span>ARIS Labs</span>
           </a>
           <nav className="landing-nav-links">
+            <a href="/demo" style={{ ...styles.navLink, color: "#818cf8", fontWeight: 600 }}>Demo</a>
+            <a href="/govcon-guide" style={styles.navLink}>GovCon Guide</a>
             <a href="/#solutions" style={styles.navLink}>Solutions</a>
-            <a href="/#workflow" style={styles.navLink}>Workflow</a>
             <a href="/#pricing" style={styles.navLink}>Pricing</a>
-            <a href="https://docs.bidsmith.pro" target="_blank" rel="noopener noreferrer" style={styles.navLink}>Docs</a>
             <a href="/#contact" style={styles.navLink}>Contact</a>
           </nav>
           <button

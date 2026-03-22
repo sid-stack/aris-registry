@@ -23,6 +23,8 @@ const SovereignSearch= lazy(() => import("./pages/SovereignSearch"));
 const CompliancePage = lazy(() => import("./pages/CompliancePage"));
 const SurveyAnalytics= lazy(() => import("./components/SurveyAnalytics"));
 const DemoAnalytics  = lazy(() => import("./components/DemoAnalytics"));
+const Demo           = lazy(() => import("./pages/Demo"));
+const GovConGuide    = lazy(() => import("./pages/GovConGuide"));
 const NotFound       = lazy(() => import("./pages/NotFound"));
 
 const BASE_URL = "https://www.bidsmith.pro";
@@ -37,6 +39,8 @@ const PAGE_META = {
   "sam-scraper":    { title: "ARIS SAM Scraper | SAM.gov Bulk Opportunity Export", description: "Extract and filter SAM.gov opportunities in bulk by NAICS, agency, set-aside, and dollar threshold.", path: "/sam-scraper" },
   "fed-search":     { title: "ARIS Sovereign Search | Federal Intelligence Search", description: "Search federal solicitations, award history, and agency patterns with natural language queries.", path: "/fed-search" },
   "sovereign-beta": { title: "ARIS Sovereign v2.1 Private Beta | Early Access", description: "Apply for early access to Sovereign v2.1 — the next generation of ARIS federal intelligence.", path: "/sovereign-beta" },
+  "demo":           { title: "ARIS Live Demo | See a Federal RFP Audit in 90 Seconds", description: "Watch ARIS audit a real $24.5M Army solicitation — compliance matrix, disqualifier flags, and bid/no-bid verdict. Free interactive demo.", path: "/demo" },
+  "govcon-guide":   { title: "Federal Contracting Process Guide | ARIS", description: "The complete government contracting workflow — SAM.gov registration, opportunity discovery, compliance review, and proposal development. End-to-end guide.", path: "/govcon-guide" },
   labs:             { title: "ARIS Labs | Experimental Federal Intelligence Tools", description: "Experimental tools from ARIS Labs for federal capture management and GovCon intelligence.", path: "/labs" },
   privacy:          { title: "Privacy Policy | ARIS / BidSmith", description: "ARIS Labs privacy policy. How we handle data and your rights.", path: "/privacy" },
   terms:            { title: "Terms of Service | ARIS / BidSmith", description: "Terms of service governing use of the BidSmith platform.", path: "/terms" },
@@ -138,6 +142,10 @@ export default function App() {
                     ? "about"
                   : path === "/sovereign-beta"
                     ? "sovereign-beta"
+                  : path === "/demo"
+                    ? "demo"
+                  : path === "/govcon-guide" || path === "/how-it-works"
+                    ? "govcon-guide"
                   : path.startsWith("/labs")
                     ? "labs"
                     : path.startsWith("/compliance/")
@@ -187,6 +195,10 @@ export default function App() {
       logicalPath = "/about";
     } else if (view === "sovereign-beta") {
       logicalPath = "/sovereign-beta";
+    } else if (view === "demo") {
+      logicalPath = "/demo";
+    } else if (view === "govcon-guide") {
+      logicalPath = "/govcon-guide";
     } else if (view === "compliance") {
       logicalPath = window.location.pathname;
     } else if (view === "landing") {
@@ -247,6 +259,10 @@ export default function App() {
     content = <CompliancePage slug={slug} onBack={() => setView("app")} />;
   } else if (view === "sovereign-beta") {
     content = <SovereignBeta onBack={() => setView("landing")} />;
+  } else if (view === "demo") {
+    content = <Demo onBack={() => setView("landing")} onEnterApp={() => setView("app")} />;
+  } else if (view === "govcon-guide") {
+    content = <GovConGuide onBack={() => setView("landing")} onEnterApp={() => setView("app")} />;
   } else if (view === "landing") {
     content = <Landing 
       onEnterApp={() => setView("app")} 
