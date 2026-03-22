@@ -3,6 +3,9 @@ import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import { initAnalytics, registerConsentListener } from "./utils/analytics";
 import { initServiceWorkerAfterConsent } from "./utils/pwa";
+import { initTheme } from "./lib/theme";
+
+initTheme();
 
 initAnalytics();
 registerConsentListener();

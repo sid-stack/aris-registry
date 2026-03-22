@@ -128,11 +128,84 @@ export class FedSearchEngine {
     }).sort((a, b) => b.authorityScore - a.authorityScore);
   }
 
-  async search(query, expand = false) {
-    const results = new Map();
-    let finalQuery = query;
+  /**
+   * Levenshtein distance between two strings (iterative, O(n*m))
+   */
+  levenshtein(a, b) {
+    const m = a.length, n = b.length;
+    const dp = Array.from({ length: m + 1 }, (_, i) => [i, ...Array(n).fill(0)]);
+    for (let j = 0; j <= n; j++) dp[0][j] = j;
+    for (let i = 1; i <= m; i++) {
+      for (let j = 1; j <= n; j++) {
+        if (a[i - 1] === b[j - 1]) {
+          dp[i][j] = dp[i - 1][j - 1];
+        } else {
+          dp[i][j] = 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+        }
+      }
+    }
+    return dp[m][n];
+  }
 
-    if (expand) finalQuery = await this.expandQuery(query);
+  /**
+   * Fuzzy spell correction for GovCon queries
+   * Returns { corrected: string, wasChanged: boolean, original: string }
+   */
+  correctQuery(query) {
+    const GOVCON_DICT = [
+      "dfars", "far", "cmmc", "naics", "solicitation", "compliance", "cybersecurity",
+      "procurement", "contract", "proposal", "acquisition", "defense", "federal",
+      "agency", "award", "opportunity", "pentagon", "dod", "darpa", "nsa", "dhs",
+      "doe", "navy", "army", "classified", "setaside", "sbir", "sttr", "lpta",
+      "bestvalue", "rfp", "rfi", "sources", "sought", "synopsis", "amendment",
+      "modification", "protest", "debarment", "suspension", "certification",
+      "representation", "subcontract", "teaming", "incumbent", "recompete",
+      "capture", "pwin", "cwp", "pwscope", "sow", "soo", "performance",
+      "logistics", "intelligence"
+    ];
+
+    const tokens = query.trim().toLowerCase().split(/\s+/);
+    let wasChanged = false;
+
+    const correctedTokens = tokens.map(token => {
+      // If token exactly matches a dict word, leave it alone
+      if (GOVCON_DICT.includes(token)) return token;
+
+      // Skip very short tokens (1-2 chars) — likely abbreviations
+      if (token.length <= 2) return token;
+
+      // Find closest dict word with distance <= 2
+      let bestMatch = null;
+      let bestDist = Infinity;
+      for (const word of GOVCON_DICT) {
+        const dist = this.levenshtein(token, word);
+        if (dist < bestDist) {
+          bestDist = dist;
+          bestMatch = word;
+        }
+      }
+
+      if (bestDist <= 2 && bestMatch !== token) {
+        wasChanged = true;
+        return bestMatch;
+      }
+
+      return token;
+    });
+
+    const corrected = correctedTokens.join(" ");
+    return { corrected, wasChanged, original: query };
+  }
+
+  async search(query, expand = false) {
+    // Apply fuzzy spell correction first
+    const correctionResult = this.correctQuery(query);
+    const effectiveQuery = correctionResult.wasChanged ? correctionResult.corrected : query;
+
+    const results = new Map();
+    let finalQuery = effectiveQuery;
+
+    if (expand) finalQuery = await this.expandQuery(effectiveQuery);
     const queryTerms = this.tokenize(finalQuery);
 
     // Layer 1: Redis inverted index (union — any term match counts)
@@ -199,7 +272,7 @@ export class FedSearchEngine {
       }
     }
 
-    return this.rankResults(Array.from(results.values()));
+    return { results: this.rankResults(Array.from(results.values())), correction: correctionResult };
   }
 
   normalizeDoc(opt, region) {

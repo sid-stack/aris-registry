@@ -1,8 +1,13 @@
 User-agent: *
 Allow: /
+# App/tool pages — authenticated or session-based, not indexable content
+Disallow: /app
+Disallow: /sam-scraper
 Disallow: /admin/
 Disallow: /private/
 Disallow: /survey-analytics
 Disallow: /demo-analytics
+# Block auth subdomain from main crawl rules (also add noindex in Clerk dashboard)
+Disallow: //clerk.bidsmith.pro/
 
 Sitemap: https://www.bidsmith.pro/sitemap.xml

@@ -138,7 +138,9 @@ app.post("/api/fed-search", apiLimiter, asyncHandler(async (req, res) => {
 
   // 1. STRICT READ-ONLY LOOKUP
   // This is sub-millisecond and never rate-limited.
-  const results = await sovereignSearch.search(query, expand);
+  const searchOutput = await sovereignSearch.search(query, expand);
+  const results = searchOutput.results;
+  const correction = searchOutput.correction;
   const topResults = results.slice(0, limit);
 
   // 3. Historical Award Analysis (USAspending)
@@ -184,6 +186,7 @@ app.post("/api/fed-search", apiLimiter, asyncHandler(async (req, res) => {
     query,
     results: topResults,
     briefing,
+    correction,
     version: "v4.1-harvester"
   });
 }));
@@ -223,7 +226,8 @@ app.get("/api/discovery/search", apiLimiter, asyncHandler(async (req, res) => {
   const prospects = [];
 
   // From sovereign mesh
-  const mesh = meshResults.status === "fulfilled" ? meshResults.value : [];
+  const meshOutput = meshResults.status === "fulfilled" ? meshResults.value : { results: [] };
+  const mesh = meshOutput.results || [];
   mesh.slice(0, 10).forEach(r => {
     if (seen.has(r.id)) return;
     seen.add(r.id);

@@ -149,6 +149,7 @@ const SovereignSearch = ({ onBack }) => {
   const [expanded, setExpanded] = useState(true);
   const [briefing, setBriefing] = useState(null);
   const [status, setStatus] = useState('');
+  const [correction, setCorrection] = useState(null);
   const [searchesUsed, setSearchesUsed] = useState(getSearchesUsed());
   const [showUpgradeWall, setShowUpgradeWall] = useState(false);
 
@@ -188,6 +189,7 @@ const SovereignSearch = ({ onBack }) => {
     setLoading(true);
     setResults([]);
     setBriefing(null);
+    setCorrection(null);
     setStatus('Synthesizing Federal Mesh...');
 
     incrementSearches();
