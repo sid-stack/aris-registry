@@ -228,16 +228,38 @@ export default function Demo({ onBack, onEnterApp }) {
           {/* Results */}
           {phase === "done" && (
             <div style={s.results}>
-              {/* Verdict banner */}
-              <div style={s.verdictBanner}>
-                <div>
-                  <div style={s.verdictLabel}>BID / NO-BID VERDICT</div>
-                  <div style={s.verdictText}>HIGH DISQUALIFICATION RISK</div>
-                  <div style={s.verdictSub}>2 disqualifiers found — verify eligibility before committing proposal resources</div>
+              {/* Go / No-Go Decision */}
+              <div style={{ border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.07)", borderRadius: 12, padding: "20px 22px", marginBottom: 20 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <span style={{ fontSize: "1.6rem" }}>🔴</span>
+                    <div>
+                      <div style={{ fontSize: "0.62rem", fontWeight: 700, letterSpacing: ".1em", color: "#ef4444", textTransform: "uppercase", marginBottom: 3 }}>Bid Decision</div>
+                      <div style={{ fontSize: "1.4rem", fontWeight: 900, color: "#ef4444" }}>NO-GO</div>
+                    </div>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontSize: "0.62rem", color: "#52525b", letterSpacing: ".06em", marginBottom: 2 }}>CONFIDENCE</div>
+                    <div style={{ fontSize: "1.5rem", fontWeight: 900, color: "#ef4444" }}>91<span style={{ fontSize: "0.75rem", fontWeight: 400 }}>/100</span></div>
+                  </div>
                 </div>
-                <div style={s.riskScore}>
-                  <span style={s.riskNum}>91</span>
-                  <span style={s.riskUnit}>/ 100 risk</span>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                  <div>
+                    <div style={{ fontSize: "0.65rem", fontWeight: 700, letterSpacing: ".1em", color: "#6b7280", textTransform: "uppercase", marginBottom: 8 }}>⚠ Top Risks</div>
+                    <ol style={{ margin: 0, padding: "0 0 0 16px", display: "flex", flexDirection: "column", gap: 7 }}>
+                      {["Not registered as Total Small Business under NAICS 541519 — immediate disqualifier", "Key personnel lack active Secret clearances per DD Form 254", "Only 1 qualifying past performance reference — solicitation requires 3"].map((r, i) => (
+                        <li key={i} style={{ fontSize: "0.82rem", color: "#d1d5db", lineHeight: 1.5 }}>{r}</li>
+                      ))}
+                    </ol>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: "0.65rem", fontWeight: 700, letterSpacing: ".1em", color: "#6b7280", textTransform: "uppercase", marginBottom: 8 }}>💡 Do This Now</div>
+                    <ol style={{ margin: 0, padding: "0 0 0 16px", display: "flex", flexDirection: "column", gap: 7 }}>
+                      {["Check SAM.gov registration — confirm small business size standard before any proposal work", "Pull clearance status for all proposed key personnel from JPAS/DISS today", "Identify a teaming partner with 2 qualifying federal SOC contracts to close the past performance gap"].map((s2, i) => (
+                        <li key={i} style={{ fontSize: "0.82rem", color: "#d1d5db", lineHeight: 1.5 }}>{s2}</li>
+                      ))}
+                    </ol>
+                  </div>
                 </div>
               </div>
 

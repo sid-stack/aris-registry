@@ -314,6 +314,72 @@ const VERDICT_CONFIG = {
   PASS:         { color: "#22c55e", bg: "rgba(34,197,94,0.08)", border: "#22c55e", label: "✓ PASS" },
 };
 
+const DECISION_CFG = {
+  GO:             { color: "#22c55e", bg: "rgba(34,197,94,0.08)",  border: "rgba(34,197,94,0.3)",  icon: "🟢", label: "GO" },
+  NO_GO:          { color: "#ef4444", bg: "rgba(239,68,68,0.08)",  border: "rgba(239,68,68,0.3)",  icon: "🔴", label: "NO-GO" },
+  CONDITIONAL_GO: { color: "#f59e0b", bg: "rgba(245,158,11,0.07)", border: "rgba(245,158,11,0.3)", icon: "🟡", label: "CONDITIONAL GO" },
+};
+
+const GoNoGoVerdict = ({ decision, title }) => {
+  if (!decision) return null;
+  const cfg = DECISION_CFG[decision.verdict] || DECISION_CFG.NO_GO;
+
+  return (
+    <div style={{
+      border: `1px solid ${cfg.border}`,
+      background: cfg.bg,
+      borderRadius: 12,
+      padding: "20px 22px",
+      marginBottom: 20,
+    }}>
+      {/* Verdict header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <span style={{ fontSize: "1.6rem", lineHeight: 1 }}>{cfg.icon}</span>
+          <div>
+            <div style={{ fontSize: "0.62rem", fontWeight: 700, letterSpacing: ".1em", color: cfg.color, textTransform: "uppercase", marginBottom: 3 }}>
+              Bid Decision
+            </div>
+            <div style={{ fontSize: "1.4rem", fontWeight: 900, color: cfg.color, lineHeight: 1 }}>
+              {cfg.label}
+            </div>
+          </div>
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <div style={{ fontSize: "0.62rem", color: "#52525b", letterSpacing: ".06em", marginBottom: 2 }}>CONFIDENCE</div>
+          <div style={{ fontSize: "1.5rem", fontWeight: 900, color: cfg.color }}>{decision.confidence ?? "—"}<span style={{ fontSize: "0.75rem", fontWeight: 400 }}>/100</span></div>
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+        {/* Top risks */}
+        <div>
+          <div style={{ fontSize: "0.65rem", fontWeight: 700, letterSpacing: ".1em", color: "#6b7280", textTransform: "uppercase", marginBottom: 8 }}>
+            ⚠ Top Risks
+          </div>
+          <ol style={{ margin: 0, padding: "0 0 0 16px", display: "flex", flexDirection: "column", gap: 7 }}>
+            {(decision.topRisks || []).map((risk, i) => (
+              <li key={i} style={{ fontSize: "0.82rem", color: "#d1d5db", lineHeight: 1.5 }}>{risk}</li>
+            ))}
+          </ol>
+        </div>
+
+        {/* Next steps */}
+        <div>
+          <div style={{ fontSize: "0.65rem", fontWeight: 700, letterSpacing: ".1em", color: "#6b7280", textTransform: "uppercase", marginBottom: 8 }}>
+            💡 Do This Now
+          </div>
+          <ol style={{ margin: 0, padding: "0 0 0 16px", display: "flex", flexDirection: "column", gap: 7 }}>
+            {(decision.nextSteps || []).map((step, i) => (
+              <li key={i} style={{ fontSize: "0.82rem", color: "#d1d5db", lineHeight: 1.5 }}>{step}</li>
+            ))}
+          </ol>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const DisqualificationMatrix = ({ compliance = [] }) => {
   const [expanded, setExpanded] = useState(null);
 
@@ -828,6 +894,9 @@ export default function Audit({ onBack }) {
                 </div>
               ) : (
                 <>
+                  {/* Go / No-Go Decision — always first */}
+                  <GoNoGoVerdict decision={result?.decision} title={result?.title} />
+
                   {/* Disqualification Radar */}
                   <DisqualificationRadar hazards={result?.compliance} />
                   

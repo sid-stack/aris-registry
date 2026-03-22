@@ -415,6 +415,20 @@ Analyze the solicitation and return ONLY a valid JSON object:
     }
   ],
   "executiveSummary": "2-3 sentence plain-English summary of the compliance landscape and primary disqualification risk",
+  "decision": {
+    "verdict": "NO_GO",
+    "confidence": 91,
+    "topRisks": [
+      "Set-aside requires SDVOSB certification — your firm is not CVE-verified",
+      "TS/SCI clearance required for key personnel — verify current clearance status",
+      "Past performance: 3 contracts >$10M required — you have 1 qualifying reference"
+    ],
+    "nextSteps": [
+      "Verify small business size standard under NAICS 541519 ($34M revenue threshold) before spending any proposal hours",
+      "Confirm all key personnel hold active Secret clearances — check JPAS/DISS",
+      "If eligible: request a 30-day extension and identify a teaming partner for past performance gap"
+    ]
+  },
   "riskAssessment": {
     "verdict": "HIGH_DISQUALIFICATION_RISK",
     "score": 84,
@@ -425,9 +439,14 @@ Analyze the solicitation and return ONLY a valid JSON object:
 }
 
 Rules:
-- verdict must be one of: DISQUALIFIER, WARNING, PASS
-- sourceSnippet must be verbatim quoted text from the solicitation, wrapped in double quotes. If the solicitation text is not available and you are inferring from context, write exactly: INFERRED — [brief reason]
-- risk > 75 = DISQUALIFIER range. risk 50-75 = WARNING. risk < 50 = PASS.
+- compliance[].verdict must be one of: DISQUALIFIER, WARNING, PASS
+- decision.verdict must be one of: GO, NO_GO, CONDITIONAL_GO
+- CONDITIONAL_GO means eligible but significant work required before bidding
+- decision.confidence is 0-100 — your confidence in the verdict
+- decision.topRisks: exactly 3 strings, specific and actionable, worst first
+- decision.nextSteps: exactly 3 strings, specific actions the team should take TODAY
+- sourceSnippet must be verbatim quoted text. If inferring: INFERRED — [reason]
+- risk > 75 = DISQUALIFIER. risk 50-75 = WARNING. risk < 50 = PASS.
 - Set fatalError: true if any item is DISQUALIFIER.
 - Return ONLY the JSON object. No markdown, no commentary.`;
 
