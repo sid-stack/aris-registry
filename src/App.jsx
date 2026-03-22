@@ -216,13 +216,25 @@ export default function App() {
     trackPageView(logicalPath);
   }, [view, authenticated, route, proposal, aliasSection]);
 
-  // ── Back navigation: pop state goes back to landing ──
+  // ── Back navigation: always stay on site ──
+  useEffect(() => {
+    // On first landing push a sentinel so the very first "back" press
+    // hits our popstate handler instead of leaving to Google/referrer.
+    if (window.history.state === null || window.history.state?.view === undefined) {
+      window.history.pushState({ view: "landing" }, "", window.location.href);
+    }
+  }, []);
+
   useEffect(() => {
     const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
     window.history.replaceState({ view }, "", currentUrl);
 
-    const handlePopState = () => {
-      if (view !== "landing") setView("landing");
+    const handlePopState = (e) => {
+      // Always intercept back and route to landing — never leave the site
+      e.preventDefault?.();
+      setView("landing");
+      // Re-push so the trap stays armed for subsequent back presses
+      window.history.pushState({ view: "landing" }, "", "/");
     };
 
     window.addEventListener("popstate", handlePopState);
