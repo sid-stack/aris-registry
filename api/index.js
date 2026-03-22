@@ -344,31 +344,92 @@ function parseNoticeId(url = "") {
   return null;
 }
 
-const AUDIT_SYSTEM_PROMPT = `You are Mercury 2, an elite federal compliance auditor.
-Analyze the solicitation context and return ONLY a valid JSON object with this exact structure:
+const AUDIT_SYSTEM_PROMPT = `You are Mercury 2, an elite federal compliance auditor. Your output is used by capture teams to make go/no-go decisions. Every finding MUST be backed by verbatim evidence from the solicitation text.
+
+Analyze the solicitation and return ONLY a valid JSON object:
 {
-  "id": "notice ID extracted from URL or context",
+  "id": "notice ID from URL or context",
   "title": "solicitation title",
-  "agency": "agency name",
+  "agency": "issuing agency name",
   "value": "estimated contract value as integer string e.g. '45000000'",
   "compliance": [
-    { "category": "ATO Documentation", "risk": 88, "description": "1 sentence finding", "angle": 0, "label": "ATO" },
-    { "category": "Section L Compliance", "risk": 82, "description": "1 sentence finding", "angle": 60, "label": "SEC-L" },
-    { "category": "FAR 52.204-21", "risk": 76, "description": "1 sentence finding", "angle": 120, "label": "FAR52" },
-    { "category": "NIST 800-171", "risk": 71, "description": "1 sentence finding", "angle": 180, "label": "NIST" },
-    { "category": "Past Performance", "risk": 68, "description": "1 sentence finding", "angle": 240, "label": "PP" },
-    { "category": "Set-Aside Eligibility", "risk": 55, "description": "1 sentence finding", "angle": 300, "label": "SA" }
+    {
+      "category": "Set-Aside Eligibility",
+      "verdict": "DISQUALIFIER",
+      "risk": 92,
+      "description": "One sentence: what the requirement is and why it's a risk",
+      "sourceSnippet": "Exact quoted text from the solicitation that proves this finding. Must be verbatim. If not available, write INFERRED.",
+      "sectionRef": "Section B, Page 3 — or the FAR/DFARS clause reference",
+      "angle": 0,
+      "label": "SA"
+    },
+    {
+      "category": "Security Clearance",
+      "verdict": "DISQUALIFIER",
+      "risk": 88,
+      "description": "One sentence finding",
+      "sourceSnippet": "Verbatim RFP text or INFERRED",
+      "sectionRef": "Section L.5 or equivalent",
+      "angle": 60,
+      "label": "SEC"
+    },
+    {
+      "category": "Past Performance",
+      "verdict": "WARNING",
+      "risk": 72,
+      "description": "One sentence finding",
+      "sourceSnippet": "Verbatim RFP text or INFERRED",
+      "sectionRef": "Section M, Evaluation Factor 2",
+      "angle": 120,
+      "label": "PP"
+    },
+    {
+      "category": "FAR 52.204-21",
+      "verdict": "WARNING",
+      "risk": 68,
+      "description": "One sentence finding",
+      "sourceSnippet": "Verbatim RFP text or INFERRED",
+      "sectionRef": "Section I, FAR 52.204-21",
+      "angle": 180,
+      "label": "FAR"
+    },
+    {
+      "category": "CMMC / NIST 800-171",
+      "verdict": "WARNING",
+      "risk": 61,
+      "description": "One sentence finding",
+      "sourceSnippet": "Verbatim RFP text or INFERRED",
+      "sectionRef": "DFARS 252.204-7012",
+      "angle": 240,
+      "label": "CMMC"
+    },
+    {
+      "category": "Bonding / Insurance",
+      "verdict": "PASS",
+      "risk": 30,
+      "description": "One sentence finding",
+      "sourceSnippet": "Verbatim RFP text or INFERRED",
+      "sectionRef": "Section H or equivalent",
+      "angle": 300,
+      "label": "BOND"
+    }
   ],
-  "executiveSummary": "2-3 sentence summary of compliance landscape",
+  "executiveSummary": "2-3 sentence plain-English summary of the compliance landscape and primary disqualification risk",
   "riskAssessment": {
     "verdict": "HIGH_DISQUALIFICATION_RISK",
     "score": 84,
     "breakdown": { "delta_risk": 42, "hazard_penalty": 42 },
-    "delta_analysis": "One sentence on primary risk driver"
+    "delta_analysis": "One sentence on the single highest-priority risk driver"
   },
   "fatalError": true
 }
-Set fatalError: true if any compliance item has risk > 75. Return ONLY the JSON, no markdown.`;
+
+Rules:
+- verdict must be one of: DISQUALIFIER, WARNING, PASS
+- sourceSnippet must be verbatim quoted text from the solicitation, wrapped in double quotes. If the solicitation text is not available and you are inferring from context, write exactly: INFERRED — [brief reason]
+- risk > 75 = DISQUALIFIER range. risk 50-75 = WARNING. risk < 50 = PASS.
+- Set fatalError: true if any item is DISQUALIFIER.
+- Return ONLY the JSON object. No markdown, no commentary.`;
 
 app.post("/api/analyze-link", apiLimiter, asyncHandler(async (req, res) => {
   const { url } = req.body;

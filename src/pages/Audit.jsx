@@ -308,35 +308,87 @@ const LiveFeedSidebar = ({ logs, isActive }) => {
   );
 };
 
+const VERDICT_CONFIG = {
+  DISQUALIFIER: { color: "#ef4444", bg: "rgba(239,68,68,0.1)", border: "#ef4444", label: "✗ DISQUALIFIER" },
+  WARNING:      { color: "#f59e0b", bg: "rgba(245,158,11,0.08)", border: "#f59e0b", label: "⚠ WARNING" },
+  PASS:         { color: "#22c55e", bg: "rgba(34,197,94,0.08)", border: "#22c55e", label: "✓ PASS" },
+};
+
 const DisqualificationMatrix = ({ compliance = [] }) => {
-  const criticalHazards = compliance.filter(item => item.risk > 80) || [
-    { category: "ATO Documentation", risk: 93, description: "IL4 pathway not documented" },
-    { category: "Section L Compliance", risk: 87, description: "Missing technical volume requirements" },
-    { category: "FAR 52.204-21", risk: 78, description: "Incomplete security safeguards" }
+  const [expanded, setExpanded] = useState(null);
+
+  const items = compliance.length > 0 ? compliance : [
+    { category: "ATO Documentation", verdict: "DISQUALIFIER", risk: 93, description: "IL4 pathway not documented", sourceSnippet: "INFERRED — IL4 security baseline required for DoD cloud workloads", sectionRef: "Section L.4 / DFARS 252.239-7010" },
+    { category: "Section L Compliance", verdict: "WARNING", risk: 82, description: "Missing technical volume requirements", sourceSnippet: "INFERRED — technical volume page limits and format requirements unclear", sectionRef: "Section L, Instructions to Offerors" },
+    { category: "FAR 52.204-21", verdict: "WARNING", risk: 68, description: "Basic safeguarding of covered contractor systems", sourceSnippet: "INFERRED — standard FAR clause present in most federal IT contracts", sectionRef: "Section I, FAR 52.204-21" },
   ];
-  
+
+  // Sort: DISQUALIFIERs first, then WARNINGs, then PASSes
+  const sorted = [...items].sort((a, b) => (b.risk || 0) - (a.risk || 0));
+
   return (
     <div className="disqualification-matrix">
       <div className="panel-header">
-        <AlertTriangle size={14} /> Critical Hazards
+        <AlertTriangle size={14} /> Compliance Findings
+        <span style={{ marginLeft: "auto", fontSize: "0.7rem", color: "#52525b" }}>
+          {items.filter(i => i.verdict === "DISQUALIFIER").length} disqualifier(s) · click to expand
+        </span>
       </div>
       <div className="hazards-grid">
-        {criticalHazards.map((hazard, i) => (
-          <div 
-            key={i} 
-            className={`hazard-card ${hazard.risk > 80 ? 'critical-glow' : ''}`}
-            style={{ borderLeft: `3px solid ${hazard.risk > 80 ? 'var(--risk-high)' : 'var(--risk-medium)'}` }}
-          >
-            <div className="hazard-score">
-              <span className="score-value">{hazard.risk}</span>
-              <span className="score-label">RISK</span>
+        {sorted.map((hazard, i) => {
+          const cfg = VERDICT_CONFIG[hazard.verdict] || VERDICT_CONFIG.WARNING;
+          const isOpen = expanded === i;
+          const hasSnippet = hazard.sourceSnippet && !hazard.sourceSnippet.startsWith("INFERRED");
+          return (
+            <div
+              key={i}
+              className={`hazard-card ${hazard.risk > 80 ? 'critical-glow' : ''}`}
+              style={{ borderLeft: `3px solid ${cfg.border}`, cursor: "pointer", background: isOpen ? cfg.bg : undefined }}
+              onClick={() => setExpanded(isOpen ? null : i)}
+            >
+              <div className="hazard-score" style={{ color: cfg.color }}>
+                <span className="score-value">{hazard.risk}</span>
+                <span className="score-label">RISK</span>
+              </div>
+              <div className="hazard-details" style={{ flex: 1 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                  <div className="hazard-category">{hazard.category}</div>
+                  <span style={{ fontSize: "0.65rem", fontWeight: 700, color: cfg.color, letterSpacing: "0.05em", whiteSpace: "nowrap" }}>
+                    {cfg.label}
+                  </span>
+                </div>
+                <div className="hazard-description">{hazard.description}</div>
+
+                {/* Expandable evidence block */}
+                {isOpen && (
+                  <div style={{ marginTop: 12 }}>
+                    {hazard.sourceSnippet && (
+                      <blockquote style={{
+                        margin: "0 0 8px",
+                        padding: "10px 14px",
+                        background: "rgba(0,0,0,0.3)",
+                        borderLeft: `3px solid ${hasSnippet ? cfg.color : "#52525b"}`,
+                        borderRadius: "0 6px 6px 0",
+                      }}>
+                        <p style={{ margin: 0, fontSize: "0.82rem", color: hasSnippet ? "#e4e4e7" : "#71717a", fontStyle: hasSnippet ? "italic" : "normal", lineHeight: 1.6 }}>
+                          {hasSnippet ? `"${hazard.sourceSnippet.replace(/^"|"$/g, '')}"` : hazard.sourceSnippet}
+                        </p>
+                      </blockquote>
+                    )}
+                    {hazard.sectionRef && (
+                      <div style={{ fontSize: "0.72rem", color: "#52525b", letterSpacing: "0.04em" }}>
+                        📍 {hazard.sectionRef}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              <div style={{ color: "#52525b", fontSize: "0.7rem", alignSelf: "flex-start", paddingTop: 2 }}>
+                {isOpen ? "▲" : "▼"}
+              </div>
             </div>
-            <div className="hazard-details">
-              <div className="hazard-category">{hazard.category}</div>
-              <div className="hazard-description">{hazard.description}</div>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
