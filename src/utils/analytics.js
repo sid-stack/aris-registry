@@ -2,13 +2,6 @@ import {
   ANALYTICS_CONSENT_EVENT,
   ANALYTICS_CONSENT_KEY,
 } from "./consent";
-import { 
-  initPlausible, 
-  trackPlausiblePageView, 
-  trackPlausibleEvent, 
-  trackPlausibleGoal,
-  PlausibleEvents
-} from "./plausible";
 import posthog from 'posthog-js';
 
 const measurementId = import.meta.env.VITE_GA4_MEASUREMENT_ID;
@@ -78,9 +71,6 @@ export function initAnalytics() {
     console.log('[Analytics] PostHog initialized');
   }
 
-  // Initialize Plausible Analytics
-  initPlausible();
-
   initialized = true;
 }
 
@@ -124,9 +114,6 @@ export function trackPageView(path) {
       title: document.title,
     });
   }
-
-  // Track with Plausible Analytics
-  trackPlausiblePageView(path);
 }
 
 export function trackEvent(name, params = {}) {
@@ -143,50 +130,45 @@ export function trackEvent(name, params = {}) {
   if (initialized && posthog.__loaded) {
     posthog.capture(name, params);
   }
-
-  // Track with Plausible Analytics
-  trackPlausibleEvent(name, params);
 }
 
 // Enhanced tracking functions for ARIS-specific events
 export function trackAuditStart() {
-  trackEvent(PlausibleEvents.AUDIT_STARTED, { category: 'Audit' });
+  trackEvent('audit_started', { category: 'Audit' });
 }
 
 export function trackAuditComplete() {
-  trackEvent(PlausibleEvents.AUDIT_COMPLETED, { category: 'Audit' });
+  trackEvent('audit_completed', { category: 'Audit' });
 }
 
 export function trackSamScrape() {
-  trackEvent(PlausibleEvents.SAM_SCRAPE, { category: 'Scraping' });
+  trackEvent('sam_scrape', { category: 'Scraping' });
 }
 
 export function trackLinkAnalysis() {
-  trackEvent(PlausibleEvents.LINK_ANALYSIS, { category: 'Analysis' });
+  trackEvent('link_analysis', { category: 'Analysis' });
 }
 
 export function trackPdfUpload() {
-  trackEvent(PlausibleEvents.PDF_UPLOAD, { category: 'Upload' });
+  trackEvent('pdf_upload', { category: 'Upload' });
 }
 
 export function trackTrialStart() {
-  trackEvent(PlausibleEvents.TRIAL_STARTED, { category: 'Conversion' });
+  trackEvent('trial_started', { category: 'Conversion' });
 }
 
 export function trackCheckoutInitiated(amount = 0) {
-  trackEvent(PlausibleEvents.CHECKOUT_INITIATED, { 
+  trackEvent('checkout_initiated', { 
     category: 'Conversion',
     value: amount 
   });
-  trackPlausibleGoal(PlausibleEvents.CHECKOUT_INITIATED, amount);
 }
 
 export function trackSubscriptionUpgrade(plan = 'unknown') {
-  trackEvent(PlausibleEvents.SUBSCRIPTION_UPGRADE, { 
+  trackEvent('subscription_upgrade', { 
     category: 'Conversion',
     plan 
   });
-  trackPlausibleGoal(PlausibleEvents.SUBSCRIPTION_UPGRADE);
 }
 
 export function registerConsentListener() {
