@@ -5,6 +5,7 @@ import ConsentBanner from "./components/ConsentBanner";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { trackPageView } from "./utils/analytics";
 import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 
 // All other pages lazy-loaded — only downloaded when the user navigates to them
 const Upload         = lazy(() => import("./pages/Upload"));
@@ -303,6 +304,7 @@ export default function App() {
       </Suspense>
       <ConsentBanner />
       <Analytics />
+      <SpeedInsights />
     </ErrorBoundary>
   );
 }
