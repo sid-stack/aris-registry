@@ -9,6 +9,7 @@ import {
   trackPlausibleGoal,
   PlausibleEvents
 } from "./plausible";
+import posthog from 'posthog-js';
 
 const measurementId = import.meta.env.VITE_GA4_MEASUREMENT_ID;
 
@@ -65,6 +66,18 @@ export function initAnalytics() {
     console.log('[Analytics] Google Analytics initialized');
   }
 
+  // Initialize PostHog
+  const posthogKey = import.meta.env.VITE_POSTHOG_KEY;
+  const posthogHost = import.meta.env.VITE_POSTHOG_HOST;
+  if (posthogKey && posthogHost) {
+    posthog.init(posthogKey, {
+      api_host: posthogHost,
+      autocapture: true,
+      capture_pageview: false,
+    });
+    console.log('[Analytics] PostHog initialized');
+  }
+
   // Initialize Plausible Analytics
   initPlausible();
 
@@ -104,6 +117,14 @@ export function trackPageView(path) {
     });
   }
 
+  // Track with PostHog
+  if (initialized && posthog.__loaded) {
+    posthog.capture('$pageview', {
+      path,
+      title: document.title,
+    });
+  }
+
   // Track with Plausible Analytics
   trackPlausiblePageView(path);
 }
@@ -116,6 +137,11 @@ export function trackEvent(name, params = {}) {
   // Track with Google Analytics
   if (initialized && window.gtag && measurementId) {
     window.gtag("event", name, params);
+  }
+
+  // Track with PostHog
+  if (initialized && posthog.__loaded) {
+    posthog.capture(name, params);
   }
 
   // Track with Plausible Analytics

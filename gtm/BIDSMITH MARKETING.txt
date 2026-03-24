@@ -89,3 +89,9 @@ Create dynamically generated landing pages (no-index if expired) for high-traffi
 1.  **Tool Directories**: List on "Marketplace.gov" / Acquisition tool catalogs.
 2.  **Partner Guest Posts**: Offer "Compliance Methodology" articles to Law Firms in the GovCon niche.
 3.  **SAM.gov Integration**: Use browser extension "Share" hooks to drive user-generated traffic.
+
+
+
+POSTHOG
+VERECL ANALYTICS 
+TRACK AND SEE USER BEHAVIOUR

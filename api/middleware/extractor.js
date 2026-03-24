@@ -42,6 +42,25 @@ export function extractMetadata(text) {
   if (/Section\s+M\b/i.test(text)) sections.push("Section M");
   if (/Statement\s+of\s+Work/i.test(text)) sections.push("SOW");
   if (/Performance\s+Work\s+Statement/i.test(text)) sections.push("PWS");
+  const signals = {
+    has_rfp_language: /RFP|RFQ|IFB|solicitation/i.test(text),
+    has_deadline: !!deadline,
+    urgent_deadline: daysUntil !== null && daysUntil <= 14,
+    has_eval_criteria: evalFactors.length > 0,
+    has_page_limit: !!pageMatch,
+    has_compliance: farRaw.length > 0,
+    has_set_aside: !!setAside,
+    is_lpta: /lowest\s+price\s+technically\s+acceptable|LPTA/i.test(text),
+    is_best_value: /best\s+value/i.test(text),
+  };
+
+  const complexityScore =
+    (evalFactors.length > 0 ? 2 : 0) +
+    (farRaw.length > 3 ? 2 : 0) +
+    (pageMatch ? 1 : 0) +
+    (DISQ_KW.test(text) ? 2 : 0) +
+    (MANDATORY_KW.test(text) ? 1 : 0);
+
   return {
     solicitation_number: solMatch?.[1] || "", agency, naics_code: naicsMatch?.[1] || "",
     set_aside_type: setAside?.[1]?.trim() || "", contract_type: contractType?.[1]?.trim() || "",
@@ -50,13 +69,22 @@ export function extractMetadata(text) {
     late_submission_disqualifying: DISQ_KW.test(text), eval_factors: evalFactors,
     best_value_tradeoff: /best\s+value/i.test(text), lpta: /lowest\s+price\s+technically\s+acceptable|LPTA/i.test(text),
     far_clauses_raw: [...new Set(farRaw)],
+    signals,
+    complexity_score: complexityScore,
   };
 }
 
 export function extractCandidates(text) {
-  return text.split(/(?<=[.!\n])\s+/).map(s => s.replace(/\s+/g, " ").trim())
-    .filter(s => s.length > 25 && s.length < 600 && (
-      MANDATORY_KW.test(s) || DISQ_KW.test(s) ||
-      /CMMC|clearance|bonding|insurance|SAM|FAR|DFARS|certif|OSHA|EMR|past\s+performance/i.test(s)
-    ));
+  return text.split(/(?<=[.!\n])\s+/)
+    .map(s => s.replace(/\s+/g, " ").trim())
+    .filter(s => s.length > 25 && s.length < 600)
+    .map(s => ({
+      text: s,
+      type:
+        DISQ_KW.test(s) ? "disqualifier" :
+        MANDATORY_KW.test(s) ? "requirement" :
+        /CMMC|clearance|bonding|insurance/i.test(s) ? "compliance" :
+        "other"
+    }))
+    .filter(s => s.type !== "other");
 }

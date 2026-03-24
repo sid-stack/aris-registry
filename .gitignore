@@ -1,128 +1,70 @@
-node_modules
+# =========================
+# ENV & SECRETS
+# =========================
 .env
 .env.*
 .env.local
-.DS_Store
-dist
-dummy.pdf
-.vercel
-coveragearis-registry/
 
-# Added by ggshield
-
-# Added by ggshield
-
-# Added by ggshield
-
-# Added by ggshield
-
-# Added by ggshield
-
-# Added by ggshield
-
-# Added by ggshield
-
-# Python
+# =========================
+# DEPENDENCIES
+# =========================
+node_modules/
 venv/
+
+# =========================
+# BUILD OUTPUT
+# =========================
+dist/
+build/
+.next/
+.out/
+
+# =========================
+# LOGS & CACHE
+# =========================
+*.log
+.cache/
+.cache_ggshield/
+
+# =========================
+# OS FILES
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# PYTHON
+# =========================
 __pycache__/
 *.py[cod]
-*.class
+*.pyo
+*.pyd
 
-# Added by ggshield
+# =========================
+# TESTING
+# =========================
+coverage/
+.pytest_cache/
 
-# Added by ggshield
+# =========================
+# DEPLOYMENT
+# =========================
+.vercel/
 
-# Added by ggshield
+# =========================
+# PROJECT-SPECIFIC
+# =========================
+dummy.pdf
 
-# Added by ggshield
+# =========================
+# GTM (private ops)
+# =========================
+gtm/*.csv
+gtm/CLAUDE.md
 
-# Added by ggshield
 
-# Added by ggshield
-
-# Added by ggshield
-
-# Added by ggshield
-
-# Added by ggshield
-
-# Added by ggshield
-
-# Added by ggshield
-
-# Added by ggshield
-
-# Added by ggshield
-
-# Added by ggshield
-
-# Added by ggshield
-
-# Added by ggshield
-
-# Added by ggshield
-
-# Added by ggshield
-
-# Added by ggshield
-
-# Added by ggshield
-
-# Added by ggshield
-
-# Added by ggshield
-.cache_ggshield
-
-# Added by ggshield
-.cache_ggshield
-
-# Added by ggshield
-.cache_ggshield
-
-# Added by ggshield
-.cache_ggshield
-
-# Added by ggshield
-.cache_ggshield
-
-# Added by ggshield
-.cache_ggshield
-
-# Added by ggshield
-.cache_ggshield
-
-# Added by ggshield
-.cache_ggshield
-
-# Added by ggshield
-.cache_ggshield
-
-# Added by ggshield
-.cache_ggshield
-
-# Added by ggshield
-.cache_ggshield
-
-# Added by ggshield
-.cache_ggshield
-
-# Added by ggshield
-.cache_ggshield
-
-# Added by ggshield
-.cache_ggshield
-
-# Added by ggshield
-.cache_ggshield
-
-# Added by ggshield
-.cache_ggshield
-
-# Added by ggshield
-.cache_ggshield
-
-# Added by ggshield
-.cache_ggshield
-
-# Added by ggshield
-.cache_ggshield
+# =========================
+# EDITOR
+# =========================
+.vscode/
+.idea/
