@@ -143,7 +143,6 @@ app.post("/api/analyze-pdf", upload.single('file'), asyncHandler(async (req, res
     });
   }
 }));
-
 // Railway sits behind a proxy; trust 1 hop so rate limiting uses client IP.
 const trustProxyEnv = process.env.TRUST_PROXY;
 let trustProxySetting = 1;
