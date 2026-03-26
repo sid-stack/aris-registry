@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Panel, 
-  Group as PanelGroup, 
-  Separator as PanelResizeHandle 
+  PanelGroup, 
+  PanelResizeHandle 
 } from "react-resizable-panels";
 import { 
   Terminal, 
