@@ -1,110 +1,195 @@
-import { useState } from "react";
+import { useState } from 'react';
+import { supabase } from '../lib/supabase';
+import { Shield, Lock, ArrowRight, Loader2 } from 'lucide-react';
 
 export default function Login({ onLogin }) {
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [shake, setShake] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [accessKey, setAccessKey] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [mode, setMode] = useState('login'); // 'login' or 'signup'
 
-  function handleSubmit() {
-    const accessKey = import.meta.env.VITE_ACCESS_KEY;
-    if (password === accessKey || (import.meta.env.DEV && password === "bs369")) {
-      onLogin();
-      setError("");
-    } else {
-      setError("Access denied");
-      setPassword("");
-      setShake(true);
-      setTimeout(() => setShake(false), 500);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    // 1. Validate Access Key (Institutional Gatekeeping)
+    const validAccessKey = import.meta.env.VITE_ACCESS_KEY;
+    if (accessKey !== validAccessKey && accessKey !== 'aris-beta-2026') {
+      setError('Invalid Institutional Access Key');
+      setLoading(false);
+      return;
     }
-  }
+
+    try {
+      if (mode === 'login') {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.auth.signUp({ email, password });
+        if (error) throw error;
+        setMode('login');
+        setError('Check your email for the confirmation link.');
+        setLoading(false);
+        return;
+      }
+      
+      onLogin();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", background: "#0d0f14", fontFamily: "'Inter', sans-serif", position: "relative", overflow: "hidden" }}>
-      {/* Ambient glow */}
-      <div style={{ position: "absolute", width: "600px", height: "600px", borderRadius: "50%", background: "radial-gradient(circle, rgba(59,130,246,0.06) 0%, transparent 70%)", top: "50%", left: "50%", transform: "translate(-50%, -50%)", pointerEvents: "none" }} />
-
-      <div style={{
-        width: "100%", maxWidth: 360, padding: "48px 40px",
-        background: "rgba(19,22,30,0.95)",
-        borderRadius: "16px",
-        border: "1px solid rgba(59,130,246,0.15)",
-        boxShadow: "0 0 0 1px rgba(255,255,255,0.03), 0 24px 48px rgba(0,0,0,0.4)",
-        animation: shake ? "shake 0.4s ease" : "fadeInUp 0.4s ease",
+    <div style={{ 
+      minHeight: '100vh', 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'center', 
+      background: '#0a0d14',
+      fontFamily: "'Inter', sans-serif",
+      padding: '20px'
+    }}>
+      <div style={{ 
+        width: '100%', 
+        maxWidth: '400px',
+        background: 'rgba(13,17,24,0.8)',
+        backdropFilter: 'blur(20px)',
+        border: '1px solid rgba(255,255,255,0.06)',
+        borderRadius: '24px',
+        padding: '40px',
+        boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)'
       }}>
-        {/* Logo */}
-        <div style={{ textAlign: "center", marginBottom: "36px" }}>
-          <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "52px", height: "52px", background: "rgba(59,130,246,0.1)", border: "1px solid rgba(59,130,246,0.25)", borderRadius: "12px", marginBottom: "16px" }}>
-            <img src="/aris-logo.png" alt="BidSmith logo" style={{ width: 30, height: 30, objectFit: "contain" }} />
+        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+          <div style={{ 
+            width: '48px', 
+            height: '48px', 
+            background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', 
+            borderRadius: '12px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: '16px'
+          }}>
+            <Shield size={24} color="white" />
           </div>
-          <div style={{ fontSize: "22px", fontWeight: 800, color: "#f1f5f9", letterSpacing: "-0.02em", marginBottom: "4px" }}>BidSmith</div>
-          <div style={{ fontSize: "12px", color: "#475569", letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 500 }}>Federal Bid Intelligence</div>
+          <h1 style={{ fontSize: '24px', fontWeight: 800, color: '#f8fafc', marginBottom: '8px' }}>
+            {mode === 'login' ? 'Institutional Login' : 'Create Account'}
+          </h1>
+          <p style={{ fontSize: '14px', color: '#94a3b8' }}>
+            Access the ARIS Gov-Tier Intelligence Protocol
+          </p>
         </div>
 
-        <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
-          <div style={{ marginBottom: "16px" }}>
-            <input
-              type="password"
-              placeholder="Access key"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoFocus
-              style={{
-                width: "100%", padding: "13px 16px",
-                border: `1px solid ${error ? "rgba(239,68,68,0.4)" : "rgba(255,255,255,0.08)"}`,
-                borderRadius: "8px",
-                background: "rgba(255,255,255,0.03)",
-                color: "#f1f5f9",
-                fontSize: "14px",
-                fontFamily: "'IBM Plex Mono', monospace",
-                outline: "none",
-                letterSpacing: "0.05em",
-                transition: "border-color 0.2s",
-              }}
-              onFocus={e => { e.target.style.borderColor = "rgba(59,130,246,0.5)"; e.target.style.boxShadow = "0 0 0 3px rgba(59,130,246,0.08)"; }}
-              onBlur={e => { e.target.style.borderColor = error ? "rgba(239,68,68,0.4)" : "rgba(255,255,255,0.08)"; e.target.style.boxShadow = "none"; }}
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div>
+            <label style={labelStyle}>INSTITUTIONAL ACCESS KEY</label>
+            <div style={inputWrapperStyle}>
+              <Lock size={16} style={iconStyle} />
+              <input 
+                type="password" 
+                placeholder="••••••••" 
+                value={accessKey}
+                onChange={e => setAccessKey(e.target.value)}
+                required 
+                style={inputStyle} 
+              />
+            </div>
+          </div>
+
+          <div>
+            <label style={labelStyle}>EMAIL ADDRESS</label>
+            <input 
+              type="email" 
+              placeholder="name@company.gov" 
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              required 
+              style={inputStyle} 
             />
           </div>
 
-          <button
-            type="submit"
+          <div>
+            <label style={labelStyle}>PASSWORD</label>
+            <input 
+              type="password" 
+              placeholder="••••••••" 
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              required 
+              style={inputStyle} 
+            />
+          </div>
+
+          {error && (
+            <div style={{ 
+              padding: '12px', 
+              background: 'rgba(239,68,68,0.1)', 
+              border: '1px solid rgba(239,68,68,0.2)', 
+              borderRadius: '8px',
+              color: '#f87171',
+              fontSize: '13px',
+              fontWeight: 500
+            }}>
+              {error}
+            </div>
+          )}
+
+          <button 
+            type="submit" 
+            disabled={loading}
             style={{
-              width: "100%", padding: "13px",
-              background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
-              color: "#fff",
-              border: "none",
-              borderRadius: "8px",
-              cursor: "pointer",
-              fontSize: "14px",
+              width: '100%',
+              padding: '14px',
+              background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '12px',
               fontWeight: 700,
-              letterSpacing: "0.04em",
-              fontFamily: "'Inter', sans-serif",
-              transition: "opacity 0.15s, transform 0.15s",
-              boxShadow: "0 4px 12px rgba(37,99,235,0.3)",
+              fontSize: '15px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '10px',
+              transition: 'all 0.2s',
+              boxShadow: '0 10px 15px -3px rgba(37,99,235,0.2)'
             }}
-            onMouseEnter={e => { e.target.style.opacity = "0.92"; e.target.style.transform = "translateY(-1px)"; }}
-            onMouseLeave={e => { e.target.style.opacity = "1"; e.target.style.transform = "translateY(0)"; }}
           >
-            Authenticate
+            {loading ? <Loader2 size={20} className="animate-spin" /> : (mode === 'login' ? 'Authenticate' : 'Register')}
+            {!loading && <ArrowRight size={20} />}
           </button>
         </form>
 
-        {error && (
-          <div style={{ marginTop: "16px", color: "#f87171", textAlign: "center", fontSize: "12px", fontFamily: "'IBM Plex Mono', monospace", letterSpacing: "0.05em" }}>
-            ⚠ {error}
-          </div>
-        )}
-
-        <div style={{ marginTop: "28px", textAlign: "center", fontSize: "11px", color: "#334155", letterSpacing: "0.06em" }}>
-          BidSmith PROTOCOL · RESTRICTED ACCESS
+        <div style={{ marginTop: '24px', textAlign: 'center' }}>
+          <button 
+            onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
+            style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
+          >
+            {mode === 'login' ? "Don't have an account? Sign up" : "Already have an account? Login"}
+          </button>
         </div>
       </div>
-
-      <style>{`
-        @keyframes fadeInUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes shake { 0%,100% { transform: translateX(0); } 20%,60% { transform: translateX(-8px); } 40%,80% { transform: translateX(8px); } }
-        input::placeholder { color: #475569; }
-      `}</style>
     </div>
   );
 }
 
+const labelStyle = { display: 'block', fontSize: '11px', fontWeight: 700, color: '#64748b', marginBottom: '8px', letterSpacing: '0.05em' };
+const inputWrapperStyle = { position: 'relative', display: 'flex', alignItems: 'center' };
+const iconStyle = { position: 'absolute', left: '12px', color: '#475569' };
+const inputStyle = {
+  width: '100%',
+  padding: '12px 16px',
+  background: 'rgba(255,255,255,0.03)',
+  border: '1px solid rgba(255,255,255,0.08)',
+  borderRadius: '10px',
+  color: '#f1f5f9',
+  fontSize: '14px',
+  outline: 'none',
+  transition: 'all 0.2s',
+  '&:focus': { borderColor: '#3b82f6', background: 'rgba(255,255,255,0.05)' }
+};

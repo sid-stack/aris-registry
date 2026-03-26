@@ -1,17 +1,15 @@
-# ARIS Protocol v2.1 - Modular Deployment Engine
+# ARIS Protocol v2.2 - Unified Build Engine
 FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy root package.json and api package.json
-COPY package.json .
-COPY api/package.json api/
+# Copy root package management files first for better caching
+COPY package*.json ./
 
-# Install ALL dependencies (including devDeps needed for build)
-RUN npm install
-RUN cd api && npm install
+# Install ALL dependencies
+RUN npm install --legacy-peer-deps
 
-# Copy source code
+# Copy source code (respecting .dockerignore)
 COPY . .
 
 # Build the React frontend
@@ -20,5 +18,6 @@ RUN npm run build
 # Expose the internal orchestrator port
 EXPOSE 8080
 
-# Run the thin orchestrator
+# Run the unified orchestrator
 CMD ["node", "api/index.js"]
+

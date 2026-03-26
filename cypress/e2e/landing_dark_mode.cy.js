@@ -32,7 +32,7 @@ describe('Landing Page Dark Mode', () => {
 
     // The toggle button should show the sun icon
     cy.get('button[aria-label="Toggle Dark Mode"] img').should('have.attr', 'src').and('include', 'sun.svg');
-    
+
     // Verify localStorage is set correctly
     cy.window().its('localStorage').invoke('getItem', 'bidsmith-dark').should('equal', 'true');
   });

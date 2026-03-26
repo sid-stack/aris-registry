@@ -1,58 +1,58 @@
 import { lazy, Suspense, useEffect, useState } from "react";
-// Landing is the entry point — eager load for instant first paint
 import Landing from "./pages/Landing";
 import ConsentBanner from "./components/ConsentBanner";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { trackPageView } from "./utils/analytics";
-import { Analytics } from '@vercel/analytics/react';
-import { SpeedInsights } from '@vercel/speed-insights/react';
+import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
+import { supabase } from "./lib/supabase";
 
-// All other pages lazy-loaded — only downloaded when the user navigates to them
-const Upload         = lazy(() => import("./pages/Upload"));
-const Proposal       = lazy(() => import("./pages/Proposal"));
-const Login          = lazy(() => import("./pages/Login"));
-const Audit          = lazy(() => import("./pages/Audit"));
-const Templates      = lazy(() => import("./pages/Templates"));
-const Legal          = lazy(() => import("./pages/Legal"));
-const SamRep         = lazy(() => import("./pages/SamRep"));
-const Discovery      = lazy(() => import("./pages/Discovery"));
-const Security       = lazy(() => import("./pages/Security"));
-const About          = lazy(() => import("./pages/About"));
-const SamScraper     = lazy(() => import("./pages/SamScraper"));
-const Labs           = lazy(() => import("./pages/Labs"));
-const BidSmithBeta   = lazy(() => import("./pages/BidSmithBeta"));
+const Upload = lazy(() => import("./pages/Upload"));
+const Proposal = lazy(() => import("./pages/Proposal"));
+const Login = lazy(() => import("./pages/Login"));
+const Audit = lazy(() => import("./pages/Audit"));
+const Templates = lazy(() => import("./pages/Templates"));
+const Legal = lazy(() => import("./pages/Legal"));
+const SamRep = lazy(() => import("./pages/SamRep"));
+const Discovery = lazy(() => import("./pages/Discovery"));
+const Security = lazy(() => import("./pages/Security"));
+const About = lazy(() => import("./pages/About"));
+const SamScraper = lazy(() => import("./pages/SamScraper"));
+const Labs = lazy(() => import("./pages/Labs"));
+const BidSmithBeta = lazy(() => import("./pages/BidSmithBeta"));
 const BidSmithSearch = lazy(() => import("./pages/BidSmithSearch"));
 const CompliancePage = lazy(() => import("./pages/CompliancePage"));
-const SurveyAnalytics= lazy(() => import("./components/SurveyAnalytics"));
-const DemoAnalytics  = lazy(() => import("./components/DemoAnalytics"));
-const GovConDashboard= lazy(() => import("./pages/GovConDashboard"));
-const GovConGuide    = lazy(() => import("./pages/GovConGuide"));
-const NotFound       = lazy(() => import("./pages/NotFound"));
+const SurveyAnalytics = lazy(() => import("./components/SurveyAnalytics"));
+const DemoAnalytics = lazy(() => import("./components/DemoAnalytics"));
+const GovConDashboard = lazy(() => import("./pages/GovConDashboard"));
+const GovConGuide = lazy(() => import("./pages/GovConGuide"));
+const Demo = lazy(() => import("./pages/Demo"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 
 const BASE_URL = "https://www.bidsmith.pro";
 
 const PAGE_META = {
-  landing:          { title: "BidSmith | Federal RFP Compliance & Audit Software for Government Contractors", description: "Analyze SAM.gov solicitations in 90 seconds. Compliance matrix, FAR/DFARS risk flags, and bid/no-bid brief — automatically.", path: "/" },
-  templates:        { title: "BidSmith Templates | Federal Proposal & Compliance Matrix Templates", description: "Download pre-built compliance matrix templates, proposal outlines, and RFP shred worksheets for government contractors.", path: "/templates" },
-  about:            { title: "About BidSmith | Federal GovCon Intelligence Platform", description: "BidSmith builds agentic intelligence for federal capture teams. Zero-knowledge architecture, SAM.gov native.", path: "/about" },
-  soc:              { title: "BidSmith Security | Zero-Knowledge Data Architecture", description: "BidSmith processes solicitation data in transient memory. No persistence, no storage, no leaks.", path: "/soc" },
-  "sam-rep":        { title: "BidSmith Sample Audit | DHA Federal Solicitation Report", description: "Inspect a real BidSmith audit output for a Defense Health Agency solicitation.", path: "/sam-rep" },
-  discovery:        { title: "BidSmith Discovery | Federal Opportunity Discovery Engine", description: "Surface federal contracting opportunities matched to your NAICS codes and capability profile.", path: "/discovery" },
-  "sam-scraper":    { title: "BidSmith SAM Scraper | SAM.gov Bulk Opportunity Export", description: "Extract and filter SAM.gov opportunities in bulk by NAICS, agency, set-aside, and dollar threshold.", path: "/sam-scraper" },
-  "bid-search":     { title: "BidSmith Search | Federal Intelligence Search", description: "Search federal solicitations, award history, and agency patterns with natural language queries.", path: "/bid-search" },
-  "beta":           { title: "BidSmith Beta | Early Access", description: "Apply for early access to BidSmith — the next generation of federal intelligence.", path: "/beta" },
-  "demo":           { title: "BidSmith Live Demo | See a Federal RFP Audit in 90 Seconds", description: "Watch BidSmith audit a real $24.5M Army solicitation — compliance matrix, disqualifier flags, and bid/no-bid verdict. Free interactive demo.", path: "/demo" },
-  "govcon-guide":   { title: "Federal Contracting Process Guide | BidSmith", description: "The complete government contracting workflow — SAM.gov registration, opportunity discovery, compliance review, and proposal development. End-to-end guide.", path: "/govcon-guide" },
-  labs:             { title: "BidSmith / Labs | Experimental Federal Intelligence Tools", description: "Experimental tools from BidSmith for federal capture management and GovCon intelligence.", path: "/labs" },
-  privacy:          { title: "Privacy Policy | BidSmith", description: "BidSmith privacy policy. How we handle data and your rights.", path: "/privacy" },
-  terms:            { title: "Terms of Service | BidSmith", description: "Terms of service governing use of the BidSmith platform.", path: "/terms" },
-  cookies:          { title: "Cookie Policy | BidSmith", description: "How BidSmith uses cookies and local storage on bidsmith.pro.", path: "/cookies" },
-  app:              { title: "BidSmith Audit Workspace", description: "Your BidSmith federal solicitation audit workspace.", path: "/app" },
+  landing: { title: "BidSmith | Federal RFP Compliance & Audit Software for Government Contractors", description: "Analyze SAM.gov solicitations in 90 seconds. Compliance matrix, FAR/DFARS risk flags, and bid/no-bid brief — automatically.", path: "/" },
+  templates: { title: "BidSmith Templates | Federal Proposal & Compliance Matrix Templates", description: "Download pre-built compliance matrix templates, proposal outlines, and RFP shred worksheets for government contractors.", path: "/templates" },
+  about: { title: "About BidSmith | Federal GovCon Intelligence Platform", description: "BidSmith builds agentic intelligence for federal capture teams. Zero-knowledge architecture, SAM.gov native.", path: "/about" },
+  soc: { title: "BidSmith Security | Zero-Knowledge Data Architecture", description: "BidSmith processes solicitation data in transient memory. No persistence, no storage, no leaks.", path: "/soc" },
+  "sam-rep": { title: "BidSmith Sample Audit | DHA Federal Solicitation Report", description: "Inspect a real BidSmith audit output for a Defense Health Agency solicitation.", path: "/sam-rep" },
+  discovery: { title: "BidSmith Discovery | Federal Opportunity Discovery Engine", description: "Surface federal contracting opportunities matched to your NAICS codes and capability profile.", path: "/discovery" },
+  "sam-scraper": { title: "BidSmith SAM Scraper | SAM.gov Bulk Opportunity Export", description: "Extract and filter SAM.gov opportunities in bulk by NAICS, agency, set-aside, and dollar threshold.", path: "/sam-scraper" },
+  "bid-search": { title: "BidSmith Search | Federal Intelligence Search", description: "Search federal solicitations, award history, and agency patterns with natural language queries.", path: "/bid-search" },
+  beta: { title: "BidSmith Beta | Early Access", description: "Apply for early access to BidSmith — the next generation of federal intelligence.", path: "/beta" },
+  demo: { title: "BidSmith Live Demo | See a Federal RFP Audit in 90 Seconds", description: "Watch BidSmith audit a real $24.5M Army solicitation — compliance matrix, disqualifier flags, and bid/no-bid verdict.", path: "/demo" },
+  "govcon-guide": { title: "Federal Contracting Process Guide | BidSmith", description: "The complete government contracting workflow — SAM.gov registration, opportunity discovery, compliance review, and proposal development.", path: "/govcon-guide" },
+  labs: { title: "BidSmith / Labs | Experimental Federal Intelligence Tools", description: "Experimental tools from BidSmith for federal capture management and GovCon intelligence.", path: "/labs" },
+  privacy: { title: "Privacy Policy | BidSmith", description: "BidSmith privacy policy. How we handle data and your rights.", path: "/privacy" },
+  terms: { title: "Terms of Service | BidSmith", description: "Terms of service governing use of the BidSmith platform.", path: "/terms" },
+  cookies: { title: "Cookie Policy | BidSmith", description: "How BidSmith uses cookies and local storage on bidsmith.pro.", path: "/cookies" },
+  app: { title: "BidSmith Audit Workspace", description: "Your BidSmith federal solicitation audit workspace.", path: "/app" },
+  "govcon-dashboard": { title: "BidSmith GovCon Dashboard", description: "Institutional capture intelligence workspace for federal solicitations.", path: "/dashboard" },
 };
 
 function usePageMeta(view) {
   useEffect(() => {
-    // For compliance/* pages the real path is already in window.location.pathname
     const isCompliance = view === "compliance";
     const meta = PAGE_META[view] || PAGE_META.landing;
 
@@ -65,11 +65,9 @@ function usePageMeta(view) {
     const od = document.querySelector('meta[property="og:description"]');
     if (od) od.setAttribute("content", meta.description);
 
-    // Update canonical to match the actual page — prevents every page looking
-    // like a duplicate of the homepage to Google
     const canonicalPath = isCompliance
-      ? window.location.pathname          // e.g. /compliance/far-52-212-1
-      : (meta.path || "/");
+      ? window.location.pathname
+      : meta.path || "/";
     const canonicalUrl = `${BASE_URL}${canonicalPath}`;
     let canonical = document.querySelector('link[rel="canonical"]');
     if (!canonical) {
@@ -79,12 +77,10 @@ function usePageMeta(view) {
     }
     canonical.setAttribute("href", canonicalUrl);
 
-    // Keep OG url in sync too
     const ogUrl = document.querySelector('meta[property="og:url"]');
     if (ogUrl) ogUrl.setAttribute("content", canonicalUrl);
 
-    // noindex for pure app/tool pages — not content, not meant to rank
-    const NOINDEX_VIEWS = new Set(["app", "sam-scraper", "phase2", "audit", "survey-analytics", "demo-analytics"]);
+    const NOINDEX_VIEWS = new Set(["app", "sam-scraper", "phase2", "audit", "survey-analytics", "demo-analytics", "govcon-dashboard"]);
     let robotsMeta = document.querySelector('meta[name="robots"]');
     if (!robotsMeta) {
       robotsMeta = document.createElement("meta");
@@ -106,7 +102,8 @@ const LANDING_SECTION_ALIASES = {
 export default function App() {
   const path = window.location.pathname;
   const aliasSection = LANDING_SECTION_ALIASES[path] || null;
-  const [authenticated, setAuthenticated] = useState(false);
+  const [authenticated, setAuthenticated] = useState(() => localStorage.getItem("aris_authenticated") === "true");
+  const [user, setUser] = useState(null);
   const [proposal, setProposal] = useState(null);
   const [route] = useState(() =>
     window.location.search.includes("phase2=true") ? "phase2" : "audit",
@@ -115,51 +112,79 @@ export default function App() {
     aliasSection
       ? "landing"
       : path === "/templates"
-      ? "templates"
-      : path === "/privacy"
-        ? "privacy"
-        : path === "/terms"
-          ? "terms"
-          : path === "/cookies"
-            ? "cookies"
-            : path === "/sam-rep"
-              ? "sam-rep"
-              : path === "/discovery"
-                ? "discovery"
-                : path === "/soc"
-                  ? "soc"
-                  : path === "/sam-scraper"
-                    ? "sam-scraper"
-                  : path === "/fed-search" || path === "/search"
-                    ? "fed-search"
-                  : path === "/survey-analytics"
-                    ? "survey-analytics"
-                  : path === "/demo-analytics"
-                    ? "demo-analytics"
-                  : path === "/app"
-                    ? "app"
-                  : window.location.search.includes("app=true")
-                    ? "app"
-                  : path === "/about"
-                    ? "about"
-                  : path === "/beta"
-                    ? "beta"
-                  : path === "/demo"
-                    ? "demo"
-                  : path === "/govcon-guide" || path === "/how-it-works"
-                    ? "govcon-guide"
-                  : path.startsWith("/labs")
-                    ? "labs"
-                    : path.startsWith("/compliance/")
-                      ? "compliance"
-                      : path !== "/"
-                        ? "404"
-                      : path === "/app/dashboard"
-                        ? "govcon-dashboard"
-                        : "landing",
+        ? "templates"
+        : path === "/privacy"
+          ? "privacy"
+          : path === "/terms"
+            ? "terms"
+            : path === "/cookies"
+              ? "cookies"
+              : path === "/sam-rep"
+                ? "sam-rep"
+                : path === "/discovery"
+                  ? "discovery"
+                  : path === "/soc"
+                    ? "soc"
+                    : path === "/sam-scraper"
+                      ? "sam-scraper"
+                      : path === "/bid-search" || path === "/fed-search" || path === "/search"
+                        ? "bid-search"
+                        : path === "/survey-analytics"
+                          ? "survey-analytics"
+                          : path === "/demo-analytics"
+                            ? "demo-analytics"
+                            : path === "/app"
+                              ? "app"
+                              : window.location.search.includes("app=true")
+                                ? "app"
+                                : path === "/about"
+                                  ? "about"
+                                  : path === "/beta" || path === "/sovereign-beta"
+                                    ? "beta"
+                                    : path === "/demo"
+                                      ? "demo"
+                                      : path === "/govcon-guide" || path === "/how-it-works"
+                                        ? "govcon-guide"
+                                        : path === "/dashboard" || path === "/app/dashboard"
+                                          ? "govcon-dashboard"
+                                          : path.startsWith("/labs")
+                                            ? "labs"
+                                            : path.startsWith("/compliance/")
+                                              ? "compliance"
+                                              : path !== "/"
+                                                ? "404"
+                                                : "landing",
   );
 
   usePageMeta(view);
+
+  useEffect(() => {
+    let mounted = true;
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return;
+      if (session) {
+        setAuthenticated(true);
+        setUser(session.user);
+        localStorage.setItem("aris_authenticated", "true");
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        setAuthenticated(true);
+        setUser(session.user);
+        localStorage.setItem("aris_authenticated", "true");
+      } else {
+        setUser(null);
+        setAuthenticated(localStorage.getItem("aris_authenticated") === "true");
+      }
+    });
+
+    return () => {
+      mounted = false;
+      subscription?.unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     if (!aliasSection || view !== "landing") return;
@@ -203,6 +228,8 @@ export default function App() {
       logicalPath = "/demo";
     } else if (view === "govcon-guide") {
       logicalPath = "/govcon-guide";
+    } else if (view === "govcon-dashboard") {
+      logicalPath = window.location.pathname;
     } else if (view === "compliance") {
       logicalPath = window.location.pathname;
     } else if (view === "landing") {
@@ -213,8 +240,6 @@ export default function App() {
       logicalPath = "/app/login";
     } else if (route === "audit") {
       logicalPath = "/app/audit";
-    } else if (view === "govcon-dashboard") {
-      logicalPath = "/app/dashboard";
     } else {
       logicalPath = proposal ? "/app/proposal" : "/app/upload";
     }
@@ -222,10 +247,7 @@ export default function App() {
     trackPageView(logicalPath);
   }, [view, authenticated, route, proposal, aliasSection]);
 
-  // ── Back navigation: always stay on site ──
   useEffect(() => {
-    // On first landing push a sentinel so the very first "back" press
-    // hits our popstate handler instead of leaving to Google/referrer.
     if (window.history.state === null || window.history.state?.view === undefined) {
       window.history.pushState({ view: "landing" }, "", window.location.href);
     }
@@ -236,10 +258,8 @@ export default function App() {
     window.history.replaceState({ view }, "", currentUrl);
 
     const handlePopState = (e) => {
-      // Always intercept back and route to landing — never leave the site
       e.preventDefault?.();
       setView("landing");
-      // Re-push so the trap stays armed for subsequent back presses
       window.history.pushState({ view: "landing" }, "", "/");
     };
 
@@ -288,7 +308,9 @@ export default function App() {
   } else if (view === "labs") {
     content = <Labs onBack={() => setView("landing")} />;
   } else if (view === "govcon-dashboard") {
-    content = <GovConDashboard onBack={() => setView("landing")} />;
+    content = authenticated
+      ? <GovConDashboard onBack={() => setView("landing")} user={user} />
+      : <Login onLogin={() => { setAuthenticated(true); localStorage.setItem("aris_authenticated", "true"); }} />;
   } else if (view === "compliance") {
     const slug = window.location.pathname.replace("/compliance/", "");
     content = <CompliancePage slug={slug} onBack={() => setView("app")} />;
@@ -299,19 +321,21 @@ export default function App() {
   } else if (view === "govcon-guide") {
     content = <GovConGuide onBack={() => setView("landing")} onEnterApp={() => setView("app")} />;
   } else if (view === "landing") {
-    content = <Landing 
-      onEnterApp={() => setView("app")} 
-      onViewSample={() => setView("sam-rep")} 
-      onBidSmithBeta={() => setView("beta")}
-      onBidSmithSearch={() => setView("bid-search")}
-      onAnalyze={handleAnalyze}
-      onAnalyzeFile={handleAnalyzeFile}
-    />;
+    content = (
+      <Landing
+        onEnterApp={() => setView("app")}
+        onEnterDashboard={() => setView("govcon-dashboard")}
+        onViewSample={() => setView("sam-rep")}
+        onBidSmithBeta={() => setView("beta")}
+        onBidSmithSearch={() => setView("bid-search")}
+        onAnalyze={handleAnalyze}
+        onAnalyzeFile={handleAnalyzeFile}
+      />
+    );
   } else if (view === "app") {
-    // Audit is stateless and zero-knowledge, allow guest access for the first audit
     content = <Audit onBack={() => setView("landing")} initialUrl={initialUrl} initialFile={initialFile} />;
   } else if (!authenticated) {
-    content = <Login onLogin={() => setAuthenticated(true)} />;
+    content = <Login onLogin={() => { setAuthenticated(true); localStorage.setItem("aris_authenticated", "true"); }} />;
   } else {
     content = route === "audit"
       ? <Audit onBack={() => setView("landing")} />
