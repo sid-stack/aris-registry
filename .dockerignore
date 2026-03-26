@@ -7,7 +7,6 @@ dist
 .vercel
 venv
 archive
-data
 docs
 cypress
 tests
