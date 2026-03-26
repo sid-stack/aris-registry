@@ -1,5 +1,7 @@
-// ⚡ ARIS_SOVEREIGN_HEARTBEAT: 2026-03-20T09:05:21Z
+// ⚡ ARIS_SOVEREIGN_HEARTBEAT: 2026-03-25T15:20:00Z
+import "dotenv/config";
 import express from "express";
+import proxy from "express-http-proxy";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
 import { dirname, join } from "path";
@@ -25,6 +27,17 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 8080;
 
+// Railway sits behind a proxy; trust 1 hop so rate limiting uses client IP.
+const trustProxyEnv = process.env.TRUST_PROXY;
+let trustProxySetting = 1;
+if (trustProxyEnv === "0" || trustProxyEnv === "false") {
+  trustProxySetting = false;
+} else if (trustProxyEnv && trustProxyEnv !== "true") {
+  const parsed = Number(trustProxyEnv);
+  trustProxySetting = Number.isNaN(parsed) ? 1 : parsed;
+}
+app.set("trust proxy", trustProxySetting);
+
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 50,
@@ -37,6 +50,17 @@ app.use(cors());
 app.use(express.json());
 app.use(requestId);
 
+// PostHog Reverse Proxy — Bypass ad-blockers (Growth Engine)
+app.use("/ingest", proxy("https://us.i.posthog.com", {
+  proxyReqOptDecorator: (proxyReqOpts) => {
+    proxyReqOpts.headers["Host"] = "us.i.posthog.com";
+    return proxyReqOpts;
+  },
+  proxyReqPathResolver: (req) => {
+    return req.url; // Proxies /ingest/* to us.i.posthog.com/*
+  }
+}));
+
 // Security headers — required for SOC 2 pentest + AdSense approval
 app.use((req, res, next) => {
   res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
@@ -47,16 +71,7 @@ app.use((req, res, next) => {
   next();
 });
 // Fingerprinted assets (JS/CSS with hashes) get long cache; HTML never cached
-app.use(express.static(join(__dirname, "../dist"), {
-  setHeaders(res, filePath) {
-    if (filePath.endsWith(".html")) {
-      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-      res.setHeader("Pragma", "no-cache");
-    } else if (/\.[0-9a-f]{8,}\.(js|css)$/.test(filePath)) {
-      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
-    }
-  },
-}));
+app.use(express.static(join(__dirname, "../dist")));
 
 // ─── Sovereign Discovery: Asynchronous Harvester ──────────────────────────────
 
@@ -78,6 +93,9 @@ const DISCOVERY_SEEDS = [
 
 let lastHarvestTime = 0;
 const HARVEST_INTERVAL = 12 * 60 * 60 * 1000; // 12-hour sweep
+const SAM_API_KEY = process.env.SAM_API_KEY || process.env.SAM_GOV_API_KEY;
+let samRateLimitedUntil = 0;
+let samKeyMissingLogged = false;
 
 /**
  * Perform a background harvest of federal opportunities and global intelligence.
@@ -92,16 +110,37 @@ async function startHarvester() {
 
       console.log("[HARVESTER] Sweep started.");
 
+      let samRateLimitLogged = false;
       for (const seed of DISCOVERY_SEEDS) {
         // 1. Live SAM.gov
-        try {
-          const samClient = await getSamClient();
-          const samMcpResult = await callMcpTool(samClient, "search_opportunities", { q: seed, limit: 30 });
-          const opportunities = JSON.parse(samMcpResult.content[0].text);
-          if (opportunities?.length > 0) {
-            await sovereignSearch.syncSovereignTable(opportunities, "US");
+        if (!SAM_API_KEY) {
+          if (!samKeyMissingLogged) {
+            console.warn("[HARVESTER] SAM.gov disabled: SAM_API_KEY not configured.");
+            samKeyMissingLogged = true;
           }
-        } catch (err) { console.warn(`[HARVESTER] SAM.gov failed for "${seed}":`, err.message); }
+        } else if (Date.now() < samRateLimitedUntil) {
+          if (!samRateLimitLogged) {
+            console.warn("[HARVESTER] SAM.gov rate-limited. Skipping until cooldown expires.");
+            samRateLimitLogged = true;
+          }
+        } else {
+          try {
+            const samClient = await getSamClient();
+            const samMcpResult = await callMcpTool(samClient, "search_opportunities", { q: seed, limit: 30 });
+            const opportunities = JSON.parse(samMcpResult.content[0].text);
+            if (opportunities?.length > 0) {
+              await sovereignSearch.syncSovereignTable(opportunities, "US");
+            }
+          } catch (err) {
+            const msg = err?.message || "";
+            if (msg.includes("RATE_LIMIT_HIT") || msg.includes("429")) {
+              samRateLimitedUntil = Date.now() + 15 * 60 * 1000;
+              console.warn("[HARVESTER] SAM.gov rate limit hit. Cooling down for 15 minutes.");
+            } else {
+              console.warn(`[HARVESTER] SAM.gov failed for "${seed}":`, msg);
+            }
+          }
+        }
 
         // 2. Historical USAspending
         try {
@@ -129,6 +168,22 @@ async function startHarvester() {
 startHarvester();
 
 // ─── API Endpoints ───────────────────────────────────────────────────────────
+
+app.get("/api/privacy/consent", asyncHandler(async (_req, res) => {
+  res.json({ success: true, consent: null });
+}));
+
+app.post("/api/privacy/consent", asyncHandler(async (req, res) => {
+  const { necessary = true, analytics = false, marketing = false, source = "unknown" } = req.body || {};
+  await recordAnalyticsEvent({
+    eventType: "privacy_consent",
+    value: analytics ? 1 : 0,
+    page: "privacy",
+    path: req.path,
+    metadata: { necessary: !!necessary, analytics: !!analytics, marketing: !!marketing, source }
+  });
+  res.status(204).end();
+}));
 
 app.post("/api/fed-search", apiLimiter, asyncHandler(async (req, res) => {
   const { query, limit = 20, expand = true, region = "US" } = req.body;

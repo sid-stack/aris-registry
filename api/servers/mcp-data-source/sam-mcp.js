@@ -40,6 +40,12 @@ function parseNoticeId(url) {
   return null;
 }
 
+function requireSamKey() {
+  if (!SAM_API_KEY) {
+    throw new Error("SAM_API_KEY_MISSING");
+  }
+}
+
 function scoreByName(name) {
   const n = name.toLowerCase();
   let score = 0;
@@ -140,6 +146,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   switch (name) {
     case "get_opportunity": {
+      requireSamKey();
       const noticeId = parseNoticeId(args.url);
       if (!noticeId) throw new Error("Invalid SAM.gov URL");
 
@@ -193,6 +200,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     case "search_opportunities": {
+      requireSamKey();
       try {
         const query = encodeURIComponent(args.q);
         const limit = args.limit || 10;
@@ -215,6 +223,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     case "download_solicitation": {
+      requireSamKey();
       const ranked = await scoreAttachments(args.links, SAM_API_KEY);
       const target = ranked.find((r) => r.score >= -10 && /\.pdf$/i.test(r.name));
       if (!target) throw new Error("No suitable PDF solicitation found");
