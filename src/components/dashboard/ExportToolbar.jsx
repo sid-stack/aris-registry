@@ -124,14 +124,7 @@ export const triggerPDFExport = async () => {
 };
 
 const ExportToolbar = () => {
-  const [pdfLoading, setPdfLoading] = useState(false);
   const [mdLoading,  setMdLoading]  = useState(false);
-
-  const handlePDF = async () => {
-    setPdfLoading(true);
-    await triggerPDFExport();
-    setPdfLoading(false);
-  };
 
   const handleMarkdown = () => {
     setMdLoading(true);
@@ -171,13 +164,6 @@ const ExportToolbar = () => {
       flexWrap: 'wrap', 
       justifyContent: 'flex-start' 
     }}>
-      <button style={btnStyle(pdfLoading)} onClick={handlePDF} disabled={pdfLoading}>
-        {pdfLoading
-          ? <Loader size={13} style={{ animation: 'spin 1s linear infinite' }} />
-          : <FileText size={13} />}
-        {pdfLoading ? 'Generating...' : 'Export PDF'}
-      </button>
-
       <button style={btnStyle(mdLoading)} onClick={handleMarkdown} disabled={mdLoading}>
         {mdLoading
           ? <Loader size={13} style={{ animation: 'spin 1s linear infinite' }} />

@@ -1,5 +1,5 @@
 export function getStoredTheme() {
-  try { return localStorage.getItem("aris-theme") || "dark"; } catch { return "dark"; }
+  try { return localStorage.getItem("aris-theme") || "light"; } catch { return "light"; }
 }
 export function applyTheme(theme) {
   document.documentElement.setAttribute("data-theme", theme);

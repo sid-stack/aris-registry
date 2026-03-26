@@ -1,5 +1,5 @@
 /**
- * /demo — Interactive ARIS demo page.
+ * /demo — Interactive BidSmith demo page.
  * Pre-canned audit result that animates realistically so it always works.
  * No auth, no API calls — pure trust-builder.
  */
@@ -82,7 +82,7 @@ const VERDICT_CFG = {
 };
 
 const LOG_STEPS = [
-  { ms: 0,    text: "[ARIS] Ingesting SAM.gov notice ID W912DY-24-R-0012...",         type: "info" },
+  { ms: 0,    text: "[BIDSMITH] Ingesting SAM.gov notice ID W912DY-24-R-0012...",         type: "info" },
   { ms: 400,  text: "[SAM] Solicitation fetched — 3 attachments detected",            type: "success" },
   { ms: 900,  text: "[MERCURY2] Ranking documents: PWS (primary), SF33, DD254",       type: "info" },
   { ms: 1400, text: "[MERCURY2] Parsing Section B — contract type, set-aside flags",  type: "info" },
@@ -94,7 +94,7 @@ const LOG_STEPS = [
   { ms: 3600, text: "[RISK] WARNING: CMMC Level 2 certification required",            type: "warning" },
   { ms: 3900, text: "[MERCURY2] Mapping all findings to FAR/DFARS citations...",      type: "info" },
   { ms: 4200, text: "[MERCURY2] Generating bid/no-bid recommendation...",             type: "info" },
-  { ms: 4600, text: "[ARIS] Audit complete — 2 disqualifiers, 3 warnings, 1 pass",   type: "success" },
+  { ms: 4600, text: "[BIDSMITH] Audit complete — 2 disqualifiers, 3 warnings, 1 pass",   type: "success" },
 ];
 
 export default function Demo({ onBack, onEnterApp }) {
@@ -135,7 +135,7 @@ export default function Demo({ onBack, onEnterApp }) {
             <button onClick={onBack} style={s.backBtn}>
               <ArrowLeft size={14} /> Back
             </button>
-            <div style={s.brand}>ARIS</div>
+            <div style={s.brand}>BIDSMITH</div>
             <span style={s.headerBadge}>LIVE DEMO</span>
           </div>
           <button onClick={onEnterApp} style={s.ctaBtn}>
@@ -148,9 +148,9 @@ export default function Demo({ onBack, onEnterApp }) {
         {/* Intro */}
         <div style={s.intro}>
           <p style={s.eyebrow}>Interactive Demo</p>
-          <h1 style={s.title}>See ARIS audit a real federal solicitation</h1>
+          <h1 style={s.title}>See BidSmith audit a real federal solicitation</h1>
           <p style={s.subtitle}>
-            This is an Army CSOC contract — $24.5M, active on SAM.gov. Watch ARIS parse every clause,
+            This is an Army CSOC contract — $24.5M, active on SAM.gov. Watch BidSmith parse every clause,
             flag disqualifiers with verbatim evidence, and deliver a bid/no-bid verdict in under 5 seconds.
           </p>
         </div>

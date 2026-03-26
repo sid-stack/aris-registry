@@ -7,11 +7,11 @@ import {
   Activity,
 } from 'lucide-react';
 
-const ARISChat = ({ selectedContext, onLog, onCommand, reportData }) => {
+const BidSmithChat = ({ selectedContext, onLog, onCommand, reportData }) => {
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      content: `🎯 **ARIS_PROTOCOL_INFILTRATION_SUCCESS**\n\nI've deployed our **Stateless Intelligence Bridge** to analyze the solicitation payload.\n\n**Current Mission Context:**\n• Agency: Defense Health Agency\n• Risk Score: HIGH (87% confidence)\n• 142 technical requirements detected\n• RMF/ATO compliance traps identified\n\n**Agentic Pipeline Tools:**\n• Win probability modeling\n• Competitive positioning\n• Risk mitigation strategies\n• Pricing optimization\n• Technical compliance mapping\n\nStanding by for command.`,
+      content: `🎯 **BIDSMITH_SESSION_INITIALIZED**\n\nI've deployed our **Stateless Intelligence Bridge** to analyze the solicitation payload.\n\n**Current Mission Context:**\n• Agency: Defense Health Agency\n• Risk Score: HIGH (87% confidence)\n• 142 technical requirements detected\n• RMF/ATO compliance traps identified\n\n**Agentic Pipeline Tools:**\n• Win probability modeling\n• Competitive positioning\n• Risk mitigation strategies\n• Pricing optimization\n• Technical compliance mapping\n\nStanding by for command.`,
       isPredictive: true
     },
   ]);
@@ -138,7 +138,7 @@ const ARISChat = ({ selectedContext, onLog, onCommand, reportData }) => {
   };
 
   return (
-    <div className="studio-workbench aris-chat-enhanced minimalist-gpt">
+    <div className="bidsmith-panel bidsmith-chat-enhanced minimalist-gpt">
       {/* Ultra-Minimalist Chat Header */}
       <div className="chat-header mobile-minimal">
         <div className="chat-title">
@@ -147,7 +147,7 @@ const ARISChat = ({ selectedContext, onLog, onCommand, reportData }) => {
               <Brain size={18} className="ai-icon" />
               <div className="ai-pulse" />
             </div>
-            <span className="title-text">ARIS INTELLIGENCE</span>
+            <span className="title-text">BIDSMITH INTELLIGENCE</span>
           </div>
           <div className="status-indicators hide-mobile">
             <div className="status-item glass">
@@ -244,4 +244,4 @@ const ARISChat = ({ selectedContext, onLog, onCommand, reportData }) => {
   );
 };
 
-export default ARISChat;
+export default BidSmithChat;

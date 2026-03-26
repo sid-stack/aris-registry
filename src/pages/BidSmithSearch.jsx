@@ -142,7 +142,7 @@ function UpgradeWall({ onDismiss }) {
   );
 }
 
-const SovereignSearch = ({ onBack }) => {
+const BidSmithSearch = ({ onBack }) => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -190,7 +190,7 @@ const SovereignSearch = ({ onBack }) => {
     setResults([]);
     setBriefing(null);
     setCorrection(null);
-    setStatus('Synthesizing Federal Mesh...');
+    setStatus('Synthesizing Bid Intelligence...');
 
     incrementSearches();
     const used = getSearchesUsed();
@@ -244,7 +244,7 @@ const SovereignSearch = ({ onBack }) => {
         )}
         <Shield size={14} color="#a8ff00" />
         <span style={{ fontSize: '13px', fontWeight: 700, color: '#e8eaed', letterSpacing: '0.05em' }}>
-          ARIS <span style={{ color: '#a8ff00' }}>SOVEREIGN SEARCH</span>
+          BIDSMITH <span style={{ color: '#a8ff00' }}>BID SEARCH</span>
         </span>
         <div style={{ flex: 1 }} />
         <a href="/app" style={{ fontSize: '12px', color: '#9aa0a6', textDecoration: 'none' }}>
@@ -267,7 +267,7 @@ const SovereignSearch = ({ onBack }) => {
             fontFamily: '"Times New Roman", serif', fontSize: '5.5rem',
             fontWeight: 400, letterSpacing: '-0.02em', margin: 0, color: COLORS.textWhite
           }}>
-            ARIS
+            BIDSMITH
           </h1>
         </div>
 
@@ -291,7 +291,7 @@ const SovereignSearch = ({ onBack }) => {
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginTop: '28px' }}>
-            <button type="submit" className="g-btn">ARIS Search</button>
+            <button type="submit" className="g-btn">BidSmith Search</button>
             <button type="button" onClick={() => setExpanded(!expanded)} className="g-btn">
               {expanded ? 'AI Mode' : 'Standard'}
             </button>
@@ -463,7 +463,7 @@ const SovereignSearch = ({ onBack }) => {
       </main>
 
       <footer style={{ background: '#171717', padding: '14px 20px', fontSize: '13px', color: COLORS.textDim, borderTop: '1px solid #3c4043', display: 'flex', gap: '24px' }}>
-        <span>ARIS Search</span>
+        <span>BidSmith Search</span>
         <span>Federal Discovery</span>
         <div style={{ flex: 1 }} />
         <a href="/privacy" style={{ color: COLORS.textDim, textDecoration: 'none' }}>Privacy</a>
@@ -500,4 +500,4 @@ const SovereignSearch = ({ onBack }) => {
   );
 };
 
-export default SovereignSearch;
+export default BidSmithSearch;

@@ -3,7 +3,7 @@ import { Search, Brain, FileText, Shield, TrendingUp, CheckCircle } from 'lucide
 
 const agents = [
   { icon: Brain,   label: 'Mission Analyst',   desc: 'Synthesizing solicitation data into strategic brief',    delay: 0 },
-  { icon: Shield,   label: 'Sovereign Intelligence', desc: 'Applying discovered logic patterns & federal intelligence', delay: 0.1 },
+  { icon: Shield,   label: 'BidSmith Intelligence', desc: 'Applying discovered logic patterns & federal intelligence', delay: 0.1 },
   { icon: FileText, label: 'Narrative Synthesizer', desc: 'Writing QDS-style federal proposal draft',              delay: 0.2 },
   { icon: CheckCircle, label: 'Compliance Auditor',   desc: 'Generating FAR/DFARS-referenced compliance matrix',     delay: 0.3 },
   { icon: TrendingUp,  label: 'Win-Theme Architect',  desc: 'Extracting win themes, risk flags & technical outline', delay: 0.4 },
@@ -31,7 +31,7 @@ const AgenticPipeline = ({ initializing = false }) => (
         gap: '12px'
       }}>
         <div className="pattern-badge" style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
-          Initializing Sovereign Registry...
+          Initializing BidSmith Registry...
         </div>
         <div style={{ width: '100px', height: '1px', background: 'rgba(255, 255, 255, 0.1)', overflow: 'hidden' }}>
           <div className="pattern-badge" style={{ width: '40px', height: '100%', background: 'var(--text-primary)' }}></div>
@@ -65,7 +65,7 @@ const AgenticPipeline = ({ initializing = false }) => (
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>{label}</div>
-              {label === 'Sovereign Intelligence' && (
+              {label === 'BidSmith Intelligence' && (
                 <div className="pattern-badge" style={{ 
                   fontSize: '9px', 
                   background: 'rgba(59, 130, 246, 0.15)', 
@@ -81,7 +81,7 @@ const AgenticPipeline = ({ initializing = false }) => (
               )}
             </div>
             <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '3px', lineHeight: '1.4' }}>
-              {label === 'Sovereign Intelligence' ? 'Applying Pattern: Financial Compliance Conflict' : desc}
+              {label === 'BidSmith Intelligence' ? 'Applying Pattern: Financial Compliance Conflict' : desc}
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

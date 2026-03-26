@@ -55,7 +55,7 @@
 }
 
 /* ARIS Studio IDE Layout */
-.aris-studio-workspace {
+.bidsmith-bidsmith-workspace {
   display: flex;
   flex-direction: column;
   height: calc(100vh - 120px);
@@ -65,12 +65,12 @@
 }
 
 @media (min-width: 768px) {
-  .aris-studio-workspace {
+  .bidsmith-bidsmith-workspace {
     flex-direction: row;
   }
 }
 
-.studio-pane {
+.bidsmith-pane {
   background: var(--background);
   overflow-y: auto;
   display: flex;
@@ -78,30 +78,30 @@
   height: 100%;
 }
 
-.studio-pane::-webkit-scrollbar {
+.bidsmith-pane::-webkit-scrollbar {
   width: 5px;
   height: 5px;
 }
 
-.studio-pane::-webkit-scrollbar-track {
+.bidsmith-pane::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.studio-pane::-webkit-scrollbar-thumb {
+.bidsmith-pane::-webkit-scrollbar-thumb {
   background: #27272a;
   border-radius: 10px;
 }
 
-.studio-pane::-webkit-scrollbar-thumb:hover {
+.bidsmith-pane::-webkit-scrollbar-thumb:hover {
   background: #3f3f46;
 }
 
 /* Sidebar: Requirements Linter */
-.studio-linter-pane {
+.bidsmith-linter-pane {
   background: var(--background);
 }
 
-.studio-linter {
+.bidsmith-linter {
   padding: 0;
 }
 
@@ -128,11 +128,11 @@
 .linter-count {
   font-size: 9px;
   font-family: 'Space Mono', monospace;
-  background: #18181b;
-  color: #71717a;
+  background: var(--background-alt);
+  color: var(--text-muted);
   padding: 2px 6px;
   border-radius: 3px;
-  border: 1px solid #27272a;
+  border: 1px solid var(--border);
 }
 
 .linter-list {
@@ -255,7 +255,7 @@
 }
 
 /* Center Audit Canvas */
-.studio-canvas {
+.bidsmith-canvas {
   background: var(--background);
   padding: 0;
   position: relative;
@@ -268,8 +268,8 @@
   padding: 32px 24px;
 }
 
-/* Right Studio Workbench */
-.studio-workbench-pane {
+/* Right Audit Workspace */
+.bidsmith-bidsmith-panel-pane {
   background: var(--background);
 }
 
@@ -306,7 +306,7 @@ body {
 }
 
 /* Floating Action Center (Console) */
-.studio-console {
+.bidsmith-console {
   position: absolute;
   bottom: 0;
   left: 0;
@@ -344,12 +344,12 @@ body {
     display: none !important;
   }
   
-  .aris-studio-workspace {
+  .bidsmith-bidsmith-workspace {
     height: auto;
     overflow: visible;
   }
   
-  .studio-pane {
+  .bidsmith-pane {
     height: auto;
     overflow: visible;
   }

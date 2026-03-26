@@ -20,34 +20,34 @@ const Security       = lazy(() => import("./pages/Security"));
 const About          = lazy(() => import("./pages/About"));
 const SamScraper     = lazy(() => import("./pages/SamScraper"));
 const Labs           = lazy(() => import("./pages/Labs"));
-const SovereignBeta  = lazy(() => import("./pages/SovereignBeta"));
-const SovereignSearch= lazy(() => import("./pages/SovereignSearch"));
+const BidSmithBeta   = lazy(() => import("./pages/BidSmithBeta"));
+const BidSmithSearch = lazy(() => import("./pages/BidSmithSearch"));
 const CompliancePage = lazy(() => import("./pages/CompliancePage"));
 const SurveyAnalytics= lazy(() => import("./components/SurveyAnalytics"));
 const DemoAnalytics  = lazy(() => import("./components/DemoAnalytics"));
-const Demo           = lazy(() => import("./pages/Demo"));
+const GovConDashboard= lazy(() => import("./pages/GovConDashboard"));
 const GovConGuide    = lazy(() => import("./pages/GovConGuide"));
 const NotFound       = lazy(() => import("./pages/NotFound"));
 
 const BASE_URL = "https://www.bidsmith.pro";
 
 const PAGE_META = {
-  landing:          { title: "ARIS | Federal RFP Compliance & Audit Software for Government Contractors", description: "Analyze SAM.gov solicitations in 90 seconds. Compliance matrix, FAR/DFARS risk flags, and bid/no-bid brief — automatically.", path: "/" },
-  templates:        { title: "ARIS Templates | Federal Proposal & Compliance Matrix Templates", description: "Download pre-built compliance matrix templates, proposal outlines, and RFP shred worksheets for government contractors.", path: "/templates" },
-  about:            { title: "About ARIS Labs | Federal GovCon Intelligence Platform", description: "ARIS Labs builds agentic intelligence for federal capture teams. Zero-knowledge architecture, SAM.gov native.", path: "/about" },
-  soc:              { title: "ARIS Security | Zero-Knowledge Data Architecture", description: "ARIS processes solicitation data in transient memory. No persistence, no storage, no leaks.", path: "/soc" },
-  "sam-rep":        { title: "ARIS Sample Audit | DHA Federal Solicitation Report", description: "Inspect a real ARIS audit output for a Defense Health Agency solicitation.", path: "/sam-rep" },
-  discovery:        { title: "ARIS Discovery | Federal Opportunity Discovery Engine", description: "Surface federal contracting opportunities matched to your NAICS codes and capability profile.", path: "/discovery" },
-  "sam-scraper":    { title: "ARIS SAM Scraper | SAM.gov Bulk Opportunity Export", description: "Extract and filter SAM.gov opportunities in bulk by NAICS, agency, set-aside, and dollar threshold.", path: "/sam-scraper" },
-  "fed-search":     { title: "ARIS Sovereign Search | Federal Intelligence Search", description: "Search federal solicitations, award history, and agency patterns with natural language queries.", path: "/fed-search" },
-  "sovereign-beta": { title: "ARIS Sovereign v2.1 Private Beta | Early Access", description: "Apply for early access to Sovereign v2.1 — the next generation of ARIS federal intelligence.", path: "/sovereign-beta" },
-  "demo":           { title: "ARIS Live Demo | See a Federal RFP Audit in 90 Seconds", description: "Watch ARIS audit a real $24.5M Army solicitation — compliance matrix, disqualifier flags, and bid/no-bid verdict. Free interactive demo.", path: "/demo" },
-  "govcon-guide":   { title: "Federal Contracting Process Guide | ARIS", description: "The complete government contracting workflow — SAM.gov registration, opportunity discovery, compliance review, and proposal development. End-to-end guide.", path: "/govcon-guide" },
-  labs:             { title: "ARIS Labs | Experimental Federal Intelligence Tools", description: "Experimental tools from ARIS Labs for federal capture management and GovCon intelligence.", path: "/labs" },
-  privacy:          { title: "Privacy Policy | ARIS / BidSmith", description: "ARIS Labs privacy policy. How we handle data and your rights.", path: "/privacy" },
-  terms:            { title: "Terms of Service | ARIS / BidSmith", description: "Terms of service governing use of the BidSmith platform.", path: "/terms" },
-  cookies:          { title: "Cookie Policy | ARIS / BidSmith", description: "How ARIS uses cookies and local storage on bidsmith.pro.", path: "/cookies" },
-  app:              { title: "ARIS Audit Workspace", description: "Your ARIS federal solicitation audit workspace.", path: "/app" },
+  landing:          { title: "BidSmith | Federal RFP Compliance & Audit Software for Government Contractors", description: "Analyze SAM.gov solicitations in 90 seconds. Compliance matrix, FAR/DFARS risk flags, and bid/no-bid brief — automatically.", path: "/" },
+  templates:        { title: "BidSmith Templates | Federal Proposal & Compliance Matrix Templates", description: "Download pre-built compliance matrix templates, proposal outlines, and RFP shred worksheets for government contractors.", path: "/templates" },
+  about:            { title: "About BidSmith | Federal GovCon Intelligence Platform", description: "BidSmith builds agentic intelligence for federal capture teams. Zero-knowledge architecture, SAM.gov native.", path: "/about" },
+  soc:              { title: "BidSmith Security | Zero-Knowledge Data Architecture", description: "BidSmith processes solicitation data in transient memory. No persistence, no storage, no leaks.", path: "/soc" },
+  "sam-rep":        { title: "BidSmith Sample Audit | DHA Federal Solicitation Report", description: "Inspect a real BidSmith audit output for a Defense Health Agency solicitation.", path: "/sam-rep" },
+  discovery:        { title: "BidSmith Discovery | Federal Opportunity Discovery Engine", description: "Surface federal contracting opportunities matched to your NAICS codes and capability profile.", path: "/discovery" },
+  "sam-scraper":    { title: "BidSmith SAM Scraper | SAM.gov Bulk Opportunity Export", description: "Extract and filter SAM.gov opportunities in bulk by NAICS, agency, set-aside, and dollar threshold.", path: "/sam-scraper" },
+  "bid-search":     { title: "BidSmith Search | Federal Intelligence Search", description: "Search federal solicitations, award history, and agency patterns with natural language queries.", path: "/bid-search" },
+  "beta":           { title: "BidSmith Beta | Early Access", description: "Apply for early access to BidSmith — the next generation of federal intelligence.", path: "/beta" },
+  "demo":           { title: "BidSmith Live Demo | See a Federal RFP Audit in 90 Seconds", description: "Watch BidSmith audit a real $24.5M Army solicitation — compliance matrix, disqualifier flags, and bid/no-bid verdict. Free interactive demo.", path: "/demo" },
+  "govcon-guide":   { title: "Federal Contracting Process Guide | BidSmith", description: "The complete government contracting workflow — SAM.gov registration, opportunity discovery, compliance review, and proposal development. End-to-end guide.", path: "/govcon-guide" },
+  labs:             { title: "BidSmith / Labs | Experimental Federal Intelligence Tools", description: "Experimental tools from BidSmith for federal capture management and GovCon intelligence.", path: "/labs" },
+  privacy:          { title: "Privacy Policy | BidSmith", description: "BidSmith privacy policy. How we handle data and your rights.", path: "/privacy" },
+  terms:            { title: "Terms of Service | BidSmith", description: "Terms of service governing use of the BidSmith platform.", path: "/terms" },
+  cookies:          { title: "Cookie Policy | BidSmith", description: "How BidSmith uses cookies and local storage on bidsmith.pro.", path: "/cookies" },
+  app:              { title: "BidSmith Audit Workspace", description: "Your BidSmith federal solicitation audit workspace.", path: "/app" },
 };
 
 function usePageMeta(view) {
@@ -142,8 +142,8 @@ export default function App() {
                     ? "app"
                   : path === "/about"
                     ? "about"
-                  : path === "/sovereign-beta"
-                    ? "sovereign-beta"
+                  : path === "/beta"
+                    ? "beta"
                   : path === "/demo"
                     ? "demo"
                   : path === "/govcon-guide" || path === "/how-it-works"
@@ -154,6 +154,8 @@ export default function App() {
                       ? "compliance"
                       : path !== "/"
                         ? "404"
+                      : path === "/app/dashboard"
+                        ? "govcon-dashboard"
                         : "landing",
   );
 
@@ -187,16 +189,16 @@ export default function App() {
       logicalPath = "/soc";
     } else if (view === "sam-scraper") {
       logicalPath = "/sam-scraper";
-    } else if (view === "fed-search") {
-      logicalPath = "/fed-search";
+    } else if (view === "bid-search") {
+      logicalPath = "/bid-search";
     } else if (view === "survey-analytics") {
       logicalPath = "/survey-analytics";
     } else if (view === "demo-analytics") {
       logicalPath = "/demo-analytics";
     } else if (view === "about") {
       logicalPath = "/about";
-    } else if (view === "sovereign-beta") {
-      logicalPath = "/sovereign-beta";
+    } else if (view === "beta") {
+      logicalPath = "/beta";
     } else if (view === "demo") {
       logicalPath = "/demo";
     } else if (view === "govcon-guide") {
@@ -211,6 +213,8 @@ export default function App() {
       logicalPath = "/app/login";
     } else if (route === "audit") {
       logicalPath = "/app/audit";
+    } else if (view === "govcon-dashboard") {
+      logicalPath = "/app/dashboard";
     } else {
       logicalPath = proposal ? "/app/proposal" : "/app/upload";
     }
@@ -243,6 +247,21 @@ export default function App() {
     return () => window.removeEventListener("popstate", handlePopState);
   }, [view]);
 
+  const [initialUrl, setInitialUrl] = useState("");
+  const [initialFile, setInitialFile] = useState(null);
+
+  const handleAnalyze = (url) => {
+    setInitialFile(null);
+    setInitialUrl(url);
+    setView("app");
+  };
+
+  const handleAnalyzeFile = (file) => {
+    setInitialUrl("");
+    setInitialFile(file);
+    setView("app");
+  };
+
   let content = null;
   if (view === "templates") {
     content = <Templates />;
@@ -258,8 +277,8 @@ export default function App() {
     content = <Security onBack={() => setView("landing")} />;
   } else if (view === "sam-scraper") {
     content = <SamScraper onBack={() => setView("landing")} />;
-  } else if (view === "fed-search") {
-    content = <SovereignSearch onBack={() => setView("landing")} />;
+  } else if (view === "bid-search") {
+    content = <BidSmithSearch onBack={() => setView("landing")} />;
   } else if (view === "survey-analytics") {
     content = <SurveyAnalytics />;
   } else if (view === "demo-analytics") {
@@ -268,11 +287,13 @@ export default function App() {
     content = <About onBack={() => setView("landing")} />;
   } else if (view === "labs") {
     content = <Labs onBack={() => setView("landing")} />;
+  } else if (view === "govcon-dashboard") {
+    content = <GovConDashboard onBack={() => setView("landing")} />;
   } else if (view === "compliance") {
     const slug = window.location.pathname.replace("/compliance/", "");
     content = <CompliancePage slug={slug} onBack={() => setView("app")} />;
-  } else if (view === "sovereign-beta") {
-    content = <SovereignBeta onBack={() => setView("landing")} />;
+  } else if (view === "beta") {
+    content = <BidSmithBeta onBack={() => setView("landing")} />;
   } else if (view === "demo") {
     content = <Demo onBack={() => setView("landing")} onEnterApp={() => setView("app")} />;
   } else if (view === "govcon-guide") {
@@ -281,12 +302,14 @@ export default function App() {
     content = <Landing 
       onEnterApp={() => setView("app")} 
       onViewSample={() => setView("sam-rep")} 
-      onSovereignBeta={() => setView("sovereign-beta")}
-      onSovereignSearch={() => setView("fed-search")}
+      onBidSmithBeta={() => setView("beta")}
+      onBidSmithSearch={() => setView("bid-search")}
+      onAnalyze={handleAnalyze}
+      onAnalyzeFile={handleAnalyzeFile}
     />;
   } else if (view === "app") {
     // Audit is stateless and zero-knowledge, allow guest access for the first audit
-    content = <Audit onBack={() => setView("landing")} />;
+    content = <Audit onBack={() => setView("landing")} initialUrl={initialUrl} initialFile={initialFile} />;
   } else if (!authenticated) {
     content = <Login onLogin={() => setAuthenticated(true)} />;
   } else {

@@ -1,7 +1,7 @@
 
 .about-page {
-  background-color: #09090b;
-  color: #a1a1aa;
+  background-color: var(--background);
+  color: var(--text-secondary);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -53,7 +53,7 @@
   font-size: 28px;
   line-height: 1.2;
   font-weight: 810;
-  color: #f4f4f5;
+  color: var(--text-primary);
   margin-bottom: 24px;
   letter-spacing: -0.03em;
   word-wrap: break-word;
@@ -107,8 +107,8 @@
 
 .value-card {
   padding: 24px;
-  background: #0c0c0e;
-  border: 1px solid #1a1a1a;
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 12px;
 }
 
@@ -125,7 +125,7 @@
 .value-title {
   font-size: 18px;
   font-weight: 700;
-  color: #f4f4f5;
+  color: var(--text-primary);
   margin-bottom: 12px;
 }
 
@@ -136,8 +136,8 @@
 }
 
 .lab-section {
-  background: linear-gradient(145deg, #0c0c0e 0%, #09090b 100%);
-  border: 1px solid #1a1a1a;
+  background: var(--accent-soft);
+  border: 1px solid var(--border);
   border-radius: 16px;
   padding: 24px;
   margin-bottom: 60px;
@@ -167,7 +167,7 @@
 .lab-title {
   font-size: 24px;
   font-weight: 800;
-  color: #f4f4f5;
+  color: var(--text-primary);
   margin-bottom: 20px;
 }
 
@@ -208,8 +208,8 @@
 
 .lab-cta-card {
   padding: 40px;
-  background: #09090b;
-  border: 1px solid #27272a;
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 12px;
   text-align: center;
 }
@@ -229,13 +229,13 @@
 .cta-title {
   font-size: 20px;
   font-weight: 700;
-  color: #f4f4f5;
+  color: var(--text-primary);
   margin-bottom: 16px;
 }
 
 .about-footer {
-  border-top: 1px solid #1a1a1a;
-  background: #09090b;
+  border-top: 1px solid var(--border);
+  background: var(--background-alt);
   display: flex;
   flex-direction: column;
   align-items: center;

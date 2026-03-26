@@ -51,7 +51,7 @@ const PIPELINE_LOGS = [
   "AUDIT_COMPLETE_IDLE"
 ];
 
-// ── SOVEREIGN INTELLIGENCE WORKBENCH COMPONENTS ──
+// ── BIDSMITH AUDIT WORKSPACE COMPONENTS ──
 
 const LogTerminal = ({ pipelineStatus }) => {
   const [logs, setLogs] = useState([
@@ -479,7 +479,7 @@ const RevenueProjection = ({ estimatedValue = 50000000, riskScore = 87 }) => {
   );
 };
 
-const ConversionLayer = ({ onPurchase, price = 99 }) => {
+const ConversionLayer = ({ onPurchase, price = 99, disqualifierCount = 0 }) => {
   return (
     <div className="conversion-layer">
       <button 
@@ -493,9 +493,88 @@ const ConversionLayer = ({ onPurchase, price = 99 }) => {
       <div className="human-chat-bubble">
         <MessageCircle size={14} className="chat-icon" />
         <div className="chat-content">
-          <strong>Mercury 2 has identified 3 disqualifiers.</strong><br/>
-          Speak to an Auditor.
+          <strong>Mercury 2 has identified {disqualifierCount > 0 ? disqualifierCount : 'potential'} critical {disqualifierCount === 1 ? 'trigger' : 'triggers'}.</strong><br/>
+          Secure the RTM to verify.
         </div>
+      </div>
+    </div>
+  );
+};
+
+const RequirementsTable = ({ requirements = [] }) => {
+  if (!requirements || requirements.length === 0) return null;
+  const [draftingIdx, setDraftingIdx] = useState(null);
+
+  const handleDraft = (idx) => {
+    setDraftingIdx(idx);
+    setTimeout(() => {
+      setDraftingIdx(null);
+      alert(`[BIDSMITH AI] Drafting response for requirement fragment...\n\nStatus: Context attached.\nOutput path: /drafts/volume_1.docx`);
+    }, 2000);
+  };
+
+  return (
+    <div className="requirements-table-container" style={{ marginTop: 32 }}>
+      <div className="panel-header" style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)', fontWeight: 800, fontSize: '0.75rem', letterSpacing: '0.1em' }}>
+        <FileText size={14} color="var(--accent)" /> EXTRACTED REQUIREMENTS ({requirements.length})
+      </div>
+      <div style={{ overflowX: 'auto', background: 'var(--card)', borderRadius: 12, border: '1px solid var(--border)', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+          <thead>
+            <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border)', background: 'var(--background-alt)' }}>
+              <th style={{ padding: '16px', color: 'var(--text-secondary)', fontWeight: 700 }}>REQUIREMENT</th>
+              <th style={{ padding: '16px', color: 'var(--text-secondary)', fontWeight: 700 }}>STATUS</th>
+              <th style={{ padding: '16px', color: 'var(--text-secondary)', fontWeight: 700 }}>RISK</th>
+              <th style={{ padding: '16px', color: 'var(--accent)', fontWeight: 800, textAlign: 'right' }}>ACTION</th>
+            </tr>
+          </thead>
+          <tbody>
+            {requirements.map((req, i) => (
+              <tr key={i} style={{ borderBottom: '1px solid var(--border)', background: draftingIdx === i ? 'var(--accent-soft)' : 'transparent' }}>
+                <td style={{ padding: '16px', color: 'var(--text-primary)', maxWidth: '500px', lineHeight: 1.5, fontWeight: 500 }}>{req.requirement}</td>
+                <td style={{ padding: '16px' }}>
+                  <span style={{ 
+                    padding: '4px 8px', 
+                    borderRadius: '4px', 
+                    background: 'var(--accent-soft)', 
+                    color: 'var(--accent)',
+                    fontSize: '0.75rem',
+                    fontWeight: 700
+                  }}>
+                    {req.status}
+                  </span>
+                </td>
+                <td style={{ padding: '16px' }}>
+                  <span style={{ 
+                    color: req.risk === 'High' ? 'var(--risk-high)' : 'var(--text-muted)',
+                    fontWeight: 700
+                  }}>
+                    {req.risk}
+                  </span>
+                </td>
+                <td style={{ padding: '16px', textAlign: 'right' }}>
+                  <button 
+                    onClick={() => handleDraft(i)}
+                    disabled={draftingIdx !== null}
+                    style={{
+                      background: 'var(--accent)',
+                      color: 'white',
+                      border: 'none',
+                      padding: '6px 12px',
+                      borderRadius: '4px',
+                      fontSize: '10px',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      opacity: draftingIdx === i ? 0.6 : 1
+                    }}
+                  >
+                    {draftingIdx === i ? '...' : 'DRAFT'}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
@@ -510,13 +589,23 @@ const PipelineTerminal = ({ logs, active }) => {
   }, [logs]);
 
   return (
-    <div className="pipeline-terminal">
-      {logs.map((log, i) => (
-        <div key={i} className={`terminal-line ${log.type}`}>
-          <span className="timestamp">[{new Date().toLocaleTimeString('en-GB', { hour12: false })}]</span> {log.msg}
+    <div className="pipeline-terminal" style={{ 
+      maxHeight: '120px', 
+      background: 'var(--background-alt)', 
+      border: '1px solid var(--border)',
+      borderRadius: '8px',
+      padding: '12px',
+      fontSize: '11px',
+      fontFamily: 'monospace',
+      color: 'var(--text-secondary)',
+      overflowY: 'auto'
+    }}>
+      {logs.slice(-5).map((log, i) => (
+        <div key={i} style={{ marginBottom: '4px', opacity: 0.7 }}>
+          <span style={{ color: 'var(--accent)', fontWeight: 700 }}>→</span> {log.msg}
         </div>
       ))}
-      {active && <div className="terminal-line info pulse-bridge">{'>'} ANALYZING_SOURCE_STREAM...</div>}
+      {active && <div style={{ color: 'var(--accent)', fontWeight: 800 }} className="pulse">ANALYZING_SOLICITATION_STRUCTURE...</div>}
     </div>
   );
 };
@@ -535,8 +624,15 @@ const ComplianceHeatmap = ({ intensity = [] }) => {
   );
 };
 
-export default function Audit({ onBack }) {
-  const [samUrl, setSamUrl] = useState("");
+const Audit = ({ onBack, initialUrl, initialFile }) => {
+  const [isMobile, setIsMobile] = useState(typeof window !== "undefined" && window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+  const [samUrl, setSamUrl] = useState(initialUrl || "");
   const [isLoading, setIsLoading] = useState(false);
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const [error, setError] = useState("");
@@ -547,9 +643,48 @@ export default function Audit({ onBack }) {
   const [result, setResult] = useState(null);
   const [report, setReport] = useState(null);
   const [dynamicPrice, setDynamicPrice] = useState(99);
-  const [logs, setLogs] = useState([{ msg: "ARIS_BOOT_SEQUENCE_COMPLETE", type: "success" }]);
+  const [logs, setLogs] = useState([{ msg: "BS_BOOT_SEQUENCE_COMPLETE", type: "success" }]);
   
   const esRef = useRef(null);
+
+  useEffect(() => {
+    if (initialFile) {
+      startAuditWithFile(initialFile);
+    } else if (initialUrl) {
+      startAudit(initialUrl);
+    }
+  }, []);
+
+  const startAuditWithFile = async (file) => {
+    setIsLoading(true);
+    addLog(`UPLOADING_RFP: ${file.name}`, "info");
+    
+    // Fake logs for effect
+    const stages = ["EXTRACTING_TEXT_LAYERS...", "RUNNING_SHALL_MUST_SCAN...", "MAPPING_COMPLIANCE_VECTOR..."];
+    stages.forEach((s, i) => setTimeout(() => addLog(s), i * 1500));
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/analyze-pdf", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error("PDF_ANALYSIS_FAILED");
+      const data = await res.json();
+      
+      setResult(data);
+      addLog("EXTRACTION_COMPLETE", "success");
+      setIsLoading(false);
+      streamReport(data);
+    } catch (e) {
+      setError(e.message);
+      addLog(`FATAL_ERROR: ${e.message}`, "error");
+      setIsLoading(false);
+    }
+  };
 
   const addLog = (msg, type = "info") => {
     setLogs(prev => [...prev.slice(-15), { msg, type }]);
@@ -600,7 +735,7 @@ export default function Audit({ onBack }) {
       if (data.url) {
         // PERSIST STATE FOR REDIRECT RECOVERY
         if (result) {
-          localStorage.setItem('aris_pending_audit', JSON.stringify(result));
+          localStorage.setItem('bs_pending_audit', JSON.stringify(result));
         }
         
         addLog("BRIDGE_ESTABLISHED_REDIRECTING...", "success");
@@ -639,7 +774,7 @@ export default function Audit({ onBack }) {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `ARIS_Compliance_Matrix_${result.id || 'Audit'}.csv`;
+      a.download = `BidSmith_Compliance_Matrix_${result.id || 'Audit'}.csv`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -651,9 +786,21 @@ export default function Audit({ onBack }) {
     }
   };
 
+  const isSupportedUrl = (url) => {
+    const normalized = url.toLowerCase().trim();
+    return normalized.includes('sam.gov') || normalized.endsWith('.pdf');
+  };
+
   const startAudit = async (url) => {
     const finalUrl = url || samUrl;
     if (!finalUrl.trim()) return;
+    
+    if (!isSupportedUrl(finalUrl)) {
+      addLog("UNSUPPORTED_SOURCE: PLEASE PROVIDE A SAM.GOV LINK OR PDF URL.", "error");
+      setError("Unsupported URL. Please use a SAM.gov solicitation or a direct PDF link.");
+      return;
+    }
+
     setSamUrl(finalUrl);
     setIsLoading(true);
     setError("");
@@ -730,7 +877,7 @@ export default function Audit({ onBack }) {
         setFatalErrorData({
           verdict: "SYSTEM_AT_CAPACITY",
           score: "503",
-          breakdown: ["All Sovereign clusters are currently processing high-concurrency audits.", "Intelligence Gateway is queueing requests for cluster stability."],
+          breakdown: ["All BidSmith clusters are currently processing high-concurrency audits.", "Intelligence Gateway is queueing requests for cluster stability."],
           deltaAnalysis: "We will be live again momentarily. Please refresh in 60 seconds."
         });
         addLog("SYSTEM_OVER_CAPACITY: DEFERRING_INTELLIGENCE", "warning");
@@ -746,7 +893,7 @@ export default function Audit({ onBack }) {
     // Check for post-checkout success
     const params = new URLSearchParams(window.location.search);
     if (params.get('checkout') === 'success') {
-      const savedResult = localStorage.getItem('aris_pending_audit');
+      const savedResult = localStorage.getItem('bs_pending_audit');
       if (savedResult) {
         try {
           const data = JSON.parse(savedResult);
@@ -755,7 +902,7 @@ export default function Audit({ onBack }) {
           setDynamicPrice(price);
           
           // Clear it so we don't re-trigger on refresh
-          localStorage.removeItem('aris_pending_audit');
+          localStorage.removeItem('bs_pending_audit');
           
           // Resume streaming the full report
           addLog("CHECKOUT_VERIFIED: RESUMING_MERCURY_FLOW", "success");
@@ -819,8 +966,8 @@ export default function Audit({ onBack }) {
   };
 
   return (
-    <div className="audit-page-container aris-audit-workspace">
-      <NavBar theme="dark" onToggleTheme={null} onBack={onBack} />
+    <div className="audit-page-container bidsmith-audit-workspace">
+      {!isMobile && <NavBar theme="dark" onToggleTheme={null} onBack={onBack} />}
       
       {/* Government Data Sources Banner */}
       <GovernmentBanner />
@@ -831,7 +978,7 @@ export default function Audit({ onBack }) {
             <Activity className="cyber-glow" size={40} color="var(--accent)" />
             <h1 style={{ fontSize: '2.5rem', fontWeight: 900, marginTop: '24px' }}>Stateless Audit Workspace</h1>
             <p style={{ color: 'var(--text-secondary)', marginTop: '16px' }}>
-              ARIS Core • Zero-Knowledge Analysis • Federal Compliance Engine
+              BidSmith Core • Zero-Knowledge Analysis • Federal Compliance Engine
             </p>
             
             <div className="cyber-input-wrapper">
@@ -851,9 +998,9 @@ export default function Audit({ onBack }) {
           </div>
         </div>
       ) : (
-        <div className="sovereign-layout">
+        <div className="bidsmith-layout">
           {/* Left: Log Terminal */}
-          <aside className="sovereign-panel sovereign-left">
+          <aside className="bidsmith-panel bidsmith-left">
             <LogTerminal pipelineStatus={result?.status} />
             
             {/* Mission Context */}
@@ -880,8 +1027,8 @@ export default function Audit({ onBack }) {
             </div>
           </aside>
 
-          {/* Center: Main Intelligence Workbench */}
-          <main className="sovereign-panel sovereign-center">
+          {/* Center: Main Intelligence Workspace */}
+          <main className="bidsmith-panel bidsmith-center">
             <div className="panel-header">
               <ShieldCheck size={14} /> Audit Canvas
             </div>
@@ -906,39 +1053,80 @@ export default function Audit({ onBack }) {
                     winProbability={0.13} 
                   />
                   
-                  {/* System finding */}
-                  <div className="critical-alert" style={{ background: 'rgba(255, 62, 62, 0.05)', border: '1px solid rgba(255, 62, 62, 0.2)' }}>
-                    <AlertTriangle size={20} color="#FF3E3E" />
+                <>
+                  <div style={{ marginBottom: '32px' }}>
+                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                        <h3 style={{ fontSize: '18px', fontWeight: 900, color: 'var(--text-primary)' }}>Compliance Analysis Matrix</h3>
+                        <div style={styles.badge}>{result.requirements.length} REQUIREMENTS FOUND</div>
+                     </div>
+                     <div className="excel-table-container">
+                        <table className="excel-table">
+                          <thead>
+                            <tr>
+                              <th style={{ width: '150px' }}>ID / Page</th>
+                              <th>Requirement Description</th>
+                              <th style={{ width: '120px' }}>Mapping</th>
+                              <th style={{ width: '120px' }}>Status</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {result.requirements.map((req, i) => (
+                              <tr key={i}>
+                                <td style={{ fontWeight: 700 }}>{req.id || `R-${i+1}`} <span style={{ color: '#94a3b8', fontSize: '11px' }}>({req.page || 'P1'})</span></td>
+                                <td style={{ color: '#0f172a' }}>{req.text || req.description}</td>
+                                <td>
+                                   <span className="excel-badge excel-badge-info">{req.section || 'L.1'}</span>
+                                </td>
+                                <td>
+                                   <span className={`excel-badge ${req.risk ? 'excel-badge-risk' : 'excel-badge-success'}`}>
+                                     {req.risk ? 'RISK' : 'PASS'}
+                                   </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                     
+                     {/* Conversion Hook - The Export CTA */}
+                     <div style={{ marginTop: '24px', padding: '24px', background: 'rgba(103, 232, 249, 0.05)', borderRadius: '12px', border: '1px solid rgba(103, 232, 249, 0.2)', textAlign: 'center' }}>
+                        <h4 style={{ fontSize: '18px', fontWeight: 900, marginBottom: '8px', color: '#fff' }}>Download Compliance Matrix (.XLSX)</h4>
+                        <p style={{ fontSize: '13px', color: '#a1a1aa', marginBottom: '20px', fontWeight: 500 }}>Ready for solicitation response & submission teams.</p>
+                        <button 
+                          className="cyber-btn" 
+                          onClick={handleExportExcel}
+                          style={{ padding: '16px 32px', fontSize: '14px', width: isMobile ? '100%' : 'auto', fontWeight: 800 }}
+                        >
+                          <FileText size={18} style={{ marginRight: '8px' }} />
+                          EXPORT FINAL MATRIX
+                        </button>
+                     </div>
+                  </div>
+
+                  {/* High Risk Alerts */}
+                  <div className="critical-alert" style={{ background: '#fff5f5', border: '1px solid #feb2b2', borderRadius: '8px' }}>
+                    <AlertTriangle size={20} color="#c53030" />
                     <div className="alert-content">
-                      <h4 style={{ fontSize: '12px', fontWeight: 800 }}>FINDING: MISSING_IL4_ATO_CITATION</h4>
-                      <p style={{ fontSize: '12px', color: '#a1a1aa' }}>DHA/DISA JSP reciprocity agreement not identified in Section L.3.2. High probability of technical disqualification for mission-critical systems.</p>
+                      <h4 style={{ fontSize: '12px', fontWeight: 800, color: '#c53030' }}>FINDING: MISSING_IL4_ATO_CITATION</h4>
+                      <p style={{ fontSize: '12px', color: '#718096' }}>DHA/DISA JSP reciprocity agreement not identified in Section L.3.2. High probability of technical disqualification.</p>
                     </div>
                   </div>
 
-                  {/* Secure Compliance Shield */}
+                  {/* Secure Compliance Shield (Remediation Paywall) */}
                   <SecureComplianceShield 
                     onUnlock={handlePurchase} 
                     price={dynamicPrice} 
                     isLoading={isCheckoutLoading}
                   />
 
-                  {/* Excel Export Action */}
-                  <div style={{ marginTop: '20px', padding: '16px', border: '1px solid rgba(255, 255, 255, 0.05)', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.02)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <h4 style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-primary)' }}>Compliance Matrix (RTM)</h4>
-                        <p style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Industrial-grade traceability for Section L/M requirements.</p>
-                      </div>
-                      <button 
-                        className="cyber-btn" 
-                        onClick={handleExportExcel}
-                        style={{ padding: '8px 16px', fontSize: '12px', minWidth: '140px' }}
-                      >
-                        <FileText size={14} style={{ marginRight: '8px' }} />
-                        EXPORT .XLSX
-                      </button>
-                    </div>
+                  {/* Minimized Status Feed instead of large terminal */}
+                  <div style={{ marginTop: '40px', padding: '12px', background: '#0c0c0e', border: '1px solid #1a1a1e', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                     <div style={{ width: 8, height: 8, background: '#10b981', borderRadius: '50%', boxShadow: '0 0 8px #10b981' }} />
+                     <span style={{ fontSize: '11px', color: '#71717a', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        AUDIT STATUS: {logs[logs.length - 1]?.msg || 'ACTIVE'}
+                     </span>
                   </div>
+                </>
                   
                   {/* Report Section */}
                   {report?.proposal_draft && (
@@ -968,7 +1156,7 @@ export default function Audit({ onBack }) {
         <div className="vault-glow flash" />
         <span>SECURE_VAULT: ENCRYPTED</span>
         <span style={{ opacity: 0.3 }}>|</span>
-        <span style={{ color: 'var(--text-secondary)' }}>ARIS_PROTOCOL_ACTIVE</span>
+        <span style={{ color: 'var(--text-secondary)' }}>BS_PROTOCOL_ACTIVE</span>
       </div>
 
       {/* Payment Modal */}

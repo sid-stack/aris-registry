@@ -1,5 +1,5 @@
 // Bump this version string on every deploy to force cache invalidation
-const CACHE_VERSION = 'aris-v3';
+const CACHE_VERSION = 'aris-v4';
 const STATIC_CACHE  = `${CACHE_VERSION}-static`;
 
 // Only cache immutable fingerprinted assets (JS/CSS with hashes in filename)

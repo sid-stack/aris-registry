@@ -32,7 +32,7 @@ const PHASES = [
         body: "A one-page PDF document that summarizes your core competencies, differentiators, past performance, and NAICS codes. This is your business card in federal contracting — agencies and prime contractors request it constantly.",
       },
     ],
-    arisNote: null,
+    bsNote: null,
   },
   {
     number: "02",
@@ -59,7 +59,7 @@ const PHASES = [
         body: "Agencies re-award similar contracts repeatedly. Map the agencies where your capabilities fit and monitor their upcoming procurement forecasts (most publish these annually). Relationship-building through capabilities briefings and Sources Sought responses before a solicitation drops is the fastest path to winning.",
       },
     ],
-    arisNote: "ARIS Sovereign Search surfaces active solicitations and past award history across all federal agencies from a single query — no more manual SAM.gov filtering.",
+    bidsmithNote: "BidSmith Search surfaces active solicitations and past award history across all federal agencies from a single query — no more manual SAM.gov filtering.",
   },
   {
     number: "03",
@@ -87,7 +87,7 @@ const PHASES = [
         body: "A simple RFP response can cost $5,000–$20,000 in staff time. A complex technical proposal for a $50M+ contract can run $50,000–$150,000. Your probability of win (pWin) needs to justify that investment. Industry standard: bid when pWin > 30%.",
       },
     ],
-    arisNote: "This is exactly where ARIS lives. Paste a SAM.gov URL → ARIS checks every eligibility requirement, flags disqualifiers with verbatim evidence from the RFP, and delivers a bid/no-bid recommendation. In 90 seconds instead of 2 hours.",
+    bsNote: "This is exactly where BidSmith lives. Paste a SAM.gov URL → BidSmith checks every eligibility requirement, flags disqualifiers with verbatim evidence from the RFP, and delivers a bid/no-bid recommendation. In 90 seconds instead of 2 hours.",
   },
   {
     number: "04",
@@ -118,7 +118,7 @@ const PHASES = [
         body: "Section I lists the regulatory clauses that govern contract performance. Key ones to audit: FAR 52.204-21 (cybersecurity), FAR 52.219-x (small business), DFARS 252.204-7012 (CMMC/NIST 800-171), DFARS 252.204-7021 (CMMC Level certification). Violations of these clauses during performance can result in contract termination or debarment.",
       },
     ],
-    arisNote: "ARIS extracts every FAR/DFARS clause, maps them to the 7-pillar compliance grid, and flags gaps with the exact source text. What takes a compliance analyst 2 days, ARIS delivers in 90 seconds.",
+    bsNote: "BidSmith extracts every FAR/DFARS clause, maps them to the 7-pillar compliance grid, and flags gaps with the exact source text. What takes a compliance analyst 2 days, BidSmith delivers in 90 seconds.",
   },
   {
     number: "05",
@@ -149,7 +149,7 @@ const PHASES = [
         body: "Price to win, not to maximize margin. Research the government's independent cost estimate (IGCE) if available. For T&M or CPFF contracts, build a realistic labor category mix. For FFP, make sure your price reflects your actual cost of performance — underbidding to win and then losing money on execution is worse than not winning.",
       },
     ],
-    arisNote: null,
+    bsNote: null,
   },
   {
     number: "06",
@@ -176,7 +176,7 @@ const PHASES = [
         body: "You have a right to a debrief from the contracting officer within 5 days of award notification. Always request it. Debriefs reveal your scores, where you ranked, and what the winner did better. This intelligence directly improves your next bid. Most firms skip debriefs — don't.",
       },
     ],
-    arisNote: null,
+    bsNote: null,
   },
 ];
 
@@ -203,7 +203,7 @@ export default function GovConGuide({ onBack, onEnterApp }) {
   const [openPhase, setOpenPhase] = useState(null);
 
   useEffect(() => {
-    document.title = "Federal Contracting Process Guide | ARIS";
+    document.title = "Federal Contracting Process Guide | BidSmith";
     window.scrollTo(0, 0);
   }, []);
 
@@ -216,10 +216,10 @@ export default function GovConGuide({ onBack, onEnterApp }) {
             <button onClick={onBack} style={s.backBtn}>
               <ArrowLeft size={14} /> Back
             </button>
-            <span style={s.brand}>ARIS</span>
+            <span style={s.brand}>BidSmith</span>
           </div>
           <button onClick={onEnterApp} style={s.ctaBtn}>
-            Try ARIS Free <ArrowRight size={14} />
+            Try BidSmith Free <ArrowRight size={14} />
           </button>
         </div>
       </header>
@@ -292,13 +292,13 @@ export default function GovConGuide({ onBack, onEnterApp }) {
               ))}
             </div>
 
-            {phase.arisNote && (
-              <div style={s.arisCallout}>
-                <div style={s.arisCalloutLabel}>
-                  <span style={s.arisBadge}>ARIS</span> How ARIS handles this
+            {phase.bsNote && (
+              <div style={s.bsCallout}>
+                <div style={s.bsCalloutLabel}>
+                  <span style={s.bsBadge}>BidSmith</span> How BidSmith handles this
                 </div>
-                <p style={s.arisCalloutText}>{phase.arisNote}</p>
-                <button onClick={onEnterApp} style={s.arisCalloutBtn}>
+                <p style={s.bsCalloutText}>{phase.bsNote}</p>
+                <button onClick={onEnterApp} style={s.bsCalloutBtn}>
                   See it in action <ArrowRight size={13} />
                 </button>
               </div>
@@ -331,7 +331,7 @@ export default function GovConGuide({ onBack, onEnterApp }) {
         <section style={s.bottomCta}>
           <h2 style={s.ctaTitle}>Stop spending 2 days on solicitation review</h2>
           <p style={s.ctaSub}>
-            ARIS audits any SAM.gov solicitation in under 90 seconds — compliance matrix,
+            BidSmith audits any SAM.gov solicitation in under 90 seconds — compliance matrix,
             FAR/DFARS risk flags, source snippets, and bid/no-bid recommendation.
             Free to try. No account required.
           </p>
@@ -390,11 +390,11 @@ const s = {
   stepTitle: { fontWeight: 700, fontSize: "0.95rem", margin: "0 0 8px", color: "#e4e4e7" },
   stepBody: { margin: 0, fontSize: "0.9rem", color: "#9ca3af", lineHeight: 1.75 },
 
-  arisCallout: { marginTop: 24, background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.2)", borderRadius: 12, padding: "20px 24px" },
-  arisCalloutLabel: { display: "flex", alignItems: "center", gap: 8, fontSize: "0.72rem", fontWeight: 700, letterSpacing: ".06em", color: "#818cf8", textTransform: "uppercase", marginBottom: 10 },
-  arisBadge: { background: "#4f46e5", color: "#fff", borderRadius: 4, padding: "1px 7px", fontSize: "0.65rem", fontWeight: 900, letterSpacing: ".08em" },
-  arisCalloutText: { fontSize: "0.9rem", color: "#a5b4fc", lineHeight: 1.7, margin: "0 0 14px" },
-  arisCalloutBtn: { background: "rgba(79,70,229,0.15)", color: "#818cf8", border: "1px solid rgba(79,70,229,0.3)", borderRadius: 6, padding: "7px 14px", fontSize: "0.78rem", fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 },
+  bsCallout: { marginTop: 24, background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.2)", borderRadius: 12, padding: "20px 24px" },
+  bsCalloutLabel: { display: "flex", alignItems: "center", gap: 8, fontSize: "0.72rem", fontWeight: 700, letterSpacing: ".06em", color: "#818cf8", textTransform: "uppercase", marginBottom: 10 },
+  bsBadge: { background: "#4f46e5", color: "#fff", borderRadius: 4, padding: "1px 7px", fontSize: "0.65rem", fontWeight: 900, letterSpacing: ".08em" },
+  bsCalloutText: { fontSize: "0.9rem", color: "#a5b4fc", lineHeight: 1.7, margin: "0 0 14px" },
+  bsCalloutBtn: { background: "rgba(79,70,229,0.15)", color: "#818cf8", border: "1px solid rgba(79,70,229,0.3)", borderRadius: 6, padding: "7px 14px", fontSize: "0.78rem", fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 },
 
   glossarySection: { marginBottom: 64 },
   sectionTitle: { fontSize: "1.5rem", fontWeight: 800, margin: "0 0 8px" },

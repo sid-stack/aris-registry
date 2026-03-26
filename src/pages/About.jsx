@@ -23,22 +23,30 @@ const MISSION_VALUES = [
 ];
 
 const About = ({ onBack }) => {
+  const [isMobile, setIsMobile] = React.useState(typeof window !== "undefined" && window.innerWidth < 768);
+
+  React.useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   return (
     <div className="about-page">
-      <NavBar onBack={onBack} />
+      {!isMobile && <NavBar onBack={onBack} />}
       
       <main className="about-main">
         {/* Hero Section */}
         <section className="about-hero">
           <div className="about-badge">
             <Building2 size={14} color="#3b82f6" />
-            <span className="about-badge-text">ARIS LABS // ABOUT</span>
+            <span className="about-badge-text">BIDSMITH // ABOUT</span>
           </div>
           <h1 className="about-title">
             Engineering the Future of Defense Intelligence.
           </h1>
           <p className="about-description">
-            Aris Labs is a GovCon-first engineering firm. We build the <strong>Intelligence Workbench</strong> for federal primes who demand absolute data sovereignty and high-performance execution.
+            BidSmith is a GovCon-first engineering firm. We build the <strong>Audit Workspace</strong> for federal primes who demand absolute data sovereignty and high-performance execution.
           </p>
         </section>
 
@@ -77,8 +85,8 @@ const About = ({ onBack }) => {
             </div>
             <div className="lab-cta-card">
                <Briefcase size={40} color="#3b82f6" style={{ marginBottom: '20px', opacity: 0.5 }} />
-               <h4 style={{ fontSize: '14px', fontWeight: 700, color: '#f4f4f5', marginBottom: '10px' }}>Interested in Joining?</h4>
-               <p style={{ fontSize: '12px', color: '#71717a', marginBottom: '20px' }}>We are always looking for security-minded engineers and GovCon specialists.</p>
+               <h4 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '10px' }}>Interested in Joining?</h4>
+               <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '20px' }}>We are always looking for security-minded engineers and GovCon specialists.</p>
                <a href="mailto:careers@bidsmith.pro" style={{ fontSize: '12px', color: '#3b82f6', fontWeight: 700, textDecoration: 'none', borderBottom: '1px solid #3b82f6' }}>View Open Roles →</a>
             </div>
           </div>
@@ -87,18 +95,18 @@ const About = ({ onBack }) => {
         {/* Closing */}
         <section className="cta-section">
            <h3 className="cta-title">Ready to eliminate the risk in your bidding?</h3>
-           <p style={{ fontSize: '14px', color: '#71717a', marginBottom: '32px' }}>Start your first compliance audit in under 60 seconds.</p>
+           <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '32px' }}>Start your first compliance audit in under 60 seconds.</p>
            <button 
             onClick={() => window.location.href = '/app'}
             className="about-cta-btn"
            >
-             Open Intelligence Workbench
+             Open Audit Workspace
            </button>
         </section>
       </main>
 
       <footer className="about-footer">
-        <div className="footer-copy">© 2026 ARIS LABS • SAN FRANCISCO, CA</div>
+        <div className="footer-copy">© 2026 BIDSMITH • SAN FRANCISCO, CA</div>
         <div className="footer-protocol">PROTOCOL: STATELESS_EXECUTION_v1</div>
       </footer>
     </div>

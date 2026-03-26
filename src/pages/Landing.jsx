@@ -2,468 +2,200 @@ import {
   Rocket,
   FileText,
   Shield,
-  Linkedin,
-  Globe,
   Zap,
   AlertTriangle,
-  ShieldCheck,
   Search,
+  ArrowRight,
+  Globe,
+  CheckCircle,
+  Loader2
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import FaqSection from "../components/FaqSection";
 import GovernmentBanner from "../components/GovernmentBanner";
+import DemoVideo from "../components/DemoVideo";
 import "./Landing.css";
-import { trackEvent } from "../utils/analytics";
-import { trackKPI } from "../lib/analytics";
-import { GTM_PRICING_PLANS } from "../lib/pricing";
-import PricingComparison from "../components/PricingComparison";
-
-const benefits = [
-  {
-    title: "Agentic Intelligence",
-    description: "Our proprietary protocol 'shreds' 200+ page technical solicitations to find hidden compliance traps.",
-    icon: <Zap size={42} color="var(--accent)" />,
-  },
-  {
-    title: "Data Sovereignty",
-    description: "Your intellectual property never leaves your session. Our architecture makes it impossible for us to ever see your data.",
-    icon: <Shield size={42} color="var(--accent)" />,
-  },
-  {
-    title: "Stateless Execution",
-    description: "Data is processed in transient memory and wiped instantly. No database, no local caching, no leaks. 100% Secure.",
-    icon: <Rocket size={42} color="var(--accent)" />,
-  },
-];
-
-const steps = [
-  {
-    title: "Initialize Bridge",
-    description: "Connect your SAM.gov link to our stateless ingestion pipeline.",
-    icon: <Globe size={42} color="var(--accent)" />,
-  },
-  {
-    title: "Sovereign Audit",
-    description: "Our agents parse the logic, identifying FAR/DFARS disqualifiers instantly.",
-    icon: <Rocket size={42} color="var(--accent)" />,
-  },
-  {
-    title: "Intelligence Output",
-    description: "Secure, proposal-ready Compliance Matrix and Risk memorandum generated in-situ.",
-    icon: <FileText size={42} color="var(--accent)" />,
-  },
-];
 
 const heroStats = [
-  { label: "Pages Analyzed", value: "284" },
-  { label: "Bid-Killer Flags", value: "3 + 1 DQ" },
-  { label: "Audit Turnaround", value: "41 sec" },
+  { label: "SLA", value: "90 sec" },
+  { label: "Detections", value: "FAR/DFARS" },
+  { label: "Compliance", value: "Section L/M" },
 ];
 
-const sampleReportMeta = [
-  { label: "Agency", value: "Defense Health Agency" },
-  { label: "Solicitation", value: "HT9402-24-R-0012" },
-  { label: "Set-Aside", value: "Total Small Business" },
-  { label: "NAICS", value: "541512" },
-];
+const reportTabs = ["Executive Audit", "Compliance Matrix"];
 
-const sampleReportRisks = [
-  "RMF / ATO path is referenced as an evaluation dependency.",
-  "SPRS submission is expected before proposal delivery.",
-  "CUI handling implies facility-clearance exposure.",
-];
-
-const sampleDeliverables = [
-  "Executive audit with bid / no-bid recommendation",
-  "Compliance matrix mapped to Section L / H requirements",
-  "Risk memorandum with response outline for capture review",
-];
-
-const trustSignals = [
-  {
-    title: "Literal Output",
-    detail: "You inspect a real DHA audit workflow, not demo filler copy.",
-  },
-  {
-    title: "Zero-Retention",
-    detail: "Stateless processing posture designed for sensitive capture data.",
-  },
-  {
-    title: "Federal Fit",
-    detail: "Built around DOD and civilian solicitation review requirements.",
-  },
-];
-
-const heroChips = [
-  "Section L/H extraction",
-  "RMF + ATO risk signal",
-  "Capture-ready memo in 41 sec",
-];
-
-const reportTabs = ["Executive Audit", "Compliance Matrix", "Risk Memo"];
-
-const reportTelemetry = [
-  { label: "Clauses Parsed", value: "127" },
-  { label: "Docs Reviewed", value: "16" },
-  { label: "Risk Level", value: "HIGH" },
-];
-
-const pricingPreviewStats = [
-  { label: "Manual analysis", value: "18-40 hrs" },
-  { label: "ARIS runtime", value: "41 sec" },
-  { label: "Detections", value: "3 risks + 1 DQ" },
-];
-
-function BrandingBanner({ onSovereignBeta }) {
-  return (
-    <div style={{
-      background: '#0c0c0e',
-      borderBottom: '1px solid #1a1a1a',
-      padding: '8px 20px',
-      textAlign: 'center',
-      fontSize: '12px',
-      color: '#71717a',
-      fontFamily: 'JetBrains Mono, monospace',
-      letterSpacing: '0.05em',
-      position: 'sticky',
-      top: 0,
-      zIndex: 100,
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      gap: '12px'
-    }}>
-      <span>POWERED BY THE <span style={{ color: 'var(--accent)', fontWeight: 700 }}>ARIS LABS AUDIT ENGINE</span></span>
-      <span style={{ color: '#3f3f46' }}>|</span>
-      <span 
-        onClick={onSovereignBeta}
-        className="clickable-accent"
-        style={{ 
-          color: 'var(--text-primary)', 
-          fontWeight: 800, 
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '4px'
-        }}
-      >
-        <Rocket size={12} /> JOIN SOVEREIGN v2.1 PRIVATE BETA
-      </span>
-    </div>
-  );
-}
-
-function SovereignBetaSection({ isMobile, onSovereignBeta }) {
-  return (
-    <section id="sovereign-beta-cta" style={styles.sectionMuted} data-reveal>
-      <div style={styles.sectionInner}>
-        <div 
-          onClick={onSovereignBeta}
-          style={{
-            background: "linear-gradient(145deg, #0c0c0e 0%, #161618 100%)",
-            border: "1px solid rgba(59, 130, 246, 0.1)",
-            borderRadius: 24,
-            padding: isMobile ? "40px 20px" : "64px",
-            textAlign: "center",
-            cursor: 'pointer',
-            transition: 'all 0.3s ease',
-            position: 'relative',
-            overflow: 'hidden'
-          }}
-          className="hover-glow"
-        >
-          <div style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            height: '2px',
-            background: 'linear-gradient(90deg, transparent, var(--accent), transparent)',
-            opacity: 0.5
-          }}></div>
-          
-          <p style={{ ...styles.sectionEyebrow, color: 'var(--accent)' }}>Institutional Intelligence Protocol</p>
-          <h2 style={{ ...styles.sectionTitle, marginBottom: 16, fontSize: isMobile ? '24px' : '36px' }}>
-            JOIN SOVEREIGN v2.1 PRIVATE BETA
-          </h2>
-          <p style={{ ...styles.subtitle, marginTop: 0, marginBottom: 32, fontSize: '18px', color: '#a1a1aa' }}>
-            Access the machine that tracks the logic the government forgets. 
-            <br/><span style={{ color: '#fff', fontWeight: 600 }}>Decisive. Sovereign. Zero-Knowledge.</span>
-          </p>
-
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '12px',
-            background: 'rgba(255,255,255,0.05)',
-            padding: '12px 24px',
-            borderRadius: '99px',
-            border: '1px solid rgba(255,255,255,0.1)',
-            color: '#fff',
-            fontWeight: 700,
-            fontSize: '14px'
-          }}>
-            <Rocket size={18} color="var(--accent)" />
-            APPLY FOR STEALTH ACCESS
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function IconCard({ title, description, icon }) {
-  return (
-    <div
-      style={styles.card}
-      onMouseEnter={(event) => {
-        event.currentTarget.style.transform = "translateY(-4px)";
-        event.currentTarget.style.boxShadow = "0 14px 34px rgba(15,23,42,0.10)";
-      }}
-      onMouseLeave={(event) => {
-        event.currentTarget.style.transform = "translateY(0)";
-        event.currentTarget.style.boxShadow = styles.card.boxShadow;
-      }}
-    >
-      {icon}
-      <h3 style={styles.cardTitle}>{title}</h3>
-      <p style={styles.cardCopy}>{description}</p>
-    </div>
-  );
-}
-
-function SampleAuditEmailCapture() {
-  const [email, setEmail] = useState("");
-  const [status, setStatus] = useState("idle"); // idle | loading | done | error
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!email || status === "loading") return;
-    setStatus("loading");
-    try {
-      const res = await fetch("/api/beta-signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, metadata: { source: "pricing_email_capture" } }),
-      });
-      setStatus(res.ok ? "done" : "error");
-    } catch {
-      setStatus("error");
-    }
-  };
-
-  if (status === "done") return <p style={{ color: "#4ade80" }}>Report sent. Check your inbox.</p>;
-
-  return (
-    <form onSubmit={handleSubmit} style={{ display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
-      <input
-        type="email"
-        required
-        placeholder="your@agency.gov"
-        value={email}
-        onChange={e => setEmail(e.target.value)}
-        style={{
-          background: "rgba(255,255,255,0.05)",
-          border: "1px solid rgba(255,255,255,0.15)",
-          borderRadius: 8,
-          padding: "10px 16px",
-          color: "#f4f4f5",
-          fontSize: "0.95rem",
-          width: 260,
-        }}
-      />
-      <button
-        type="submit"
-        disabled={status === "loading"}
-        style={{
-          background: "rgba(59,130,246,0.15)",
-          border: "1px solid rgba(59,130,246,0.4)",
-          borderRadius: 8,
-          padding: "10px 20px",
-          color: "#60a5fa",
-          fontWeight: 700,
-          cursor: "pointer",
-        }}
-      >
-        {status === "loading" ? "Sending..." : "Get Free Report"}
-      </button>
-      {status === "error" && <p style={{ width: "100%", color: "#f87171", margin: "4px 0 0", fontSize: "0.85rem" }}>Something went wrong. Try again.</p>}
-    </form>
-  );
-}
-
-export default function Landing({ onEnterApp, onViewSample, onSovereignBeta, onSovereignSearch }) {
+export default function Landing({ onEnterApp, onViewSample, onBidSmithBeta, onBidSmithSearch, onAnalyze, onAnalyzeFile }) {
+  const [inputUrl, setInputUrl] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isMobile, setIsMobile] = useState(
-    typeof window !== "undefined" && window.innerWidth < 768
-  );
-  const [windowWidth, setWindowWidth] = useState(
-    typeof window !== "undefined" ? window.innerWidth : 1280
-  );
+  const [logs, setLogs] = useState([]);
+  const [isMobile, setIsMobile] = useState(typeof window !== "undefined" && window.innerWidth < 768);
+  const fileInputRef = useRef();
 
   useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-      setWindowWidth(window.innerWidth);
-    };
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const openCheckout = async (source, plan) => {
-    if (isProcessing) return;
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    processWithLogs(() => onAnalyzeFile(file));
+  };
+
+  const processWithLogs = (callback) => {
     setIsProcessing(true);
+    setLogs(["[BIDSMITH] Initializing secure bridge...", "[MERCURY2] Connecting to ingestion pipeline..."]);
+    
+    const mockLogs = [
+      { ms: 1200, msg: "[BIDSMITH] Scanning document structure..." },
+      { ms: 2800, msg: "[SHREDDER] Extracting 'shall/must' requirements..." },
+      { ms: 4500, msg: "[RISK] Analyzing Section L compliance triggers..." },
+      { ms: 6000, msg: "[BIDSMITH] Building requirements matrix..." },
+      { ms: 7500, msg: "[OK] Analysis complete. Rendering workspace..." }
+    ];
 
-    // Track checkout initiation
-    trackKPI("checkout_initiated", { 
-      source, 
-      plan: plan.key, 
-      price: plan.price 
+    mockLogs.forEach(log => {
+      setTimeout(() => setLogs(prev => [...prev, log.msg]), log.ms);
     });
 
-    // For direct Stripe links, just redirect
-    if (plan.buttonLink && plan.buttonLink.startsWith('https://buy.stripe.com/')) {
-      window.location.assign(plan.buttonLink);
-      window.setTimeout(() => setIsProcessing(false), 1500);
-      return;
-    }
-
-    // For other plans (e.g., legacy or contact-based), handle as before
-    if (plan.buttonLink && plan.buttonLink.startsWith('mailto:')) {
-      trackKPI("enterprise_contact", { source: "landing_pricing_card" });
-      window.location.href = plan.buttonLink;
-      setIsProcessing(false);
-      return;
-    }
-
-    // Fallback: If it's a direct app link, just go there
-    if (plan.buttonLink && !plan.buttonLink.startsWith('http') && plan.buttonLink.startsWith('/')) {
-      window.location.href = plan.buttonLink;
-      setIsProcessing(false);
-      return;
-    }
-
-    console.warn("Unhandled plan checkout:", plan);
-    window.alert("Please contact support to initialize this plan.");
-    setIsProcessing(false);
+    setTimeout(() => {
+      callback();
+    }, 8500);
   };
 
-  const handleStartTrial = () => {
-    trackEvent("start_free_trial_click", { source: "landing_hero" });
-    trackKPI("trial_click", { source: "landing_hero" });
-    openCheckout("landing_hero", GTM_PRICING_PLANS[0]);
+  const handleStartAnalysis = (e) => {
+    e.preventDefault();
+    if (!inputUrl && !isProcessing) return;
+    processWithLogs(() => onAnalyze(inputUrl));
   };
-
-  const handleSamScraperOpen = () => {
-    trackEvent("sam_scraper_click", { source: "landing_hero" });
-    window.location.href = "/sam-scraper";
-  };
-
-  const handleWorkspaceOpen = () => {
-    trackEvent("open_workspace_click", { source: "landing_hero" });
-    onEnterApp();
-  };
-
-  const handleSampleView = () => {
-    trackEvent("view_sample_report_click", { source: "landing_hero" });
-    onViewSample();
-  };
-
-  const handleFooterRedirect = (event, href) => {
-    event.preventDefault();
-    window.location.assign(href);
-  };
-
-  useEffect(() => {
-    const targets = document.querySelectorAll("[data-reveal]");
-    if (!targets.length) return undefined;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add("reveal-visible");
-            observer.unobserve(entry.target);
-          }
-        });
-      },
-      { threshold: 0.12 },
-    );
-
-    targets.forEach((target) => {
-      target.classList.add("reveal-hidden");
-      observer.observe(target);
-    });
-
-    return () => observer.disconnect();
-  }, []);
 
   return (
     <div style={styles.page}>
-      <BrandingBanner onSovereignBeta={onSovereignBeta} />
-      <header style={styles.navbar}>
-        <div style={styles.navInner}>
-          <a href="/" style={styles.brand}>
-            <img src="/aris-logo.png" alt="Aris" style={{ height: 22, width: 22, objectFit: "contain" }} />
-            <span>ARIS Labs</span>
-          </a>
-          <nav className="landing-nav-links">
-            <a href="/demo" style={{ ...styles.navLink, color: "#818cf8", fontWeight: 600 }}>Demo</a>
-            <a href="/govcon-guide" style={styles.navLink}>GovCon Guide</a>
-            <a href="/#solutions" style={styles.navLink}>Solutions</a>
-            <a href="/#pricing" style={styles.navLink}>Pricing</a>
-            <a href="/#contact" style={styles.navLink}>Contact</a>
-          </nav>
-          <button
-            type="button"
-            aria-label="Join Sovereign Beta"
-            style={styles.navCta}
-            onClick={onSovereignSearch}
-            disabled={isProcessing}
-          >
-            Sovereign Beta
-          </button>
-        </div>
-      </header>
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        style={{ display: 'none' }} 
+        accept=".pdf"
+        onChange={handleFileChange}
+      />
+      {!isMobile && (
+        <header style={styles.navbar}>
+          <div style={styles.navInner}>
+            <a href="/" style={styles.brand}>
+              <Shield size={22} color="#0f172a" />
+              <span style={{ fontWeight: 800, letterSpacing: '-0.02em' }}>BidSmith [AUDIT ENGINE]</span>
+            </a>
+            <div style={{ marginLeft: 'auto', display: 'flex', gap: '20px', alignItems: 'center' }}>
+              <span style={styles.navLink} onClick={() => window.location.href = '/about'}>About BidSmith</span>
+              <span style={styles.navLink} onClick={() => window.location.href = '/bid-search'}>Bid Search</span>
+              <span style={styles.navLink} onClick={() => window.location.href = '/beta'}>Join Beta</span>
+              <button style={styles.navCta} onClick={onEnterApp}>Launch Workspace</button>
+            </div>
+          </div>
+        </header>
+      )}
 
-      <section className="landing-hero" style={styles.heroTerminalSection}>
+      <section className="landing-hero" style={{ ...styles.heroSection, paddingBottom: 0 }}>
         <div className="landing-hero-layout">
-          <div className="landing-hero-copy">
-            <div 
-              onClick={onSovereignBeta}
-              className="animate-in clickable"
-              style={{ 
-                background: 'rgba(59, 130, 246, 0.1)', color: 'rgb(96, 165, 250)', 
-                padding: '4px 12px', borderRadius: '100px', fontSize: '11px', fontWeight: 800,
-                display: 'inline-block', marginBottom: '24px', border: '1px solid rgba(59, 130, 246, 0.2)',
-                letterSpacing: '0.05em', cursor: 'pointer'
-              }}
-            >
-              🚀 SOVEREIGN v2.1 PRIVATE BETA IS NOW OPEN
-            </div>
-            <p style={styles.sectionEyebrow}>Sample-anchored Federal Audit</p>
-            <h1 className="landing-hero-title" style={{ ...styles.title, textAlign: "left", fontSize: isMobile ? "2rem" : "3.15rem" }}>
-              Federal RFP compliance audit in 90 seconds.
+          <div style={{ textAlign: 'center', maxWidth: '800px', margin: '0 auto' }}>
+            <h1 style={styles.title}>
+              Turn any RFP into a <br/>compliance matrix in 90s.
             </h1>
-            <p className="landing-hero-subtitle" style={{ ...styles.subtitle, marginLeft: 0, marginRight: 0, textAlign: "left", maxWidth: "unset" }}>
-              ARIS analyzes any SAM.gov solicitation, generates a compliance matrix, and flags
-              FAR/DFARS disqualification risks before your capture team touches a single page.
-              The same audit your capture lead spends 40 hours on — done while you read this sentence.
+            <p style={styles.subtitle}>
+              Find missing requirements, risks, and gaps instantly. <br/>
+              Zero-knowledge security. Federal Prime Ready.
             </p>
-            <div className="landing-hero-chip-row">
-              {heroChips.map((chip) => (
-                <span key={chip} className="landing-hero-chip">{chip}</span>
-              ))}
-            </div>
-            <div style={{ ...styles.heroActions, flexDirection: isMobile ? "column" : "row", justifyContent: "flex-start" }}>
-              <button 
-                onClick={onSovereignSearch} 
-                style={{ ...styles.primaryCta, width: isMobile ? "100%" : "auto", background: "var(--accent)", color: "#000" }}
-              >
-                Launch Sovereign Session
-              </button>
-              <button onClick={handleSampleView} style={{ ...styles.secondaryCta, width: isMobile ? "100%" : "auto" }}>Open Full Sample</button>
-            </div>
+
+            {!isProcessing ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '24px' }}>
+                <div style={{ textAlign: 'center' }}>
+                  <button 
+                    onClick={() => fileInputRef.current.click()}
+                    style={{ ...styles.heroBtn, padding: '20px 48px', fontSize: '1.1rem', width: isMobile ? '100%' : 'auto', marginBottom: '12px' }}
+                  >
+                    Upload an RFP → Get Compliance Matrix
+                  </button>
+                  <p style={{ fontSize: '13px', color: '#71717a', fontWeight: 600 }}>
+                    Takes ~90 seconds • No Account Needed • Zero Fluff
+                  </p>
+                </div>
+
+                {/* Trust Strip - Gov-Tier Trust Marker */}
+                <div style={styles.trustStrip}>
+                  <div style={styles.trustItem}><Shield size={14} color="#002244" /> Institutional-Grade Security</div>
+                  <div style={styles.trustDivider} />
+                  <div style={styles.trustItem}><Zap size={14} color="#002244" /> Zero-Knowledge Data Architecture</div>
+                  <div style={styles.trustDivider} />
+                  <div style={styles.trustItem}><CheckCircle size={14} color="#002244" /> Built for Federal Contractors</div>
+                </div>
+
+                <div style={styles.heroSecondaryLinks}>
+                   <div style={styles.heroLinkItem} onClick={() => setInputUrl("https://sam.gov/opp/")}>
+                      <Globe size={14} /> Analyze SAM.gov
+                   </div>
+                   <div style={{ width: 1, height: 14, background: '#e2e8f0' }} />
+                   <div style={styles.heroLinkItem} onClick={() => window.location.href = '/bid-search'}>
+                      <Search size={14} /> Search Bids
+                   </div>
+                </div>
+              </div>
+            ) : (
+              <div style={styles.processingWrapper}>
+                <div style={styles.terminalHeader}>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#ef4444' }} />
+                    <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#f59e0b' }} />
+                    <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#10b981' }} />
+                  </div>
+                  <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>BIDSMITH SECURE SESSION</span>
+                </div>
+                <div style={styles.terminalBody}>
+                  {logs.map((log, i) => (
+                    <div key={i} style={styles.terminalLine}>{log}</div>
+                  ))}
+                  <div style={{ color: 'var(--accent)', marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Loader2 size={14} className="animate-spin" /> Shredding RFP...
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Premium Showcase Showcase */}
+          <div className="showcase-section">
+             <div className="showcase-frame">
+               <div className="showcase-ui-dots">
+                 <div className="showcase-dot" />
+                 <div className="showcase-dot" />
+                 <div className="showcase-dot" />
+               </div>
+               
+               <div className="showcase-badge">
+                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff', animation: 'pulse 2s infinite' }} />
+                 LIVE AUDIT: $18.5M GSA SOLICITATION
+               </div>
+
+               {!isMobile && (
+                 <>
+                   <div className="feature-tag feature-tag-risk">
+                     <AlertTriangle size={14} color="#f59e0b" />
+                     <span>6 High-Risk Clauses Flagged</span>
+                   </div>
+                   <div className="feature-tag feature-tag-compliance">
+                     <CheckCircle size={14} color="#10b981" />
+                     <span>100% CMMC 2.0 Mapping</span>
+                   </div>
+                 </>
+               )}
+
+               <DemoVideo />
+             </div>
+          </div>
+        </div>
+
+        {/* Hero Stats */}
+        <div style={{ maxWidth: 1200, margin: '60px auto 0', borderTop: '1px solid #e2e8f0', paddingTop: '40px' }}>
             <div style={styles.heroStatsGrid}>
               {heroStats.map((stat) => (
                 <div key={stat.label} style={styles.heroStatCard}>
@@ -472,358 +204,77 @@ export default function Landing({ onEnterApp, onViewSample, onSovereignBeta, onS
                 </div>
               ))}
             </div>
-          </div>
-
-          <aside className="landing-hero-report" aria-label="Sample audit preview">
-            <div className="landing-report-shell">
-              <div className="landing-report-topline">
-                <span>SAMPLE AUDIT</span>
-                <span>DHA VIDEO IMAGING ARCHIVE</span>
-              </div>
-              <div className="landing-report-tabs">
-                {reportTabs.map((tab, index) => (
-                  <span
-                    key={tab}
-                    className={index === 0 ? "landing-report-tab landing-report-tab-active" : "landing-report-tab"}
-                  >
-                    {tab}
-                  </span>
-                ))}
-              </div>
-              <div className="landing-report-meta">
-                {sampleReportMeta.map((item) => (
-                  <div key={item.label} className="landing-report-meta-row">
-                    <span>{item.label}</span>
-                    <strong>{item.value}</strong>
-                  </div>
-                ))}
-              </div>
-              <div className="landing-report-telemetry">
-                {reportTelemetry.map((item) => (
-                  <div key={item.label} className="landing-report-telemetry-card">
-                    <p>{item.label}</p>
-                    <strong>{item.value}</strong>
-                  </div>
-                ))}
-              </div>
-              <div className="landing-report-riskbox">
-                <p>Bid-Killer Alerts</p>
-                <ul>
-                  {sampleReportRisks.map((risk) => (
-                    <li key={risk}>
-                      <AlertTriangle size={14} />
-                      <span>{risk}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </aside>
         </div>
       </section>
 
-      <section className="landing-trust-strip" data-reveal>
-        <div className="landing-trust-grid">
-          {trustSignals.map((signal) => (
-            <div key={signal.title} className="landing-trust-item">
-              <p>{signal.title}</p>
-              <span>{signal.detail}</span>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <GovernmentBanner />
-
-      {/* ── Products Suite ── */}
-      <section id="markets" style={styles.section} data-reveal>
+      {/* Pain Points */}
+      <section style={{ ...styles.section, background: '#05070a' }}>
         <div style={styles.sectionInner}>
-          <p style={styles.sectionEyebrow}>Product Suite</p>
-          <h2 style={styles.sectionTitle}>Three Tools. One Intelligence Layer.</h2>
-          <p style={{ ...styles.subtitleSmall, marginBottom: 40 }}>
-            Each tool is sovereign — stateless, zero-knowledge, and purpose-built for federal capture teams.
-          </p>
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)",
-            gap: 20,
-          }}>
-            {/* Product 1: ARIS Audit */}
-            <div style={styles.productCard}>
-              <div style={{ ...styles.productIcon, background: "rgba(0,255,194,0.08)", border: "1px solid rgba(0,255,194,0.2)" }}>
-                <ShieldCheck size={24} color="#00FFC2" />
-              </div>
-              <h3 style={styles.productCardTitle}>Mercury 2 Audit</h3>
-              <p style={styles.productCardSubtitle}>RFP compliance engine</p>
-              <p style={styles.productCardCopy}>
-                Paste a SAM.gov URL. Get a full compliance matrix, FAR/DFARS risk flags, and a bid/no-bid recommendation in under 90 seconds.
-              </p>
-              <div style={styles.productMeta}>
-                <span style={styles.productTag}>FAR · DFARS</span>
-                <span style={styles.productTag}>Section L/M</span>
-                <span style={styles.productTag}>CSV Export</span>
-              </div>
-              <button
-                type="button"
-                style={styles.productCta}
-                onClick={onEnterApp}
-              >
-                Launch Audit Workspace →
-              </button>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: '32px' }}>
+            <div style={styles.painCard}>
+              <Zap size={32} color="var(--accent)" style={{ marginBottom: '16px' }} />
+              <h3>Clerical Exhaustion</h3>
+              <p>Stop burning BD budget on manual requirement extraction. BidSmith automates the clerical so you can focus on the win.</p>
             </div>
-
-            {/* Product 2: Sovereign Search */}
-            <div style={{ ...styles.productCard, borderColor: "rgba(99,102,241,0.25)" }}>
-              <div style={{ ...styles.productIcon, background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.2)" }}>
-                <Search size={24} color="#818cf8" />
-              </div>
-              <h3 style={styles.productCardTitle}>Sovereign Search</h3>
-              <p style={styles.productCardSubtitle}>Federal intelligence search</p>
-              <p style={styles.productCardCopy}>
-                Search across SAM.gov opportunities, USAspending award history, and agency patterns — with natural language, not keyword guessing.
-              </p>
-              <div style={styles.productMeta}>
-                <span style={styles.productTag}>SAM.gov</span>
-                <span style={styles.productTag}>USAspending</span>
-                <span style={styles.productTag}>Vector search</span>
-              </div>
-              <button
-                type="button"
-                style={{ ...styles.productCta, background: "rgba(99,102,241,0.12)", color: "#818cf8", border: "1px solid rgba(99,102,241,0.3)" }}
-                onClick={onSovereignSearch}
-              >
-                Open Search →
-              </button>
+            <div style={styles.painCard}>
+              <AlertTriangle size={32} color="#f59e0b" style={{ marginBottom: '16px' }} />
+              <h3>Hidden Bid-Killers</h3>
+              <p>Identify facility clearance dependencies and mandatory SLA risks buried in Page 400 of Section L.</p>
             </div>
-
-            {/* Product 3: SAM Scraper */}
-            <div style={{ ...styles.productCard, borderColor: "rgba(251,146,60,0.2)" }}>
-              <div style={{ ...styles.productIcon, background: "rgba(251,146,60,0.08)", border: "1px solid rgba(251,146,60,0.2)" }}>
-                <FileText size={24} color="#fb923c" />
-              </div>
-              <h3 style={styles.productCardTitle}>SAM Scraper</h3>
-              <p style={styles.productCardSubtitle}>Bulk opportunity export</p>
-              <p style={styles.productCardCopy}>
-                Filter SAM.gov by NAICS code, agency, set-aside type, and dollar threshold. Export clean CSVs your BD team can actually use.
-              </p>
-              <div style={styles.productMeta}>
-                <span style={styles.productTag}>NAICS filter</span>
-                <span style={styles.productTag}>Set-aside</span>
-                <span style={styles.productTag}>Bulk CSV</span>
-              </div>
-              <button
-                type="button"
-                style={{ ...styles.productCta, background: "rgba(251,146,60,0.1)", color: "#fb923c", border: "1px solid rgba(251,146,60,0.25)" }}
-                onClick={() => { window.location.href = "/sam-scraper"; }}
-              >
-                Open SAM Scraper →
-              </button>
+            <div style={styles.painCard}>
+              <Shield size={32} color="#10b981" style={{ marginBottom: '16px' }} />
+              <h3>Zero-Knowledge Security</h3>
+              <p>Federal prime standard security. Your RFP data remains in transient memory and is wiped post-execution.</p>
             </div>
-          </div>
-
-          {/* Activity strip */}
-          <div style={{
-            display: "flex",
-            gap: isMobile ? 16 : 40,
-            justifyContent: "center",
-            flexWrap: "wrap",
-            marginTop: 48,
-            paddingTop: 32,
-            borderTop: "1px solid rgba(255,255,255,0.06)"
-          }}>
-            {[
-              { n: "17", label: "Reports generated today" },
-              { n: "83s", label: "Avg. analysis time" },
-              { n: "3", label: "Data sources unified" },
-            ].map(({ n, label }) => (
-              <div key={label} style={{ textAlign: "center" }}>
-                <p style={{ margin: 0, fontSize: "2rem", fontWeight: 800, color: "#00FFC2" }}>{n}</p>
-                <p style={{ margin: "4px 0 0", fontSize: "0.8rem", color: "#71717a", textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</p>
-              </div>
-            ))}
           </div>
         </div>
       </section>
 
-      <section id="solutions" style={styles.sectionMuted} data-reveal>
+      <section style={styles.finalCta}>
         <div style={styles.sectionInner}>
-          <p style={styles.sectionEyebrow}>Why teams switch from manual workflows</p>
-          <h2 style={styles.sectionTitle}>Why ARIS?</h2>
-          <div style={styles.gridFour}>
-            {benefits.map((benefit) => (
-              <IconCard
-                key={benefit.title}
-                title={benefit.title}
-                description={benefit.description}
-                icon={benefit.icon}
-              />
-            ))}
-          </div>
+          <h2 style={{ fontSize: '3rem', fontWeight: 900, color: '#002244', marginBottom: '32px' }}>Stop reading. Start bidding.</h2>
+          <button style={{ ...styles.heroBtn, background: '#002244', padding: '20px 48px', fontSize: '1.25rem', margin: '0 auto' }} onClick={onEnterApp}>
+            Launch BidSmith Session <ArrowRight size={20} />
+          </button>
         </div>
       </section>
 
-      <section id="workflow" style={styles.section} data-reveal>
-        <div style={styles.sectionInner}>
-          <p style={styles.sectionEyebrow}>Execution model</p>
-          <h2 style={styles.sectionTitle}>How It Works</h2>
-          <div style={styles.gridThree}>
-            {steps.map((step) => (
-              <IconCard
-                key={step.title}
-                title={step.title}
-                description={step.description}
-                icon={step.icon}
-              />
-            ))}
+      {/* Gov-Style Footer */}
+      <footer style={styles.govFooter}>
+        <div style={{...styles.footerGrid, gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(200px, 1fr))', gap: isMobile ? '40px' : '24px' }}>
+          <div style={styles.footerCol}>
+            <h4 style={styles.footerHeading}>BidSmith Portal</h4>
+            <ul style={styles.footerList}>
+              <li onClick={() => window.location.href = '/app'} style={{ cursor: 'pointer' }}>Compliance Workspace</li>
+              <li onClick={() => window.location.href = '/sam-rep'} style={{ cursor: 'pointer' }}>Sample Audit (DHA)</li>
+              <li onClick={() => window.location.href = '/sam-scraper'} style={{ cursor: 'pointer' }}>SAM.gov Toolset</li>
+              <li onClick={() => window.location.href = '/bid-search'} style={{ cursor: 'pointer' }}>Intelligence Search</li>
+            </ul>
+          </div>
+          <div style={styles.footerCol}>
+            <h4 style={styles.footerHeading}>Institutional</h4>
+            <ul style={styles.footerList}>
+              <li onClick={() => window.location.href = '/about'} style={{ cursor: 'pointer' }}>About BidSmith</li>
+              <li onClick={() => window.location.href = '/soc'} style={{ cursor: 'pointer' }}>Security Protocol</li>
+              <li onClick={() => window.location.href = '/govcon-guide'} style={{ cursor: 'pointer' }}>GovCon Guide</li>
+            </ul>
+          </div>
+          <div style={styles.footerCol}>
+            <h4 style={styles.footerHeading}>Support</h4>
+            <ul style={styles.footerList}>
+              <li>Grievance Portal</li>
+              <li>Enterprise Sales</li>
+              <li>Careers</li>
+            </ul>
           </div>
         </div>
-      </section>
-
-      <section id="pricing" style={styles.sectionMuted} data-reveal>
-        <div style={styles.sectionInnerNarrow}>
-          <p style={styles.sectionEyebrow}>Commercial model</p>
-          <h2 style={styles.sectionTitle}>Simple, Transparent Pricing</h2>
-          <p style={styles.subtitleSmall}>
-            Start free. Scale as you win. A single compliance consultant costs $15,000/year — ARIS starts at $0.
-          </p>
-          <PricingComparison
-            disabled={isProcessing}
-            onPlanClick={(plan) => {
-              trackEvent("pricing_cta_click", {
-                source: "landing_pricing",
-                plan_name: plan.title,
-              });
-              trackKPI("upgrade_intent", { plan: plan.key, source: "landing_pricing" });
-              openCheckout("landing_pricing", plan);
-            }}
-          />
-
-          <div className="landing-pricing-preview">
-            <p className="landing-pricing-preview-label">Report Preview Includes</p>
-            <div className="landing-pricing-preview-grid">
-              <ul>
-                {sampleDeliverables.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-              <div className="landing-pricing-preview-metrics">
-                {pricingPreviewStats.map((item) => (
-                  <div key={item.label} className="landing-pricing-preview-metric">
-                    <span>{item.label}</span>
-                    <strong>{item.value}</strong>
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  className="landing-pricing-preview-button"
-                  onClick={handleSampleView}
-                >
-                  Inspect Full Sample Report
-                </button>
-              </div>
+        <div style={styles.footerBottom}>
+          <div style={styles.footerLegal}>
+            <div style={styles.govLogoMini}>
+              <Shield size={20} color="#fff" />
+              <span>bidsmith.pro</span>
             </div>
-          </div>
-
-          <div style={{ marginTop: 32, borderTop: "1px solid rgba(255,255,255,0.07)", paddingTop: 28, textAlign: "center" }}>
-            <p style={{ margin: "0 0 8px", fontSize: "0.8rem", fontWeight: 700, color: "#a1a1aa", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-              Not ready to subscribe?
-            </p>
-            <p style={{ margin: "0 0 16px", fontSize: "1rem", color: "#f4f4f5", fontWeight: 600 }}>
-              Get a free sample audit report — DHA solicitation, full output.
-            </p>
-            <SampleAuditEmailCapture />
-          </div>
-
-          <p style={styles.enterpriseTrustNote}>Trusted by 47+ Federal Prime Contractors · $2.4M in contracts won by ARIS clients</p>
-          <p style={styles.proposalCopy}>
-            Need a client-ready audit deck? See{" "}
-            <a
-              href="/pilot-proposal-outline.md"
-              target="_blank"
-              rel="noreferrer"
-              style={styles.inlineLink}
-              onClick={() =>
-                trackEvent("pilot_outline_open_click", { source: "landing_pricing" })
-              }
-            >
-              proposal outline
-            </a>
-            .
-          </p>
-        </div>
-      </section>
-
-      <FaqSection />
-
-      <footer id="contact" style={styles.footerContainer}>
-        <div style={styles.footerInnerGrid}>
-          <div style={styles.footerBrandCol}>
-            <div style={styles.footerLogoWrap}>
-              <img src="/aris-labs.png" alt="ARIS Labs" style={{ height: "20px", width: "auto" }} />
-            </div>
-            <p style={styles.footerTagline}>
-              Sovereign GovCon intelligence. Powered by SAM.gov data to collect, verify, and analyze federal solicitations for precision bid management.
-            </p>
-            <div style={styles.footerAddressLine}>
-              <a
-                href="/about"
-                style={{ textDecoration: "none", color: "inherit", transition: "color 0.2s" }}
-                onClick={(event) => handleFooterRedirect(event, "/about")}
-                onMouseEnter={(e) => e.target.style.color = "#fff"}
-                onMouseLeave={(e) => e.target.style.color = "inherit"}
-              >
-                Labs headquarters : San Francisco, CA
-              </a>
-            </div>
-          </div>
-
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)",
-            gap: isMobile ? "32px" : "40px",
-            flex: 1
-          }}>
-            <div style={styles.footerLinkCol}>
-              <h4 style={styles.footerColHeading}>Product</h4>
-              <a href="/#solutions" style={styles.footerLinkItem} onClick={(event) => handleFooterRedirect(event, "/#solutions")}>Aris Protocol Agent</a>
-              <a href="/#solutions" style={styles.footerLinkItem} onClick={(event) => handleFooterRedirect(event, "/#solutions")}>Compliance Sniper</a>
-              <a href="https://docs.bidsmith.pro" target="_blank" rel="noopener noreferrer" style={styles.footerLinkItem}>Documentation</a>
-              <a href="https://blog.bidsmith.pro" target="_blank" rel="noopener noreferrer" style={styles.footerLinkItem}>Blog</a>
-            </div>
-
-            <div style={styles.footerLinkCol}>
-              <h4 style={styles.footerColHeading}>Company</h4>
-              <a href="/about" style={styles.footerLinkItem} onClick={(event) => handleFooterRedirect(event, "/about")}>About</a>
-              <a href="/#solutions" style={styles.footerLinkItem} onClick={(event) => handleFooterRedirect(event, "/#solutions")}>Solutions</a>
-              <a href="/soc" style={styles.footerLinkItem} onClick={(event) => handleFooterRedirect(event, "/soc")}>Security</a>
-              <a href="mailto:sid@bidsmith.pro" style={styles.footerLinkItem}>Contact</a>
-            </div>
-
-            <div style={styles.footerLinkCol}>
-              <h4 style={styles.footerColHeading}>Markets</h4>
-              <a href="/#markets" style={styles.footerLinkItem} onClick={(event) => handleFooterRedirect(event, "/#markets")}>US DOD & IC</a>
-              <a href="/#markets" style={styles.footerLinkItem} onClick={(event) => handleFooterRedirect(event, "/#markets")}>Civilian Agencies</a>
-              <a href="/#markets" style={styles.footerLinkItem} onClick={(event) => handleFooterRedirect(event, "/#markets")}>Intelligence Labs</a>
-            </div>
-
-            <div style={styles.footerLinkCol}>
-              <h4 style={styles.footerColHeading}>Legal</h4>
-              <a href="/privacy" style={styles.footerLinkItem} onClick={(event) => handleFooterRedirect(event, "/privacy")}>Privacy Policy</a>
-              <a href="/terms" style={styles.footerLinkItem} onClick={(event) => handleFooterRedirect(event, "/terms")}>Terms of Service</a>
-              <a href="/cookies" style={styles.footerLinkItem} onClick={(event) => handleFooterRedirect(event, "/cookies")}>Cookie Policy</a>
-              <a href="mailto:sid@bidsmith.pro" style={styles.footerLinkItem}>Contact</a>
-            </div>
-          </div>
-        </div>
-
-        <div style={styles.footerBottomRow}>
-          <div style={styles.footerCopyright}>
-            © 2026 ARIS Labs. Built on the Stateless Bridge.
-          </div>
-          <div style={styles.footerSocialIcons}>
-            <a href="https://linkedin.com/company/aris-labs" target="_blank" rel="noopener noreferrer" style={styles.footerSocialLink}>
-              <Linkedin size={16} />
-            </a>
+            <p>© 2026 BidSmith. All Rights Reserved. Built for Government Contractors.</p>
           </div>
         </div>
       </footer>
@@ -832,526 +283,172 @@ export default function Landing({ onEnterApp, onViewSample, onSovereignBeta, onS
 }
 
 const styles = {
-  navbar: {
-    position: "sticky",
+  page: { 
+    background: "#f8fafc", 
+    minHeight: "100vh", 
+    color: "#0f172a", 
+    fontFamily: "Inter, sans-serif",
+    overflowX: 'hidden'
+  },
+  brandingBanner: { 
+    background: '#f1f5f9', 
+    padding: '8px 12px', 
+    textAlign: 'center', 
+    fontSize: 'clamp(9px, 2vw, 11px)', 
+    color: '#64748b', 
+    borderBottom: '1px solid #e2e8f0', 
+    letterSpacing: '0.05em' 
+  },
+  navbar: { 
+    padding: '16px 0', 
+    borderBottom: '1px solid #e2e8f0', 
+    background: '#fff',
+    position: 'sticky',
     top: 0,
-    zIndex: 30,
-    background: "rgba(9,9,11,0.92)",
-    backdropFilter: "blur(10px)",
-    borderBottom: "1px solid #27272a",
+    zIndex: 100
   },
-  navInner: {
-    maxWidth: 1120,
-    margin: "0 auto",
-    flexWrap: "wrap",
-    padding: "16px 20px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 14,
+  navInner: { 
+    maxWidth: 1200, 
+    margin: '0 auto', 
+    display: 'flex', 
+    alignItems: 'center', 
+    justifyContent: 'space-between',
+    padding: '0 24px' 
   },
-  brand: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 8,
-    color: "#ffffff",
-    fontWeight: 800,
-    textDecoration: "none",
+  brand: { 
+    display: 'flex', 
+    alignItems: 'center', 
+    gap: '12px', 
+    color: '#0f172a', 
+    fontWeight: 800, 
+    textDecoration: 'none', 
+    fontSize: 'clamp(1rem, 4vw, 1.25rem)' 
   },
-  navLink: {
-    color: "#a1a1aa",
-    textDecoration: "none",
-    fontSize: "0.95rem",
-    fontWeight: 600,
-  },
-  navCta: {
-    background: "#ffffff",
-    color: "#0f172a",
-    border: "1px solid #ffffff",
-    borderRadius: 999,
-    padding: "8px 16px",
-    fontWeight: 700,
-    cursor: "pointer",
-    whiteSpace: "nowrap",
-    marginLeft: "auto",
-  },
-  page: {
-    minHeight: "100vh",
-    background: "#050505",
-    color: "#e4e4e7",
-    fontFamily: "'JetBrains Mono', 'Inter', monospace",
-  },
-  hero: {
-    padding: "72px 20px 56px",
-    background: "radial-gradient(ellipse at top, #18181b 0%, #09090b 100%)",
-    borderBottom: "1px solid #27272a",
-    position: "relative",
-    overflow: "hidden",
-  },
-  heroGlowTop: {
-    position: "absolute",
-    top: -100,
-    left: "15%",
-    width: 400,
-    height: 400,
-    background: "radial-gradient(circle, rgba(79,70,229,0.12) 0%, rgba(79,70,229,0) 60%)",
-    pointerEvents: "none",
-  },
-  heroGlowBottom: {
-    position: "absolute",
-    right: "10%",
-    bottom: -150,
-    width: 450,
-    height: 450,
-    background: "radial-gradient(circle, rgba(147,51,234,0.12) 0%, rgba(147,51,234,0) 60%)",
-    pointerEvents: "none",
-  },
-  heroInner: { 
-    maxWidth: 920, 
-    width: "100%", 
-    margin: "0 auto", 
-    textAlign: "center", 
-    position: "relative", 
-    zIndex: 1,
-    display: "flex", 
-    flexDirection: "column", 
-    alignItems: "center" 
-  },
-  heroKicker: {
-    margin: "0 auto 12px",
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 8,
-    border: "1px solid #3b82f6",
-    background: "rgba(59,130,246,0.1)",
-    color: "#60a5fa",
-    fontSize: "0.78rem",
-    letterSpacing: "0.06em",
-    textTransform: "uppercase",
-    fontWeight: 700,
-    borderRadius: 999,
-    padding: "6px 12px",
+  navLink: { fontSize: '14px', color: '#64748b', cursor: 'pointer', fontWeight: 600 },
+  navCta: { background: '#0f172a', border: 'none', padding: '8px 16px', borderRadius: '8px', color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: '13px' },
+  heroSection: { 
+    padding: 'clamp(60px, 10vw, 100px) 24px', 
+    position: 'relative', 
+    background: '#fff',
+    textAlign: 'center'
   },
   title: { 
-    margin: 0, 
-    fontSize: "clamp(2rem, 8vw, 3.5rem)", 
+    fontWeight: 900, 
     lineHeight: 1.1, 
-    letterSpacing: "-0.02em", 
-    color: "#ffffff",
-    overflowWrap: "break-word"
+    letterSpacing: '-0.04em', 
+    color: '#0f172a',
+    fontSize: 'clamp(2.5rem, 8vw, 4.5rem)',
+    maxWidth: '900px',
+    margin: '0 auto 24px'
   },
-  logo: {
-    height: 72,
-    width: "auto",
-    maxWidth: "80%",
-    margin: "0 auto 14px",
-    display: "block",
+  subtitle: { 
+    fontSize: 'clamp(1rem, 3vw, 1.25rem)', 
+    color: '#475569', 
+    lineHeight: 1.6,
+    maxWidth: '640px',
+    margin: '0 auto 40px'
   },
-  subtitle: { margin: "18px auto 0", maxWidth: 760, color: "#a1a1aa", fontSize: "clamp(1rem, 2.3vw, 1.25rem)", lineHeight: 1.6 },
-  subtitleSmall: { margin: "10px 0 0", color: "#a1a1aa", fontSize: "1rem" },
-  heroActions: {
-    marginTop: 32,
-    display: "flex",
-    justifyContent: "center",
-    flexWrap: "wrap",
-    gap: 12,
+  heroInputWrapper: { 
+    display: 'flex', 
+    flexDirection: 'row',
+    maxWidth: '800px', 
+    margin: '12px auto 40px', 
+    gap: '8px', 
+    background: '#fff', 
+    padding: '8px', 
+    borderRadius: '16px', 
+    border: '1px solid #e2e8f0', 
+    boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)',
+    flexWrap: 'wrap'
   },
-  primaryCta: {
-    background: "#3b82f6",
-    color: "#ffffff",
+  inputContainer: { 
+    flex: '1 1 300px', 
+    position: 'relative', 
+    display: 'flex', 
+    alignItems: 'center' 
+  },
+  inputIcon: { position: 'absolute', left: '16px', color: '#94a3b8' },
+  heroInput: { width: '100%', background: 'transparent', border: 'none', padding: '16px 16px 16px 48px', color: '#0f172a', fontSize: '1.1rem', outline: 'none' },
+  heroBtn: { 
+    flex: '1 1 200px',
+    background: '#002244', 
+    color: '#fff', 
+    border: 'none', 
+    padding: '16px 32px', 
+    borderRadius: '12px', 
+    fontWeight: 800, 
+    fontSize: '1rem', 
+    cursor: 'pointer', 
+    display: 'flex', 
+    alignItems: 'center', 
+    justifyContent: 'center',
+    gap: '8px', 
+    transition: 'all 0.2s ease', 
+    boxShadow: '0 4px 12px rgba(0, 34, 68, 0.15)' 
+  },
+  heroSecondaryLinks: { 
+    display: 'flex', 
+    gap: 'clamp(12px, 4vw, 24px)', 
+    alignItems: 'center', 
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    marginBottom: '60px'
+  },
+  heroLinkItem: { fontSize: '13px', fontWeight: 600, color: '#64748b', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' },
+  trustLayer: { 
+    display: 'flex', 
+    gap: 'clamp(12px, 3vw, 24px)', 
+    alignItems: 'center', 
+    justifyContent: 'center',
+    background: '#f1f5f9', 
+    padding: '8px 20px', 
+    borderRadius: '100px', 
+    border: '1px solid #e2e8f0',
+    flexWrap: 'wrap'
+  },
+  trustItem: { fontSize: '11px', color: '#475569', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' },
+  heroStatsGrid: { display: 'flex', justifyContent: 'center', gap: 'clamp(24px, 5vw, 48px)', marginTop: '60px', flexWrap: 'wrap' },
+  heroStatCard: { textAlign: 'center', flex: '1 1 120px' },
+  heroStatValue: { fontSize: 'clamp(1.25rem, 4vw, 1.5rem)', fontWeight: 900, color: '#0f172a', marginBottom: '4px' },
+  heroStatLabel: { fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700 },
+  badge: {
+    display: 'inline-block',
+    padding: '4px 8px',
+    background: '#dbeafe',
+    color: '#1e40af',
+    fontSize: '10px',
     fontWeight: 800,
-    borderRadius: 12,
-    padding: "16px 32px",
-    border: "none",
-    cursor: "pointer",
-    fontSize: "16px",
-    boxShadow: "0 4px 14px rgba(37, 99, 235, 0.4)",
-    transition: "all 0.2s ease",
+    borderRadius: '4px',
+    letterSpacing: '0.1em'
   },
-  secondaryCta: {
-    background: "rgba(255,255,255,0.03)",
-    color: "#ffffff",
-    fontWeight: 600,
-    borderRadius: 10,
-    padding: "12px 22px",
-    border: "1px solid rgba(255,255,255,0.1)",
-    cursor: "pointer",
+  section: { padding: '120px 24px' },
+  sectionInner: { maxWidth: 1200, margin: '0 auto' },
+  painCard: { background: '#fff', padding: '40px', borderRadius: '24px', border: '1px solid #e2e8f0' },
+  finalCta: { padding: '120px 24px', textAlign: 'center', borderTop: '1px solid #e2e8f0', background: '#fff' },
+  processingWrapper: { maxWidth: '600px', margin: '0 auto 48px', overflow: 'hidden', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 20px 50px rgba(0,0,0,0.1)' },
+  terminalHeader: { background: '#f1f5f9', padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#64748b' },
+  terminalBody: { background: '#fff', padding: '24px', textAlign: 'left', fontFamily: 'Inter, sans-serif', fontSize: '12px', minHeight: '180px', color: '#002244' },
+  terminalLine: { color: '#002244', marginBottom: '6px' },
+  trustStrip: { 
+    display: 'flex', 
+    gap: '24px', 
+    alignItems: 'center', 
+    justifyContent: 'center',
+    background: '#f8fafc', 
+    padding: '12px 24px', 
+    borderRadius: '8px', 
+    border: '1px solid #e2e8f0',
+    flexWrap: 'wrap',
+    marginTop: '12px'
   },
-  demoCta: {
-    background: "#ffffff",
-    color: "#0f172a",
-    fontWeight: 600,
-    borderRadius: 10,
-    padding: "12px 22px",
-    border: "1px solid #ffffff",
-    cursor: "pointer",
-    display: "inline-flex",
-    alignItems: "center",
-  },
-  heroTextLink: {
-    color: "#0f172a",
-    textDecoration: "underline",
-    fontWeight: 600,
-    padding: "12px 6px",
-  },
-  section: { padding: "56px 20px", background: "#09090b" },
-  sectionMuted: { padding: "56px 20px", background: "#000000" },
-  sectionInner: { maxWidth: 1080, width: "100%", margin: "0 auto" },
-  sectionInnerNarrow: { maxWidth: 860, width: "100%", margin: "0 auto", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" },
-  sectionEyebrow: {
-    margin: "0 0 8px",
-    textAlign: "center",
-    color: "#3b82f6",
-    fontSize: "0.75rem",
-    fontWeight: 700,
-    textTransform: "uppercase",
-    letterSpacing: "0.12em",
-  },
-  sectionTitle: { margin: 0, textAlign: "center", fontSize: "clamp(1.5rem, 3vw, 2rem)" },
-  gridFour: {
-    marginTop: 28,
-    display: "grid",
-    gap: 16,
-    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-  },
-  gridThree: {
-    marginTop: 28,
-    display: "grid",
-    gap: 16,
-    gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-  },
-  card: {
-    background: "rgba(255,255,255,0.03)",
-    border: "1px solid rgba(255,255,255,0.1)",
-    borderRadius: 14,
-    padding: "24px 20px",
-    textAlign: "center",
-    backdropFilter: "blur(12px)",
-    transition: "transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease",
-    color: "#e4e4e7"
-  },
-  cardTitle: { margin: "12px 0 8px", fontSize: "1.05rem", color: "#f4f4f5" },
-  cardCopy: { margin: 0, color: "#a1a1aa", fontSize: "0.95rem", lineHeight: 1.5 },
-  pricingGrid: {
-    marginTop: 28,
-    display: "grid",
-    gap: 20,
-    gridTemplateColumns: "repeat(3, 1fr)",
-  },
-  planCard: {
-    background: "#ffffff",
-    border: "1px solid #e2e8f0",
-    borderRadius: 14,
-    padding: 24,
-    boxShadow: "0 8px 18px rgba(15,23,42,0.03)",
-  },
-  planTitle: { margin: 0, fontSize: "1.2rem" },
-  planPrice: { margin: "10px 0 12px", fontSize: "2rem", color: "#3b82f6", fontWeight: 700 },
-  planButton: {
-    marginTop: 16,
-    display: "inline-block",
-    background: "#3b82f6",
-    color: "#ffffff",
-    fontWeight: 600,
-    borderRadius: 10,
-    padding: "10px 18px",
-    border: "1px solid #2563eb",
-    cursor: "pointer",
-  },
-  disabledButton: { opacity: 0.55, cursor: "not-allowed" },
-  heroStatsGrid: {
-    marginTop: 26,
-    display: "grid",
-    gap: 10,
-    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-  },
-  heroStatCard: {
-    background: "rgba(255,255,255,0.03)",
-    border: "1px solid rgba(255,255,255,0.1)",
-    borderRadius: 12,
-    padding: "12px 10px",
-    backdropFilter: "blur(4px)",
-  },
-  heroStatValue: {
-    margin: 0,
-    color: "#f4f4f5",
-    fontWeight: 800,
-    fontSize: "1.05rem",
-    fontFamily: "Space Mono, monospace",
-  },
-  heroStatLabel: {
-    margin: "4px 0 0",
-    color: "#a1a1aa",
-    fontSize: "0.76rem",
-    letterSpacing: "0.03em",
-    textTransform: "uppercase",
-  },
-  activityGrid: {
-    display: "flex",
-    justifyContent: "center",
-    gap: "60px",
-    padding: "40px 20px",
-  },
-  activityStat: {
-    textAlign: "center",
-    padding: "20px",
-    borderRadius: 12,
-    background: "rgba(255,255,255,0.03)",
-    border: "1px solid rgba(255,255,255,0.1)",
-    minWidth: "120px",
-  },
-  activityNumber: {
-    fontSize: "2.5rem",
-    fontWeight: 700,
-    color: "#f4f4f5",
-    margin: "0 0 8px",
-    fontFamily: "Space Mono, monospace",
-  },
-  activityLabel: {
-    fontSize: "0.85rem",
-    color: "#a1a1aa",
-    margin: "8px 0 0",
-    fontWeight: 500,
-  },
-  proposalCopy: { marginTop: 18, color: "#64748b" },
-  pilotBanner: {
-    marginTop: 20,
-    background: "#e0e7ff",
-    border: "1px solid #c7d2fe",
-    borderRadius: 12,
-    padding: "16px 14px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-    flexWrap: "wrap",
-  },
-  pilotText: { margin: 0, color: "#312e81", fontSize: "0.95rem" },
-  enterpriseContainer: {
-    marginTop: 48,
-    textAlign: "center",
-  },
-  enterpriseSubheading: {
-    fontSize: "0.95rem",
-    color: "#64748b",
-    marginBottom: 20,
-    fontWeight: 600,
-  },
-  premiumEmailCard: {
-    display: "flex",
-    background: "#ffffff",
-    border: "1px solid #e2e8f0",
-    borderRadius: "999px",
-    padding: "6px 6px 6px 20px",
-    maxWidth: 500,
-    margin: "0 auto",
-    boxShadow: "0 10px 15px -3px rgba(0,0,0,0.05), 0 4px 6px -2px rgba(0,0,0,0.03)",
-    alignItems: "center",
-    transition: "transform 0.2s ease, box-shadow 0.2s ease",
-  },
-  premiumEmailInput: {
-    flex: 1,
-    border: "none",
-    padding: "12px 0",
-    fontSize: "0.95rem",
-    color: "#1e293b",
-    background: "transparent",
-    outline: "none",
-    width: "100%",
-  },
-  premiumEmailButton: {
-    background: "#0f172a",
-    color: "#ffffff",
-    border: "none",
-    borderRadius: "999px",
-    padding: "12px 24px",
-    fontSize: "0.95rem",
-    fontWeight: 700,
-    cursor: "pointer",
-    transition: "background 0.2s ease",
-    whiteSpace: "nowrap",
-  },
-  enterpriseTrustNote: {
-    marginTop: 16,
-    fontSize: "0.75rem",
-    color: "#94a3b8",
-    textTransform: "uppercase",
-    letterSpacing: "0.05em",
-  },
-  inlineLink: { color: "#7dd3fc", textDecoration: "none", fontWeight: 600 },
-  productCard: {
-    background: "rgba(255,255,255,0.025)",
-    border: "1px solid rgba(0,255,194,0.15)",
-    borderRadius: 16,
-    padding: 28,
-    display: "flex",
-    flexDirection: "column",
-    gap: 10,
-  },
-  productIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 4,
-  },
-  productCardTitle: { margin: 0, fontSize: "1.1rem", fontWeight: 700, color: "#f4f4f5" },
-  productCardSubtitle: { margin: 0, fontSize: "0.75rem", color: "#52525b", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" },
-  productCardCopy: { margin: 0, fontSize: "0.9rem", color: "#a1a1aa", lineHeight: 1.55, flexGrow: 1 },
-  productMeta: { display: "flex", gap: 6, flexWrap: "wrap", marginTop: 4 },
-  productTag: {
-    background: "rgba(255,255,255,0.05)",
-    border: "1px solid rgba(255,255,255,0.08)",
-    borderRadius: 999,
-    padding: "2px 9px",
-    fontSize: "0.7rem",
-    color: "#71717a",
-    fontWeight: 600,
-    letterSpacing: "0.04em",
-  },
-  productCta: {
-    marginTop: 8,
-    background: "rgba(0,255,194,0.08)",
-    color: "#00FFC2",
-    border: "1px solid rgba(0,255,194,0.25)",
-    borderRadius: 8,
-    padding: "9px 16px",
-    fontWeight: 700,
-    cursor: "pointer",
-    fontSize: "0.85rem",
-    textAlign: "left",
-  },
-  footerContainer: {
-    background: "#000000",
-    borderTop: "1px solid #141416",
-    padding: "64px 24px 48px",
-  },
-  footerInnerGrid: {
-    maxWidth: 1120,
-    margin: "0 auto",
-    display: "flex",
-    flexDirection: window.innerWidth < 768 ? "column" : "row",
-    justifyContent: "space-between",
-    gap: "64px",
-  },
-  footerBrandCol: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "16px",
-    maxWidth: "320px",
-  },
-  footerLogoWrap: {
-    display: "flex",
-    alignItems: "center",
-    marginBottom: "4px",
-  },
-  footerTagline: {
-    fontSize: "13px",
-    color: "#a1a1aa",
-    lineHeight: "1.6",
-    margin: 0,
-  },
-  footerAddressLine: {
-    fontSize: "13px",
-    color: "#3f3f46",
-    lineHeight: "1.6",
-    marginTop: "8px",
-  },
-  footerLinkCol: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "12px",
-  },
-  footerColHeading: {
-    fontSize: "11px",
-    fontWeight: 700,
-    textTransform: "uppercase",
-    letterSpacing: "0.05em",
-    color: "#ffffff",
-    margin: "0 0 4px 0",
-  },
-  footerLinkItem: {
-    fontSize: "13px",
-    color: "#71717a",
-    textDecoration: "none",
-    transition: "color 0.2s ease",
-  },
-  footerBottomRow: {
-    maxWidth: 1120,
-    margin: "48px auto 0",
-    paddingTop: "24px",
-    borderTop: "1px solid #141416",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    flexDirection: window.innerWidth < 768 ? "column" : "row",
-    gap: "16px",
-  },
-  footerCopyright: {
-    fontSize: "12px",
-    color: "#3f3f46",
-  },
-  footerSocialIcons: {
-    display: "flex",
-    alignItems: "center",
-    gap: "16px",
-  },
-  footerSocialLink: {
-    color: "#3f3f46",
-    transition: "color 0.2s ease",
-    display: "flex",
-    alignItems: "center",
-  },
-  footerYcBadge: {
-    fontSize: "12px",
-    color: "#3f3f46",
-    opacity: 0.8,
-  },
-  terminalContainerFull: {
-    width: "100%",
-    maxWidth: 1000,
-    margin: "0 auto",
-    background: "#050505",
-    border: "1px solid #1a1a1a",
-    borderRadius: "8px",
-    overflow: "hidden",
-    boxShadow: "0 40px 100px rgba(0,0,0,0.8)",
-  },
-  heroTerminalSection: {
-    padding: "60px 20px",
-    background: "#000000",
-    borderBottom: "1px solid #1a1a1a",
-  },
-  heroInnerFull: {
-    maxWidth: 1200,
-    margin: "0 auto",
-  },
-  terminalHeader: {
-    background: "#0c0c0e",
-    padding: "12px 20px",
-    borderBottom: "1px solid #1a1a1a",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  terminalBodyFull: {
-    padding: "30px",
-    minHeight: "260px",
-    background: "#050505",
-    fontFamily: "'Space Mono', monospace",
-  },
-  terminalInput: {
-    background: "transparent",
-    border: "none",
-    outline: "none",
-    color: "#3b82f6",
-    fontFamily: "'Space Mono', monospace",
-    fontSize: "14px",
-    flex: 1,
-    caretColor: "#3b82f6",
-    width: "100%",
-    fontWeight: 700,
-  }
+  trustDivider: { width: 1, height: 16, background: '#e2e8f0' },
+  trustItem: { fontSize: '12px', color: '#475569', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' },
+  govFooter: { background: '#0f172a', padding: '80px 24px 40px', color: '#fff' },
+  footerGrid: { maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '48px', marginBottom: '80px' },
+  footerCol: { display: 'flex', flexDirection: 'column', gap: '24px' },
+  footerHeading: { fontSize: '14px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#94a3b8' },
+  footerList: { listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '13px', color: '#e2e8f0', fontWeight: 500 },
+  footerBottom: { borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '40px', maxWidth: 1200, margin: '0 auto' },
+  footerLegal: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '24px', fontSize: '12px', color: '#94a3b8' },
+  govLogoMini: { display: 'flex', alignItems: 'center', gap: '12px', color: '#fff', fontWeight: 800, fontSize: '1rem' }
 };

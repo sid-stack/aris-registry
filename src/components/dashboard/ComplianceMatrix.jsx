@@ -26,9 +26,10 @@ const statusConfig = {
 
 const riskColor = { HIGH: 'var(--risk-high)', MEDIUM: 'var(--risk-medium)', LOW: 'var(--success)' };
 
-const MobileComplianceCard = ({ req }) => {
+const MobileComplianceCard = ({ req, onDraft, draftingId }) => {
   const [expanded, setExpanded] = useState(false);
   const s = statusConfig[req.status];
+  const isDrafting = draftingId === req.id;
 
   return (
     <div style={{
@@ -39,8 +40,15 @@ const MobileComplianceCard = ({ req }) => {
       marginBottom: "12px",
       display: "flex",
       flexDirection: "column",
-      gap: "12px"
+      gap: "12px",
+      position: 'relative',
+      overflow: 'hidden'
     }}>
+      {isDrafting && (
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.8)', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, color: 'var(--accent)', fontSize: '11px', letterSpacing: '0.1em' }}>
+          AGENTIC DRAFTING...
+        </div>
+      )}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <span style={{ fontFamily: "monospace", fontSize: "14px", color: "var(--text-secondary)", fontWeight: 600 }}>
@@ -92,39 +100,63 @@ const MobileComplianceCard = ({ req }) => {
         </div>
       )}
 
-      <button 
-        onClick={() => setExpanded(!expanded)}
-        style={{
-          background: "transparent",
-          border: "none",
-          borderTop: "1px solid var(--border)",
-          color: "var(--accent)",
-          fontSize: "13px",
-          fontWeight: "600",
-          padding: "16px 0 4px 0",
-          marginTop: "4px",
-          textAlign: "center",
-          textTransform: "uppercase",
-          letterSpacing: "1px",
-          cursor: "pointer",
-          minHeight: "44px",
-          width: "100%"
-        }}
-      >
-        {expanded ? "Hide Details ↑" : "View Full Requirement ↓"}
-      </button>
+      <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+        <button 
+          onClick={() => setExpanded(!expanded)}
+          style={{
+            flex: 1,
+            background: "var(--card-hover)",
+            border: "1px solid var(--border)",
+            color: "var(--text-secondary)",
+            fontSize: "11px",
+            fontWeight: "700",
+            padding: "8px",
+            borderRadius: "4px",
+            cursor: "pointer"
+          }}
+        >
+          {expanded ? "Less ↑" : "More ↓"}
+        </button>
+        <button 
+          onClick={() => onDraft(req.id)}
+          disabled={isDrafting}
+          style={{
+            flex: 2,
+            background: "var(--accent)",
+            border: "none",
+            color: "white",
+            fontSize: "11px",
+            fontWeight: "800",
+            padding: "8px",
+            borderRadius: "4px",
+            cursor: "pointer",
+            letterSpacing: '0.05em'
+          }}
+        >
+          GENERATE DRAFT
+        </button>
+      </div>
     </div>
   );
 };
 
 const ComplianceMatrix = () => {
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' && window.innerWidth < 768);
+  const [draftingId, setDraftingId] = useState(null);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  const handleDraft = (id) => {
+    setDraftingId(id);
+    setTimeout(() => {
+      setDraftingId(null);
+      alert(`[BIDSMITH] Draft volume generated for ${id}.\n\nSource: SAM.gov Solicitation Archive\nStrategy: Compliance-First Traceability\nStatus: Ready for review.`);
+    }, 2500);
+  };
 
   return (
     <div className="dashboard-card animate-in" style={{ animationDelay: '0.1s' }}>
@@ -139,12 +171,12 @@ const ComplianceMatrix = () => {
     {isMobile ? (
       <div className="compliance-mobile-stack" style={{ marginTop: '16px' }}>
         {matrix.map((req, i) => (
-          <MobileComplianceCard key={req.id} req={req} />
+          <MobileComplianceCard key={req.id} req={req} onDraft={handleDraft} draftingId={draftingId} />
         ))}
       </div>
     ) : (
       <div className="compliance-table-wrap">
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', minWidth: '700px' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', minWidth: '850px' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid var(--border)' }}>
               {['ID', 'Requirement', 'Section', 'Category', 'FAR Reference', 'Status', 'Risk', 'Action'].map(h => (
@@ -154,18 +186,20 @@ const ComplianceMatrix = () => {
                   color: 'var(--text-secondary)', textTransform: 'uppercase', whiteSpace: 'nowrap',
                 }}>{h}</th>
               ))}
+              <th style={{ padding: '8px 10px', textAlign: 'right', fontSize: '9px', fontWeight: 700, color: 'var(--accent)' }}>DRAFT</th>
             </tr>
           </thead>
           <tbody>
             {matrix.map(({ id, requirement, section, category, farRef, status, risk, action }, i) => {
               const s = statusConfig[status];
+              const isDrafting = draftingId === id;
               return (
                 <tr key={id} style={{
-                  borderBottom: '1px solid rgba(31,41,55,0.6)',
-                  background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)',
+                  borderBottom: '1px solid var(--border)',
+                  background: isDrafting ? 'var(--accent-soft)' : 'transparent',
                 }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(59,130,246,0.04)'}
-                  onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)'}
+                  onMouseEnter={e => !isDrafting && (e.currentTarget.style.background = 'var(--card-hover)')}
+                  onMouseLeave={e => !isDrafting && (e.currentTarget.style.background = 'transparent')}
                 >
                   <td style={{ padding: '10px', color: 'var(--text-secondary)', fontFamily: 'monospace', fontSize: '10px', whiteSpace: 'nowrap' }}>{id}</td>
                   <td style={{ padding: '10px', color: 'var(--text-primary)', fontWeight: 500, minWidth: '160px' }}>{requirement}</td>
@@ -179,6 +213,25 @@ const ComplianceMatrix = () => {
                     <span style={{ fontSize: '10px', fontWeight: 700, color: riskColor[risk] }}>{risk}</span>
                   </td>
                   <td style={{ padding: '10px', color: 'var(--text-secondary)', fontSize: '11px', minWidth: '200px', lineHeight: 1.4 }}>{action}</td>
+                  <td style={{ padding: '10px', textAlign: 'right' }}>
+                    <button 
+                      onClick={() => handleDraft(id)}
+                      disabled={isDrafting}
+                      style={{ 
+                        background: 'var(--accent)', 
+                        color: 'white', 
+                        border: 'none', 
+                        padding: '4px 8px', 
+                        borderRadius: '3px', 
+                        fontSize: '9px', 
+                        fontWeight: 800, 
+                        cursor: 'pointer',
+                        opacity: isDrafting ? 0.5 : 1
+                      }}
+                    >
+                      {isDrafting ? '...' : 'DRAFT'}
+                    </button>
+                  </td>
                 </tr>
               );
             })}

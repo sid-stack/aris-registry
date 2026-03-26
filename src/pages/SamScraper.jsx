@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Database, FileText, Users, TrendingUp, AlertCircle, Download, Filter, ChevronRight, Building, Phone, Mail, Globe, MapPin, Crown, Lock, CreditCard, Sparkles, Terminal, Activity, Target, Zap, Award, Brain } from 'lucide-react';
-import ARISChat from '../components/dashboard/ARISChat';
+import BidSmithChat from '../components/dashboard/BidSmithChat';
 import NavBar from '../components/dashboard/NavBar';
 import { trackEvent } from '../utils/analytics';
 import './SamScraper.css';
@@ -15,7 +15,7 @@ const SamScraper = ({ onBack }) => {
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [actionLog, setActionLog] = useState('');
   
-  // ARIS Gravity Well - Prevent leaving the site
+  // BidSmith Gravity Well - Prevent leaving the site
   useEffect(() => {
     const handlePopState = () => {
       window.history.pushState(null, document.title, window.location.href);
@@ -141,7 +141,7 @@ const SamScraper = ({ onBack }) => {
               <div className="core-glow"></div>
             </div>
             <div className="bridge-status">
-              <div className="status-label">ARIS_NEURAL_BRIDGE_ACTIVE</div>
+              <div className="status-label">BIDSMITH_NEURAL_BRIDGE_ACTIVE</div>
               <div className="status-log">{actionLog}</div>
               <div className="bridge-progress">
                 <div className="progress-fill shimmer"></div>
@@ -156,7 +156,7 @@ const SamScraper = ({ onBack }) => {
         <header className="sam-scraper-header">
           <div className="header-badge">
             <Activity size={12} />
-            <span>ARIS_SCRAPER_v4.2</span>
+            <span>BIDSMITH_SCRAPER_v4.2</span>
           </div>
           <h1>Contractor Intelligence</h1>
           <p>Analyzing federal spending patterns and entity compliance at scale.</p>
@@ -201,7 +201,7 @@ const SamScraper = ({ onBack }) => {
 
         {/* Prominent Search Section */}
         <section className="search-section">
-          <div className="search-workbench glass">
+          <div className="search-bidsmith-panel glass">
             <div className="search-input-group">
               <Search className="search-icon-fixed" size={20} />
               <input
@@ -324,7 +324,7 @@ const SamScraper = ({ onBack }) => {
           <section className="recommendations-overlay glass">
             <div className="rec-header">
               <Target size={18} color="var(--accent)" />
-              <h2>ARIS_MATCH_CLUSTERS</h2>
+              <h2>BIDSMITH_MATCH_CLUSTERS</h2>
               <div className="intel-pulse"></div>
             </div>
             <div className="rec-grid">
@@ -409,18 +409,18 @@ const SamScraper = ({ onBack }) => {
         </div>
       )}
 
-      {/* ARIS Chat Integration */}
+      {/* BidSmith Chat Integration */}
       {isChatOpen && (
         <div className="full-chat-overlay visible">
           <div className="chat_header">
             <div className="chat_title">
               <Activity size={16} />
-              <span>ARIS_INTEL_STREAM</span>
+              <span>BIDSMITH_INTEL_STREAM</span>
             </div>
             <button onClick={() => setIsChatOpen(false)} className="close-btn">×</button>
           </div>
           <div className="chat_body">
-            <ARISChat 
+            <BidSmithChat 
               selectedContext={selectedContract}
               onLog={() => {}}
               onCommand={() => {}}

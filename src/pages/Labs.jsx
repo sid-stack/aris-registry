@@ -78,8 +78,8 @@ export default function Labs({ onBack }) {
             <ArrowLeft size={16} /> Back to Hub
           </button>
           <div style={styles.brand}>
-            <img src="/aris-logo.png" alt="Aris" style={{ height: 20 }} />
-            <span>ARIS Labs / Intel</span>
+            <img src="/aris-logo.png" alt="BidSmith" style={{ height: 20 }} />
+            <span>BidSmith / Intel</span>
           </div>
         </div>
       </header>
@@ -123,7 +123,7 @@ export default function Labs({ onBack }) {
                   onClick={() => window.location.href = "/app"}
                   style={styles.primaryBtn}
                 >
-                  Launch ARIS Engine
+                  Launch BidSmith Engine
                 </button>
                 <p style={{ fontSize: 11, color: "#52525b", marginTop: 12, textAlign: "center" }}>
                   Zero-Knowledge Execution. No data persisted.

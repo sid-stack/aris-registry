@@ -30,12 +30,12 @@ import AgenticPipeline from '../components/dashboard/AgenticPipeline';
 import IntelligenceIndex from '../components/dashboard/IntelligenceIndex';
 import VerificationGrid from '../components/dashboard/VerificationGrid';
 import ComplianceMatrix from '../components/dashboard/ComplianceMatrix';
-import ARISChat from '../components/dashboard/ARISChat';
+import BidSmithChat from '../components/dashboard/BidSmithChat';
 import RequirementsLinter from '../components/dashboard/RequirementsLinter';
 import SecurityToggle from '../components/dashboard/SecurityToggle';
 
 // Load static source of truth
-import requirementsData from '../../requirements_matrix.json';
+import requirementsData from '../../data/requirements_matrix.json';
 
 const SectionHeader = ({ title }) => (
   <div className="section-header">
@@ -54,7 +54,7 @@ const ConsolePanel = ({ isOpen, onToggle, logs }) => {
   }, [logs]);
 
   return (
-    <div className="studio-console" style={{ height: isOpen ? '160px' : '32px' }}>
+    <div className="bidsmith-console" style={{ height: isOpen ? '160px' : '32px' }}>
       <div className="console-header" onClick={onToggle}>
         <div className="console-title">
           <Terminal size={12} />
@@ -75,7 +75,7 @@ const ConsolePanel = ({ isOpen, onToggle, logs }) => {
               <span style={{ color: log.type === 'error' ? 'var(--risk-high)' : log.type === 'success' ? 'var(--success)' : log.type === 'sec' ? 'var(--accent)' : 'var(--accent)' }}>
                 [{log.timestamp}]
               </span> {log.type === 'link' ? (
-                <a href="/ARIS_Security_Protocol.pdf" target="_blank" style={{ color: 'var(--accent)', textDecoration: 'underline', cursor: 'pointer', fontWeight: 700 }}>{log.message}</a>
+                <a href="/BidSmith_Security_Protocol.pdf" target="_blank" style={{ color: 'var(--accent)', textDecoration: 'underline', cursor: 'pointer', fontWeight: 700 }}>{log.message}</a>
               ) : log.message}
             </div>
           ))}
@@ -109,7 +109,7 @@ const SamRep = ({ onBack }) => {
     
     // Check for success session
     if (window.location.search.includes('session=success')) {
-      localStorage.setItem('aris_session_active', 'true');
+      localStorage.setItem('bs_session_active', 'true');
       addLog('PAYMENT_VERIFIED: SESSION_ACTIVE', 'success');
     }
 
@@ -210,7 +210,7 @@ const SamRep = ({ onBack }) => {
       data-theme={theme}
       style={{ backgroundColor: 'var(--background)', color: 'var(--text-primary)', height: '100vh', width: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
     >
-      <NavBar theme="dark" onToggleTheme={null} onBack={onBack} />
+      {!isMobile && <NavBar theme="dark" onToggleTheme={null} onBack={onBack} />}
 
       {/* ── Studio Toolbar ── */}
       <div className="sam-rep-masthead" style={{ borderBottom: '1px solid var(--border)', background: 'var(--nav-bg)', minHeight: '52px', height: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
@@ -268,11 +268,11 @@ const SamRep = ({ onBack }) => {
         </div>
       </div>
 
-      <div className="aris-studio-workspace" style={{ flex: 1, position: 'relative', overflow: isMobile ? 'auto' : 'hidden' }}>
+      <div className="bidsmith-studio-workspace" style={{ flex: 1, position: 'relative', overflow: isMobile ? 'auto' : 'hidden' }}>
         <PanelGroup direction={isMobile ? "vertical" : "horizontal"}>
           {/* Pane 1: Requirements Linter (Left) - Hidden or minimized on mobile if needed, but let's keep it for now as a top section */}
           <Panel defaultSize={isMobile ? 40 : 20} minSize={isMobile ? 30 : 15} collapsible={true}>
-            <aside className="studio-pane studio-linter-pane">
+            <aside className="bidsmith-pane bidsmith-linter-pane">
               <RequirementsLinter 
                 requirements={requirementsData.requirements} 
                 onSelect={handleRequirementSelect}
@@ -285,7 +285,7 @@ const SamRep = ({ onBack }) => {
 
           {/* Pane 2: Audit Canvas (Center) */}
           <Panel defaultSize={isMobile ? 60 : 55} minSize={isMobile ? 40 : 30}>
-            <main className="studio-pane studio-canvas">
+            <main className="bidsmith-pane bidsmith-canvas">
               <div className="canvas-content" style={{ padding: isMobile ? '12px' : '24px' }}>
                 <SectionHeader title="Solicitation Brief" />
                 <div className="sam-rep-grid grid-overview" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 300px', gap: '16px' }}>
@@ -336,11 +336,11 @@ const SamRep = ({ onBack }) => {
 
           {!isMobile && <PanelResizeHandle className="resize-handle" />}
 
-          {/* Pane 3: Studio Workbench (Right) - Desktop Only */}
+          {/* Pane 3: Audit Workspace (Right) - Desktop Only */}
           {!isMobile && (
             <Panel defaultSize={25} minSize={20} collapsible={true}>
-              <aside className="studio-pane studio-workbench-pane">
-                 <ARISChat 
+              <aside className="bidsmith-pane bidsmith-panel">
+                 <BidSmithChat 
                   selectedContext={selectedReq} 
                   onLog={addLog} 
                   onCommand={handleCommand} 
@@ -399,7 +399,7 @@ const SamRep = ({ onBack }) => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', borderBottom: '1px solid #1a1a1a' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <Zap size={14} color="#4f46e5" fill="#4f46e5" />
-                    <span style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '0.1em', color: '#e4e4e7' }}>INTELLIGENCE WORKBENCH</span>
+                    <span style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '0.1em', color: '#e4e4e7' }}>BIDSMITH AUDIT WORKSPACE</span>
                   </div>
                   <button 
                     onClick={() => setIsMobileChatOpen(false)}
@@ -409,7 +409,7 @@ const SamRep = ({ onBack }) => {
                   </button>
                 </div>
                 <div style={{ flex: 1, overflowY: 'auto' }}>
-                  <ARISChat 
+                  <BidSmithChat 
                     selectedContext={selectedReq} 
                     onLog={addLog} 
                     onCommand={handleCommand}

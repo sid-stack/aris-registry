@@ -5,29 +5,32 @@
   },
   "requirements": [
     {
-      "text": "those Offerors will receive letters from the Government indicating the basis for non-selection.",
-      "type": "Operational",
-      "severity": "Medium",
+      "text": "Offerors must possess an active TOP SECRET / SENSITIVE COMPARTMENTED INFORMATION (TS/SCI) facility clearance at the time of proposal submission. Interim clearances will not be accepted.",
+      "type": "Security",
+      "severity": "Critical",
       "keywords": [
-        "will"
+        "must",
+        "TS/SCI"
       ],
       "id": "REQ-0001"
     },
     {
-      "text": "Proposals will be categorized as Selectable or Not Selectable",
-      "type": "Operational",
-      "severity": "High",
+      "text": "This acquisition is 100% Set-Aside for Service-Disabled Veteran-Owned Small Businesses (SDVOSB). Offerors must be certified by the SBA and visible in the Veteran Small Business Certification (VetCert) portal.",
+      "type": "Compliance",
+      "severity": "Critical",
       "keywords": [
-        "will"
+        "must",
+        "SDVOSB"
       ],
       "id": "REQ-0002"
     },
     {
-      "text": "The selection of one or more offerors for award will be based on the evaluation, as well as importance to agency programs and funding availability.",
-      "type": "Operational",
-      "severity": "High",
+      "text": "The contractor shall implement CMMC 2.0 Level 2 (Advanced) requirements across all systems processing Covered Defense Information (CDI) prior to contract award.",
+      "type": "Cybersecurity",
+      "severity": "Critical",
       "keywords": [
-        "will"
+        "shall",
+        "CMMC"
       ],
       "id": "REQ-0003"
     },

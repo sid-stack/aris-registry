@@ -7,7 +7,7 @@ export default function Login({ onLogin }) {
 
   function handleSubmit() {
     const accessKey = import.meta.env.VITE_ACCESS_KEY;
-    if (password === accessKey || (import.meta.env.DEV && password === "aris369")) {
+    if (password === accessKey || (import.meta.env.DEV && password === "bs369")) {
       onLogin();
       setError("");
     } else {
@@ -95,7 +95,7 @@ export default function Login({ onLogin }) {
         )}
 
         <div style={{ marginTop: "28px", textAlign: "center", fontSize: "11px", color: "#334155", letterSpacing: "0.06em" }}>
-          ARIS PROTOCOL · RESTRICTED ACCESS
+          BidSmith PROTOCOL · RESTRICTED ACCESS
         </div>
       </div>
 

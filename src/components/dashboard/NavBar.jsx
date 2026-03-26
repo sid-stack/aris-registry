@@ -78,9 +78,9 @@ const NavBar = ({ theme, onToggleTheme, onBack }) => {
         )}
         <Shield size={15} color="var(--accent)" className="brand-icon" />
         <span className="brand-text">
-          ARIS <span style={{ color: 'var(--accent)' }}>PROTOCOL</span>
+          BidSmith <span style={{ color: 'var(--text-secondary)', fontSize: '9px', marginLeft: '4px' }}>[ARIS POWERED]</span>
         </span>
-        <span className="beta-badge" style={{ borderColor: 'var(--accent)', color: 'var(--accent)' }}>S0V.INT</span>
+        <span className="beta-badge" style={{ borderColor: 'var(--accent)', color: 'var(--accent)' }}>BIDSMITH.PRO</span>
       </div>
 
       {/* Actions */}

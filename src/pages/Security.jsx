@@ -6,7 +6,7 @@ const PROTOCOL_STEPS = [
   {
     icon: <Lock size={24} color="#818cf8" />,
     title: "Zero-Knowledge Vault",
-    description: "Raw solicitations and competitive technical data are never persisted. ARIS uses ephemeral RAM slots that exist only for the duration of the audit cycle — wiped on session end."
+    description: "Raw solicitations and competitive technical data are never persisted. BidSmith uses ephemeral RAM slots that exist only for the duration of the audit cycle — wiped on session end."
   },
   {
     icon: <Server size={24} color="#818cf8" />,
@@ -21,7 +21,7 @@ const PROTOCOL_STEPS = [
   {
     icon: <Database size={24} color="#818cf8" />,
     title: "Local-Out Delivery",
-    description: "Compliance matrices and risk reports stream directly to your session for local download. ARIS holds no copy of generated intelligence after delivery."
+    description: "Compliance matrices and risk reports stream directly to your session for local download. BidSmith holds no copy of generated intelligence after delivery."
   }
 ];
 
@@ -81,7 +81,7 @@ const Security = ({ onBack }) => {
           </div>
           <h1 style={s.h1}>Security &amp; Compliance</h1>
           <p style={s.heroSub}>
-            ARIS is built for federal contractors who can't afford data exposure. Our stateless architecture makes solicitation data leaks architecturally impossible — not just a policy promise.
+            BidSmith is built for federal contractors who can't afford data exposure. Our stateless architecture makes solicitation data leaks architecturally impossible — not just a policy promise.
           </p>
           <a href="mailto:sid@bidsmith.pro?subject=Security%20Whitepaper%20Request" style={s.whitepaperBtn}>
             Request Security Whitepaper
@@ -90,7 +90,7 @@ const Security = ({ onBack }) => {
 
         {/* Protocol cards */}
         <section style={s.section}>
-          <h2 style={s.h2}>The ARIS Security Protocol</h2>
+          <h2 style={s.h2}>The BidSmith Security Protocol</h2>
           <div style={s.grid4}>
             {PROTOCOL_STEPS.map((step, i) => (
               <div key={i} style={s.card}>
@@ -144,7 +144,7 @@ const Security = ({ onBack }) => {
         <section style={s.section}>
           <h2 style={s.h2}>Sub-processors</h2>
           <p style={{ marginBottom: 20, fontSize: "0.9rem", color: "#71717a" }}>
-            ARIS uses the following third-party processors. No solicitation content or PII is shared with any subprocessor except as described.
+            BidSmith uses the following third-party processors. No solicitation content or PII is shared with any subprocessor except as described.
           </p>
           <div style={s.tableWrap}>
             <table style={s.table}>
@@ -225,7 +225,7 @@ const Security = ({ onBack }) => {
       </main>
 
       <footer style={s.footer}>
-        <span>ARIS SECURITY PROTOCOL v3.5 · STATELESS BRIDGE ARCHITECTURE</span>
+        <span>BIDSMITH SECURITY PROTOCOL v1.0 · STATELESS BRIDGE ARCHITECTURE</span>
         <span>AES-256-GCM · TLS 1.2+ · SOC 2 IN PROGRESS</span>
       </footer>
     </div>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Shield, Zap, Globe, Lock, ArrowRight, CheckCircle } from 'lucide-react';
 
-const SovereignBeta = ({ onBack }) => {
+const BidSmithBeta = ({ onBack }) => {
   const [submitted, setSubmitted] = useState(false);
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -23,7 +23,7 @@ const SovereignBeta = ({ onBack }) => {
       const resp = await fetch('/api/beta-signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, metadata: { page: 'SovereignBeta' } })
+        body: JSON.stringify({ email, metadata: { page: 'BidSmithBeta' } })
       });
       if (resp.ok) setSubmitted(true);
     } catch (err) {
@@ -34,7 +34,7 @@ const SovereignBeta = ({ onBack }) => {
   };
 
   return (
-    <div className="sovereign-beta-container" style={{
+    <div className="bidsmith-beta-container" style={{
       minHeight: '100vh',
       background: '#05070b',
       color: '#f4f7ff',
@@ -66,7 +66,7 @@ const SovereignBeta = ({ onBack }) => {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }} onClick={onBack} className="clickable">
           <Shield size={24} color="var(--text-primary)" />
-          <span style={{ fontWeight: 800, letterSpacing: '-0.02em', fontSize: '18px' }}>ARIS SOVEREIGN</span>
+          <span style={{ fontWeight: 800, letterSpacing: '-0.02em', fontSize: '18px' }}>BIDSMITH BETA</span>
         </div>
         <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.1em' }}>
           PROTOCOL V2.1 // STABLE
@@ -95,7 +95,7 @@ const SovereignBeta = ({ onBack }) => {
           fontSize: isMobile ? '16px' : '18px', color: 'var(--text-secondary)', lineHeight: 1.6, 
           marginBottom: '48px', maxWidth: '600px', margin: '0 auto 48px auto'
         }}>
-          We are opening Sovereign v2.1 to 5 select GovCon firms for a private boarding-level trial. 
+          We are opening BidSmith to select GovCon firms for a private boarding-level trial. 
           Move from "Vibe-based" bidding to high-precision federal intelligence.
         </p>
 
@@ -132,7 +132,7 @@ const SovereignBeta = ({ onBack }) => {
               cursor: loading ? 'not-allowed' : 'pointer', transition: 'transform 0.2s', border: 'none',
               opacity: loading ? 0.7 : 1
             }} className="hover:scale-95">
-              {loading ? "Registering..." : "Apply for Sovereign Beta"} { !loading && <ArrowRight size={16} /> }
+              {loading ? "Registering..." : "Apply for BidSmith Beta"} { !loading && <ArrowRight size={16} /> }
             </button>
           </form>
         ) : (
@@ -153,7 +153,7 @@ const SovereignBeta = ({ onBack }) => {
             }}>
               <CheckCircle size={32} color="rgb(34, 197, 94)" />
             </div>
-            <h2 style={{ fontWeight: 800, fontSize: '28px', marginBottom: '12px', color: '#fff' }}>Application Sovereign.</h2>
+            <h2 style={{ fontWeight: 800, fontSize: '28px', marginBottom: '12px', color: '#fff' }}>Application Logged.</h2>
             <p style={{ color: 'var(--text-secondary)', fontSize: '16px', lineHeight: 1.6, marginBottom: '32px' }}>
               Your interest in v2.1 has been cryptographically logged. 
               Our Lead Architect will contact you at <strong>{email}</strong> once your firm's credentials are verified.
@@ -194,10 +194,10 @@ const SovereignBeta = ({ onBack }) => {
 
       {/* Footer */}
       <footer style={{ marginTop: '120px', color: 'var(--text-secondary)', fontSize: '12px', letterSpacing: '0.05em' }}>
-        © 2026 ARIS PROTOCOL // PRIVATE STAGING
+        © 2026 BIDSMITH // ARIS POWERED // PRIVATE STAGING
       </footer>
     </div>
   );
 };
 
-export default SovereignBeta;
+export default BidSmithBeta;

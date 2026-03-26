@@ -13,6 +13,7 @@
     "cypress:open": "cypress open"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
     "cors": "^2.8.5",

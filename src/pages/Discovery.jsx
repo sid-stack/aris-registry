@@ -17,7 +17,7 @@ import {
   Activity
 } from 'lucide-react';
 import NavBar from '../components/dashboard/NavBar';
-import ARISChat from '../components/dashboard/ARISChat';
+import BidSmithChat from '../components/dashboard/BidSmithChat';
 import '../styles/Dashboard.css';
 import './SamScraper.css'; // Reuse the premium monochrome styles
 
@@ -94,7 +94,7 @@ const Discovery = ({ onBack }) => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div className="header-badge">
               <Radar size={12} />
-              <span>ARIS_MARKET_RADAR_v2.1</span>
+              <span>BIDSMITH_MARKET_RADAR_v2.1</span>
             </div>
             <div>
               <h1 style={{ fontSize: '1.25rem', margin: 0 }}>Contract Intelligence Feed</h1>
@@ -249,12 +249,12 @@ const Discovery = ({ onBack }) => {
           <div className="chat_header">
             <div className="chat_title">
               <Activity size={16} />
-              <span>ARIS_INTEL_STREAM</span>
+              <span>BIDSMITH_INTEL_STREAM</span>
             </div>
             <button onClick={() => setIsChatOpen(false)} className="close-btn">×</button>
           </div>
           <div className="chat_body">
-            <ARISChat 
+            <BidSmithChat 
               selectedContext={selectedProspect}
               onLog={() => {}}
               onCommand={() => {}}

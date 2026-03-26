@@ -10,8 +10,8 @@ import { ShieldCheck, FileText, AlertTriangle, CheckCircle2, ArrowRight } from "
 const GUIDES = {
   "far-52-212-1": {
     title: "FAR 52.212-1 — Instructions to Offerors: Commercial Products",
-    metaTitle: "FAR 52.212-1 Compliance Checklist | ARIS Federal Audit",
-    metaDesc: "Complete guide to FAR 52.212-1 for government contractors. Offeror instructions, compliance requirements, and how ARIS auto-checks clause conformance in 90 seconds.",
+    metaTitle: "FAR 52.212-1 Compliance Checklist | BidSmith Federal Audit",
+    metaDesc: "Complete guide to FAR 52.212-1 for government contractors. Offeror instructions, compliance requirements, and how BidSmith auto-checks clause conformance in 90 seconds.",
     eyebrow: "FAR Part 52 · Commercial Acquisitions",
     intro: "FAR 52.212-1 governs how offerors must respond to solicitations for commercial products and services. Missing a single requirement under this clause is the most common cause of technical disqualification for small and mid-size contractors.",
     sections: [
@@ -31,14 +31,14 @@ const GUIDES = {
         ]
       },
       {
-        heading: "How ARIS Checks FAR 52.212-1 Compliance",
-        body: "When you submit a SAM.gov solicitation URL to ARIS, the Mercury 2 engine extracts every FAR 52.212-1 sub-requirement from Section L, cross-references your compliance posture against the clause, and generates a line-by-line checklist. ARIS flags any clause where a mismatch exists — before your team invests 40 hours writing the proposal."
+        heading: "How BidSmith Checks FAR 52.212-1 Compliance",
+        body: "When you submit a SAM.gov solicitation URL to BidSmith, the Mercury 2 engine extracts every FAR 52.212-1 sub-requirement from Section L, cross-references your compliance posture against the clause, and generates a line-by-line checklist. BidSmith flags any clause where a mismatch exists — before your team invests 40 hours writing the proposal."
       }
     ],
     faqs: [
       { q: "Does FAR 52.212-1 apply to all federal contracts?", a: "FAR 52.212-1 applies specifically to solicitations for commercial products and services under FAR Part 12. It does not apply to non-commercial acquisitions under FAR Parts 13, 14, or 15, which use different offeror instruction clauses." },
-      { q: "What happens if my proposal violates FAR 52.212-1?", a: "The contracting officer is required to reject the proposal as non-conforming. This is not discretionary — a missing SAM registration or unsigned offer cannot be remedied after submission. ARIS checks for these issues before you submit." },
-      { q: "How do I quickly check my SAM registration status?", a: "Go to SAM.gov and search your entity's CAGE code or UEI. Registration must show 'Active' and have a renewal date at least 12 months from solicitation close. ARIS automatically verifies this as part of the compliance audit." }
+      { q: "What happens if my proposal violates FAR 52.212-1?", a: "The contracting officer is required to reject the proposal as non-conforming. This is not discretionary — a missing SAM registration or unsigned offer cannot be remedied after submission. BidSmith checks for these issues before you submit." },
+      { q: "How do I quickly check my SAM registration status?", a: "Go to SAM.gov and search your entity's CAGE code or UEI. Registration must show 'Active' and have a renewal date at least 12 months from solicitation close. BidSmith automatically verifies this as part of the compliance audit." }
     ]
   },
   "section-l-analysis": {
@@ -65,7 +65,7 @@ const GUIDES = {
       },
       {
         heading: "How ARIS Automates This in 90 Seconds",
-        body: "ARIS reads the full solicitation, identifies every Section L requirement (including those embedded in incorporated FAR clauses), and outputs a structured compliance matrix with source citations, risk flags, and Section M cross-references. What takes a capture analyst 2–3 days takes ARIS 41–90 seconds."
+        body: "BidSmith reads the full solicitation, identifies every Section L requirement (including those embedded in incorporated FAR clauses), and outputs a structured compliance matrix with source citations, risk flags, and Section M cross-references. What takes a capture analyst 2–3 days takes BidSmith 41–90 seconds."
       }
     ],
     faqs: [
@@ -240,7 +240,7 @@ export default function CompliancePage({ slug, onBack }) {
           "url": `https://www.bidsmith.pro/compliance/${slug}`,
           "publisher": {
             "@type": "Organization",
-            "name": "ARIS Labs",
+            "name": "BidSmith",
             "url": "https://www.bidsmith.pro"
           }
         },
@@ -272,7 +272,7 @@ export default function CompliancePage({ slug, onBack }) {
   return (
     <div style={s.page}>
       <div style={s.inner}>
-        <button onClick={onBack} style={s.backBtn}>← Back to ARIS</button>
+        <button onClick={onBack} style={s.backBtn}>← Back to BidSmith</button>
 
         <p style={s.eyebrow}>{guide.eyebrow}</p>
         <h1 style={s.h1}>{guide.title}</h1>
@@ -314,11 +314,11 @@ export default function CompliancePage({ slug, onBack }) {
               Auto-check this compliance requirement in 90 seconds
             </h3>
             <p style={{ margin: "4px 0 0", color: "#71717a", fontSize: "0.9rem" }}>
-              Paste any SAM.gov URL — ARIS extracts every requirement like this and flags your risk posture automatically.
+              Paste any SAM.gov URL — BidSmith extracts every requirement like this and flags your risk posture automatically.
             </p>
           </div>
           <button onClick={onBack} style={s.ctaBtn}>
-            Launch ARIS Audit <ArrowRight size={14} style={{ marginLeft: 6 }} />
+            Launch BidSmith Audit <ArrowRight size={14} style={{ marginLeft: 6 }} />
           </button>
         </div>
 

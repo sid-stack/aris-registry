@@ -1,9 +1,19 @@
-/* ── SOVEREIGN INTELLIGENCE WORKBENCH ── */
+/* ── BIDSMITH AUDIT WORKSPACE ── */
 
-.sovereign-intelligence-workbench {
-  background: #05070A; /* Obsidian background */
+.bidsmith-audit-workspace {
+  background: var(--background);
   min-height: 100vh;
   position: relative;
+}
+
+[data-theme="light"] .bidsmith-panel {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+[data-theme="light"] .bidsmith-panel::before {
+  background: linear-gradient(90deg, transparent, #2563eb, transparent);
 }
 
 /* Ingestion View — full-height centered container */
@@ -15,7 +25,7 @@
   padding: 40px 20px;
 }
 
-.sovereign-layout {
+.bidsmith-layout {
   display: grid;
   grid-template-columns: 300px 1fr;
   gap: 16px;
@@ -25,9 +35,9 @@
   overflow: hidden;
 }
 
-.sovereign-panel {
-  background: rgba(5, 7, 10, 0.8);
-  border: 1px solid rgba(0, 255, 194, 0.1);
+.bidsmith-panel {
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 12px;
   display: flex;
   flex-direction: column;
@@ -36,48 +46,52 @@
   position: relative;
 }
 
-.sovereign-panel::before {
+.bidsmith-panel::before {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, #00FFC2, transparent);
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
   opacity: 0.5;
 }
 
-.sovereign-left {
+.bidsmith-left {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-.sovereign-center {
+.bidsmith-center {
   max-width: none;
 }
 
 /* Log Terminal */
 .log-terminal {
-  background: rgba(0, 0, 0, 0.6);
-  border: 1px solid rgba(0, 255, 194, 0.2);
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid var(--border);
   border-radius: 8px;
   overflow: hidden;
   font-family: 'JetBrains Mono', monospace;
   font-size: 10px;
 }
 
+[data-theme="dark"] .log-terminal {
+  background: rgba(0, 0, 0, 0.6);
+}
+
 .terminal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: rgba(0, 255, 194, 0.1);
+  background: var(--accent-soft);
   padding: 8px 12px;
-  border-bottom: 1px solid rgba(0, 255, 194, 0.2);
+  border-bottom: 1px solid var(--border);
 }
 
 .terminal-title {
-  color: #00FFC2;
+  color: var(--accent);
   font-weight: 600;
   letter-spacing: 0.05em;
 }
@@ -91,12 +105,13 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--text-muted);
+  opacity: 0.3;
 }
 
 .indicator.active {
-  background: #00FFC2;
-  box-shadow: 0 0 8px #00FFC2;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
   animation: pulse-indicator 2s infinite;
 }
 
@@ -421,7 +436,7 @@
 
 /* Large Tablets and Small Desktops */
 @media (max-width: 1200px) {
-  .sovereign-layout {
+  .bidsmith-layout {
     grid-template-columns: 260px 1fr;
     gap: 12px;
   }
@@ -429,7 +444,7 @@
 
 /* Tablets - Portrait and Small Laptops */
 @media (max-width: 900px) {
-  .sovereign-layout {
+  .bidsmith-layout {
     grid-template-columns: 1fr;
     grid-template-rows: auto 1fr auto;
     height: auto;
@@ -438,20 +453,20 @@
     gap: 12px;
   }
   
-  .sovereign-left {
+  .bidsmith-left {
     order: 2;
   }
   
-  .sovereign-center {
+  .bidsmith-center {
     order: 1;
   }
   
-  .sovereign-right {
+  .bidsmith-right {
     order: 3;
   }
   
   /* Prevent text overflow in panels */
-  .sovereign-panel {
+  .bidsmith-panel {
     padding: 16px;
     overflow: hidden;
   }
@@ -481,25 +496,25 @@
 
 /* Mobile Phones */
 @media (max-width: 640px) {
-  .sovereign-layout {
+  .bidsmith-layout {
     margin-top: 80px;
     padding: 0 8px;
     gap: 8px;
   }
   
-  .sovereign-panel {
+  .bidsmith-panel {
     border-radius: 8px;
     padding: 12px;
     min-height: auto;
   }
   
   /* Fix text overflow in all text elements */
-  .sovereign-panel h1,
-  .sovereign-panel h2,
-  .sovereign-panel h3,
-  .sovereign-panel h4,
-  .sovereign-panel p,
-  .sovereign-panel span {
+  .bidsmith-panel h1,
+  .bidsmith-panel h2,
+  .bidsmith-panel h3,
+  .bidsmith-panel h4,
+  .bidsmith-panel p,
+  .bidsmith-panel span {
     word-wrap: break-word;
     overflow-wrap: break-word;
     hyphens: auto;
@@ -604,12 +619,12 @@
 
 /* Small Mobile Phones */
 @media (max-width: 480px) {
-  .sovereign-layout {
+  .bidsmith-layout {
     padding: 0 4px;
     gap: 6px;
   }
   
-  .sovereign-panel {
+  .bidsmith-panel {
     padding: 8px;
   }
   
@@ -1146,7 +1161,7 @@
   }
 }
 
-/* ── Sovereign Intelligence Terminal Core ── */
+/* ── BidSmith Intelligence Terminal Core ── */
 .audit-page-container {
   min-height: 100vh;
   background: #050505;
@@ -1156,7 +1171,7 @@
   font-family: 'JetBrains Mono', monospace;
 }
 
-.workbench-layout {
+.workspace-layout {
   display: grid;
   grid-template-columns: 280px 1fr 340px;
   height: calc(100vh - 48px);
@@ -1164,23 +1179,23 @@
 }
 
 @media (max-width: 1200px) {
-  .workbench-layout {
+  .workspace-layout {
     grid-template-columns: 240px 1fr;
   }
-  .workbench-right { display: none; }
+  .workspace-right { display: none; }
 }
 
 @media (max-width: 768px) {
-  .workbench-layout {
+  .workspace-layout {
     grid-template-columns: 1fr;
     height: auto;
     overflow-y: auto;
   }
-  .workbench-left { display: none; }
+  .workspace-left { display: none; }
 }
 
 /* ── Panel Components ── */
-.workbench-panel {
+.workspace-panel {
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
@@ -1227,7 +1242,7 @@
 }
 
 /* ── Risk Audit (Center) ── */
-.workbench-center {
+.workspace-center {
   background: radial-gradient(circle at center, rgba(0, 255, 194, 0.03) 0%, transparent 70%);
 }
 
@@ -1414,7 +1429,7 @@
     padding: 8px 12px;
   }
 
-  .sovereign-intelligence-workbench h1 {
+  .bidsmith-intelligence-workspace h1 {
     font-size: 1.8rem !important;
   }
 
@@ -1433,7 +1448,7 @@
   }
 
   /* Make components feel more 'lovely' and cohesive on mobile */
-  .sovereign-panel {
+  .bidsmith-panel {
     margin-bottom: 12px;
     background: rgba(5, 7, 10, 0.95);
     border: 1px solid rgba(0, 255, 194, 0.15);

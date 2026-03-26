@@ -7,6 +7,10 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     server: {
       port: 5173,
+      hmr: {
+        host: 'localhost',
+        clientPort: 5173,
+      },
       proxy: {
         '/api': {
           target: env.VITE_API_URL || 'http://localhost:8080',

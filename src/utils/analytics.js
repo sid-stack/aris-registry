@@ -10,8 +10,8 @@ let initialized = false;
 let scriptRequested = false;
 let listenerRegistered = false;
 
-// Sovereign UID (persistent cookie logic)
-const UID_KEY = "aris_uid";
+// BidSmith UID (persistent cookie logic)
+const UID_KEY = "bs_uid";
 function getOrCreateUid() {
   let uid = localStorage.getItem(UID_KEY);
   if (!uid) {
@@ -20,7 +20,7 @@ function getOrCreateUid() {
   }
   return uid;
 }
-const SOVEREIGN_UID = getOrCreateUid();
+const BIDSMITH_UID = getOrCreateUid();
 
 function canTrack() {
   return typeof window !== "undefined";
@@ -74,14 +74,14 @@ export function initAnalytics() {
   initialized = true;
 }
 
-// Sovereign Track (Private Database)
-async function sovereignTrack(event, value = 0, metadata = {}) {
+// BidSmith Track (Private Database)
+async function bsTrack(event, value = 0, metadata = {}) {
   try {
     fetch('/api/track', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
-        uid: SOVEREIGN_UID,
+        uid: BIDSMITH_UID,
         event,
         value,
         page: window.location.href,
@@ -96,7 +96,7 @@ export function trackPageView(path) {
   
   // Track as 'demo_view' for report/audit paths, else 'page_view'
   const event = (path.includes('sam-rep') || path.includes('audit')) ? 'demo_view' : 'page_view';
-  sovereignTrack(event, 0, { path });
+  bsTrack(event, 0, { path });
 
   // Track with Google Analytics
   if (initialized && window.gtag && measurementId) {
@@ -119,7 +119,7 @@ export function trackPageView(path) {
 export function trackEvent(name, params = {}) {
   if (!canTrack()) return;
   
-  sovereignTrack(name, params.value || 0, params);
+  bsTrack(name, params.value || 0, params);
 
   // Track with Google Analytics
   if (initialized && window.gtag && measurementId) {
