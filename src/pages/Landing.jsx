@@ -79,12 +79,12 @@ export default function Landing({
         <div style={styles.heroContent}>
           <div style={styles.heroBadge}>INSTITUTIONAL GRADE • BUILT FOR GOVCON</div>
           <h1 style={styles.heroTitle}>
-            Turn RFPs into compliance <br />
-            matrices in minutes.
+            Replace $5,000+ in proposal prep <br />
+            with a 2-minute compliance matrix.
           </h1>
           <p style={styles.heroSubtitle}>
-            Built for government contractors. Stop losing bids to manual review errors. <br />
-            BidSmith identifies every requirement, clause, and risk factor in seconds.
+            Know exactly what’s required, what you’re missing, and whether you should <br />
+            even bid before wasting a single hour of your team's time.
           </p>
           
           <div style={styles.heroCtaGroup}>

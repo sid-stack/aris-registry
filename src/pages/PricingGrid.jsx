@@ -17,19 +17,19 @@ export default function PricingGrid({ onTryFree, onGetPro }) {
       {/* SECTION 2: PRICING CARDS */}
       <section style={styles.pricingSection}>
         <div style={styles.grid}>
-          {/* Card 1: Free */}
+          {/* Card 1: Starter */}
           <div style={styles.card}>
             <div style={styles.cardHeader}>
-              <h3 style={styles.cardTier}>Free</h3>
-              <div style={styles.price}>$0</div>
+              <h3 style={styles.cardTier}>Starter</h3>
+              <div style={styles.price}>$99</div>
             </div>
             <ul style={styles.featureList}>
-              <li style={styles.featureItem}><CheckCircle size={16} color="#16a34a" /> Upload RFP</li>
-              <li style={styles.featureItem}><CheckCircle size={16} color="#16a34a" /> Extract requirements (preview)</li>
-              <li style={styles.featureItem}><CheckCircle size={16} color="#16a34a" /> View sample matrix</li>
+              <li style={styles.featureItem}><CheckCircle size={16} color="#16a34a" /> 1 full RFP audit</li>
+              <li style={styles.featureItem}><CheckCircle size={16} color="#16a34a" /> Basic compliance matrix</li>
+              <li style={styles.featureItem}><CheckCircle size={16} color="#16a34a" /> PDF / SAM.gov support</li>
             </ul>
             <button style={styles.freeBtn} onClick={onTryFree}>
-              Try Free
+              Get Started
             </button>
           </div>
 
@@ -38,16 +38,16 @@ export default function PricingGrid({ onTryFree, onGetPro }) {
             <div style={styles.badge}>MOST POPULAR</div>
             <div style={styles.cardHeader}>
               <h3 style={{...styles.cardTier, color: '#fff'}}>Pro</h3>
-              <div style={{...styles.price, color: '#fff'}}>$49</div>
+              <div style={{...styles.price, color: '#fff'}}>$299</div>
             </div>
             <ul style={styles.featureList}>
-              <li style={{...styles.featureItem, color: '#e2e8f0'}}><CheckCircle size={16} color="#fff" /> Full compliance matrix</li>
-              <li style={{...styles.featureItem, color: '#e2e8f0'}}><CheckCircle size={16} color="#fff" /> Risk detection (High-risk)</li>
-              <li style={{...styles.featureItem, color: '#e2e8f0'}}><CheckCircle size={16} color="#fff" /> Download (.XLSX)</li>
-              <li style={{...styles.featureItem, color: '#e2e8f0'}}><CheckCircle size={16} color="#fff" /> Unlimited RFP uploads</li>
+              <li style={{...styles.featureItem, color: '#e2e8f0'}}><CheckCircle size={16} color="#fff" /> Multi-section extraction</li>
+              <li style={{...styles.featureItem, color: '#e2e8f0'}}><CheckCircle size={16} color="#fff" /> Full capability matrix</li>
+              <li style={{...styles.featureItem, color: '#e2e8f0'}}><CheckCircle size={16} color="#fff" /> Multi-format export (.XLSX, .DOCX)</li>
+              <li style={{...styles.featureItem, color: '#e2e8f0'}}><CheckCircle size={16} color="#fff" /> Requirement editing & tagging</li>
             </ul>
             <button style={styles.proBtn} onClick={onGetPro}>
-              Get Full Access
+              Go Pro
             </button>
           </div>
 
@@ -55,15 +55,15 @@ export default function PricingGrid({ onTryFree, onGetPro }) {
           <div style={styles.card}>
             <div style={styles.cardHeader}>
               <h3 style={styles.cardTier}>Enterprise</h3>
-              <div style={styles.price}>$199</div>
+              <div style={styles.price}>$999</div>
             </div>
             <ul style={styles.featureList}>
-              <li style={styles.featureItem}><CheckCircle size={16} color="#16a34a" /> All Pro features</li>
-              <li style={styles.featureItem}><CheckCircle size={16} color="#16a34a" /> API Access</li>
-              <li style={styles.featureItem}><CheckCircle size={16} color="#16a34a" /> Dedicated Support</li>
-              <li style={styles.featureItem}><CheckCircle size={16} color="#16a34a" /> SLA & Security Audit</li>
+              <li style={styles.featureItem}><CheckCircle size={16} color="#16a34a" /> Full RFP breakdown (SOW/PWS)</li>
+              <li style={styles.featureItem}><CheckCircle size={16} color="#16a34a" /> Team collaboration workflows</li>
+              <li style={styles.featureItem}><CheckCircle size={16} color="#16a34a" /> Priority processing pipeline</li>
+              <li style={styles.featureItem}><CheckCircle size={16} color="#16a34a" /> Dedicated GovCon consultant</li>
             </ul>
-            <button style={styles.freeBtn} onClick={() => window.location.href = '/contact'}>
+            <button style={styles.freeBtn} onClick={() => window.location.href = 'mailto:sid@bidsmith.pro?subject=Enterprise Audit'}>
               Contact Sales
             </button>
           </div>
@@ -75,8 +75,8 @@ export default function PricingGrid({ onTryFree, onGetPro }) {
         <div style={styles.valueBox}>
           <Zap size={24} color="#0B3D91" style={{ marginBottom: 16 }} />
           <p style={styles.valueText}>
-            Manual RFP review takes <strong>10–40 hours</strong>. <br />
-            BidSmith reduces this to <strong>under 2 minutes</strong>.
+            Most teams spend <strong>$5,000+</strong> and <strong>20–50 hours</strong> on proposal prep. <br />
+            BidSmith reduces this to <strong>under 2 minutes</strong> for a fraction of the cost.
           </p>
         </div>
       </section>

@@ -7,22 +7,20 @@ import { GTM_PRICING_PLANS, STRIPE_PAYMENT_LINKS } from "../lib/pricing";
 const CHECK = "✓";
 const CROSS  = "✗";
 
-/** [label, free, starter, standard, enterprise] */
+/** [label, starter, pro, enterprise] */
 const FEATURES = [
-  ["Audits per month",              "3",          "10",         "Unlimited",  "Unlimited"],
-  ["Compliance matrix",             CHECK,        CHECK,        CHECK,        CHECK],
-  ["FAR / DFARS clause extraction", CHECK,        CHECK,        CHECK,        CHECK],
-  ["Risk score",                    CROSS,        CHECK,        CHECK,        CHECK],
-  ["Bid / no-bid recommendation",   CROSS,        CHECK,        CHECK,        CHECK],
-  ["Full report download (CSV)",    CROSS,        CHECK,        CHECK,        CHECK],
-  ["Real-time streaming analysis",  CROSS,        CROSS,        CHECK,        CHECK],
-  ["Deep competitive shred",        CROSS,        CROSS,        CROSS,        CHECK],
-  ["Capture strategy",              CROSS,        CROSS,        CROSS,        CHECK],
-  ["Win themes",                    CROSS,        CROSS,        CROSS,        CHECK],
-  ["Priority support",              CROSS,        CROSS,        CROSS,        CHECK],
+  ["Audits per month",              "1 session",  "Unlimited",  "Unlimited"],
+  ["Compliance matrix",             CHECK,        CHECK,        CHECK],
+  ["Gap Analysis Interface",        CHECK,        CHECK,        CHECK],
+  ["Multi-section extraction",      CROSS,        CHECK,        CHECK],
+  ["Requirement editing",           CROSS,        CHECK,        CHECK],
+  ["Multi-format export",           CROSS,        CHECK,        CHECK],
+  ["Team collaboration",            CROSS,        CROSS,        CHECK],
+  ["Priority processing",           CROSS,        CROSS,        CHECK],
+  ["Dedicated Consultant",          CROSS,        CROSS,        CHECK],
 ];
 
-const PLAN_KEYS = ["free", "starter", "standard", "enterprise"];
+const PLAN_KEYS = ["starter", "pro", "enterprise"];
 
 export default function PricingComparison({ onPlanClick, disabled }) {
   return (
@@ -45,8 +43,8 @@ export default function PricingComparison({ onPlanClick, disabled }) {
           </thead>
 
           <tbody>
-            {FEATURES.map(([label, free, starter, standard, enterprise], i) => {
-              const vals = [free, starter, standard, enterprise];
+            {FEATURES.map(([label, starter, pro, enterprise], i) => {
+              const vals = [starter, pro, enterprise];
               return (
                 <tr key={label} style={i % 2 === 0 ? s.rowEven : s.rowOdd}>
                   <td style={{ ...s.td, ...s.featureCol, color: "#d4d4d8" }}>{label}</td>

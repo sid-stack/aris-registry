@@ -10,52 +10,40 @@ export const STRIPE_PAYMENT_LINKS = {
 
 export const GTM_PRICING_PLANS = [
   {
-    key: "free",
-    title: "Free",
-    price: "Free",
-    annualNote: null,
-    description: "3 audits per month. No credit card required. Full compliance matrix output.",
-    buttonLabel: "Start Free",
-    buttonLink: "/app",
-    badge: null,
-    tier: "free",
-    callout: "Free — 3 audits/month",
-  },
-  {
     key: "starter",
     title: "Starter",
-    price: "$49 / month",
-    annualNote: "Annual billing saves 20% — contact us",
-    description: "10 audits per month. Compliance matrix and FAR/DFARS extraction. Best for solo capture managers.",
-    buttonLabel: "Get Starter",
+    price: "$99",
+    annualNote: "1 audit session",
+    description: "Perfect for single-bid verification. Includes 1 full audit + basic compliance matrix.",
+    buttonLabel: "Get Started",
     buttonLink: "mailto:sid@bidsmith.pro?subject=Starter Plan",
     badge: null,
     tier: "starter",
-    callout: "Starter - $49/month",
+    callout: "Starter - $99",
   },
   {
-    key: "standard",
-    title: "Standard Audit",
-    price: "$99 / month",
-    annualNote: "Annual billing saves 20% — contact us",
-    description: "Unlimited audits. Full FAR/DFARS analysis, compliance matrix, risk score, and bid/no-bid recommendation.",
-    buttonLabel: "Subscribe",
-    buttonLink: STRIPE_PAYMENT_LINKS.standard,
+    key: "pro",
+    title: "Pro",
+    price: "$299",
+    annualNote: "Multi-section extraction",
+    description: "For active capture teams. Includes multi-section extraction, full exports, and collaborative edits.",
+    buttonLabel: "Go Pro",
+    buttonLink: STRIPE_PAYMENT_LINKS.standard, // Mapping to existing standard for now or update if needed
     badge: "Most Popular",
-    tier: "standard",
-    callout: "Standard Audit - $99/month",
+    tier: "pro",
+    callout: "Pro - $299",
   },
   {
     key: "enterprise",
-    title: "Enterprise Audit",
-    price: "$299 / month",
-    annualNote: "Annual billing saves 20% — contact us",
-    description: "Deep-shred analysis, capture strategy, win themes, and competitive positioning for high-value solicitations.",
-    buttonLabel: "Subscribe",
-    buttonLink: STRIPE_PAYMENT_LINKS.enterprise,
+    title: "Enterprise",
+    price: "$999",
+    annualNote: "Full RFP breakdown",
+    description: "The complete bid acceleration engine. Full RFP breakdown, team workflows, and priority processing.",
+    buttonLabel: "Contact Sales",
+    buttonLink: "mailto:sid@bidsmith.pro?subject=Enterprise Plan",
     badge: null,
     tier: "enterprise",
-    callout: "Enterprise Audit - $299/month",
+    callout: "Enterprise - $999",
   },
 ];
 
@@ -63,18 +51,26 @@ export const GTM_PRICING_PLANS = [
 export const CREDIT_PACKS = [
   {
     key: "starter_pack",
-    title: "Starter Pack",
+    title: "Starter",
     credits: 1,
     price: "$99",
-    description: "Single high-fidelity audit session.",
-    callout: "1 Audit - $99"
+    description: "1 full audit session.",
+    callout: "Starter - $99"
   },
   {
     key: "professional_pack",
-    title: "Professional Pack",
+    title: "Pro",
     credits: 1,
     price: "$299",
-    description: "Enterprise-grade deep shred session.",
-    callout: "1 Enterprise Audit - $299"
+    description: "Multi-section extraction + export.",
+    callout: "Pro - $299"
+  },
+  {
+    key: "enterprise_pack",
+    title: "Enterprise",
+    credits: 1,
+    price: "$999",
+    description: "Full RFP breakdown + priority.",
+    callout: "Enterprise - $999"
   }
 ];

@@ -501,16 +501,66 @@ const ConversionLayer = ({ onPurchase, price = 99, disqualifierCount = 0 }) => {
   );
 };
 
+const GapAnalysis = ({ gaps = [] }) => {
+  const items = gaps.length > 0 ? gaps : [
+    { type: 'Missing Response', detail: 'Technical approach for task 3.2 (Cybersecurity) is not addressed.', risk: 'High' },
+    { type: 'Risk', detail: 'Past performance citation for projects >$10M is missing.', risk: 'Medium' },
+    { type: 'Compliance Gap', detail: 'Section L requires 12pt Times New Roman; current inferred format is Arial.', risk: 'Low' }
+  ];
+
+  return (
+    <div className="gap-analysis-container" style={{ marginTop: 32, padding: 24, background: 'rgba(239, 68, 68, 0.05)', borderRadius: 12, border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+        <AlertTriangle size={20} color="#ef4444" />
+        <h3 style={{ fontSize: '1.2rem', fontWeight: 900, color: '#ef4444', margin: 0 }}>GAP ANALYSIS</h3>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {items.map((gap, i) => (
+          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'rgba(0,0,0,0.2)', borderRadius: 8 }}>
+            <div>
+              <span style={{ fontSize: '0.65rem', fontWeight: 800, color: gap.risk === 'High' ? '#ef4444' : '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{gap.type}</span>
+              <p style={{ margin: '4px 0 0', fontSize: '0.9rem', color: '#e4e4e7' }}>{gap.detail}</p>
+            </div>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: gap.risk === 'High' ? '#ef4444' : '#f59e0b' }}>{gap.risk} RISK</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const AIDraftingOutput = ({ draft, onResolve }) => {
+  return (
+    <div style={{ marginTop: 16, padding: 16, background: '#1a1a1e', border: '1px solid var(--accent)', borderRadius: 8 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--accent)' }}>AI ASSISTED DRAFT</span>
+        <button onClick={onResolve} style={{ background: 'none', border: 'none', color: '#71717a', cursor: 'pointer', fontSize: '12px' }}>✕</button>
+      </div>
+      <div style={{ fontSize: '0.85rem', color: '#e4e4e7', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+        {draft}
+      </div>
+      <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+        <button className="cyber-btn" style={{ padding: '4px 12px', fontSize: '10px' }}>Apply to Proposal</button>
+        <button style={{ background: 'none', border: '1px solid #333', color: '#e4e4e7', padding: '4px 12px', borderRadius: 4, fontSize: '10px', cursor: 'pointer' }}>Regenerate</button>
+      </div>
+    </div>
+  );
+};
+
 const RequirementsTable = ({ requirements = [] }) => {
   if (!requirements || requirements.length === 0) return null;
   const [draftingIdx, setDraftingIdx] = useState(null);
+  const [activeDraft, setActiveDraft] = useState(null);
 
-  const handleDraft = (idx) => {
+  const handleDraft = (idx, req) => {
     setDraftingIdx(idx);
     setTimeout(() => {
       setDraftingIdx(null);
-      alert(`[BIDSMITH AI] Drafting response for requirement fragment...\n\nStatus: Context attached.\nOutput path: /drafts/volume_1.docx`);
-    }, 2000);
+      setActiveDraft({
+        idx,
+        content: `Based on the requirement "${req.requirement}", here is a proposed draft response:\n\n"Our team of certified professionals holds active TS/SCI clearances as required. We have a proven tracking record of maintaining 100% compliance with government security protocols in NCR facilities, as demonstrated in our previous work with DHA on Project Mercury..."`
+      });
+    }, 1500);
   };
 
   return (
@@ -530,48 +580,57 @@ const RequirementsTable = ({ requirements = [] }) => {
           </thead>
           <tbody>
             {requirements.map((req, i) => (
-              <tr key={i} style={{ borderBottom: '1px solid var(--border)', background: draftingIdx === i ? 'var(--accent-soft)' : 'transparent' }}>
-                <td style={{ padding: '16px', color: 'var(--text-primary)', maxWidth: '500px', lineHeight: 1.5, fontWeight: 500 }}>{req.requirement}</td>
-                <td style={{ padding: '16px' }}>
-                  <span style={{ 
-                    padding: '4px 8px', 
-                    borderRadius: '4px', 
-                    background: 'var(--accent-soft)', 
-                    color: 'var(--accent)',
-                    fontSize: '0.75rem',
-                    fontWeight: 700
-                  }}>
-                    {req.status}
-                  </span>
-                </td>
-                <td style={{ padding: '16px' }}>
-                  <span style={{ 
-                    color: req.risk === 'High' ? 'var(--risk-high)' : 'var(--text-muted)',
-                    fontWeight: 700
-                  }}>
-                    {req.risk}
-                  </span>
-                </td>
-                <td style={{ padding: '16px', textAlign: 'right' }}>
-                  <button 
-                    onClick={() => handleDraft(i)}
-                    disabled={draftingIdx !== null}
-                    style={{
-                      background: 'var(--accent)',
-                      color: 'white',
-                      border: 'none',
-                      padding: '6px 12px',
-                      borderRadius: '4px',
-                      fontSize: '10px',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      opacity: draftingIdx === i ? 0.6 : 1
-                    }}
-                  >
-                    {draftingIdx === i ? '...' : 'DRAFT'}
-                  </button>
-                </td>
-              </tr>
+              <React.Fragment key={i}>
+                <tr style={{ borderBottom: '1px solid var(--border)', background: draftingIdx === i ? 'var(--accent-soft)' : 'transparent' }}>
+                  <td style={{ padding: '16px', color: 'var(--text-primary)', maxWidth: '500px', lineHeight: 1.5, fontWeight: 500 }}>{req.requirement}</td>
+                  <td style={{ padding: '16px' }}>
+                    <span style={{ 
+                      padding: '4px 8px', 
+                      borderRadius: '4px', 
+                      background: 'var(--accent-soft)', 
+                      color: 'var(--accent)',
+                      fontSize: '0.75rem',
+                      fontWeight: 700
+                    }}>
+                      {req.status}
+                    </span>
+                  </td>
+                  <td style={{ padding: '16px' }}>
+                    <span style={{ 
+                      color: req.risk === 'High' ? 'var(--risk-high)' : 'var(--text-muted)',
+                      fontWeight: 700
+                    }}>
+                      {req.risk}
+                    </span>
+                  </td>
+                  <td style={{ padding: '16px', textAlign: 'right' }}>
+                    <button 
+                      onClick={() => handleDraft(i, req)}
+                      disabled={draftingIdx !== null}
+                      style={{
+                        background: 'var(--accent)',
+                        color: 'white',
+                        border: 'none',
+                        padding: '6px 12px',
+                        borderRadius: '4px',
+                        fontSize: '10px',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        opacity: draftingIdx === i ? 0.6 : 1
+                      }}
+                    >
+                      {draftingIdx === i ? '...' : 'DRAFT WITH AI'}
+                    </button>
+                  </td>
+                </tr>
+                {activeDraft?.idx === i && (
+                  <tr>
+                    <td colSpan="4" style={{ padding: '0 16px 16px' }}>
+                      <AIDraftingOutput draft={activeDraft.content} onResolve={() => setActiveDraft(null)} />
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
             ))}
           </tbody>
         </table>
@@ -1040,53 +1099,29 @@ const Audit = ({ onBack, initialUrl, initialFile }) => {
                   <PipelineTerminal logs={logs} active={isLoading} />
                 </div>
               ) : (
-                <>
+                <React.Fragment>
                   {/* Go / No-Go Decision — always first */}
                   <GoNoGoVerdict decision={result?.decision} title={result?.title} />
 
                   {/* Disqualification Radar */}
                   <DisqualificationRadar hazards={result?.compliance} />
                   
-                  {/* Revenue Protection */}
+                   {/* Revenue Protection */}
                   <RevenueProtection 
                     totalValue={result?.value || result?.pillars?.estimated_value?.value || 45000000} 
                     winProbability={0.13} 
                   />
+
+                  {/* PRO-ONLY: Gap Analysis Hook */}
+                  <GapAnalysis gaps={result?.gaps} />
                   
-                <>
                   <div style={{ marginBottom: '32px' }}>
                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                         <h3 style={{ fontSize: '18px', fontWeight: 900, color: 'var(--text-primary)' }}>Compliance Analysis Matrix</h3>
                         <div style={styles.badge}>{result.requirements.length} REQUIREMENTS FOUND</div>
                      </div>
-                     <div className="excel-table-container">
-                        <table className="excel-table">
-                          <thead>
-                            <tr>
-                              <th style={{ width: '150px' }}>ID / Page</th>
-                              <th>Requirement Description</th>
-                              <th style={{ width: '120px' }}>Mapping</th>
-                              <th style={{ width: '120px' }}>Status</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {result.requirements.map((req, i) => (
-                              <tr key={i}>
-                                <td style={{ fontWeight: 700 }}>{req.id || `R-${i+1}`} <span style={{ color: '#94a3b8', fontSize: '11px' }}>({req.page || 'P1'})</span></td>
-                                <td style={{ color: '#0f172a' }}>{req.text || req.description}</td>
-                                <td>
-                                   <span className="excel-badge excel-badge-info">{req.section || 'L.1'}</span>
-                                </td>
-                                <td>
-                                   <span className={`excel-badge ${req.risk ? 'excel-badge-risk' : 'excel-badge-success'}`}>
-                                     {req.risk ? 'RISK' : 'PASS'}
-                                   </span>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
+                     
+                     <RequirementsTable requirements={result.requirements} />
                      
                      {/* Conversion Hook - The Export CTA */}
                      <div style={{ marginTop: '24px', padding: '24px', background: 'rgba(103, 232, 249, 0.05)', borderRadius: '12px', border: '1px solid rgba(103, 232, 249, 0.2)', textAlign: 'center' }}>
@@ -1126,7 +1161,6 @@ const Audit = ({ onBack, initialUrl, initialFile }) => {
                         AUDIT STATUS: {logs[logs.length - 1]?.msg || 'ACTIVE'}
                      </span>
                   </div>
-                </>
                   
                   {/* Report Section */}
                   {report?.proposal_draft && (
@@ -1143,7 +1177,7 @@ const Audit = ({ onBack, initialUrl, initialFile }) => {
                   <button className="cyber-btn terminate-btn" onClick={onBack}>
                     TERMINATE SESSION
                   </button>
-                </>
+                </React.Fragment>
               )}
             </div>
           </main>
