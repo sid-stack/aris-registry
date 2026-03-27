@@ -3,7 +3,7 @@ import React from 'react';
 export default function DemoVideo() {
   return (
     <video
-      src="/ARIS Labs Demo.mp4"
+      src="/aris-demo.mp4"
       autoPlay
       loop
       muted

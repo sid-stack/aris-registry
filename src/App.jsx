@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from "react";
+import NotFound from "./pages/NotFound";
 import Landing from "./pages/Landing";
 import ConsentBanner from "./components/ConsentBanner";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -32,7 +33,6 @@ const RfpMatrixGenerator = lazy(() => import("./pages/seo/RfpMatrixGenerator"));
 const Outreach = lazy(() => import("./pages/Outreach"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const Contact = lazy(() => import("./pages/Contact"));
-const NotFound = lazy(() => import("./pages/NotFound"));
 
 const BASE_URL = "https://www.bidsmith.pro";
 
