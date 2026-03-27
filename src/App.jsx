@@ -217,18 +217,10 @@ export default function App() {
       logicalPath = window.location.pathname;
     } else if (view === "landing") {
       logicalPath = aliasSection ? `/#${aliasSection}` : "/";
-    } else if (view === "app") {
-      logicalPath = "/app/audit";
-    } else if (!authenticated) {
-      logicalPath = "/app/login";
-    } else if (route === "audit") {
-      logicalPath = "/app/audit";
-    } else {
-      logicalPath = proposal ? "/app/proposal" : "/app/upload";
     }
 
     trackPageView(logicalPath);
-  }, [view, authenticated, route, proposal, aliasSection]);
+  }, [view, authenticated, proposal, aliasSection]);
 
   useEffect(() => {
     if (window.history.state === null || window.history.state?.view === undefined) {

@@ -1379,3 +1379,5 @@ const styles = {
     letterSpacing: '0.05em'
   }
 };
+
+export default Audit;
