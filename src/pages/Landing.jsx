@@ -13,6 +13,7 @@ export default function Landing({
   onAnalyze,
   onAnalyzeFile,
   onEnterDashboard,
+  onGoHome,
 }) {
   const handlePlanClick = (plan) => {
     if (plan.buttonLink && (plan.buttonLink.startsWith("http") || plan.buttonLink.startsWith("mailto:"))) {
@@ -68,7 +69,10 @@ export default function Landing({
       <header style={styles.navbar}>
         <div style={styles.navInner}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={styles.navLogo}>BIDSMITH</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }} onClick={onGoHome}>
+              <img src="/assets/logo.jpg" alt="BidSmith" style={{ height: 32, borderRadius: 4 }} />
+              <span style={styles.navLogo}>BIDSMITH</span>
+            </div>
           </div>
           <nav style={{ display: "flex", gap: isMobile ? "12px" : "24px", alignItems: "center" }}>
             {!isMobile && (
@@ -145,7 +149,7 @@ export default function Landing({
         </div>
       </section>
 
-      <div ref={demoRef}>
+      <div ref={demoRef} style={{ background: '#f8fafc', padding: '60px 0' }}>
         <DemoSection onTryDemo={onEnterApp} />
       </div>
 

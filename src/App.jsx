@@ -363,18 +363,17 @@ export default function App() {
         onBidSmithSearch={handleBidSmithSearch}
         onAnalyze={handleAnalyze}
         onAnalyzeFile={handleAnalyzeFile}
+        onGoHome={() => setView("landing")}
       />
     );
   } else if (view === "app") {
     content = <Audit onBack={() => setView("landing")} initialUrl={initialUrl} initialFile={initialFile} />;
+  } else if (view === "404") {
+    content = <NotFound onBack={() => setView("landing")} />;
   } else if (!authenticated) {
     content = <Login onLogin={() => { setAuthenticated(true); localStorage.setItem("aris_authenticated", "true"); }} />;
   } else {
-    content = route === "audit"
-      ? <Audit onBack={() => setView("landing")} />
-      : !proposal
-        ? <Upload onProposalGenerated={setProposal} onBack={() => setView("landing")} />
-        : <Proposal proposal={proposal} onReset={() => setProposal(null)} onBack={() => setView("landing")} />;
+    content = <NotFound onBack={() => setView("landing")} />;
   }
 
   return (
@@ -382,6 +381,7 @@ export default function App() {
       <Suspense fallback={<div style={{ minHeight: "100vh", background: "#0d0f14" }} />}>
         {content}
       </Suspense>
+      {/* Legacy Demo Section handled above */}
       <ConsentBanner />
       <Analytics />
       <SpeedInsights />
