@@ -510,8 +510,11 @@
   }
 
   .landing-hero-layout {
-    grid-template-columns: minmax(0, 1.05fr) minmax(370px, 0.95fr);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     gap: 2rem;
+    max-width: 900px;
   }
 
   .landing-trust-grid {

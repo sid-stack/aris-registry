@@ -1,0 +1,267 @@
+import React from 'react';
+import { Shield, CheckCircle, ArrowRight, Zap, Lock, MessageSquare } from 'lucide-react';
+
+export default function PricingGrid({ onTryFree, onGetPro }) {
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+
+  return (
+    <main style={styles.page}>
+      {/* SECTION 1: HERO */}
+      <section style={styles.hero}>
+        <h1 style={styles.title}>Simple, Transparent Pricing</h1>
+        <p style={styles.subtitle}>
+          Analyze RFPs in seconds. Pay only when you need full exports.
+        </p>
+      </section>
+
+      {/* SECTION 2: PRICING CARDS */}
+      <section style={styles.pricingSection}>
+        <div style={styles.grid}>
+          {/* Card 1: Free */}
+          <div style={styles.card}>
+            <div style={styles.cardHeader}>
+              <h3 style={styles.cardTier}>Free</h3>
+              <div style={styles.price}>$0</div>
+            </div>
+            <ul style={styles.featureList}>
+              <li style={styles.featureItem}><CheckCircle size={16} color="#16a34a" /> Upload RFP</li>
+              <li style={styles.featureItem}><CheckCircle size={16} color="#16a34a" /> Extract requirements (preview)</li>
+              <li style={styles.featureItem}><CheckCircle size={16} color="#16a34a" /> View sample matrix</li>
+            </ul>
+            <button style={styles.freeBtn} onClick={onTryFree}>
+              Try Free
+            </button>
+          </div>
+
+          {/* Card 2: Pro */}
+          <div style={{...styles.card, ...styles.proCard}}>
+            <div style={styles.badge}>MOST POPULAR</div>
+            <div style={styles.cardHeader}>
+              <h3 style={{...styles.cardTier, color: '#fff'}}>Pro</h3>
+              <div style={{...styles.price, color: '#fff'}}>$49</div>
+            </div>
+            <ul style={styles.featureList}>
+              <li style={{...styles.featureItem, color: '#e2e8f0'}}><CheckCircle size={16} color="#fff" /> Full compliance matrix</li>
+              <li style={{...styles.featureItem, color: '#e2e8f0'}}><CheckCircle size={16} color="#fff" /> Risk detection (High-risk)</li>
+              <li style={{...styles.featureItem, color: '#e2e8f0'}}><CheckCircle size={16} color="#fff" /> Download (.XLSX)</li>
+              <li style={{...styles.featureItem, color: '#e2e8f0'}}><CheckCircle size={16} color="#fff" /> Unlimited RFP uploads</li>
+            </ul>
+            <button style={styles.proBtn} onClick={onGetPro}>
+              Get Full Access
+            </button>
+          </div>
+
+          {/* Card 3: Enterprise */}
+          <div style={styles.card}>
+            <div style={styles.cardHeader}>
+              <h3 style={styles.cardTier}>Enterprise</h3>
+              <div style={styles.price}>$199</div>
+            </div>
+            <ul style={styles.featureList}>
+              <li style={styles.featureItem}><CheckCircle size={16} color="#16a34a" /> All Pro features</li>
+              <li style={styles.featureItem}><CheckCircle size={16} color="#16a34a" /> API Access</li>
+              <li style={styles.featureItem}><CheckCircle size={16} color="#16a34a" /> Dedicated Support</li>
+              <li style={styles.featureItem}><CheckCircle size={16} color="#16a34a" /> SLA & Security Audit</li>
+            </ul>
+            <button style={styles.freeBtn} onClick={() => window.location.href = '/contact'}>
+              Contact Sales
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION 3: VALUE JUSTIFICATION */}
+      <section style={styles.valueSection}>
+        <div style={styles.valueBox}>
+          <Zap size={24} color="#0B3D91" style={{ marginBottom: 16 }} />
+          <p style={styles.valueText}>
+            Manual RFP review takes <strong>10–40 hours</strong>. <br />
+            BidSmith reduces this to <strong>under 2 minutes</strong>.
+          </p>
+        </div>
+      </section>
+
+      {/* SECTION 4: TRUST */}
+      <section style={styles.trustSection}>
+        <div style={styles.trustItem}><Lock size={18} /> Secure processing</div>
+        <div style={styles.trustItem}><Shield size={18} /> No data stored</div>
+        <div style={styles.trustItem}><CheckCircle size={18} /> Built for government contractors</div>
+      </section>
+
+      {/* SECTION 5: FINAL CTA */}
+      <section style={styles.finalCta}>
+        <button style={styles.mainCta} onClick={onTryFree}>
+          Upload RFP → Get Matrix <ArrowRight size={20} />
+        </button>
+      </section>
+    </main>
+  );
+}
+
+const styles = {
+  page: {
+    minHeight: '100vh',
+    background: '#ffffff',
+    color: '#0f172a',
+    fontFamily: 'Inter, sans-serif',
+    padding: '80px 24px',
+  },
+  hero: {
+    textAlign: 'center',
+    marginBottom: '64px',
+  },
+  title: {
+    fontSize: '3.5rem',
+    fontWeight: 900,
+    color: '#0B3D91',
+    letterSpacing: '-0.02em',
+    marginBottom: '16px',
+  },
+  subtitle: {
+    fontSize: '1.25rem',
+    color: '#64748b',
+    maxWidth: '600px',
+    margin: '0 auto',
+  },
+  pricingSection: {
+    maxWidth: '1000px',
+    margin: '0 auto 80px',
+  },
+  grid: {
+    display: 'flex',
+    gap: '32px',
+    flexDirection: window.innerWidth < 768 ? 'column' : 'row',
+  },
+  card: {
+    flex: 1,
+    padding: '48px 32px',
+    borderRadius: '24px',
+    border: '1px solid #e2e8f0',
+    background: '#fff',
+    position: 'relative',
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  proCard: {
+    background: '#0B3D91',
+    borderColor: '#0B3D91',
+    boxShadow: '0 24px 64px rgba(11,61,145,0.15)',
+    transform: 'scale(1.05)',
+  },
+  badge: {
+    position: 'absolute',
+    top: '-14px',
+    left: '50%',
+    transform: 'translateX(-50%)',
+    background: '#2563eb',
+    color: '#fff',
+    padding: '6px 16px',
+    borderRadius: '99px',
+    fontSize: '11px',
+    fontWeight: 800,
+    letterSpacing: '0.05em',
+  },
+  cardHeader: {
+    marginBottom: '32px',
+    textAlign: 'center',
+  },
+  cardTier: {
+    fontSize: '1.25rem',
+    fontWeight: 800,
+    color: '#64748b',
+    marginBottom: '8px',
+    textTransform: 'uppercase',
+  },
+  price: {
+    fontSize: '4rem',
+    fontWeight: 900,
+    color: '#0B3D91',
+  },
+  featureList: {
+    listStyle: 'none',
+    padding: 0,
+    margin: '0 0 40px 0',
+    flex: 1,
+  },
+  featureItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    fontSize: '1rem',
+    color: '#475569',
+    marginBottom: '16px',
+    fontWeight: 500,
+  },
+  freeBtn: {
+    width: '100%',
+    padding: '16px',
+    borderRadius: '12px',
+    border: '2px solid #0B3D91',
+    background: 'transparent',
+    color: '#0B3D91',
+    fontSize: '1rem',
+    fontWeight: 800,
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+  },
+  proBtn: {
+    width: '100%',
+    padding: '16px',
+    borderRadius: '12px',
+    border: 'none',
+    background: '#fff',
+    color: '#0B3D91',
+    fontSize: '1rem',
+    fontWeight: 800,
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+  },
+  valueSection: {
+    maxWidth: '1000px',
+    margin: '0 auto 80px',
+    textAlign: 'center',
+  },
+  valueBox: {
+    padding: '48px',
+    background: '#f8fafc',
+    borderRadius: '24px',
+    border: '1px solid #e2e8f0',
+  },
+  valueText: {
+    fontSize: '1.5rem',
+    color: '#475569',
+    lineHeight: 1.5,
+  },
+  trustSection: {
+    display: 'flex',
+    justifyContent: 'center',
+    gap: '40px',
+    marginBottom: '80px',
+    flexWrap: 'wrap',
+  },
+  trustItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    fontSize: '0.95rem',
+    color: '#64748b',
+    fontWeight: 600,
+  },
+  finalCta: {
+    textAlign: 'center',
+  },
+  mainCta: {
+    padding: '24px 64px',
+    borderRadius: '16px',
+    border: 'none',
+    background: '#0B3D91',
+    color: '#fff',
+    fontSize: '1.25rem',
+    fontWeight: 800,
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '16px',
+    cursor: 'pointer',
+    boxShadow: '0 20px 48px rgba(11,61,145,0.2)',
+  }
+};

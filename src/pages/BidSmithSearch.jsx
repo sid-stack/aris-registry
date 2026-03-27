@@ -138,7 +138,7 @@ const BidSmithSearch = ({ onBack }) => {
         setStatus('Mesh search failed. Check authentication.');
       }
     } catch (err) {
-      setStatus('Error connecting to ARIS Intelligence Network');
+      setStatus('Error connecting to BidSmith Intelligence Network');
     } finally {
       setLoading(false);
     }
@@ -168,12 +168,12 @@ const BidSmithSearch = ({ onBack }) => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Shield size={20} color="#002244" />
             <span style={{ fontSize: '14px', fontWeight: 800, color: '#002244', letterSpacing: '-0.01em' }}>
-              ARIS <span style={{ color: '#64748b', fontWeight: 500 }}>| SOVEREIGN SEARCH</span>
+              BidSmith <span style={{ color: '#64748b', fontWeight: 500 }}>| GOVERNMENT SEARCH</span>
             </span>
           </div>
         </div>
         
-        <img src="/aris-logo.png" alt="ARIS Labs Logo" style={{ height: '24px' }} />
+        <img src="/assets/logo.jpg" alt="BidSmith Logo" style={{ height: '32px' }} />
       </header>
 
       <main style={{
@@ -190,7 +190,7 @@ const BidSmithSearch = ({ onBack }) => {
                fontSize: '3.5rem', fontWeight: 900, letterSpacing: '-0.04em',
                margin: 0, color: '#002244'
              }}>
-               ARIS <span style={{ fontWeight: 400, color: '#64748b' }}>Search</span>
+               BidSmith <span style={{ fontWeight: 400, color: '#64748b' }}>Search</span>
              </h1>
              <p style={{ color: '#64748b', fontSize: '1.1rem', marginTop: '12px' }}>
                Search active federal solicitations and historical award records.
@@ -254,7 +254,7 @@ const BidSmithSearch = ({ onBack }) => {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px', color: '#002244' }}>
               <Sparkles size={20} />
-              <span style={{ fontSize: '14px', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase' }}>ARIS Intelligence Briefing</span>
+              <span style={{ fontSize: '14px', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase' }}>BidSmith Intelligence Briefing</span>
             </div>
             <div style={{ fontSize: '16px', color: '#334155', lineHeight: '1.8' }}>
               {briefing.split('\n').map((line, i) => (
@@ -331,7 +331,7 @@ const BidSmithSearch = ({ onBack }) => {
 
       <footer style={{ background: '#ffffff', borderTop: '2px solid #e2e8f0', padding: '24px', textAlign: 'center' }}>
          <p style={{ fontSize: '12px', color: '#94a3b8', margin: 0 }}>
-           ARIS Sovereign Search Network © 2026. Institutional Record Access.
+           BidSmith Government Search Network © 2026. Institutional Record Access.
          </p>
       </footer>
 

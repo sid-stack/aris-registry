@@ -96,9 +96,8 @@ export default function Landing({
 
       <header style={styles.navbar}>
         <div style={styles.navInner}>
-          <a href="/" style={styles.brand} aria-label="ARIS Labs Home">
-            <Shield size={22} color="#002244" />
-            <span style={{ fontWeight: 800, letterSpacing: "-0.02em", color: "#002244" }}>ARIS [OS]</span>
+          <a href="/" style={styles.brand} aria-label="BidSmith Home">
+            <img src="/assets/logo.jpg" alt="BidSmith Logo" style={{ height: '52px', objectFit: 'contain' }} />
           </a>
           <nav style={{ display: "flex", gap: isMobile ? "12px" : "24px", alignItems: "center" }} aria-label="Main Navigation">
             {!isMobile && (
@@ -124,17 +123,17 @@ export default function Landing({
                   type="button"
                   style={styles.navLinkBtn} 
                   onClick={onBidSmithSearch}
-                  aria-label="Open Sovereign Search"
+                  aria-label="Open Government Search"
                 >
-                  Sovereign Search
+                  Government Search
                 </button>
                 <button 
                   type="button"
                   style={styles.navLinkBtn} 
                   onClick={onBidSmithBeta}
-                  aria-label="Early Access Intelligence"
+                  aria-label="Gov Admin Registry Access"
                 >
-                  Intelligence
+                  Gov Admin Registry
                 </button>
               </>
             )}
@@ -142,15 +141,12 @@ export default function Landing({
               type="button"
               style={{ ...styles.navCta, fontSize: isMobile ? 12 : 14, padding: isMobile ? "8px 14px" : "10px 20px" }} 
               onClick={onEnterApp}
-              aria-label="Launch Workspace"
+              aria-label="Open Audit Workspace"
             >
-              {isMobile ? "Launch" : "Launch Workspace"}
+              Open Workspace
             </button>
             {!isMobile && (
-              <>
-                <div style={{ width: '1px', height: '20px', background: '#e2e8f0', margin: '0 8px' }} aria-hidden="true" />
-                <img src="/aris-logo.png" alt="ARIS Labs Institutional Logo" style={{ height: '24px', opacity: 0.9 }} />
-              </>
+              <div style={{ width: '1px', height: '20px', background: '#e2e8f0', margin: '0 8px' }} aria-hidden="true" />
             )}
           </nav>
         </div>
@@ -158,61 +154,74 @@ export default function Landing({
 
         <section className="landing-hero" style={{ ...styles.heroSection, padding: isMobile ? "60px 20px" : "100px 24px" }}>
           <div className="landing-hero-layout" style={{ maxWidth: 1100, margin: "0 auto", textAlign: "center" }}>
-            <div style={{ ...styles.heroBadge, fontSize: isMobile ? "10px" : "12px" }}>ARIS PROTOCOL v2.2 ENGINE ACTIVE</div>
+            <div style={{ ...styles.heroBadge, fontSize: isMobile ? "10px" : "12px" }}>BIDSMITH PROTOCOL v2.2 ENGINE ACTIVE</div>
             <h1 style={{ ...styles.title, fontSize: isMobile ? "2.5rem" : "4.25rem", lineHeight: isMobile ? 1.1 : 1.2 }}>
-              Turn 200-page RFPs into <br />
-              <span style={{ color: '#002244' }}>compliance matrices in 90s.</span>
+              Risky audits make you <br />
+              <span style={{ color: '#002244' }}>bleed money.</span>
             </h1>
             <p style={{ ...styles.subtitle, fontSize: isMobile ? "1rem" : "1.25rem", maxWidth: "600px", margin: "0 auto 40px" }}>
-              Instantly detect FAR/DFARS traps and Section L compliance gaps. <br />
-              Institutional defense-tier security. Zero-knowledge execution.
+              Stop losing contracts to compliance errors. BidSmith identifies <br />
+              every 'shall', 'must', and risk factor in seconds.
             </p>
 
             {!isProcessing ? (
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 32 }}>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    style={{ ...styles.heroBtn, padding: isMobile ? "16px 32px" : "20px 48px", width: isMobile ? "100%" : "auto" }}
-                    aria-label="Upload Solicitation PDF"
-                  >
-                    Upload Solicitation [PDF] →
-                  </button>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.85rem", color: "#64748b", fontWeight: 600 }}>
-                    <Shield size={14} color="#16a34a" /> No data stored • Secure processing • Zero-knowledge
+              <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: "center", gap: 16, width: isMobile ? "100%" : "auto" }}>
+                <button
+                  type="button"
+                  onClick={onEnterApp}
+                  style={{ ...styles.heroBtn, flex: isMobile ? "none" : 1, width: isMobile ? "100%" : "auto" }}
+                  aria-label="Upload RFP to Get Matrix"
+                >
+                  Upload RFP → Get Matrix
+                </button>
+                <button
+                  type="button"
+                  onClick={onBidSmithSearch}
+                  style={{ ...styles.secondaryHeroBtn, flex: isMobile ? "none" : 1, width: isMobile ? "100%" : "auto" }}
+                  aria-label="Search Bids Live"
+                >
+                  Search Bids Live
+                </button>
+              </div>
+                  <div style={{ fontSize: "0.85rem", color: "#64748b", fontWeight: 700 }}>
+                    No signup • Takes ~90 seconds
+                  </div>
+                  <div style={styles.trustBar}>
+                    <div style={styles.trustItem}><CheckCircle size={14} color="#16a34a" /> Secure</div>
+                    <div style={styles.trustItem}><CheckCircle size={14} color="#16a34a" /> No data stored</div>
+                    <div style={styles.trustItem}><CheckCircle size={14} color="#16a34a" /> Built for government contractors</div>
                   </div>
                   <button 
                     type="button"
                     onClick={onViewSample}
-                    style={{ background: "none", border: "none", color: "#002244", fontWeight: 700, fontSize: "0.95rem", cursor: "pointer", textDecoration: "underline" }}
+                    style={{ background: "none", border: "none", color: "#002244", fontWeight: 700, fontSize: "0.95rem", cursor: "pointer", textDecoration: "underline", marginTop: 8 }}
                   >
-                    No RFP handy? Try the interactive demo →
+                    Watch BidSmith extract requirements in real-time →
                   </button>
                 </div>
 
-              {/* Visual Showcase: Before -> After */}
-              <div style={{ ...styles.showcase, flexDirection: isMobile ? "column" : "row", gap: isMobile ? 8 : 16 }}>
-                <div style={{ ...styles.showcaseHalf, width: isMobile ? "100%" : "auto" }}>
-                   <div style={styles.showcaseLabel}>BEFORE (PDF)</div>
-                   <div style={styles.blurredPdf}>
-                     "The contractor shall provide all personnel, equipment, supplies, facilities, transportation, tools, materials, supervision, and other items..."
-                   </div>
-                </div>
-                <div style={{ width: isMobile ? "100%" : 40, height: isMobile ? 32 : "auto", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                   {isMobile ? <ChevronDown size={20} color="#002244" /> : <ArrowRight size={20} color="#002244" />}
-                </div>
-                <div style={{ ...styles.showcaseHalf, width: isMobile ? "100%" : "auto" }}>
-                   <div style={styles.showcaseLabel}>AFTER (ARIS)</div>
-                   <div style={styles.cleanMatrix}>
-                     <div style={{ borderBottom: "1px solid #e2e8f0", paddingBottom: 4, marginBottom: 4, fontSize: 9, fontWeight: 800, color: "#64748b" }}>SEC L-14.2</div>
-                     <div style={{ fontSize: 11, fontWeight: 800, color: "#002244", lineHeight: 1.2 }}>Personnel Certs Required</div>
-                     <div style={{ fontSize: 9, color: "#16a34a", fontWeight: 800, marginTop: 4 }}>DETECTED: MANDATORY SHALL</div>
-                   </div>
+                {/* Hero Video Demo */}
+                <div style={styles.videoContainer}>
+                  <video 
+                    autoPlay 
+                    muted 
+                    loop 
+                    playsInline 
+                    poster="/assets/demo/video-poster.png"
+                    style={styles.heroVideo}
+                  >
+                    <source src="/assets/demo/aris-demo.mp4" type="video/mp4" />
+                    Your browser does not support the video tag.
+                  </video>
+                  <div style={{ ...styles.videoOverlay, background: 'rgba(0,34,68,0.4)', backdropFilter: 'blur(8px)' }}>
+                    <Shield size={12} color="#fff" />
+                    <span style={{ fontSize: '8px' }}>ARIS PROTOCOL: ACTIVE AUDIT</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ) : (
+            ) : (
             <div style={styles.processingWrapper}>
               <div style={styles.terminalHeader}>
                 <span style={{ fontSize: 11, color: "#64748b", fontWeight: 700 }}>BIDSMITH SECURE SESSION</span>
@@ -228,21 +237,66 @@ export default function Landing({
             </div>
           )}
         </div>
+      </section>
 
-        <div style={{ maxWidth: 1200, margin: "60px auto 0", borderTop: "1px solid #e2e8f0", paddingTop: 40 }}>
-          <div style={styles.heroStatsGrid}>
-            {heroStats.map((stat) => (
-              <div key={stat.label} style={styles.heroStatCard}>
-                <div style={styles.heroStatValue}>{stat.value}</div>
-                <div style={styles.heroStatLabel}>{stat.label}</div>
+      <section style={styles.stepSection}>
+        <div style={styles.stepContainer}>
+          <div style={styles.stepHeader}>
+            <h2 style={styles.stepTitle}>Three Steps to Compliance</h2>
+          </div>
+          <div style={styles.stepGrid}>
+            <div style={styles.stepCard}>
+              <div style={styles.stepNum}>01</div>
+              <h4 style={styles.stepLabel}>Upload RFP</h4>
+              <p style={styles.stepText}>Paste a SAM.gov link or upload your solicitation PDF.</p>
+            </div>
+            <div style={styles.stepCard}>
+              <div style={styles.stepNum}>02</div>
+              <h4 style={styles.stepLabel}>Extract Requirements</h4>
+              <p style={styles.stepText}>ARIS identifies every 'shall', 'must', and FAR/DFARS clause.</p>
+            </div>
+            <div style={styles.stepCard}>
+              <div style={styles.stepNum}>03</div>
+              <h4 style={styles.stepLabel}>Get Matrix</h4>
+              <p style={styles.stepText}>Download a structured matrix ready for your proposal team.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="demo-comparison" style={styles.demoComparisonSection}>
+        <div style={styles.demoComparisonInner}>
+          <div style={styles.demoHeader}>
+             <h2 style={styles.demoCompTitle}>Stop spending 20+ hours reviewing RFPs manually</h2>
+             <p style={styles.demoCompSubtitle}>ARIS catches what humans miss. Instantly.</p>
+          </div>
+          
+          <div style={styles.visualToggle}>
+            <div style={styles.toggleHalf}>
+              <div style={styles.toggleLabel}>MESSY RFP (MANUAL)</div>
+              <div style={styles.messyPreview}>
+                <div style={{ opacity: 0.4 }}>...shall provide personnel...</div>
+                <div style={{ opacity: 0.6 }}>...must hold Secret clearance...</div>
+                <div style={{ opacity: 0.3 }}>...FAR 52.204-21 applies...</div>
               </div>
-            ))}
+            </div>
+            <div style={styles.toggleCenter}>
+               <ArrowRight size={24} color="#002244" />
+            </div>
+            <div style={styles.toggleHalf}>
+              <div style={styles.toggleLabel}>CLEAN MATRIX (ARIS)</div>
+              <div style={styles.cleanPreview}>
+                <div style={styles.previewRow}><CheckCircle size={12} color="#16a34a" /> <strong>47</strong> Requirements Found</div>
+                <div style={styles.previewRow}><Shield size={12} color="#dc2626" /> <strong>6</strong> High-Risk Clauses</div>
+                <div style={styles.previewRow}><Search size={12} color="#2563eb" /> <strong>3</strong> Missing Certs</div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       <div id="solutions">
-        <DemoSection onTryDemo={onViewSample} />
+        <DemoSection onTryDemo={onEnterApp} />
       </div>
 
       <section id="pricing" style={styles.pricingSection}>
@@ -275,37 +329,30 @@ export default function Landing({
           <div style={styles.footerGrid}>
             <div style={styles.footerColumn}>
               <h4 style={styles.footerHeading}>Protocol</h4>
-              <a href="#solutions" style={styles.footerLink}>Solutions</a>
-              <a href="#pricing" style={styles.footerLink}>Pricing</a>
-              <a 
-                href="/demo" 
-                style={styles.footerLink}
-                onClick={(e) => { e.preventDefault(); onViewSample(); }}
-              >
-                Live Demo
-              </a>
-              <a 
-                href="/dashboard"
-                style={styles.footerLink}
-                onClick={(e) => { e.preventDefault(); onEnterDashboard(); }}
-              >
-                Open Dashboard
-              </a>
-              <a href="/templates" style={styles.footerLink} onClick={(e) => { e.preventDefault(); window.history.pushState(null, '', '/templates'); window.dispatchEvent(new PopStateEvent('popstate')); }}>RFP Templates</a>
+              <button style={styles.footerLinkBtn} onClick={() => window.location.href = '/pricing'}>Pricing</button>
+              <button style={styles.footerLinkBtn} onClick={onViewSample}>Live Demo</button>
+              <button style={styles.footerLinkBtn} onClick={() => window.location.href = '/rfp-compliance-matrix-generator'}>SEO Tool</button>
+              <button style={styles.footerLinkBtn} onClick={() => window.location.href = '/templates'}>RFP Templates</button>
             </div>
             
             <div style={styles.footerColumn}>
               <h4 style={styles.footerHeading}>Capture</h4>
-              <a href="/discovery" style={styles.footerLink} onClick={(e) => { e.preventDefault(); window.history.pushState(null, '', '/discovery'); window.dispatchEvent(new PopStateEvent('popstate')); }}>Discovery Engine</a>
-              <a href="/sam-scraper" style={styles.footerLink} onClick={(e) => { e.preventDefault(); window.history.pushState(null, '', '/sam-scraper'); window.dispatchEvent(new PopStateEvent('popstate')); }}>SAM Scraper</a>
-              <a href="/govcon-guide" style={styles.footerLink} onClick={(e) => { e.preventDefault(); window.history.pushState(null, '', '/govcon-guide'); window.dispatchEvent(new PopStateEvent('popstate')); }}>GovCon Guide</a>
+              <button style={styles.footerLinkBtn} onClick={() => window.location.href = '/discovery'}>Discovery Engine</button>
+              <button style={styles.footerLinkBtn} onClick={() => window.location.href = '/sam-scraper'}>SAM Scraper</button>
+              <button style={styles.footerLinkBtn} onClick={() => window.location.href = '/govcon-guide'}>GovCon Guide</button>
             </div>
 
             <div style={styles.footerColumn}>
               <h4 style={styles.footerHeading}>Company</h4>
-              <a href="/about" style={styles.footerLink} onClick={(e) => { e.preventDefault(); window.history.pushState(null, '', '/about'); window.dispatchEvent(new PopStateEvent('popstate')); }}>History & Mission</a>
-              <a href="/soc" style={styles.footerLink} onClick={(e) => { e.preventDefault(); window.history.pushState(null, '', '/soc'); window.dispatchEvent(new PopStateEvent('popstate')); }}>Security / SOC2</a>
-              <a href="mailto:sid@bidsmith.pro" style={styles.footerLink}>Contact Desk</a>
+              <button style={styles.footerLinkBtn} onClick={() => window.location.href = '/about'}>About BidSmith</button>
+              <button style={styles.footerLinkBtn} onClick={() => window.location.href = '/contact'}>Contact Sales</button>
+              <button style={styles.footerLinkBtn} onClick={() => window.location.href = '/soc'}>Security / SOC2</button>
+            </div>
+            
+            <div style={styles.footerColumn}>
+              <h4 style={styles.footerHeading}>Internal</h4>
+              <button style={styles.footerLinkBtn} onClick={() => window.location.href = '/outreach'}>Outreach Tracker</button>
+              <button style={styles.footerLinkBtn} onClick={() => window.location.href = '/admin'}>CEO Dashboard</button>
             </div>
             
             <div style={styles.footerColumn}>
@@ -373,7 +420,8 @@ const styles = {
   heroSection: { padding: "100px 24px" },
   title: { fontSize: "4.25rem", fontWeight: 900, marginBottom: 24, letterSpacing: "-0.04em" },
   subtitle: { fontSize: "1.25rem", color: "#475569", marginBottom: 40 },
-  heroBtn: { background: "#002244", color: "#fff", padding: "20px 48px", borderRadius: 12, border: "none", fontWeight: 800, fontSize: "1.05rem", cursor: "pointer" },
+  heroBtn: { background: "#002244", color: "#fff", padding: "20px 48px", borderRadius: 12, border: "none", fontWeight: 800, fontSize: "1.05rem", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 },
+  secondaryHeroBtn: { background: "#ffffff", color: "#002244", padding: "20px 48px", borderRadius: 12, border: "2px solid #002244", fontWeight: 800, fontSize: "1.05rem", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 },
   secondaryBtn: { background: "#ffffff", color: "#0f172a", padding: "12px 18px", borderRadius: 10, border: "1px solid #e2e8f0", fontWeight: 700, cursor: "pointer" },
   urlInput: { flex: 1, minWidth: 220, padding: "12px 14px", borderRadius: 10, border: "1px solid #e2e8f0", fontSize: 14 },
   inlineInputRow: { display: "flex", gap: 12, alignItems: "center", width: "100%", maxWidth: 520, justifyContent: "center" },
@@ -384,6 +432,40 @@ const styles = {
   cleanMatrix: { background: "#fff", border: "1px solid #e2e8f0", borderRadius: 6, padding: "8px 12px", boxShadow: "0 4px 12px rgba(0,0,0,0.03)" },
   heroSecondaryLinks: { display: "flex", gap: 16, alignItems: "center", fontSize: 13, color: "#475569", fontWeight: 600, flexWrap: "wrap", justifyContent: "center" },
   heroLinkItem: { display: "flex", alignItems: "center", gap: 6, cursor: "pointer" },
+  videoContainer: {
+    maxWidth: '800px',
+    width: '100%',
+    margin: '40px auto',
+    borderRadius: '16px',
+    overflow: 'hidden',
+    boxShadow: '0 20px 50px -10px rgba(0,0,0,0.15)',
+    border: '1px solid #e2e8f0',
+    position: 'relative',
+    background: '#000',
+  },
+  heroVideo: {
+    width: '100%',
+    display: 'block',
+    aspectRatio: '16/9',
+    objectFit: 'cover',
+  },
+  videoOverlay: {
+    position: 'absolute',
+    top: '12px',
+    right: '12px',
+    background: 'rgba(0,34,68,0.8)',
+    backdropFilter: 'blur(4px)',
+    padding: '6px 12px',
+    borderRadius: '99px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    color: '#fff',
+    fontSize: '9px',
+    fontWeight: 800,
+    letterSpacing: '0.05em',
+    zIndex: 2,
+  },
   processingWrapper: { maxWidth: 600, margin: "40px auto", borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden" },
   terminalHeader: { background: "#f1f5f9", padding: "10px 16px", textAlign: "left" },
   terminalBody: { background: "#fff", padding: 24, textAlign: "left", minHeight: 180 },
@@ -465,6 +547,143 @@ const styles = {
     color: '#94a3b8',
     textAlign: 'center',
     fontWeight: 600,
+  },
+  trustBar: {
+    display: "flex",
+    gap: "24px",
+    marginTop: "12px",
+    flexWrap: "wrap",
+    justifyContent: "center",
+  },
+  trustItem: {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    fontSize: "0.85rem",
+    color: "#475569",
+    fontWeight: 600,
+  },
+  stepSection: {
+    padding: "80px 24px",
+    background: "#fff",
+  },
+  stepContainer: {
+    maxWidth: "1100px",
+    margin: "0 auto",
+  },
+  stepHeader: {
+    textAlign: "center",
+    marginBottom: "48px",
+  },
+  stepTitle: {
+    fontSize: "2.5rem",
+    fontWeight: 900,
+    color: "#002244",
+  },
+  stepGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+    gap: "32px",
+  },
+  stepCard: {
+    padding: "32px",
+    background: "#f8fafc",
+    borderRadius: "16px",
+    border: "1px solid #e2e8f0",
+    textAlign: "center",
+  },
+  stepNum: {
+    fontSize: "3rem",
+    fontWeight: 900,
+    color: "#e2e8f0",
+    marginBottom: "16px",
+    lineHeight: 1,
+  },
+  stepLabel: {
+    fontSize: "1.25rem",
+    fontWeight: 800,
+    color: "#002244",
+    marginBottom: "12px",
+  },
+  stepText: {
+    fontSize: "1rem",
+    color: "#64748b",
+    lineHeight: 1.5,
+  },
+  demoComparisonSection: {
+    padding: "100px 24px",
+    background: "#f8fafc",
+    borderTop: "1px solid #e2e8f0",
+  },
+  demoComparisonInner: {
+    maxWidth: "1100px",
+    margin: "0 auto",
+  },
+  demoHeader: {
+    textAlign: "center",
+    marginBottom: "64px",
+  },
+  demoCompTitle: {
+    fontSize: "2.5rem",
+    fontWeight: 900,
+    color: "#002244",
+    marginBottom: "16px",
+  },
+  demoCompSubtitle: {
+    fontSize: "1.25rem",
+    color: "#64748b",
+  },
+  visualToggle: {
+    display: "flex",
+    alignItems: "center",
+    gap: "24px",
+    background: "#fff",
+    padding: "32px",
+    borderRadius: "24px",
+    border: "1px solid #e2e8f0",
+    boxShadow: "0 24px 64px rgba(0,34,68,0.06)",
+  },
+  toggleHalf: {
+    flex: 1,
+  },
+  toggleLabel: {
+    fontSize: "0.75rem",
+    fontWeight: 800,
+    color: "#94a3b8",
+    letterSpacing: "0.1em",
+    marginBottom: "20px",
+  },
+  toggleCenter: {
+    width: "48px",
+    height: "48px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "#f8fafc",
+    borderRadius: "50%",
+    border: "1px solid #e2e8f0",
+  },
+  messyPreview: {
+    fontSize: "0.85rem",
+    color: "#94a3b8",
+    fontFamily: "monospace",
+    lineHeight: 1.8,
+  },
+  cleanPreview: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
+  },
+  previewRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    padding: "12px 16px",
+    background: "#f8fafc",
+    borderRadius: "8px",
+    fontSize: "0.95rem",
+    color: "#475569",
+    border: "1px solid #e2e8f0",
   },
 };
 

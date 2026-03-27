@@ -1,10 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { 
   Shield, 
   CheckCircle, 
-  Play, 
-  Pause, 
-  Maximize2, 
   FileCheck,
   Zap,
   Lock,
@@ -12,16 +9,7 @@ import {
 } from 'lucide-react';
 
 export default function DemoSection({ onTryDemo }) {
-  const [isPlaying, setIsPlaying] = useState(false);
   const videoRef = React.useRef(null);
-
-  const togglePlay = () => {
-    if (videoRef.current) {
-      if (isPlaying) videoRef.current.pause();
-      else videoRef.current.play();
-      setIsPlaying(!isPlaying);
-    }
-  };
 
   return (
     <section style={styles.section}>
@@ -49,28 +37,19 @@ export default function DemoSection({ onTryDemo }) {
               </div>
             </div>
             
-            <div style={styles.videoFrame} onClick={togglePlay}>
+            <div style={styles.videoFrame}>
               <video
                 ref={videoRef}
+                autoPlay
+                muted
+                loop
+                playsInline
                 poster="/assets/demo/video-poster.png"
                 style={styles.video}
-                loop
-                muted
-                playsInline
-                onPlay={() => setIsPlaying(true)}
-                onPause={() => setIsPlaying(false)}
               >
                 <source src="/assets/demo/aris-demo.mp4" type="video/mp4" />
                 Browser does not support video playback.
               </video>
-
-              {!isPlaying && (
-                <div style={styles.playOverlay}>
-                  <div style={styles.playBtn}>
-                    <Play size={32} fill="white" color="white" />
-                  </div>
-                </div>
-              )}
             </div>
           </div>
 

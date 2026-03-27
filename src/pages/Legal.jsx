@@ -76,7 +76,7 @@ const LEGAL_CONTENT = {
       {
         id: "liability",
         heading: "Limitation of Liability",
-        body: "ARIS provides precision-grade risk analysis as an analytical aid, not legal advice or a guarantee of compliance. Users are responsible for final verification of all compliance claims against official FAR/DFARS regulations and applicable law. BidSmith's total liability to you for any claim arising from use of the platform is limited to the amount you paid us in the three months preceding the claim. We are not liable for indirect, consequential, or incidental damages including lost contract awards.",
+        body: "BidSmith provides precision-grade risk analysis as an analytical aid, not legal advice or a guarantee of compliance. Users are responsible for final verification of all compliance claims against official FAR/DFARS regulations and applicable law. BidSmith's total liability to you for any claim arising from use of the platform is limited to the amount you paid us in the three months preceding the claim. We are not liable for indirect, consequential, or incidental damages including lost contract awards.",
       },
       {
         id: "governing-law",

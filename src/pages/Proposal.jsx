@@ -154,7 +154,7 @@ export default function Proposal({ proposal, onReset, onBack }) {
     <div style={{ maxWidth: 1060, margin: "0 auto", padding: isMobile ? "20px 16px 40px" : "32px 24px 60px", fontFamily: "sans-serif", color: "#d4d8e2", background: "#0d0f14", minHeight: "100vh" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
         <div>
-          <div style={{ fontSize: 10, color: "#4a7cff", letterSpacing: 2.5, textTransform: "uppercase", marginBottom: 6 }}>ARIS · Federal Pre-Bid Risk Intelligence</div>
+          <div style={{ fontSize: 10, color: "#4a7cff", letterSpacing: 2.5, textTransform: "uppercase", marginBottom: 6 }}>BidSmith · Federal Pre-Bid Risk Intelligence</div>
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 600 }}>{meta.agency || "Federal Agency"}{meta.solicitation_number ? ` · ${meta.solicitation_number}` : ""}</h1>
           <div style={{ fontSize: 12, color: "#6b7585", marginTop: 5 }}>{[meta.naics_code && `NAICS ${meta.naics_code}`, meta.set_aside_type, meta.contract_type].filter(Boolean).join(" · ")}</div>
         </div>
@@ -317,7 +317,7 @@ export default function Proposal({ proposal, onReset, onBack }) {
         </div>
         <div style={{ marginTop: 32, borderTop: "1px solid #2d3446", paddingTop: 16, textAlign: "left" }}>
           <span style={{ fontSize: 10, color: "#6b7585", fontFamily: "monospace" }}>
-            Audit Note: This report was generated via the <strong style={{ color: "#4a7cff" }}>ARIS Stateless Bridge</strong>. Zero Storage. High Conviction.
+            Audit Note: This report was generated via the <strong style={{ color: "#4a7cff" }}>BidSmith Stateless Bridge</strong>. Zero Storage. High Conviction.
           </span>
         </div>
       </div>

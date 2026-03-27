@@ -81,7 +81,7 @@ export default function Login({ onLogin }) {
             {mode === 'login' ? 'Institutional Login' : 'Create Account'}
           </h1>
           <p style={{ fontSize: '14px', color: '#94a3b8' }}>
-            Access the ARIS Gov-Tier Intelligence Protocol
+            Access the BidSmith Gov-Tier Intelligence Protocol
           </p>
         </div>
 

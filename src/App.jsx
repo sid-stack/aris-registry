@@ -27,20 +27,25 @@ const DemoAnalytics = lazy(() => import("./components/DemoAnalytics"));
 const GovConDashboard = lazy(() => import("./pages/GovConDashboard"));
 const GovConGuide = lazy(() => import("./pages/GovConGuide"));
 const Demo = lazy(() => import("./pages/Demo"));
+const PricingGrid = lazy(() => import("./pages/PricingGrid"));
+const RfpMatrixGenerator = lazy(() => import("./pages/seo/RfpMatrixGenerator"));
+const Outreach = lazy(() => import("./pages/Outreach"));
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const Contact = lazy(() => import("./pages/Contact"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const BASE_URL = "https://www.bidsmith.pro";
 
 const PAGE_META = {
-  landing: { title: "BidSmith | Federal RFP Compliance & Audit Software for Government Contractors", description: "Analyze SAM.gov solicitations in 90 seconds. Compliance matrix, FAR/DFARS risk flags, and bid/no-bid brief — automatically.", path: "/" },
+  landing: { title: "BidSmith | Federal Intelligence & Gov Admin Registry", description: "The institutional registry for federal procurement logic. Analyze SAM.gov solicitations in 90 seconds. Compliance matrix, FAR/DFARS risk flags, and bid/no-bid brief — automatically.", path: "/" },
   templates: { title: "BidSmith Templates | Federal Proposal & Compliance Matrix Templates", description: "Download pre-built compliance matrix templates, proposal outlines, and RFP shred worksheets for government contractors.", path: "/templates" },
   about: { title: "About BidSmith | Federal GovCon Intelligence Platform", description: "BidSmith builds agentic intelligence for federal capture teams. Zero-knowledge architecture, SAM.gov native.", path: "/about" },
   soc: { title: "BidSmith Security | Zero-Knowledge Data Architecture", description: "BidSmith processes solicitation data in transient memory. No persistence, no storage, no leaks.", path: "/soc" },
   "sam-rep": { title: "BidSmith Sample Audit | DHA Federal Solicitation Report", description: "Inspect a real BidSmith audit output for a Defense Health Agency solicitation.", path: "/sam-rep" },
   discovery: { title: "BidSmith Discovery | Federal Opportunity Discovery Engine", description: "Surface federal contracting opportunities matched to your NAICS codes and capability profile.", path: "/discovery" },
   "sam-scraper": { title: "BidSmith SAM Scraper | SAM.gov Bulk Opportunity Export", description: "Extract and filter SAM.gov opportunities in bulk by NAICS, agency, set-aside, and dollar threshold.", path: "/sam-scraper" },
-  "bid-search": { title: "BidSmith Search | Federal Intelligence Search", description: "Search federal solicitations, award history, and agency patterns with natural language queries.", path: "/bid-search" },
-  beta: { title: "BidSmith Beta | Early Access", description: "Apply for early access to BidSmith — the next generation of federal intelligence.", path: "/beta" },
+  "bid-search": { title: "BidSmith Search | Government Search (Live Bids)", description: "Search live federal solicitations, award history, and agency patterns with natural language queries.", path: "/bid-search" },
+  beta: { title: "BidSmith Registry | Gov Admin Selection", description: "Apply for selection into the BidSmith Gov Admin Registry — institutional intelligence for federal practice.", path: "/beta" },
   demo: { title: "BidSmith Live Demo | See a Federal RFP Audit in 90 Seconds", description: "Watch BidSmith audit a real $24.5M Army solicitation — compliance matrix, disqualifier flags, and bid/no-bid verdict.", path: "/demo" },
   "govcon-guide": { title: "Federal Contracting Process Guide | BidSmith", description: "The complete government contracting workflow — SAM.gov registration, opportunity discovery, compliance review, and proposal development.", path: "/govcon-guide" },
   labs: { title: "BidSmith / Labs | Experimental Federal Intelligence Tools", description: "Experimental tools from BidSmith for federal capture management and GovCon intelligence.", path: "/labs" },
@@ -49,6 +54,11 @@ const PAGE_META = {
   cookies: { title: "Cookie Policy | BidSmith", description: "How BidSmith uses cookies and local storage on bidsmith.pro.", path: "/cookies" },
   app: { title: "BidSmith Audit Workspace", description: "Your BidSmith federal solicitation audit workspace.", path: "/app" },
   "govcon-dashboard": { title: "BidSmith GovCon Dashboard", description: "Institutional capture intelligence workspace for federal solicitations.", path: "/dashboard" },
+  pricing: { title: "BidSmith Support Plans | Institutional RFP Access", description: "Analyze RFPs in seconds. Support tiers for federal practitioners. $49/mo for Pro access.", path: "/pricing" },
+  "rfp-generator": { title: "Free RFP Compliance Matrix Generator (90s)", description: "Turn any RFP into a structured compliance matrix instantly. Save hours and avoid missing requirements.", path: "/rfp-compliance-matrix-generator" },
+  outreach: { title: "Outreach Dashboard | Internal", description: "Internal outreach tracking tool.", path: "/outreach" },
+  admin: { title: "Admin Portal | BidSmith Intelligence", description: "Internal CEO analytics for BidSmith.", path: "/admin" },
+  contact: { title: "Contact Sales | BidSmith Federal Intelligence", description: "Request a consultation with a BidSmith federal capture specialist.", path: "/contact" },
 };
 
 function usePageMeta(view) {
@@ -94,7 +104,6 @@ function usePageMeta(view) {
 const LANDING_SECTION_ALIASES = {
   "/solutions": "solutions",
   "/workflow": "workflow",
-  "/pricing": "pricing",
   "/markets": "markets",
   "/contact": "contact",
 };
@@ -109,51 +118,55 @@ export default function App() {
     window.location.search.includes("phase2=true") ? "phase2" : "audit",
   );
   const [view, setView] = useState(() =>
-    aliasSection
-      ? "landing"
-      : path === "/templates"
-        ? "templates"
-        : path === "/privacy"
-          ? "privacy"
-          : path === "/terms"
-            ? "terms"
-            : path === "/cookies"
-              ? "cookies"
-              : path === "/sam-rep"
-                ? "sam-rep"
-                : path === "/discovery"
-                  ? "discovery"
-                  : path === "/soc"
-                    ? "soc"
-                    : path === "/sam-scraper"
-                      ? "sam-scraper"
-                      : path === "/bid-search" || path === "/fed-search" || path === "/search"
-                        ? "bid-search"
-                        : path === "/survey-analytics"
-                          ? "survey-analytics"
-                          : path === "/demo-analytics"
-                            ? "demo-analytics"
-                            : path === "/app"
-                              ? "app"
-                              : window.location.search.includes("app=true")
-                                ? "app"
-                                : path === "/about"
-                                  ? "about"
-                                  : path === "/beta" || path === "/sovereign-beta"
-                                    ? "beta"
-                                    : path === "/demo"
-                                      ? "demo"
-                                      : path === "/govcon-guide" || path === "/how-it-works"
-                                        ? "govcon-guide"
-                                        : path === "/dashboard" || path === "/app/dashboard"
-                                          ? "govcon-dashboard"
-                                          : path.startsWith("/labs")
-                                            ? "labs"
-                                            : path.startsWith("/compliance/")
-                                              ? "compliance"
-                                              : path !== "/"
-                                                ? "404"
-                                                : "landing",
+    path === "/templates"
+      ? "templates"
+      : path === "/pricing"
+        ? "pricing"
+        : path === "/rfp-compliance-matrix-generator"
+          ? "rfp-generator"
+          : path === "/outreach"
+            ? "outreach"
+            : path === "/admin"
+              ? "admin"
+              : path === "/contact"
+                ? "contact"
+                : path === "/privacy" || path === "/terms" || path === "/cookies"
+                  ? path.slice(1)
+                  : path === "/sam-rep"
+                    ? "sam-rep"
+                    : path === "/discovery"
+                      ? "discovery"
+                      : path === "/soc"
+                        ? "soc"
+                        : path === "/sam-scraper"
+                          ? "sam-scraper"
+                          : path === "/bid-search" || path === "/fed-search" || path === "/search"
+                            ? "bid-search"
+                            : path === "/survey-analytics"
+                              ? "survey-analytics"
+                              : path === "/demo-analytics"
+                                ? "demo-analytics"
+                                : path.startsWith("/app") || window.location.search.includes("app=true")
+                                  ? "app"
+                                  : path === "/about"
+                                    ? "about"
+                                    : path === "/beta" || path === "/sovereign-beta"
+                                      ? "beta"
+                                      : path === "/demo"
+                                        ? "demo"
+                                        : path === "/govcon-guide" || path === "/how-it-works"
+                                          ? "govcon-guide"
+                                          : path === "/dashboard" || path === "/app/dashboard"
+                                            ? "govcon-dashboard"
+                                            : path.startsWith("/labs")
+                                              ? "labs"
+                                              : path.startsWith("/compliance/")
+                                                ? "compliance"
+                                                : aliasSection
+                                                  ? "landing"
+                                                  : path !== "/"
+                                                    ? "404"
+                                                    : "landing",
   );
 
   usePageMeta(view);
@@ -215,7 +228,7 @@ export default function App() {
     } else if (view === "sam-scraper") {
       logicalPath = "/sam-scraper";
     } else if (view === "bid-search") {
-      logicalPath = "/bid-search";
+      logicalPath = "/search";
     } else if (view === "survey-analytics") {
       logicalPath = "/survey-analytics";
     } else if (view === "demo-analytics") {
@@ -270,6 +283,11 @@ export default function App() {
   const [initialUrl, setInitialUrl] = useState("");
   const [initialFile, setInitialFile] = useState(null);
 
+  const handleBidSmithSearch = () => {
+    setView("bid-search");
+    window.history.pushState({ view: "bid-search" }, "", "/search");
+  };
+
   const handleAnalyze = (url) => {
     setInitialFile(null);
     setInitialUrl(url);
@@ -314,12 +332,29 @@ export default function App() {
   } else if (view === "compliance") {
     const slug = window.location.pathname.replace("/compliance/", "");
     content = <CompliancePage slug={slug} onBack={() => setView("app")} />;
+  } else if (view === "app") {
+    content = <Audit onBack={() => setView("landing")} />;
   } else if (view === "beta") {
     content = <BidSmithBeta onBack={() => setView("landing")} />;
   } else if (view === "demo") {
     content = <Demo onBack={() => setView("landing")} onEnterApp={() => setView("app")} />;
   } else if (view === "govcon-guide") {
     content = <GovConGuide onBack={() => setView("landing")} onEnterApp={() => setView("app")} />;
+  } else if (view === "pricing") {
+    content = (
+      <PricingGrid 
+        onTryFree={() => setView("app")} 
+        onGetPro={() => window.open("https://buy.stripe.com/3cIaEX66197ad9H9na2Fa00", "_blank")} 
+      />
+    );
+  } else if (view === "rfp-generator") {
+    content = <RfpMatrixGenerator onUpload={() => setView("app")} />;
+  } else if (view === "outreach") {
+    content = <Outreach onBack={() => setView("landing")} />;
+  } else if (view === "admin") {
+    content = <AdminDashboard onBack={() => setView("landing")} />;
+  } else if (view === "contact") {
+    content = <Contact onBack={() => setView("landing")} />;
   } else if (view === "landing") {
     content = (
       <Landing
@@ -327,7 +362,7 @@ export default function App() {
         onEnterDashboard={() => setView("govcon-dashboard")}
         onViewSample={() => setView("demo")}
         onBidSmithBeta={() => setView("beta")}
-        onBidSmithSearch={() => setView("bid-search")}
+        onBidSmithSearch={handleBidSmithSearch}
         onAnalyze={handleAnalyze}
         onAnalyzeFile={handleAnalyzeFile}
       />

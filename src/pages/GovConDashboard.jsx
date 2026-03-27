@@ -81,7 +81,7 @@ export default function GovConDashboard({ onBack }) {
               alignItems: 'center',
               gap: '8px'
             }}>
-              ARIS <span style={{ color: '#64748b', fontWeight: 500, fontSize: '14px' }}>| GOV-TIER</span>
+              BidSmith <span style={{ color: '#64748b', fontWeight: 500, fontSize: '14px' }}>| GOV-TIER</span>
             </div>
           </div>
           

@@ -66,7 +66,7 @@ const BidSmithBeta = ({ onBack }) => {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }} onClick={onBack} className="clickable">
           <Shield size={24} color="var(--text-primary)" />
-          <span style={{ fontWeight: 800, letterSpacing: '-0.02em', fontSize: '18px' }}>BIDSMITH BETA</span>
+          <span style={{ fontWeight: 800, letterSpacing: '-0.02em', fontSize: '18px' }}>GOV ADMIN REGISTRY</span>
         </div>
         <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.1em' }}>
           PROTOCOL V2.1 // STABLE
@@ -81,22 +81,22 @@ const BidSmithBeta = ({ onBack }) => {
           display: 'inline-block', marginBottom: '24px', border: '1px solid rgba(59, 130, 246, 0.2)',
           letterSpacing: '0.05em'
         }}>
-          🚀 PRIVATE BETA ACCESS
+          🏛️ INSTITUTIONAL REGISTRY SELECTION
         </div>
 
         <h1 className="animate-in" style={{ 
           fontSize: isMobile ? '36px' : 'clamp(32px, 8vw, 64px)', fontWeight: 800, letterSpacing: '-0.04em',
           lineHeight: 1.1, marginBottom: '24px'
         }}>
-          The machine that tracks the <span style={{ color: 'var(--text-secondary)' }}>logic the government forgets.</span>
+          The institutional registry for <br /><span style={{ color: 'var(--text-secondary)' }}>federal procurement logic.</span>
         </h1>
 
         <p className="animate-in" style={{ 
           fontSize: isMobile ? '16px' : '18px', color: 'var(--text-secondary)', lineHeight: 1.6, 
           marginBottom: '48px', maxWidth: '600px', margin: '0 auto 48px auto'
         }}>
-          We are opening BidSmith to select GovCon firms for a private boarding-level trial. 
-          Move from "Vibe-based" bidding to high-precision federal intelligence.
+          We are accepting applications for the BidSmith Gov Admin Registry. 
+          Selection grants your firm access to high-precision federal intelligence and automated compliance oversight.
         </p>
 
         {/* Signup Form / Success State */}
@@ -132,7 +132,7 @@ const BidSmithBeta = ({ onBack }) => {
               cursor: loading ? 'not-allowed' : 'pointer', transition: 'transform 0.2s', border: 'none',
               opacity: loading ? 0.7 : 1
             }} className="hover:scale-95">
-              {loading ? "Registering..." : "Apply for BidSmith Beta"} { !loading && <ArrowRight size={16} /> }
+              {loading ? "Registering..." : "Apply for Registry Selection"} { !loading && <ArrowRight size={16} /> }
             </button>
           </form>
         ) : (
@@ -153,10 +153,10 @@ const BidSmithBeta = ({ onBack }) => {
             }}>
               <CheckCircle size={32} color="rgb(34, 197, 94)" />
             </div>
-            <h2 style={{ fontWeight: 800, fontSize: '28px', marginBottom: '12px', color: '#fff' }}>Application Logged.</h2>
+            <h2 style={{ fontWeight: 800, fontSize: '28px', marginBottom: '12px', color: '#fff' }}>Selection Logged.</h2>
             <p style={{ color: 'var(--text-secondary)', fontSize: '16px', lineHeight: 1.6, marginBottom: '32px' }}>
-              Your interest in v2.1 has been cryptographically logged. 
-              Our Lead Architect will contact you at <strong>{email}</strong> once your firm's credentials are verified.
+              Your application for the BidSmith Registry has been formally recorded. 
+              Our Lead Architect will contact you at <strong>{email}</strong> once your firm's institutional credentials are verified.
             </p>
             <button 
               onClick={onBack}
@@ -194,7 +194,7 @@ const BidSmithBeta = ({ onBack }) => {
 
       {/* Footer */}
       <footer style={{ marginTop: '120px', color: 'var(--text-secondary)', fontSize: '12px', letterSpacing: '0.05em' }}>
-        © 2026 BIDSMITH // ARIS POWERED // PRIVATE STAGING
+        © 2026 BIDSMITH // FEDERAL INTELLIGENCE REGISTRY // INSTITUTIONAL ACCESS
       </footer>
     </div>
   );

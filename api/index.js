@@ -260,8 +260,26 @@ app.get("/api/privacy/consent", asyncHandler(async (_req, res) => {
 
 app.post("/api/fed-search", apiLimiter, asyncHandler(async (req, res) => {
   const { query, limit = 20, expand = true } = req.body;
-  const { results, correction } = await sovereignSearch.search(query, expand);
-  res.json({ success: true, query, results: results.slice(0, limit), correction, version: "v4.1" });
+  try {
+    const { results, correction } = await sovereignSearch.search(query, expand);
+    res.json({ success: true, query, results: results.slice(0, limit), correction, version: "v4.1" });
+  } catch (err) {
+    console.error(`[SEARCH_ERROR] ${err.message}`, err.stack);
+    res.status(500).json({ success: false, error: err.message });
+  }
+}));
+
+app.post("/api/track", apiLimiter, asyncHandler(async (req, res) => {
+  const { uid, event, value, page, metadata } = req.body;
+  const success = await recordAnalyticsEvent({
+    uid,
+    eventType: event,
+    value,
+    page,
+    path: metadata?.path || (page ? new URL(page).pathname : "/unknown"),
+    metadata
+  });
+  res.json({ success });
 }));
 
 
