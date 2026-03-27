@@ -10,51 +10,47 @@ import {
   Lock,
   Zap,
   ArrowLeft,
-  Shield
+  Shield,
+  ChevronRight
 } from 'lucide-react';
 
-// ── Agency icon: colored initials badge ───────────────────────────────────────
+// ── Agency icon: colored initials badge (Lightified) ──────────────────────────────
 const AGENCY_COLORS = {
-  'dod': '#1d4ed8', 'darpa': '#7c3aed', 'dhs': '#0369a1', 'nsa': '#1e40af',
-  'doe': '#d97706', 'army': '#166534', 'navy': '#1e3a5f', 'air force': '#1d4ed8',
-  'hhs': '#0891b2', 'va': '#075985', 'dha': '#047857', 'gsa': '#7c3aed',
-  'nasa': '#1e40af', 'doj': '#991b1b', 'dol': '#92400e', 'fema': '#1d4ed8',
+  'dod': '#002244', 'darpa': '#4338ca', 'dhs': '#0369a1', 'nsa': '#1e40af',
+  'doe': '#b45309', 'army': '#166534', 'navy': '#002244', 'air force': '#1d4ed8',
+  'hhs': '#0891b2', 'va': '#075985', 'dha': '#047857', 'gsa': '#4338ca',
+  'nasa': '#1e3a8a', 'doj': '#b91c1c', 'dol': '#92400e', 'fema': '#1d4ed8',
 };
 
 function AgencyIcon({ agency = '' }) {
   const key = agency.toLowerCase();
-  const color = Object.entries(AGENCY_COLORS).find(([k]) => key.includes(k))?.[1] || '#374151';
+  const color = Object.entries(AGENCY_COLORS).find(([k]) => key.includes(k))?.[1] || '#475569';
   const initials = agency.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'US';
   return (
     <div style={{
-      width: 40, height: 40, borderRadius: 8, flexShrink: 0,
+      width: 44, height: 44, borderRadius: '8px', flexShrink: 0,
       background: color, display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: '13px', fontWeight: 700, color: '#fff', letterSpacing: '0.05em',
-      border: '1px solid rgba(255,255,255,0.1)'
+      fontSize: '14px', fontWeight: 700, color: '#fff', letterSpacing: '0.05em',
+      border: '1px solid rgba(0,0,0,0.05)'
     }}>
       {initials}
     </div>
   );
 }
 
-// ── Build a safe clickable URL for any result type ────────────────────────────
 function resolveUrl(res) {
   if (res.url && res.url.startsWith('http')) return res.url;
-  // USAspending award IDs start with CONT_AWD or have a specific pattern
   const id = res.id || '';
   if (id.startsWith('CONT_AWD') || id.startsWith('ASST_') || res.matchType === 'award_fallback') {
     return `https://www.usaspending.gov/award/${encodeURIComponent(id)}/`;
   }
-  // SAM.gov notice ID fallback
   if (id && !id.startsWith('gen:') && !id.startsWith('award:')) {
     return `https://sam.gov/opp/${id}/view`;
   }
-  // Last resort: SAM.gov search for the title keywords
   const q = encodeURIComponent((res.title || '').split(' ').slice(0, 4).join(' '));
   return `https://sam.gov/content/opportunities?keywords=${q}`;
 }
 
-// ── Rich snippet text ─────────────────────────────────────────────────────────
 function buildSnippet(res) {
   const parts = [];
   if (res.matchType === 'award_fallback') {
@@ -62,84 +58,19 @@ function buildSnippet(res) {
     if (res.amount) parts.push(`$${Number(res.amount).toLocaleString()}`);
     parts.push('Historical award — USAspending.gov');
   } else {
-    if (res.description) parts.push(res.description.slice(0, 140));
-    else parts.push('Federal solicitation opportunity — SAM.gov verified');
+    if (res.description) parts.push(res.description.slice(0, 160));
+    else parts.push('Federal solicitation opportunity — SAM.gov verified institutional record.');
   }
   if (res.postedDate) parts.push(`Posted ${res.postedDate}`);
   return parts.join(' · ');
 }
 
-// ── How many free searches are left this session ──────────────────────────────
-const FREE_LIMIT = 3;
+const FREE_LIMIT = 5; // Government tier session limit
 function getSearchesUsed() {
   try { return parseInt(sessionStorage.getItem('aris_searches') || '0'); } catch { return 0; }
 }
 function incrementSearches() {
   try { sessionStorage.setItem('aris_searches', String(getSearchesUsed() + 1)); } catch {}
-}
-
-// ── Upgrade wall ──────────────────────────────────────────────────────────────
-function UpgradeWall({ onDismiss }) {
-  return (
-    <div style={{
-      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999,
-      backdropFilter: 'blur(6px)'
-    }}>
-      <div style={{
-        background: '#1c1f26', border: '1px solid rgba(255,255,255,0.1)',
-        borderRadius: 16, padding: '40px 36px', maxWidth: 460, width: '90%',
-        textAlign: 'center', boxShadow: '0 24px 60px rgba(0,0,0,0.5)'
-      }}>
-        <div style={{ marginBottom: 20 }}>
-          <Lock size={32} color="#8ab4f8" />
-        </div>
-        <h2 style={{ margin: '0 0 10px', fontSize: '1.35rem', color: '#e8eaed' }}>
-          Free search limit reached
-        </h2>
-        <p style={{ margin: '0 0 28px', color: '#9aa0a6', fontSize: '0.95rem', lineHeight: 1.6 }}>
-          You've used all {FREE_LIMIT} free searches for this session. Subscribe to run unlimited federal intelligence queries.
-        </p>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
-          <a
-            href="https://buy.stripe.com/3cIaEX66197ad9H9na2Fa00"
-            style={{
-              display: 'block', padding: '14px 20px', borderRadius: 10,
-              background: '#4f46e5', color: '#fff', fontWeight: 700,
-              fontSize: '1rem', textDecoration: 'none', border: 'none'
-            }}
-          >
-            Subscribe — Standard $99/mo
-            <span style={{ display: 'block', fontSize: '0.75rem', fontWeight: 400, opacity: 0.8, marginTop: 2 }}>
-              Unlimited searches · Full FAR/DFARS analysis
-            </span>
-          </a>
-          <a
-            href="https://buy.stripe.com/cNibJ19id8369XvfLy2Fa01"
-            style={{
-              display: 'block', padding: '14px 20px', borderRadius: 10,
-              background: 'rgba(255,255,255,0.05)', color: '#e8eaed', fontWeight: 600,
-              fontSize: '0.95rem', textDecoration: 'none',
-              border: '1px solid rgba(255,255,255,0.12)'
-            }}
-          >
-            Subscribe — Enterprise $299/mo
-            <span style={{ display: 'block', fontSize: '0.75rem', fontWeight: 400, opacity: 0.7, marginTop: 2 }}>
-              Deep-shred · Capture strategy · AI briefings
-            </span>
-          </a>
-        </div>
-
-        <button
-          onClick={onDismiss}
-          style={{ background: 'none', border: 'none', color: '#5f6368', cursor: 'pointer', fontSize: '13px' }}
-        >
-          Continue without subscribing (searches paused)
-        </button>
-      </div>
-    </div>
-  );
 }
 
 const BidSmithSearch = ({ onBack }) => {
@@ -149,19 +80,17 @@ const BidSmithSearch = ({ onBack }) => {
   const [expanded, setExpanded] = useState(true);
   const [briefing, setBriefing] = useState(null);
   const [status, setStatus] = useState('');
-  const [correction, setCorrection] = useState(null);
   const [searchesUsed, setSearchesUsed] = useState(getSearchesUsed());
   const [showUpgradeWall, setShowUpgradeWall] = useState(false);
 
   const COLORS = {
-    bg: '#202124',
-    secondaryBg: '#303134',
-    text: '#bdc1c6',
-    textWhite: '#e8eaed',
-    textDim: '#9aa0a6',
-    border: '#3c4043',
-    blue: '#8ab4f8',
-    accent: '#a8ff00'
+    bg: '#f8fafc',
+    paper: '#ffffff',
+    text: '#1e293b',
+    textDim: '#64748b',
+    border: '#e2e8f0',
+    accent: '#002244',
+    blue: '#2563eb'
   };
 
   useEffect(() => {
@@ -175,7 +104,7 @@ const BidSmithSearch = ({ onBack }) => {
 
   const handleSearch = async (e) => {
     if (e) e.preventDefault();
-    if (!query) return;
+    if (!query.trim()) return;
     if (searchesUsed >= FREE_LIMIT) {
       setShowUpgradeWall(true);
       return;
@@ -189,312 +118,246 @@ const BidSmithSearch = ({ onBack }) => {
     setLoading(true);
     setResults([]);
     setBriefing(null);
-    setCorrection(null);
-    setStatus('Synthesizing Bid Intelligence...');
-
+    setStatus('Analyzing Federal Network Data...');
+    
     incrementSearches();
-    const used = getSearchesUsed();
-    setSearchesUsed(used);
+    setSearchesUsed(getSearchesUsed());
 
     try {
       const res = await fetch('/api/fed-search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: targetQuery, expand: isExpanded, limit: 10, region: 'US' })
+        body: JSON.stringify({ query: targetQuery, expand: isExpanded, limit: 12, region: 'US' })
       });
       const data = await res.json();
       if (data.success) {
         setResults(data.results || []);
         setBriefing(data.briefing);
-        setStatus(data.results?.length === 0 ? "No results found in today's mesh." : '');
+        setStatus(data.results?.length === 0 ? "No records matched your institutional query." : '');
       } else {
-        setStatus('Analysis interrupted');
+        setStatus('Mesh search failed. Check authentication.');
       }
     } catch (err) {
-      console.error('Search failed:', err);
-      setStatus('Error connecting to mesh');
+      setStatus('Error connecting to ARIS Intelligence Network');
     } finally {
       setLoading(false);
-      if (used >= FREE_LIMIT) setShowUpgradeWall(true);
     }
   };
 
-  const remaining = Math.max(0, FREE_LIMIT - searchesUsed);
-
   return (
     <div style={{
-      minHeight: '100vh', background: COLORS.bg, color: COLORS.textWhite,
-      display: 'flex', flexDirection: 'column', fontFamily: 'arial, sans-serif'
+      minHeight: '100vh', background: COLORS.bg, color: COLORS.text,
+      display: 'flex', flexDirection: 'column', fontFamily: "'Inter', sans-serif"
     }}>
-      {/* Minimal top bar — Back + branding only, no audit actions */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 10,
-        padding: '10px 20px', borderBottom: '1px solid #3c4043',
-        background: COLORS.bg, position: 'sticky', top: 0, zIndex: 10,
+      {/* Institutional Top Bar */}
+      <header style={{
+        display: 'flex', alignItems: 'center', height: '64px',
+        padding: '0 24px', borderBottom: '2px solid #e2e8f0',
+        background: '#ffffff', position: 'sticky', top: 0, zIndex: 100,
+        justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
       }}>
-        {onBack && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
           <button onClick={onBack} style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            background: 'none', border: 'none', color: '#9aa0a6',
-            cursor: 'pointer', fontSize: '13px', padding: '4px 8px',
-            borderRadius: 4,
+            display: 'flex', alignItems: 'center', gap: '6px',
+            background: 'none', border: 'none', color: '#64748b',
+            cursor: 'pointer', fontSize: '13px', fontWeight: 600
           }}>
-            <ArrowLeft size={15} /> Back
+            <ArrowLeft size={16} /> Back to Hub
           </button>
-        )}
-        <Shield size={14} color="#a8ff00" />
-        <span style={{ fontSize: '13px', fontWeight: 700, color: '#e8eaed', letterSpacing: '0.05em' }}>
-          BIDSMITH <span style={{ color: '#a8ff00' }}>BID SEARCH</span>
-        </span>
-        <div style={{ flex: 1 }} />
-        <a href="/app" style={{ fontSize: '12px', color: '#9aa0a6', textDecoration: 'none' }}>
-          Run Audit →
-        </a>
-      </div>
-
-      {showUpgradeWall && <UpgradeWall onDismiss={() => setShowUpgradeWall(false)} />}
+          <div style={{ width: '1px', height: '24px', background: '#e2e8f0' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Shield size={20} color="#002244" />
+            <span style={{ fontSize: '14px', fontWeight: 800, color: '#002244', letterSpacing: '-0.01em' }}>
+              ARIS <span style={{ color: '#64748b', fontWeight: 500 }}>| SOVEREIGN SEARCH</span>
+            </span>
+          </div>
+        </div>
+        
+        <img src="/aris-logo.png" alt="ARIS Labs Logo" style={{ height: '24px' }} />
+      </header>
 
       <main style={{
         flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-        padding: (results.length > 0 || briefing) ? '40px 20px' : '0 20px',
+        padding: (results.length > 0 || briefing) ? '60px 24px' : '0 24px',
         justifyContent: (results.length > 0 || briefing) ? 'flex-start' : 'center',
-        transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
+        transition: 'all 0.4s ease-in-out'
       }}>
 
-        {/* ARIS LOGO */}
-        <div style={{ marginBottom: '30px', textAlign: 'center' }}>
-          <h1 style={{
-            fontFamily: '"Times New Roman", serif', fontSize: '5.5rem',
-            fontWeight: 400, letterSpacing: '-0.02em', margin: 0, color: COLORS.textWhite
-          }}>
-            BIDSMITH
-          </h1>
-        </div>
-
-        {/* SEARCH BOX */}
-        <form onSubmit={handleSearch} style={{ width: '100%', maxWidth: '584px', position: 'relative', marginBottom: '20px' }}>
-          <div style={{
-            position: 'relative', background: COLORS.secondaryBg, borderRadius: '24px',
-            padding: '0 14px', display: 'flex', alignItems: 'center', height: '46px',
-            border: '1px solid transparent',
-          }} className="search-bar-inner">
-            <Search size={20} color={COLORS.textDim} style={{ minWidth: '20px' }} />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search SAM.gov / US Discovery Mesh..."
-              style={{ flex: 1, background: 'transparent', border: 'none', color: '#fff', fontSize: '16px', padding: '0 12px', outline: 'none' }}
-            />
-            <div style={{ display: 'flex', gap: '16px', alignItems: 'center', color: COLORS.blue }}>
-              <Mic size={20} style={{ cursor: 'pointer' }} />
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginTop: '28px' }}>
-            <button type="submit" className="g-btn">BidSmith Search</button>
-            <button type="button" onClick={() => setExpanded(!expanded)} className="g-btn">
-              {expanded ? 'AI Mode' : 'Standard'}
-            </button>
-          </div>
-
-          {/* Search credit indicator */}
-          <div style={{ textAlign: 'center', marginTop: '14px' }}>
-            {remaining > 0 ? (
-              <span style={{ fontSize: '11px', color: COLORS.textDim }}>
-                {remaining} free search{remaining !== 1 ? 'es' : ''} remaining ·{' '}
-                <a href="https://buy.stripe.com/3cIaEX66197ad9H9na2Fa00" style={{ color: COLORS.blue, textDecoration: 'none' }}>
-                  Upgrade for unlimited
-                </a>
-              </span>
-            ) : (
-              <span style={{ fontSize: '11px', color: '#f87171' }}>
-                Free limit reached ·{' '}
-                <a href="https://buy.stripe.com/3cIaEX66197ad9H9na2Fa00" style={{ color: COLORS.blue, textDecoration: 'none' }}>
-                  Subscribe $99/mo
-                </a>
-              </span>
-            )}
-          </div>
-        </form>
-
-        {/* LOADING */}
-        {loading && (
-          <div style={{ marginTop: '40px', textAlign: 'center' }}>
-            <div className="dot-pulse" style={{ margin: '0 auto 16px' }} />
-            <p style={{ fontSize: '12px', color: COLORS.blue, opacity: 0.8 }}>{status}</p>
+        {/* BRADING */}
+        {!(results.length > 0 || briefing) && (
+          <div style={{ marginBottom: '40px', textAlign: 'center' }}>
+             <h1 style={{
+               fontSize: '3.5rem', fontWeight: 900, letterSpacing: '-0.04em',
+               margin: 0, color: '#002244'
+             }}>
+               ARIS <span style={{ fontWeight: 400, color: '#64748b' }}>Search</span>
+             </h1>
+             <p style={{ color: '#64748b', fontSize: '1.1rem', marginTop: '12px' }}>
+               Search active federal solicitations and historical award records.
+             </p>
           </div>
         )}
 
-        {/* EXECUTIVE BRIEFING */}
+        {/* SEARCH FORM */}
+        <form onSubmit={handleSearch} style={{ width: '100%', maxWidth: '720px', position: 'relative' }}>
+          <div style={{
+            position: 'relative', background: '#ffffff', borderRadius: '16px',
+            padding: '4px 8px 4px 16px', display: 'flex', alignItems: 'center', height: '64px',
+            border: '2px solid #e2e8f0', boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
+            transition: 'border-color 0.2s ease'
+          }} className="search-bar-container">
+            <Search size={24} color="#64748b" style={{ minWidth: '24px' }} />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search SAM.gov by Agency, Solicitation ID, or Keywords..."
+              style={{ flex: 1, background: 'transparent', border: 'none', color: '#0f172a', fontSize: '18px', padding: '0 16px', outline: 'none', fontWeight: 500 }}
+            />
+            <button type="submit" style={{
+              background: '#002244', color: 'white', padding: '12px 24px',
+              borderRadius: '10px', border: 'none', fontWeight: 700,
+              fontSize: '14px', cursor: 'pointer'
+            }}>
+              Search Records
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', marginTop: '24px' }}>
+             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#64748b', fontWeight: 600 }}>
+               <Zap size={14} color={expanded ? '#2563eb' : '#94a3b8'} />
+               <span>AI Analysis Mode</span>
+               <input 
+                 type="checkbox" 
+                 checked={expanded} 
+                 onChange={() => setExpanded(!expanded)} 
+                 style={{ cursor: 'pointer', transform: 'scale(1.2)' }}
+               />
+             </div>
+          </div>
+        </form>
+
+        {/* LOADING STATE */}
+        {loading && (
+          <div style={{ marginTop: '60px', textAlign: 'center' }}>
+             <div className="loader-bars" />
+             <p style={{ fontSize: '14px', color: '#64748b', marginTop: '20px', fontWeight: 600 }}>{status}</p>
+          </div>
+        )}
+
+        {/* BRIEFING VIEW */}
         {briefing && !loading && (
           <div style={{
-            width: '100%', maxWidth: '652px',
-            background: 'rgba(138, 180, 248, 0.05)',
-            border: '1px solid rgba(138, 180, 248, 0.1)',
-            borderRadius: '12px', padding: '24px', marginTop: '20px'
+            width: '100%', maxWidth: '720px',
+            background: '#ffffff', border: '2px solid #e2e8f0',
+            borderRadius: '16px', padding: '32px', marginTop: '40px',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.02)'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', color: COLORS.blue }}>
-              <Sparkles size={18} />
-              <span style={{ fontSize: '13px', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Executive Briefing</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px', color: '#002244' }}>
+              <Sparkles size={20} />
+              <span style={{ fontSize: '14px', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase' }}>ARIS Intelligence Briefing</span>
             </div>
-            <div style={{ fontSize: '15px', color: COLORS.textWhite, lineHeight: '1.7' }}>
+            <div style={{ fontSize: '16px', color: '#334155', lineHeight: '1.8' }}>
               {briefing.split('\n').map((line, i) => (
-                <p key={i} style={{ marginBottom: line.startsWith('-') ? '8px' : '12px' }}>{line}</p>
+                <p key={i} style={{ marginBottom: line.startsWith('-') ? '10px' : '16px' }}>{line}</p>
               ))}
             </div>
           </div>
         )}
 
-        {/* RESULTS FEED */}
+        {/* SEARCH RESULTS */}
         {results.length > 0 && !loading && (
-          <div style={{ width: '100%', maxWidth: '652px', marginTop: '32px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div style={{ width: '100%', maxWidth: '720px', marginTop: '48px', display: 'flex', flexDirection: 'column', gap: '32px' }}>
             {results.map((res) => {
               const href = resolveUrl(res);
               const snippet = buildSnippet(res);
               const isAward = res.matchType === 'award_fallback';
 
               return (
-                <div key={res.id} className="g-result">
-                  {/* Top line: icon + domain breadcrumb */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                <div key={res.id} style={{
+                  padding: '24px', background: '#fff', border: '1px solid #e2e8f0',
+                  borderRadius: '12px', transition: 'box-shadow 0.2s ease'
+                }} className="result-card">
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px', marginBottom: '16px' }}>
                     <AgencyIcon agency={res.agency} />
-                    <div>
-                      <div style={{ fontSize: '12px', color: COLORS.textDim }}>
-                        {isAward ? 'usaspending.gov' : 'sam.gov'} · {res.agency}
-                      </div>
-                      <div style={{ fontSize: '11px', color: '#5f6368', maxWidth: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {href}
-                      </div>
+                    <div style={{ flex: 1 }}>
+                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                         <span style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                           {isAward ? 'USAspending Record' : 'SAM.gov Opportunity'}
+                         </span>
+                         <span style={{ color: '#e2e8f0' }}>|</span>
+                         <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748b' }}>{res.agency}</span>
+                       </div>
+                       <a
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ fontSize: '20px', color: '#2563eb', fontWeight: 700, textDecoration: 'none', lineHeight: 1.3 }}
+                      >
+                        {res.title}
+                      </a>
                     </div>
-                    <a
-                      href={href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{ marginLeft: 'auto', color: COLORS.textDim }}
-                      aria-label="Open source"
-                    >
-                      <ExternalLink size={14} />
-                    </a>
                   </div>
 
-                  {/* Title — clickable, opens correct URL */}
-                  <a
-                    href={href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ fontSize: '20px', color: COLORS.blue, fontWeight: 400, textDecoration: 'none', display: 'block', marginBottom: '6px', lineHeight: 1.3 }}
-                    className="g-title"
-                  >
-                    {res.title}
-                  </a>
-
-                  {/* Snippet */}
-                  <div style={{ fontSize: '14px', color: COLORS.text, lineHeight: '1.58', marginBottom: '12px' }}>
+                  <p style={{ fontSize: '14px', color: '#475569', lineHeight: '1.6', marginBottom: '20px' }}>
                     {snippet}
-                  </div>
+                  </p>
 
-                  {/* Tags */}
-                  <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '10px', padding: '3px 8px', borderRadius: 4, background: 'rgba(255,255,255,0.05)', color: COLORS.textDim }}>
-                      {isAward ? 'PAST AWARD' : 'ACTIVE OPP'}
-                    </span>
-                    {res.region && (
-                      <span style={{ fontSize: '10px', padding: '3px 8px', borderRadius: 4, background: 'rgba(255,255,255,0.05)', color: COLORS.textDim }}>
-                        {res.region}
-                      </span>
-                    )}
-                    {res.postedDate && (
-                      <span style={{ fontSize: '10px', padding: '3px 8px', borderRadius: 4, background: 'rgba(255,255,255,0.05)', color: COLORS.textDim }}>
-                        {res.postedDate}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Actions */}
-                  <div style={{ display: 'flex', gap: '12px' }}>
-                    <button
-                      onClick={() => window.location.assign(`/app/audit?url=${encodeURIComponent(href)}`)}
-                      className="action-pill"
-                    >
-                      <FileText size={14} />
-                      Conduct Audit
-                    </button>
-                    <a
-                      href={href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="action-pill secondary"
-                      style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}
-                    >
-                      <TrendingUp size={14} />
-                      View Source
-                    </a>
+                  <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                     <button
+                        onClick={() => window.location.assign(`/app/audit?url=${encodeURIComponent(href)}`)}
+                        style={{
+                          background: '#002244', color: 'white', padding: '8px 16px',
+                          borderRadius: '6px', border: 'none', fontWeight: 700,
+                          fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px'
+                        }}
+                      >
+                        <FileText size={14} /> Audit Solicitation
+                     </button>
+                     <a
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}
+                      >
+                        <TrendingUp size={14} /> View Federal Source <ExternalLink size={12} />
+                      </a>
                   </div>
                 </div>
               );
             })}
-
-            {/* Bottom upgrade nudge */}
-            <div style={{
-              marginTop: '8px', padding: '20px', borderRadius: 12,
-              background: 'rgba(138,180,248,0.04)', border: '1px solid rgba(138,180,248,0.1)',
-              display: 'flex', alignItems: 'center', gap: '16px'
-            }}>
-              <Zap size={20} color={COLORS.blue} />
-              <div style={{ flex: 1 }}>
-                <p style={{ margin: 0, fontSize: '14px', color: COLORS.textWhite, fontWeight: 600 }}>Unlock unlimited searches + AI briefings</p>
-                <p style={{ margin: '2px 0 0', fontSize: '12px', color: COLORS.textDim }}>Standard $99/mo · Enterprise $299/mo</p>
-              </div>
-              <a
-                href="https://buy.stripe.com/3cIaEX66197ad9H9na2Fa00"
-                style={{ background: '#4f46e5', color: '#fff', padding: '8px 16px', borderRadius: 8, fontSize: '13px', fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }}
-              >
-                Subscribe
-              </a>
-            </div>
           </div>
-        )}
-
-        {status && !loading && results.length === 0 && (
-          <p style={{ marginTop: '40px', fontSize: '14px', color: COLORS.textDim, opacity: 0.8 }}>
-            {status}
-          </p>
         )}
       </main>
 
-      <footer style={{ background: '#171717', padding: '14px 20px', fontSize: '13px', color: COLORS.textDim, borderTop: '1px solid #3c4043', display: 'flex', gap: '24px' }}>
-        <span>BidSmith Search</span>
-        <span>Federal Discovery</span>
-        <div style={{ flex: 1 }} />
-        <a href="/privacy" style={{ color: COLORS.textDim, textDecoration: 'none' }}>Privacy</a>
-        <a href="/terms" style={{ color: COLORS.textDim, textDecoration: 'none' }}>Terms</a>
+      <footer style={{ background: '#ffffff', borderTop: '2px solid #e2e8f0', padding: '24px', textAlign: 'center' }}>
+         <p style={{ fontSize: '12px', color: '#94a3b8', margin: 0 }}>
+           ARIS Sovereign Search Network © 2026. Institutional Record Access.
+         </p>
       </footer>
 
       <style>{`
-        .g-btn {
-          background-color: #303134; border: 1px solid #303134; color: #e8eaed;
-          padding: 8px 16px; border-radius: 4px; font-size: 14px; cursor: pointer; min-width: 140px;
+        .search-bar-container:focus-within {
+          border-color: #002244 !important;
         }
-        .g-btn:hover { border-color: #5f6368; background-color: #3c4043; }
-        .search-bar-inner:hover, .search-bar-inner:focus-within { background-color: #3c4043; box-shadow: 0 1px 6px rgba(0,0,0,0.28); }
-        .g-result { padding-bottom: 24px; border-bottom: 1px solid #3c4043; }
-        .g-result:last-child { border-bottom: none; }
-        .g-title:hover { text-decoration: underline !important; }
-        .action-pill {
-          display: flex; align-items: center; gap: 6px;
-          background: rgba(138, 180, 248, 0.1); color: #8ab4f8;
-          border: 1px solid rgba(138, 180, 248, 0.2); padding: 6px 14px;
-          border-radius: 100px; font-size: 12px; cursor: pointer;
+        .result-card:hover {
+          box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+          border-color: #cbd5e1 !important;
         }
-        .action-pill:hover { background: rgba(138, 180, 248, 0.2); }
-        .action-pill.secondary { color: #9aa0a6; border-color: transparent; background: transparent; }
-        .action-pill.secondary:hover { color: #fff; background: rgba(255,255,255,0.05); }
-        .dot-pulse {
-          width: 8px; height: 8px; background: #8ab4f8; border-radius: 50%;
-          animation: pulse 1s infinite alternate;
+        .loader-bars {
+          width: 40px;
+          height: 20px;
+          background: linear-gradient(#002244 0 0) 0% 50%, linear-gradient(#002244 0 0) 50% 50%, linear-gradient(#002244 0 0) 100% 50%;
+          background-size: 8px 100%;
+          background-repeat: no-repeat;
+          animation: load 1s infinite linear;
+          margin: 0 auto;
         }
-        @keyframes pulse { from { opacity: 0.4; transform: scale(0.8); } to { opacity: 1; transform: scale(1.2); } }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes load {
+          20% { background-size: 8px 60%, 8px 100%, 8px 100%; }
+          40% { background-size: 8px 80%, 8px 60%, 8px 100%; }
+          60% { background-size: 8px 100%, 8px 80%, 8px 60%; }
+          80% { background-size: 8px 100%, 8px 100%, 8px 80%; }
+        }
       `}</style>
     </div>
   );

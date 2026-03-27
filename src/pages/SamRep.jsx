@@ -88,7 +88,7 @@ const ConsolePanel = ({ isOpen, onToggle, logs }) => {
 
 const SamRep = ({ onBack }) => {
   const [theme, setTheme] = useState(() => {
-    try { return localStorage.getItem('bs-theme') || 'dark'; } catch { return 'dark'; }
+    try { return localStorage.getItem('bs-theme') || 'light'; } catch { return 'light'; }
   });
 
   const [isConsoleOpen, setIsConsoleOpen] = useState(false);
@@ -210,7 +210,7 @@ const SamRep = ({ onBack }) => {
       data-theme={theme}
       style={{ backgroundColor: 'var(--background)', color: 'var(--text-primary)', height: '100vh', width: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
     >
-      {!isMobile && <NavBar theme="dark" onToggleTheme={null} onBack={onBack} />}
+      {!isMobile && <NavBar theme={theme} onToggleTheme={toggleTheme} onBack={onBack} />}
 
       {/* ── Studio Toolbar ── */}
       <div className="sam-rep-masthead" style={{ borderBottom: '1px solid var(--border)', background: 'var(--nav-bg)', minHeight: '52px', height: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>

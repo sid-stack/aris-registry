@@ -84,7 +84,6 @@ function shredText(text) {
     }));
 }
 
-<<<<<<< HEAD
 // ─── Gemini-Powered PDF compliance Extraction ────────────────────────────────
 app.post("/api/analyze-pdf", upload.single('file'), asyncHandler(async (req, res) => {
   if (!req.file) return res.status(400).json({ error: "No file uploaded" });
@@ -98,7 +97,13 @@ app.post("/api/analyze-pdf", upload.single('file'), asyncHandler(async (req, res
   const { join, dirname } = await import("path");
   const { fileURLToPath } = await import("url");
   const __dirname = dirname(fileURLToPath(import.meta.url));
-  const extractPromptTemplate = readFileSync(join(__dirname, "llm", "extract_prompt.txt"), "utf8");
+  
+  let extractPromptTemplate;
+  try {
+    extractPromptTemplate = readFileSync(join(__dirname, "llm", "extract_prompt.txt"), "utf8");
+  } catch (err) {
+    extractPromptTemplate = "Extract compliance intelligence: {{RFP_TEXT}}\nDirect JSON extraction. solicitation_number, agency, requirements:[{category, text, risk_level, section, page_reference, source_excerpt}]";
+  }
   const extractPrompt = extractPromptTemplate.replace("{{RFP_TEXT}}", rfpText);
 
   try {
@@ -120,7 +125,7 @@ app.post("/api/analyze-pdf", upload.single('file'), asyncHandler(async (req, res
       title: req.file.originalname,
       agency: extraction.document_metadata?.agency || "Extracted from PDF",
       value: "45000000", // Default or extracted if available
-      compliance: extraction.requirements.slice(0, 10).map((r, i) => ({
+      compliance: (extraction.requirements || []).slice(0, 10).map((r, i) => ({
         category: r.category,
         verdict: r.is_disqualifying_if_missing ? "DISQUALIFIER" : "WARNING",
         risk: r.risk_level === "High" ? 85 : r.risk_level === "Medium" ? 65 : 40,
@@ -128,22 +133,22 @@ app.post("/api/analyze-pdf", upload.single('file'), asyncHandler(async (req, res
         sourceSnippet: r.source_excerpt || "EXTRACTED_FROM_SOURCE",
         sectionRef: `Section ${r.section || '—'}, Page ${r.page_reference || '—'}`,
         angle: i * 36, // Distribute on radar
-        label: r.category.slice(0, 3).toUpperCase()
+        label: r.category ? r.category.slice(0, 3).toUpperCase() : "REQ"
       })),
-      requirements: extraction.requirements.map(r => ({
+      requirements: (extraction.requirements || []).map(r => ({
         requirement: r.text,
         status: "Not reviewed",
         risk: r.risk_level,
         owner: ""
       })),
-      executiveSummary: `MERCURY_2 analysis complete. Identified ${extraction.requirements.length} critical requirements. ${extraction.submission_details?.deadline ? `Deadline: ${extraction.submission_details.deadline}` : 'Manual review recommended for deadlines.'}`,
+      executiveSummary: `MERCURY_2 analysis complete. Identified ${(extraction.requirements || []).length} critical requirements. ${extraction.submission_details?.deadline ? `Deadline: ${extraction.submission_details.deadline}` : 'Manual review recommended for deadlines.'}`,
       riskAssessment: {
-        verdict: extraction.requirements.some(r => r.is_disqualifying_if_missing) ? "HIGH_DISQUALIFICATION_RISK" : "ACTIONABLE",
-        score: extraction.requirements.length > 5 ? 85 : 50,
+        verdict: (extraction.requirements || []).some(r => r.is_disqualifying_if_missing) ? "HIGH_DISQUALIFICATION_RISK" : "ACTIONABLE",
+        score: (extraction.requirements || []).length > 5 ? 85 : 50,
         breakdown: { delta_risk: 35, hazard_penalty: 50 },
         delta_analysis: `Gemini 2.0 Flash identified high-priority compliance triggers in ${extraction.document_metadata?.detected_sections?.join(", ") || "the document"}.`
       },
-      fatalError: extraction.requirements.some(r => r.is_disqualifying_if_missing)
+      fatalError: (extraction.requirements || []).some(r => r.is_disqualifying_if_missing)
     };
 
     res.json(response);
@@ -176,8 +181,14 @@ app.post("/api/analyze-pdf", upload.single('file'), asyncHandler(async (req, res
     });
   }
 }));
-=======
->>>>>>> feature/govcon-ai-dashboard
+
+app.post("/api/privacy/consent", asyncHandler(async (req, res) => {
+  const { analytics, marketing, source } = req.body;
+  console.log(`[PRIVACY] Consent update from ${source}: analytics=${analytics}, marketing=${marketing}`);
+  // In a real app, you might save this to a DB or send to an analytics proxy
+  res.json({ success: true, updated: new Date().toISOString() });
+}));
+
 // Railway sits behind a proxy; trust 1 hop so rate limiting uses client IP.
 const trustProxyEnv = process.env.TRUST_PROXY;
 let trustProxySetting = 1;
@@ -253,34 +264,6 @@ app.post("/api/fed-search", apiLimiter, asyncHandler(async (req, res) => {
   res.json({ success: true, query, results: results.slice(0, limit), correction, version: "v4.1" });
 }));
 
-// ─── PDF Analysis (Core Feature) ─────────────────────────────────────────────
-app.post("/api/analyze-pdf", upload.single('file'), asyncHandler(async (req, res) => {
-  if (!req.file) return res.status(400).json({ error: "No file uploaded" });
-  const data = await pdfParse(req.file.buffer);
-  const rfpText = data.text.slice(0, 15000);
-  
-  try {
-    const extraction = await complete(
-      `Extract compliance intelligence: ${rfpText}`, 
-      "Direct JSON extraction. solicitation_number, agency, requirements:[{category, text, risk_level, section, page_reference, source_excerpt}]", 
-      { json: true }
-    );
-    res.json({
-      id: extraction.solicitation_number || "PDF",
-      title: req.file.originalname,
-      agency: extraction.agency || "Extracted agency",
-      requirements: extraction.requirements?.map(r => ({
-        requirement: r.text,
-        status: "Not reviewed",
-        risk: r.risk_level,
-        owner: ""
-      })) || [],
-      executiveSummary: `MERCURY_2 analyzed ${req.file.originalname}. Identified ${extraction.requirements?.length || 0} requirements.`
-    });
-  } catch (err) {
-    res.json({ id: "FALLBACK", title: req.file.originalname, requirements: shredText(data.text) });
-  }
-}));
 
 // ─── GOVCON AI DASHBOARD ENDPOINTS ──────────────────────────────────────────
 

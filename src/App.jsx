@@ -325,7 +325,7 @@ export default function App() {
       <Landing
         onEnterApp={() => setView("app")}
         onEnterDashboard={() => setView("govcon-dashboard")}
-        onViewSample={() => setView("sam-rep")}
+        onViewSample={() => setView("demo")}
         onBidSmithBeta={() => setView("beta")}
         onBidSmithSearch={() => setView("bid-search")}
         onAnalyze={handleAnalyze}
