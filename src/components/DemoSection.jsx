@@ -15,10 +15,10 @@ export default function DemoSection({ onTryDemo }) {
     <section style={styles.section}>
       <div style={styles.container}>
         <div style={styles.header}>
-          <div style={styles.badge}>ARIS LABS | INSTITUTIONAL DEMO</div>
-          <h2 style={styles.title}>Watch the Protocol in Action</h2>
+          <div style={styles.badge}>BIDSMITH PROTOCOL | INSTITUTIONAL DEMO</div>
+          <h2 style={styles.title}>Watch the Registry in Action</h2>
           <p style={styles.subtitle}>
-            See how ARIS transforms a 200-page federal solicitation into a <br />
+            See how BidSmith transforms a 200-page federal solicitation into a <br />
             structured compliance matrix with zero data persistence.
           </p>
         </div>
