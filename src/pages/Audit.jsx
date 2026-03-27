@@ -1118,7 +1118,7 @@ const Audit = ({ onBack, initialUrl, initialFile }) => {
                   <div style={{ marginBottom: '32px' }}>
                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                         <h3 style={{ fontSize: '18px', fontWeight: 900, color: 'var(--text-primary)' }}>Compliance Analysis Matrix</h3>
-                        <div style={styles.badge}>{result.requirements.length} REQUIREMENTS FOUND</div>
+                        <div style={styles.badge}>{(result.requirements || []).length} REQUIREMENTS FOUND</div>
                      </div>
                      
                      <RequirementsTable requirements={result.requirements} />
@@ -1367,3 +1367,15 @@ const Audit = ({ onBack, initialUrl, initialFile }) => {
     </div>
   );
 }
+
+const styles = {
+  badge: {
+    background: 'var(--accent-soft)',
+    color: 'var(--accent)',
+    padding: '4px 12px',
+    borderRadius: '99px',
+    fontSize: '10px',
+    fontWeight: 800,
+    letterSpacing: '0.05em'
+  }
+};

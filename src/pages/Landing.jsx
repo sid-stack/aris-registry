@@ -2,6 +2,7 @@ import { Shield, Search, Globe, CheckCircle, Loader2, ArrowRight, ChevronDown, C
 import { useEffect, useState, useRef } from "react";
 import FaqSection from "../components/FaqSection";
 import "./Landing.css";
+import DemoSection from "../components/DemoSection";
 import PricingComparison from "../components/PricingComparison";
 
 export default function Landing({
@@ -21,10 +22,12 @@ export default function Landing({
     }
   };
 
+  const [inputUrl, setInputUrl] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [logs, setLogs] = useState([]);
   const [isMobile, setIsMobile] = useState(typeof window !== "undefined" && window.innerWidth < 768);
   const fileInputRef = useRef();
+  const demoRef = useRef();
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -50,6 +53,11 @@ export default function Landing({
     const file = e.target.files[0];
     if (!file || !onAnalyzeFile) return;
     processWithLogs(() => onAnalyzeFile(file));
+  };
+
+  const handleStartAnalysis = () => {
+    if (!inputUrl.trim() || isProcessing || !onAnalyze) return;
+    processWithLogs(() => onAnalyze(inputUrl.trim()));
   };
 
   return (
@@ -88,8 +96,22 @@ export default function Landing({
           </p>
           
           <div style={styles.heroCtaGroup}>
-             <button onClick={onEnterApp} style={styles.mainBtn}>Upload RFP (Free)</button>
-             <button onClick={onBidSmithSearch} style={styles.secBtn}>Search Federal Bids</button>
+             <div style={styles.inlineInputRow}>
+                <input 
+                  type="text" 
+                  placeholder="Paste SAM.gov URL to audit..." 
+                  style={styles.urlInput}
+                  value={inputUrl}
+                  onChange={(e) => setInputUrl(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleStartAnalysis()}
+                />
+                <button onClick={handleStartAnalysis} style={styles.mainBtnSmall}>Shred RFP</button>
+             </div>
+             <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
+                <button onClick={() => fileInputRef.current.click()} style={styles.secBtnSmall}>Upload PDF</button>
+                <button onClick={onBidSmithSearch} style={styles.secBtnSmall}>Search Bids</button>
+                <button onClick={() => demoRef.current?.scrollIntoView({ behavior: 'smooth' })} style={styles.secBtnSmall}>Watch Demo</button>
+             </div>
           </div>
 
           {!isProcessing ? (
@@ -122,6 +144,10 @@ export default function Landing({
           </div>
         </div>
       </section>
+
+      <div ref={demoRef}>
+        <DemoSection onTryDemo={onEnterApp} />
+      </div>
 
       {/* ⚡ Pain -> Solution Block */}
       <section style={styles.painSection}>
@@ -233,10 +259,14 @@ const styles = {
   heroBadge: { fontSize: 11, fontWeight: 800, color: "#64748b", letterSpacing: "0.15em", marginBottom: 24, textTransform: "uppercase" },
   heroTitle: { fontSize: "4.5rem", fontWeight: 900, color: "#002244", lineHeight: 1.1, marginBottom: 24, letterSpacing: "-0.04em" },
   heroSubtitle: { fontSize: "1.25rem", color: "#475569", lineHeight: 1.6, marginBottom: 40, maxWidth: 800, margin: "0 auto 40px" },
-  heroCtaGroup: { display: "flex", gap: 16, justifyContent: "center", marginBottom: 60 },
+  heroCtaGroup: { display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 60 },
   mainBtn: { background: "#0B3D91", color: "#fff", padding: "20px 48px", borderRadius: 12, border: "none", fontWeight: 800, fontSize: "1.1rem", cursor: "pointer", boxShadow: "0 10px 20px rgba(11,61,145,0.2)" },
+  mainBtnSmall: { background: "#0B3D91", color: "#fff", padding: "12px 24px", borderRadius: 8, border: "none", fontWeight: 700, fontSize: "0.95rem", cursor: "pointer" },
   mainBtnLarge: { background: "#0B3D91", color: "#fff", padding: "24px 64px", borderRadius: 16, border: "none", fontWeight: 800, fontSize: "1.25rem", cursor: "pointer", boxShadow: "0 20px 40px rgba(11,61,145,0.3)" },
   secBtn: { background: "#fff", color: "#0B3D91", padding: "20px 48px", borderRadius: 12, border: "2px solid #0B3D91", fontWeight: 800, fontSize: "1.1rem", cursor: "pointer" },
+  secBtnSmall: { background: "#fff", color: "#0B3D91", padding: "10px 20px", borderRadius: 8, border: "1px solid #0B3D91", fontWeight: 700, fontSize: "0.9rem", cursor: "pointer" },
+  urlInput: { width: "100%", maxWidth: 400, padding: "12px 16px", borderRadius: 8, border: "1px solid #cbd5e1", fontSize: 14, outline: 'none' },
+  inlineInputRow: { display: "flex", gap: 12, width: "100%", maxWidth: 520, justifyContent: "center", alignItems: "center" },
 
   videoContainer: { marginTop: 40, textAlign: 'center' },
   videoSub: { fontSize: 13, color: '#64748b', fontWeight: 700, marginBottom: 12, textTransform: 'uppercase' },

@@ -332,8 +332,6 @@ export default function App() {
   } else if (view === "compliance") {
     const slug = window.location.pathname.replace("/compliance/", "");
     content = <CompliancePage slug={slug} onBack={() => setView("app")} />;
-  } else if (view === "app") {
-    content = <Audit onBack={() => setView("landing")} />;
   } else if (view === "beta") {
     content = <BidSmithBeta onBack={() => setView("landing")} />;
   } else if (view === "demo") {

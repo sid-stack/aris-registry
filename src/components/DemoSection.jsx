@@ -16,10 +16,10 @@ export default function DemoSection({ onTryDemo }) {
       <div style={styles.container}>
         <div style={styles.header}>
           <div style={styles.badge}>BIDSMITH PROTOCOL | INSTITUTIONAL DEMO</div>
-          <h2 style={styles.title}>Watch the Registry in Action</h2>
+          <h2 style={styles.title}>Watch the Bid Acceleration Engine</h2>
           <p style={styles.subtitle}>
             See how BidSmith transforms a 200-page federal solicitation into a <br />
-            structured compliance matrix with zero data persistence.
+            structured compliance matrix and risk report in 90 seconds.
           </p>
         </div>
 
