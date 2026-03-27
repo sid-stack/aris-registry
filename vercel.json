@@ -23,7 +23,7 @@
       "destination": "https://docs.bidsmith.pro/:match*"
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!api|docs|.*\\.).*)",
       "destination": "/index.html"
     }
   ]

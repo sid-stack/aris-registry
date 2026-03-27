@@ -187,8 +187,9 @@ export default function App() {
 
   useEffect(() => {
     let logicalPath = "/";
-
-    if (view === "templates") {
+    if (view === "app") {
+      logicalPath = "/app";
+    } else if (view === "templates") {
       logicalPath = "/templates";
     } else if (view === "privacy" || view === "terms" || view === "cookies") {
       logicalPath = `/${view}`;
@@ -203,15 +204,9 @@ export default function App() {
     } else if (view === "sam-scraper") {
       logicalPath = "/sam-scraper";
     } else if (view === "bid-search") {
-      logicalPath = "/search";
-    } else if (view === "survey-analytics") {
-      logicalPath = "/survey-analytics";
-    } else if (view === "demo-analytics") {
-      logicalPath = "/demo-analytics";
+      logicalPath = "/bid-search";
     } else if (view === "about") {
       logicalPath = "/about";
-    } else if (view === "beta") {
-      logicalPath = "/beta";
     } else if (view === "demo") {
       logicalPath = "/demo";
     } else if (view === "govcon-guide") {
