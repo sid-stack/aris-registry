@@ -123,7 +123,7 @@ export default function Landing({
               <div style={styles.videoSub}>Watch BidSmith shred a 200-page solicitation in 90s:</div>
               <div style={styles.videoFrame}>
                 <video autoPlay muted loop playsInline style={styles.video}>
-                  <source src="/assets/demo/aris-demo.mp4" type="video/mp4" />
+                  <source src="/aris-demo.mp4" type="video/mp4" />
                 </video>
                 <div style={styles.videoOverlay}>
                   <Shield size={12} color="#fff" />
