@@ -114,60 +114,35 @@ export default function App() {
   const [authenticated, setAuthenticated] = useState(() => localStorage.getItem("aris_authenticated") === "true");
   const [user, setUser] = useState(null);
   const [proposal, setProposal] = useState(null);
-  const [route] = useState(() =>
-    window.location.search.includes("phase2=true") ? "phase2" : "audit",
-  );
-  const [view, setView] = useState(() =>
-    path === "/templates"
-      ? "templates"
-      : path === "/pricing"
-        ? "pricing"
-        : path === "/rfp-compliance-matrix-generator"
-          ? "rfp-generator"
-          : path === "/outreach"
-            ? "outreach"
-            : path === "/admin"
-              ? "admin"
-              : path === "/contact"
-                ? "contact"
-                : path === "/privacy" || path === "/terms" || path === "/cookies"
-                  ? path.slice(1)
-                  : path === "/sam-rep"
-                    ? "sam-rep"
-                    : path === "/discovery"
-                      ? "discovery"
-                      : path === "/soc"
-                        ? "soc"
-                        : path === "/sam-scraper"
-                          ? "sam-scraper"
-                          : path === "/bid-search" || path === "/fed-search" || path === "/search"
-                            ? "bid-search"
-                            : path === "/survey-analytics"
-                              ? "survey-analytics"
-                              : path === "/demo-analytics"
-                                ? "demo-analytics"
-                                : path.startsWith("/app") || window.location.search.includes("app=true")
-                                  ? "app"
-                                  : path === "/about"
-                                    ? "about"
-                                    : path === "/beta" || path === "/sovereign-beta"
-                                      ? "beta"
-                                      : path === "/demo"
-                                        ? "demo"
-                                        : path === "/govcon-guide" || path === "/how-it-works"
-                                          ? "govcon-guide"
-                                          : path === "/dashboard" || path === "/app/dashboard"
-                                            ? "govcon-dashboard"
-                                            : path.startsWith("/labs")
-                                              ? "labs"
-                                              : path.startsWith("/compliance/")
-                                                ? "compliance"
-                                                : aliasSection
-                                                  ? "landing"
-                                                  : path !== "/"
-                                                    ? "404"
-                                                    : "landing",
-  );
+  const [view, setView] = useState(() => {
+    const p = window.location.pathname;
+    const isApp = p.startsWith("/app") || window.location.search.includes("app=true");
+    if (isApp) return "app";
+    if (p === "/templates") return "templates";
+    if (p === "/pricing") return "pricing";
+    if (p === "/rfp-compliance-matrix-generator") return "rfp-generator";
+    if (p === "/outreach") return "outreach";
+    if (p === "/admin") return "admin";
+    if (p === "/contact") return "contact";
+    if (p === "/privacy" || p === "/terms" || p === "/cookies") return p.slice(1);
+    if (p === "/sam-rep") return "sam-rep";
+    if (p === "/discovery") return "discovery";
+    if (p === "/soc") return "soc";
+    if (p === "/sam-scraper") return "sam-scraper";
+    if (p === "/bid-search" || p === "/fed-search" || p === "/search") return "bid-search";
+    if (p === "/survey-analytics") return "survey-analytics";
+    if (p === "/demo-analytics") return "demo-analytics";
+    if (p === "/about") return "about";
+    if (p === "/beta" || p === "/sovereign-beta") return "beta";
+    if (p === "/demo") return "demo";
+    if (p === "/govcon-guide" || p === "/how-it-works") return "govcon-guide";
+    if (p === "/dashboard" || p === "/app/dashboard") return "govcon-dashboard";
+    if (p.startsWith("/labs")) return "labs";
+    if (p.startsWith("/compliance/")) return "compliance";
+    if (aliasSection) return "landing";
+    if (p === "/" || p === "") return "landing";
+    return "404";
+  });
 
   usePageMeta(view);
 
@@ -377,7 +352,7 @@ export default function App() {
   }
 
   return (
-    <ErrorBoundary reloadOnRetry={false} fallbackMode="wanderer">
+    <ErrorBoundary reloadOnRetry={true} fallbackMode="wanderer">
       <Suspense fallback={<div style={{ minHeight: "100vh", background: "#0d0f14" }} />}>
         {content}
       </Suspense>

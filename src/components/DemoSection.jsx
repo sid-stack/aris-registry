@@ -37,7 +37,7 @@ export default function DemoSection({ onTryDemo }) {
                 playsInline
                 style={styles.video}
               >
-                <source src="/assets/demo/aris-demo.mp4" type="video/mp4" />
+                <source src="/aris-demo.mp4" type="video/mp4" />
                 Browser does not support video playback.
               </video>
             </div>

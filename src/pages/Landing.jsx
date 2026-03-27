@@ -70,7 +70,7 @@ export default function Landing({
         <div style={styles.navInner}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }} onClick={onGoHome}>
-              <img src="/assets/logo.jpg" alt="BidSmith" style={{ height: 32, borderRadius: 4 }} />
+              <img src="/logo.jpg" alt="BidSmith" style={{ height: 32, borderRadius: 4 }} />
               <span style={styles.navLogo}>BIDSMITH</span>
             </div>
           </div>
