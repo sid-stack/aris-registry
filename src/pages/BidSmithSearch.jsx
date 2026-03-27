@@ -190,7 +190,16 @@ const BidSmithSearch = ({ onBack }) => {
                fontSize: '3.5rem', fontWeight: 900, letterSpacing: '-0.04em',
                margin: 0, color: '#002244'
              }}>
-               BidSmith <span style={{ fontWeight: 400, color: '#64748b' }}>Search</span>
+               <span style={{ 
+                 fontSize: '3.5rem', 
+                 fontWeight: '800', 
+                 color: '#0B3D91', 
+                 letterSpacing: '0.05em',
+                 fontFamily: "'Playfair Display', serif",
+                 textTransform: 'uppercase'
+               }}>
+                 BIDSMITH
+               </span> <span style={{ fontWeight: 400, color: '#64748b' }}>Search</span>
              </h1>
              <p style={{ color: '#64748b', fontSize: '1.1rem', marginTop: '12px' }}>
                Search active federal solicitations and historical award records.

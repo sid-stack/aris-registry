@@ -72,17 +72,16 @@ export default function GovConDashboard({ onBack }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }} onClick={onBack}>
             <Shield size={24} color="#002244" />
-            <div style={{ 
-              fontSize: '18px', 
-              fontWeight: 800, 
-              color: '#002244', 
-              letterSpacing: '-0.02em',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
+            <span style={{ 
+              fontSize: '22px', 
+              fontWeight: '800', 
+              color: '#0B3D91', 
+              letterSpacing: '0.05em',
+              fontFamily: "'Playfair Display', serif",
+              textTransform: 'uppercase'
             }}>
-              BidSmith <span style={{ color: '#64748b', fontWeight: 500, fontSize: '14px' }}>| GOV-TIER</span>
-            </div>
+              BIDSMITH
+            </span>
           </div>
           
           <div style={{ width: '1px', height: '24px', background: '#e2e8f0' }} />

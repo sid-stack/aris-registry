@@ -96,9 +96,18 @@ export default function Landing({
 
       <header style={styles.navbar}>
         <div style={styles.navInner}>
-          <a href="/" style={styles.brand} aria-label="BidSmith Home">
-            <img src="/assets/logo.jpg" alt="BidSmith Logo" style={{ height: '52px', objectFit: 'contain' }} />
-          </a>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{ 
+            fontSize: '28px', 
+            fontWeight: '800', 
+            color: '#0B3D91', 
+            letterSpacing: '0.05em',
+            fontFamily: "'Playfair Display', serif",
+            textTransform: 'uppercase'
+          }}>
+            BIDSMITH
+          </span>
+        </div>
           <nav style={{ display: "flex", gap: isMobile ? "12px" : "24px", alignItems: "center" }} aria-label="Main Navigation">
             {!isMobile && (
               <>
