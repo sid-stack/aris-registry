@@ -92,7 +92,7 @@ export default function Landing({
         <div style={styles.heroContent}>
           <div style={styles.heroBadge}>Federal RFP Audit Software • Built for Government Contractors</div>
           <h1 style={styles.heroTitle}>
-            Save $5,000 in proposal prep. Audit any RFP in 90 seconds.
+            Stop burning $5,000 on RFPs you were never going to win.
           </h1>
           <p style={styles.heroSubtitle}>
             BidSmith reads your SAM.gov solicitation and delivers an instant compliance matrix,
