@@ -4,6 +4,13 @@ import { Mail, MessageSquare, Shield, Globe, Send, CheckCircle2 } from 'lucide-r
 const Contact = ({ onBack }) => {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' && window.innerWidth < 768);
+
+  React.useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
 
   const handleSubmit = (e) => {
     e.preventDefault();

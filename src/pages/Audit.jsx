@@ -548,9 +548,9 @@ const AIDraftingOutput = ({ draft, onResolve }) => {
 };
 
 const RequirementsTable = ({ requirements = [] }) => {
-  if (!requirements || requirements.length === 0) return null;
   const [draftingIdx, setDraftingIdx] = useState(null);
   const [activeDraft, setActiveDraft] = useState(null);
+  if (!requirements || requirements.length === 0) return null;
 
   const handleDraft = (idx, req) => {
     setDraftingIdx(idx);
