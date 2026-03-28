@@ -79,6 +79,7 @@ export default function Landing({
               <>
                 <button style={styles.navLinkBtn} onClick={onBidSmithSearch}>Search Bids</button>
                 <button style={styles.navLinkBtn} onClick={onBidSmithBeta}>Gov Admin</button>
+                <a href="https://arislabs.mintlify.app/" target="_blank" rel="noopener noreferrer" style={styles.navLinkBtn}>Docs</a>
               </>
             )}
             <button style={styles.navCta} onClick={onEnterApp}>Upload RFP (Free)</button>
@@ -122,7 +123,8 @@ export default function Landing({
             <div style={styles.videoContainer}>
               <div style={styles.videoSub}>Watch BidSmith shred a 200-page solicitation in 90s:</div>
               <div style={styles.videoFrame}>
-                <video autoPlay muted loop playsInline style={styles.video}>
+                <video autoPlay muted loop playsInline style={styles.video}
+                  onError={(e) => { e.target.style.display = 'none'; }}>
                   <source src="/aris-demo.mp4" type="video/mp4" />
                 </video>
                 <div style={styles.videoOverlay}>
@@ -240,6 +242,7 @@ export default function Landing({
           </div>
           <div style={styles.footerLinks}>
              <button style={styles.flBtn} onClick={onBidSmithSearch}>Search Bids</button>
+             <a href="https://arislabs.mintlify.app/" target="_blank" rel="noopener noreferrer" style={styles.flBtn}>ARIS Labs Docs</a>
              <button style={styles.flBtn} onClick={() => window.location.href='/contact'}>Contact [sid@bidsmith.pro]</button>
           </div>
         </div>
