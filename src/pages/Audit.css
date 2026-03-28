@@ -1457,5 +1457,108 @@
   .cyber-btn {
     padding: 14px;
     font-size: 14px;
+    width: 100%;
+  }
+
+  /* ── Core layout: stack vertically on mobile ── */
+  .bidsmith-layout {
+    grid-template-columns: 1fr !important;
+    height: auto !important;
+    overflow: visible !important;
+    margin-top: 0 !important;
+    padding: 12px !important;
+    gap: 12px;
+  }
+
+  .bidsmith-left {
+    display: none !important;
+  }
+
+  .bidsmith-center {
+    min-height: auto;
+  }
+
+  /* ── Ingestion hero ── */
+  .ingestion-view {
+    min-height: 100dvh;
+    padding: 24px 16px;
+    align-items: flex-start;
+    padding-top: 80px;
+  }
+
+  .ingestion-hero h1 {
+    font-size: 1.6rem !important;
+  }
+
+  .ingestion-hero p {
+    font-size: 13px;
+  }
+
+  .cyber-input-wrapper {
+    width: 100%;
+  }
+
+  .cyber-input {
+    width: 100%;
+    font-size: 14px;
+    padding: 16px 16px 16px 48px;
+  }
+
+  /* ── Panel content ── */
+  .panel-content {
+    padding: 16px;
+  }
+
+  /* ── Requirements table ── */
+  .requirements-table,
+  .compliance-matrix-table {
+    font-size: 11px;
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .requirements-table th,
+  .requirements-table td {
+    padding: 8px 6px;
+    min-width: 80px;
+  }
+
+  /* ── Radar ── */
+  .disqualification-radar {
+    width: 100%;
+  }
+
+  .radar-container {
+    max-width: 260px;
+    margin: 0 auto;
+  }
+
+  /* ── Revenue protection ── */
+  .revenue-protection {
+    padding: 16px;
+  }
+
+  /* ── Fatal error modal ── */
+  .fatal-error-overlay {
+    padding: 16px;
+  }
+
+  .fatal-error-modal {
+    padding: 24px 16px;
+    width: 95vw;
+  }
+
+  /* ── Vault status bar ── */
+  .vault-status-bar {
+    font-size: 9px;
+    padding: 6px 12px;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  /* ── Compliance export CTA ── */
+  .compliance-cta {
+    padding: 16px;
   }
 }

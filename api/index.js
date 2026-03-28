@@ -18,7 +18,7 @@ import { sanitizeMarkdown } from "./utils/markdown.js";
 
 // Services & MCP Client
 import { getSamClient, getAuditClient, callMcpTool } from "./services/mcpClient.js";
-import { createCheckoutSession } from "./services/stripe.js";
+import { createCheckoutSession, createDynamicCheckoutSession } from "./services/stripe.js";
 import { recordAnalyticsEvent, renderAnalyticsDashboard, recordBetaSignup } from "./services/analytics.js";
 import { AUDIT_PROMPT, SYS_PROMPT } from "./src/prompts.js";
 import { sovereignSearch } from "./services/fedSearch.js";
@@ -116,7 +116,7 @@ app.post("/api/analyze-pdf", upload.single('file'), asyncHandler(async (req, res
       temperature: 0.1
     }, "pdf_full_extraction");
 
-    const jsonMatch = rawAnalysis.match(/\{[\s\S]*\}/);
+    const jsonMatch = rawAnalysis.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
     const extraction = JSON.parse(jsonMatch ? jsonMatch[0] : rawAnalysis);
 
     // Map Gemini extraction to the ARIS-standard UI format
@@ -124,7 +124,7 @@ app.post("/api/analyze-pdf", upload.single('file'), asyncHandler(async (req, res
       id: extraction.document_metadata?.solicitation_number || "UPLOADED_PDF",
       title: req.file.originalname,
       agency: extraction.document_metadata?.agency || "Extracted from PDF",
-      value: "45000000", // Default or extracted if available
+      value: extraction.document_metadata?.estimated_value || extraction.estimated_value || "0",
       compliance: (extraction.requirements || []).slice(0, 10).map((r, i) => ({
         category: r.category,
         verdict: r.is_disqualifying_if_missing ? "DISQUALIFIER" : "WARNING",
@@ -236,7 +236,7 @@ async function startHarvester() {
             const samClient = await getSamClient();
             const samMcpResult = await callMcpTool(samClient, "search_opportunities", { q: seed, limit: 30 });
             const opportunities = JSON.parse(samMcpResult.content[0].text);
-            if (opportunities?.length > 0) await sovereignSearch.syncSovereignTable(opportunities, "US");
+            if (Array.isArray(opportunities) && opportunities.length > 0) await sovereignSearch.syncSovereignTable(opportunities, "US");
           } catch (err) { console.warn(`[HARVESTER] SAM failed for "${seed}":`, err.message); }
         }
         try {
@@ -311,6 +311,200 @@ app.post("/api/govcon/chat", asyncHandler(async (req, res) => {
     `You are GovCon AI. Specialized assistant. RFP context: ${context?.substring(0, 5000)}`
   );
   res.json({ text, response: text }); // Support both formats
+}));
+
+// ─── /api/analyze-link ───────────────────────────────────────────────────────
+app.post("/api/analyze-link", apiLimiter, asyncHandler(async (req, res) => {
+  const { url } = req.body;
+  if (!url) return res.status(400).json({ error: "URL is required" });
+
+  const normalized = url.toLowerCase().trim();
+  let solicitationText = "";
+  let meta = { id: "LINK_AUDIT", title: "Federal Solicitation", agency: "Federal Agency", value: "0" };
+
+  if (normalized.includes("sam.gov")) {
+    try {
+      const samClient = await getSamClient();
+      const oppResult = await callMcpTool(samClient, "get_opportunity", { url });
+      const opp = JSON.parse(oppResult.content[0].text);
+      meta = {
+        id: opp.solicitationNumber || opp.noticeId || "SAM_OPP",
+        title: opp.title || "Federal Solicitation",
+        agency: opp.fullParentPathName || opp.departmentName || opp.subtierName || "Federal Agency",
+        value: opp.award?.amount || opp.totalBaseAndAllOptionsValue || "0",
+      };
+      const links = (opp.resourceLinks || []).map(r => typeof r === "string" ? r : r.url).filter(Boolean);
+      if (links.length > 0) {
+        try {
+          const dlResult = await callMcpTool(samClient, "download_solicitation", { links, noticeId: meta.id });
+          solicitationText = dlResult.content[0].text || "";
+        } catch (_) {
+          solicitationText = opp.description || JSON.stringify(opp);
+        }
+      } else {
+        solicitationText = opp.description || JSON.stringify(opp);
+      }
+    } catch (err) {
+      return res.status(502).json({ error: `SAM.gov access failed: ${err.message}` });
+    }
+  } else if (normalized.endsWith(".pdf")) {
+    try {
+      const pdfRes = await fetch(url, { redirect: "follow" });
+      if (!pdfRes.ok) throw new Error(`HTTP ${pdfRes.status}`);
+      const buffer = Buffer.from(await pdfRes.arrayBuffer());
+      const pdfData = await pdfParse(buffer);
+      solicitationText = pdfData.text.slice(0, 15000);
+      meta = { id: "PDF_LINK", title: url.split("/").pop(), agency: "Unknown", value: "0" };
+    } catch (err) {
+      return res.status(502).json({ error: `PDF download failed: ${err.message}` });
+    }
+  } else {
+    return res.status(400).json({ error: "Unsupported URL. Provide a SAM.gov link or direct PDF URL." });
+  }
+
+  if (!solicitationText || solicitationText.length < 30) {
+    return res.status(422).json({ error: "Could not extract text from the provided URL." });
+  }
+
+  const { readFileSync } = await import("fs");
+  let extractPromptTemplate;
+  try {
+    extractPromptTemplate = readFileSync(join(__dirname, "llm", "extract_prompt.txt"), "utf8");
+  } catch (_) {
+    extractPromptTemplate = "Extract compliance intelligence from this RFP text: {{RFP_TEXT}}\nReturn strict JSON with: solicitation_number, agency, requirements:[{category, text, risk_level, section, page_reference, source_excerpt, is_disqualifying_if_missing}]";
+  }
+  const extractPrompt = extractPromptTemplate.replace("{{RFP_TEXT}}", solicitationText.slice(0, 15000));
+
+  const rawAnalysis = await traceLLM(null, {
+    model: "google/gemini-2.0-flash",
+    messages: [
+      { role: "system", content: "You are the ARIS High-Precision RFP Auditor. Extract compliance intelligence into strict JSON." },
+      { role: "user", content: extractPrompt }
+    ],
+    temperature: 0.1
+  }, "link_full_extraction");
+
+  const jsonMatch = rawAnalysis.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+  const extraction = JSON.parse(jsonMatch ? jsonMatch[0] : rawAnalysis);
+
+  const requirements = extraction.requirements || [];
+  const response = {
+    id: meta.id || extraction.document_metadata?.solicitation_number || "LINK_AUDIT",
+    title: meta.title || extraction.document_metadata?.title || "Federal Solicitation",
+    agency: meta.agency || extraction.document_metadata?.agency || "Federal Agency",
+    value: meta.value || extraction.document_metadata?.estimated_value || "0",
+    compliance: requirements.slice(0, 10).map((r, i) => ({
+      category: r.category,
+      verdict: r.is_disqualifying_if_missing ? "DISQUALIFIER" : "WARNING",
+      risk: r.risk_level === "High" ? 85 : r.risk_level === "Medium" ? 65 : 40,
+      description: r.text,
+      sourceSnippet: r.source_excerpt || "EXTRACTED_FROM_SOURCE",
+      sectionRef: `Section ${r.section || "—"}, Page ${r.page_reference || "—"}`,
+      angle: i * 36,
+      label: r.category ? r.category.slice(0, 3).toUpperCase() : "REQ",
+    })),
+    requirements: requirements.map(r => ({
+      requirement: r.text,
+      status: "Not reviewed",
+      risk: r.risk_level,
+      owner: "",
+    })),
+    executiveSummary: `Mercury 2 analysis complete. Identified ${requirements.length} critical requirements. Manual review recommended for deadlines.`,
+    riskAssessment: {
+      verdict: requirements.some(r => r.is_disqualifying_if_missing) ? "HIGH_DISQUALIFICATION_RISK" : "ACTIONABLE",
+      score: requirements.length > 5 ? 85 : 50,
+      breakdown: { delta_risk: 35, hazard_penalty: 50 },
+      delta_analysis: `High-priority compliance triggers identified in solicitation.`,
+    },
+    fatalError: requirements.some(r => r.is_disqualifying_if_missing),
+  };
+
+  res.json(response);
+}));
+
+// ─── /api/create-dynamic-checkout-session ────────────────────────────────────
+app.post("/api/create-dynamic-checkout-session", apiLimiter, asyncHandler(async (req, res) => {
+  const { estimatedValue, opportunityTitle } = req.body;
+  const origin = req.headers.origin || `https://${req.headers.host}` || "https://bidsmith.pro";
+  const session = await createDynamicCheckoutSession({ estimatedValue, opportunityTitle, origin });
+  res.json({ url: session.url, sessionId: session.id });
+}));
+
+// ─── /api/export-rtm ─────────────────────────────────────────────────────────
+app.post("/api/export-rtm", asyncHandler(async (req, res) => {
+  const { complianceData } = req.body;
+  if (!complianceData || !Array.isArray(complianceData)) {
+    return res.status(400).json({ error: "complianceData array required" });
+  }
+  const rows = [
+    ["Category", "Verdict", "Risk Score", "Description", "Section Reference", "Status"],
+    ...complianceData.map(r => [
+      r.category || "",
+      r.verdict || "",
+      r.risk || "",
+      (r.description || "").replace(/,/g, ";"),
+      r.sectionRef || "",
+      "Not reviewed",
+    ]),
+  ];
+  const csv = rows.map(r => r.join(",")).join("\n");
+  res.setHeader("Content-Type", "text/csv");
+  res.setHeader("Content-Disposition", "attachment; filename=BidSmith_Compliance_Matrix.csv");
+  res.send(csv);
+}));
+
+// ─── /api/generate-report-stream ─────────────────────────────────────────────
+app.get("/api/generate-report-stream", asyncHandler(async (req, res) => {
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders();
+
+  const send = (type, data) => res.write(`data: ${JSON.stringify({ type, ...data })}\n\n`);
+
+  try {
+    const ctxRaw = req.query.ctx;
+    if (!ctxRaw) { send("error", { message: "Missing ctx" }); return res.end(); }
+
+    const ctx = JSON.parse(decodeURIComponent(Buffer.from(decodeURIComponent(ctxRaw), "base64").toString("utf8")));
+    const { pillars = [], title = "", agency = "", executiveSummary = "" } = ctx;
+
+    const complianceSummary = Array.isArray(pillars)
+      ? pillars.map(p => `- ${p.category || "Requirement"}: ${p.description || ""} (Risk: ${p.risk || "?"})`).join("\n")
+      : JSON.stringify(pillars);
+
+    const prompt = `You are an ARIS federal compliance specialist. Generate a concise remediation action plan in Markdown for this solicitation:
+
+Title: ${title}
+Agency: ${agency}
+Executive Summary: ${executiveSummary}
+
+Compliance Requirements:
+${complianceSummary}
+
+Write a prioritized P0/P1 remediation script with:
+1. Executive Verdict (1-2 sentences)
+2. Top 3 Disqualification Risks & Mitigation
+3. Proposal Win Themes
+4. Recommended Next Steps
+
+Keep it under 600 words. Use markdown headers and bullets.`;
+
+    const proposalDraft = await traceLLM(null, {
+      model: "google/gemini-2.0-flash",
+      messages: [
+        { role: "system", content: "You are a senior federal proposal strategist." },
+        { role: "user", content: prompt }
+      ],
+      temperature: 0.3
+    }, "report_stream_generation");
+
+    send("agent_done", { data: { proposal_draft: proposalDraft } });
+    send("pipeline_complete", {});
+  } catch (err) {
+    send("error", { message: err.message });
+  }
+  res.end();
 }));
 
 app.get("*", (req, res) => res.sendFile(join(__dirname, "../dist/index.html")));
