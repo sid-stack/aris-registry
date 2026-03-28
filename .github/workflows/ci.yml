@@ -116,7 +116,6 @@ jobs:
         with:
           working-directory: ./
           browser: chrome
-          headless: true
           wait-on: 'http://localhost:4173'
           wait-on-timeout: 120
 
