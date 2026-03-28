@@ -133,7 +133,7 @@ export async function getAdminStats() {
   try {
     await ensureAnalyticsSchema();
 
-    const [signupCount, recentSignups, topEvents, recentEvents] = await Promise.all([
+    const [signupCount, recentSignups, topEvents, recentEvents, dailyTraffic, featureUsage] = await Promise.all([
       analyticsDb.query("SELECT COUNT(*) FROM beta_signups"),
       analyticsDb.query("SELECT email, created_at FROM beta_signups ORDER BY created_at DESC LIMIT 20"),
       analyticsDb.query(`
@@ -149,7 +149,51 @@ export async function getAdminStats() {
         ORDER BY created_at DESC
         LIMIT 50
       `),
+      analyticsDb.query(`
+        SELECT
+          TO_CHAR(DATE_TRUNC('day', created_at), 'Dy') AS day,
+          COUNT(DISTINCT uid) AS visitors,
+          COUNT(*) FILTER (WHERE event_type IN ('audit_started','checkout_initiated','trial_started')) AS conversions
+        FROM analytics_events
+        WHERE created_at >= NOW() - INTERVAL '7 days'
+        GROUP BY DATE_TRUNC('day', created_at)
+        ORDER BY DATE_TRUNC('day', created_at)
+      `),
+      analyticsDb.query(`
+        SELECT
+          CASE
+            WHEN event_type ILIKE '%audit%' THEN 'RFP Audit'
+            WHEN event_type ILIKE '%sam%' OR event_type ILIKE '%search%' THEN 'SAM Scraper'
+            WHEN event_type ILIKE '%matrix%' OR event_type ILIKE '%rtm%' THEN 'Matrix Gen'
+            WHEN event_type ILIKE '%outreach%' OR event_type ILIKE '%checkout%' THEN 'Outreach'
+            ELSE 'Other'
+          END AS name,
+          COUNT(*) AS value
+        FROM analytics_events
+        WHERE created_at >= NOW() - INTERVAL '30 days'
+        GROUP BY 1
+        ORDER BY 2 DESC
+      `),
     ]);
+
+    // Funnel: page_view counts by path
+    const funnelRes = await analyticsDb.query(`
+      SELECT
+        CASE
+          WHEN path = '/' OR path = '' THEN 'Landing'
+          WHEN path ILIKE '%pricing%' THEN 'Pricing'
+          WHEN path ILIKE '%app%' OR path ILIKE '%audit%' THEN 'App/Demo'
+          WHEN event_type IN ('checkout_initiated','subscription_upgrade','purchase_complete') THEN 'Pro Subscription'
+          ELSE NULL
+        END AS stage,
+        COUNT(*) AS value
+      FROM analytics_events
+      WHERE created_at >= NOW() - INTERVAL '30 days'
+        AND (path IN ('/','') OR path ILIKE '%pricing%' OR path ILIKE '%app%' OR event_type IN ('checkout_initiated','subscription_upgrade','purchase_complete'))
+      GROUP BY 1
+      HAVING (CASE WHEN path = '/' OR path = '' THEN 'Landing' WHEN path ILIKE '%pricing%' THEN 'Pricing' WHEN path ILIKE '%app%' OR path ILIKE '%audit%' THEN 'App/Demo' WHEN event_type IN ('checkout_initiated','subscription_upgrade','purchase_complete') THEN 'Pro Subscription' ELSE NULL END) IS NOT NULL
+      ORDER BY 2 DESC
+    `).catch(() => ({ rows: [] }));
 
     return {
       beta_signups: {
@@ -160,6 +204,9 @@ export async function getAdminStats() {
         by_type: topEvents.rows,
         recent: recentEvents.rows,
       },
+      daily_traffic: dailyTraffic.rows,
+      feature_usage: featureUsage.rows,
+      funnel: funnelRes.rows,
       generated_at: new Date().toISOString(),
     };
   } catch (err) {

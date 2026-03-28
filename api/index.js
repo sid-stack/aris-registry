@@ -19,7 +19,7 @@ import { sanitizeMarkdown } from "./utils/markdown.js";
 // Services & MCP Client
 import { getSamClient, getAuditClient, callMcpTool } from "./services/mcpClient.js";
 import { createCheckoutSession, createDynamicCheckoutSession } from "./services/stripe.js";
-import { recordAnalyticsEvent, renderAnalyticsDashboard, recordBetaSignup } from "./services/analytics.js";
+import { recordAnalyticsEvent, renderAnalyticsDashboard, recordBetaSignup, getAdminStats } from "./services/analytics.js";
 import { AUDIT_PROMPT, SYS_PROMPT } from "./src/prompts.js";
 import { sovereignSearch } from "./services/fedSearch.js";
 import { usaspending } from "./services/usaspending.js";
@@ -311,6 +311,12 @@ app.post("/api/govcon/chat", asyncHandler(async (req, res) => {
     `You are GovCon AI. Specialized assistant. RFP context: ${context?.substring(0, 5000)}`
   );
   res.json({ text, response: text }); // Support both formats
+}));
+
+// ─── /api/admin/stats ────────────────────────────────────────────────────────
+app.get("/api/admin/stats", asyncHandler(async (req, res) => {
+  const stats = await getAdminStats();
+  res.json(stats);
 }));
 
 // ─── /api/analyze-link ───────────────────────────────────────────────────────
