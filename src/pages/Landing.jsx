@@ -90,14 +90,14 @@ export default function Landing({
       {/* 🚀 Hero Section (Conversion Skeleton) */}
       <section style={styles.heroSection}>
         <div style={styles.heroContent}>
-          <div style={styles.heroBadge}>INSTITUTIONAL GRADE • BUILT FOR GOVCON</div>
+          <div style={styles.heroBadge}>Federal RFP Audit Software • Built for Government Contractors</div>
           <h1 style={styles.heroTitle}>
-            Replace $5,000+ in proposal prep <br />
-            with a 2-minute compliance matrix.
+            Audit any federal RFP in 90 seconds.
           </h1>
           <p style={styles.heroSubtitle}>
-            Know exactly what’s required, what you’re missing, and whether you should <br />
-            even bid before wasting a single hour of your team's time.
+            BidSmith reads your SAM.gov solicitation and delivers an instant compliance matrix,
+            FAR/DFARS risk flags, and a bid/no-bid recommendation — before you invest a single
+            hour of proposal work.
           </p>
           
           <div style={styles.heroCtaGroup}>
@@ -110,7 +110,7 @@ export default function Landing({
                   onChange={(e) => setInputUrl(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleStartAnalysis()}
                 />
-                <button onClick={handleStartAnalysis} style={styles.mainBtnSmall}>Shred RFP</button>
+                <button onClick={handleStartAnalysis} style={styles.mainBtnSmall}>Audit Free</button>
              </div>
              <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
                 <button onClick={() => fileInputRef.current.click()} style={styles.secBtnSmall}>Upload PDF</button>
@@ -144,9 +144,10 @@ export default function Landing({
           )}
 
           <div style={styles.trustBar}>
-            <div style={styles.trustItem}><Check size={14} color="#16a34a" /> 100% Secure</div>
-            <div style={styles.trustItem}><Check size={14} color="#16a34a" /> Zero Data Persistence</div>
-            <div style={styles.trustItem}><Check size={14} color="#16a34a" /> FAR/DFARS Compliant</div>
+            <div style={styles.trustItem}><Check size={14} color="#16a34a" /> No signup required</div>
+            <div style={styles.trustItem}><Check size={14} color="#16a34a" /> Zero data persistence</div>
+            <div style={styles.trustItem}><Check size={14} color="#16a34a" /> FAR/DFARS clause coverage</div>
+            <div style={styles.trustItem}><Check size={14} color="#16a34a" /> SAM.gov native</div>
           </div>
         </div>
       </section>
@@ -161,13 +162,13 @@ export default function Landing({
           <div style={styles.painGrid}>
             <div style={styles.painCard}>
               <AlertTriangle color="#dc2626" size={32} />
-              <h3 style={styles.painTitle}>Manual Review (20h+)</h3>
-              <p style={styles.painText}>Reading line-by-line is expensive and slow. One missed "shall" can disqualify your entire bid.</p>
+              <h3 style={styles.painTitle}>Without BidSmith</h3>
+              <p style={styles.painText}>18–40 hours of manual review per solicitation. One missed "shall" disqualifies your entire bid. $5,000–$15,000 per consultant engagement.</p>
             </div>
             <div style={styles.painCard}>
               <Zap color="#2563eb" size={32} />
-              <h3 style={styles.painTitle}>BidSmith (90s)</h3>
-              <p style={styles.painText}>Automatically extract every requirement into a structured matrix. Focus on winning, not shredding.</p>
+              <h3 style={styles.painTitle}>With BidSmith</h3>
+              <p style={styles.painText}>Compliance matrix in 90 seconds. Every FAR/DFARS requirement extracted, risk-scored, and ready for your proposal team.</p>
             </div>
           </div>
         </div>
@@ -176,8 +177,8 @@ export default function Landing({
       {/* 📊 Output Preview Section */}
       <section style={styles.previewSection}>
         <div style={styles.container}>
-          <h2 style={styles.sectionTitle}>Institutional Grade Output</h2>
-          <p style={styles.sectionSubtitle}>Professional compliance matrices ready for your proposal team.</p>
+          <h2 style={styles.sectionTitle}>What You Get in 90 Seconds</h2>
+          <p style={styles.sectionSubtitle}>A structured compliance matrix — every requirement captured, risk-scored, and ready for your proposal team.</p>
           
           <div style={styles.matrixPreview}>
             <div style={styles.matrixHead}>
@@ -216,8 +217,8 @@ export default function Landing({
       <section id="pricing" style={styles.pricingSection}>
         <div style={styles.container}>
           <div style={{ textAlign: 'center', marginBottom: 40 }}>
-            <h2 style={styles.sectionTitle}>Simple, Performance-Based Pricing</h2>
-            <p style={styles.sectionSubtitle}>Start with a free preview. Pay only when you're ready to export.</p>
+            <h2 style={styles.sectionTitle}>Simple, Transparent Pricing</h2>
+            <p style={styles.sectionSubtitle}>Start free — no credit card required. A compliance consultant costs $15,000/year. BidSmith starts at $0.</p>
           </div>
           <PricingComparison onPlanClick={handlePlanClick} />
         </div>
@@ -228,9 +229,9 @@ export default function Landing({
       {/* 🎯 Final CTA */}
       <section style={styles.finalCta}>
         <div style={styles.container}>
-          <h2 style={styles.finalTitle}>Stop bleeding money on risky audits.</h2>
-          <button onClick={onEnterApp} style={styles.mainBtnLarge}>Upload Your RFP & Get Matrix</button>
-          <p style={styles.finalFootnote}>Institutional access. No signup required for initial analysis.</p>
+          <h2 style={styles.finalTitle}>Know if you should bid — in 90 seconds.</h2>
+          <button onClick={onEnterApp} style={styles.mainBtnLarge}>Audit Your RFP Free</button>
+          <p style={styles.finalFootnote}>No signup required. 3 free audits per month. Cancel anytime.</p>
         </div>
       </section>
 
@@ -238,7 +239,7 @@ export default function Landing({
         <div style={styles.footerInner}>
           <div style={styles.footerBrand}>
             <span style={styles.footerLogo}>BIDSMITH</span>
-            <p style={styles.footerText}>Institutional Grade RFP Intelligence.</p>
+            <p style={styles.footerText}>Federal RFP Compliance Audit Software.</p>
           </div>
           <div style={styles.footerLinks}>
              <button style={styles.flBtn} onClick={onBidSmithSearch}>Search Bids</button>
