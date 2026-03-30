@@ -280,7 +280,9 @@ export default function App() {
   } else if (view === "bid-search") {
     content = <BidSmithSearch onBack={() => setView("landing")} />;
   } else if (view === "survey-analytics") {
-    content = <SurveyAnalytics />;
+    content = authenticated
+      ? <SurveyAnalytics />
+      : <Login onLogin={() => { setAuthenticated(true); localStorage.setItem("aris_authenticated", "true"); }} />;
   } else if (view === "demo-analytics") {
     content = authenticated
       ? <DemoAnalytics />
