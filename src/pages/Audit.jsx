@@ -49,7 +49,7 @@ const PIPELINE_LOGS = [
   "INITIALIZING_STATELESS_BRIDGE...",
   "CONNECTING_TO_FEDERAL_GATEWAY...",
   "PARSING_SOLICITATION_STRUCTURE...",
-  "IDENTIFYING_COMPLIANCE_FRICITION...",
+  "IDENTIFYING_COMPLIANCE_FRICTION...",
   "EXTRACTING_SECTION_L_REQUIREMENTS...",
   "EXECUTING_REGULATORY_CROSS_CHECK...",
   "GENERATING_REMEDIATION_MATRIX...",
@@ -232,7 +232,7 @@ const RfpVitalSigns = ({ dueDate = "CALCULATING...", value = "ANALYZING...", com
     padding: '24px', background: '#ffffff', borderRadius: '16px', 
     border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '12px'
   }}>
-    <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', mb: 8 }}>RFP VITAL SIGNS</div>
+    <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', marginBottom: 8 }}>RFP VITAL SIGNS</div>
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
       <span style={{ fontSize: '12px', color: '#64748b' }}>Due Date</span>
       <span style={{ fontSize: '12px', fontWeight: 700, color: '#ef4444' }}>{dueDate}</span>
@@ -448,6 +448,24 @@ const Audit = ({ onBack, initialUrl, initialFile }) => {
     setCurrentStage(0);
     addLog(`INITIATING_MERCURY_FLOW: ${url}`, "info");
 
+    const urlLogs = [
+      "CONNECTING_TO_FEDERAL_GATEWAY...",
+      "PARSING_SOLICITATION_STRUCTURE...",
+      "EXTRACTING_SECTION_L_REQUIREMENTS...",
+      "EXECUTING_REGULATORY_CROSS_CHECK...",
+      "GENERATING_REMEDIATION_MATRIX..."
+    ];
+    let logIdx = 0;
+    const progressInterval = setInterval(() => {
+      if (logIdx < urlLogs.length) {
+        addLog(urlLogs[logIdx]);
+        setProgress(prev => Math.min(prev + 16, 90));
+        logIdx++;
+      } else {
+        clearInterval(progressInterval);
+      }
+    }, 1800);
+
     try {
       const res = await fetch("/api/analyze-link", {
         method: "POST",
@@ -455,12 +473,15 @@ const Audit = ({ onBack, initialUrl, initialFile }) => {
         body: JSON.stringify({ url })
       });
       const data = await res.json();
+      clearInterval(progressInterval);
+      setProgress(100);
       setResult(data);
       setIsLoading(false);
       // Trigger Lead Capture if email unknown
       if (!userEmail) setShowLeadModal(true);
     } catch (e) {
-      console.error(e);
+      clearInterval(progressInterval);
+      addLog(`FATAL_ERROR: ${e.message}`, "error");
       setIsLoading(false);
     }
   };

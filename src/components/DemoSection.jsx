@@ -36,6 +36,7 @@ export default function DemoSection({ onTryDemo }) {
                 loop
                 playsInline
                 style={styles.video}
+                onError={(e) => { e.target.style.display = 'none'; }}
               >
                 <source src="/aris-demo.mp4" type="video/mp4" />
                 Browser does not support video playback.
