@@ -550,7 +550,14 @@ const AIDraftingOutput = ({ draft, onResolve }) => {
 const RequirementsTable = ({ requirements = [] }) => {
   const [draftingIdx, setDraftingIdx] = useState(null);
   const [activeDraft, setActiveDraft] = useState(null);
-  if (!requirements || requirements.length === 0) return null;
+  
+  if (!requirements || requirements.length === 0) {
+    return (
+      <div style={{ padding: '60px', textAlign: 'center', background: 'rgba(0,0,0,0.1)', borderRadius: '12px', border: '1px dashed var(--border)' }}>
+        <p style={{ color: 'var(--text-dim)', fontSize: '14px', fontWeight: 600 }}>NO_REQUIREMENTS_EXTRACTED_FROM_CURRENT_SLICE</p>
+      </div>
+    );
+  }
 
   const handleDraft = (idx, req) => {
     setDraftingIdx(idx);
@@ -558,82 +565,117 @@ const RequirementsTable = ({ requirements = [] }) => {
       setDraftingIdx(null);
       setActiveDraft({
         idx,
-        content: `Based on the requirement "${req.requirement}", here is a proposed draft response:\n\n"Our team of certified professionals holds active TS/SCI clearances as required. We have a proven tracking record of maintaining 100% compliance with government security protocols in NCR facilities, as demonstrated in our previous work with DHA on Project Mercury..."`
+        content: `Based on the requirement "${req.requirement || req.description}", here is a proposed draft response:\n\n"Our team of certified professionals holds active TS/SCI clearances as required. We have a proven tracking record of maintaining 100% compliance with government security protocols in NCR facilities, as demonstrated in our previous work with DHA on Project Mercury..."`
       });
     }, 1500);
   };
 
   return (
-    <div className="requirements-table-container" style={{ marginTop: 32 }}>
-      <div className="panel-header" style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)', fontWeight: 800, fontSize: '0.75rem', letterSpacing: '0.1em' }}>
-        <FileText size={14} color="var(--accent)" /> EXTRACTED REQUIREMENTS ({requirements.length})
-      </div>
-      <div style={{ overflowX: 'auto', background: 'var(--card)', borderRadius: 12, border: '1px solid var(--border)', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-          <thead>
-            <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border)', background: 'var(--background-alt)' }}>
-              <th style={{ padding: '16px', color: 'var(--text-secondary)', fontWeight: 700 }}>REQUIREMENT</th>
-              <th style={{ padding: '16px', color: 'var(--text-secondary)', fontWeight: 700 }}>STATUS</th>
-              <th style={{ padding: '16px', color: 'var(--text-secondary)', fontWeight: 700 }}>RISK</th>
-              <th style={{ padding: '16px', color: 'var(--accent)', fontWeight: 800, textAlign: 'right' }}>ACTION</th>
-            </tr>
-          </thead>
-          <tbody>
-            {requirements.map((req, i) => (
-              <React.Fragment key={i}>
-                <tr style={{ borderBottom: '1px solid var(--border)', background: draftingIdx === i ? 'var(--accent-soft)' : 'transparent' }}>
-                  <td style={{ padding: '16px', color: 'var(--text-primary)', maxWidth: '500px', lineHeight: 1.5, fontWeight: 500 }}>{req.requirement}</td>
-                  <td style={{ padding: '16px' }}>
-                    <span style={{ 
-                      padding: '4px 8px', 
-                      borderRadius: '4px', 
-                      background: 'var(--accent-soft)', 
-                      color: 'var(--accent)',
-                      fontSize: '0.75rem',
-                      fontWeight: 700
-                    }}>
-                      {req.status}
-                    </span>
-                  </td>
-                  <td style={{ padding: '16px' }}>
-                    <span style={{ 
-                      color: req.risk === 'High' ? 'var(--risk-high)' : 'var(--text-muted)',
-                      fontWeight: 700
-                    }}>
-                      {req.risk}
-                    </span>
-                  </td>
-                  <td style={{ padding: '16px', textAlign: 'right' }}>
-                    <button 
-                      onClick={() => handleDraft(i, req)}
-                      disabled={draftingIdx !== null}
-                      style={{
-                        background: 'var(--accent)',
-                        color: 'white',
-                        border: 'none',
-                        padding: '6px 12px',
-                        borderRadius: '4px',
-                        fontSize: '10px',
-                        fontWeight: 800,
-                        cursor: 'pointer',
-                        opacity: draftingIdx === i ? 0.6 : 1
-                      }}
-                    >
-                      {draftingIdx === i ? '...' : 'DRAFT WITH AI'}
-                    </button>
-                  </td>
-                </tr>
-                {activeDraft?.idx === i && (
-                  <tr>
-                    <td colSpan="4" style={{ padding: '0 16px 16px' }}>
-                      <AIDraftingOutput draft={activeDraft.content} onResolve={() => setActiveDraft(null)} />
+    <div className="compliance-matrix-container" style={{ marginTop: '32px', width: '100%' }}>
+      {/* 
+          Institutional Compliance Matrix 
+          Design: Navy/White/Teal
+      */}
+      <div style={{ 
+        background: '#ffffff', 
+        borderRadius: '12px', 
+        border: '1px solid #e2e8f0', 
+        overflow: 'hidden',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+      }}>
+        <div style={{ padding: '20px 24px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <FileText size={20} color="#002244" />
+            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#002244', letterSpacing: '-0.01em' }}>REQUISITION_COMPLIANCE_MATRIX</h3>
+          </div>
+          <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', background: '#f1f5f9', padding: '4px 12px', borderRadius: '99px' }}>
+            {requirements.length} ITEMS IDENTIFIED
+          </div>
+        </div>
+
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
+            <thead>
+              <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Requirement Detail</th>
+                <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Verification Status</th>
+                <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Risk Vector</th>
+                <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>Intelligence</th>
+              </tr>
+            </thead>
+            <tbody>
+              {requirements.map((req, i) => (
+                <React.Fragment key={i}>
+                  <tr style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s ease' }} className="matrix-row">
+                    <td style={{ padding: '20px 24px', verticalAlign: 'top' }}>
+                      <div style={{ fontSize: '14px', color: '#1e293b', lineHeight: '1.6', fontWeight: 500 }}>
+                        {req.requirement || req.description}
+                      </div>
+                    </td>
+                    <td style={{ padding: '20px 24px', verticalAlign: 'top' }}>
+                      <span style={{ 
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        background: '#f0f9ff',
+                        color: '#0369a1',
+                        textTransform: 'uppercase'
+                      }}>
+                        <CheckCircle2 size={12} />
+                        {req.status || "IDENTIFIED"}
+                      </span>
+                    </td>
+                    <td style={{ padding: '20px 24px', verticalAlign: 'top' }}>
+                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ width: '40px', height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
+                            <div style={{ 
+                              width: req.risk === 'High' ? '90%' : req.risk === 'Medium' ? '50%' : '20%', 
+                              height: '100%', 
+                              background: req.risk === 'High' ? '#ef4444' : req.risk === 'Medium' ? '#f59e0b' : '#10b981'
+                            }} />
+                          </div>
+                          <span style={{ fontSize: '11px', fontWeight: 700, color: req.risk === 'High' ? '#ef4444' : '#64748b' }}>
+                            {req.risk || "LOW"}
+                          </span>
+                       </div>
+                    </td>
+                    <td style={{ padding: '20px 24px', verticalAlign: 'top', textAlign: 'right' }}>
+                      <button 
+                        onClick={() => handleDraft(i, req)}
+                        disabled={draftingIdx !== null}
+                        style={{
+                          background: '#002244',
+                          color: '#ffffff',
+                          border: 'none',
+                          padding: '8px 16px',
+                          borderRadius: '6px',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                          opacity: draftingIdx === i ? 0.6 : 1
+                        }}
+                      >
+                        {draftingIdx === i ? 'PROCESSING...' : 'GENERATE DRAFT'}
+                      </button>
                     </td>
                   </tr>
-                )}
-              </React.Fragment>
-            ))}
-          </tbody>
-        </table>
+                  {activeDraft?.idx === i && (
+                    <tr>
+                      <td colSpan="4" style={{ padding: '0 24px 24px', background: '#f8fafc' }}>
+                        <AIDraftingOutput draft={activeDraft.content} onResolve={() => setActiveDraft(null)} />
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
@@ -949,6 +991,25 @@ const Audit = ({ onBack, initialUrl, initialFile }) => {
   };
 
   useEffect(() => {
+    // Cleanup EventSource on unmount
+    return () => {
+      if (esRef.current) {
+        console.log("Terminating Mercury Audit Stream...");
+        esRef.current.close();
+      }
+    };
+  }, []);
+
+  const handleTerminate = () => {
+    if (esRef.current) esRef.current.close();
+    setResult(null);
+    setLogs([]);
+    setReport(null);
+    setSamUrl("");
+    onBack();
+  };
+
+  useEffect(() => {
     // Check for post-checkout success
     const params = new URLSearchParams(window.location.search);
     if (params.get('checkout') === 'success') {
@@ -1174,7 +1235,7 @@ const Audit = ({ onBack, initialUrl, initialFile }) => {
                     </div>
                   )}
                   
-                  <button className="cyber-btn terminate-btn" onClick={onBack}>
+                  <button className="cyber-btn terminate-btn" onClick={handleTerminate}>
                     TERMINATE SESSION
                   </button>
                 </React.Fragment>
