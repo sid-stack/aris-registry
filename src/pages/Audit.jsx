@@ -28,7 +28,8 @@ import {
   Layers,
   Mail,
   Loader2,
-  ArrowRight
+  ArrowRight,
+  ShieldAlert
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -175,6 +176,30 @@ const SovereignGlobalHeader = ({ title, agency, status, onBack, onExport }) => (
     </div>
   </header>
 );
+
+const ComplianceBugs = ({ bugs = [] }) => {
+  if (!bugs || bugs.length === 0) return null;
+  return (
+    <div style={{ background: '#fff1f2', border: '1px solid #fecaca', borderRadius: '16px', padding: '24px', marginBottom: '32px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', color: '#e11d48' }}>
+        <ShieldAlert size={20} />
+        <h3 style={{ fontSize: '11px', fontWeight: 900, margin: 0, textTransform: 'uppercase', letterSpacing: '0.08em' }}>COMPLIANCE_BUGS_IDENTIFIED (LETHAL_TRAPS)</h3>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+        {bugs.map((bug, i) => (
+          <div key={i} style={{ background: '#ffffff', padding: '16px', borderRadius: '12px', border: '1px solid #fecaca', boxShadow: '0 4px 12px rgba(225,29,72,0.05)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <span style={{ fontSize: '10px', fontWeight: 900, color: '#e11d48', background: 'rgba(225,29,72,0.1)', padding: '2px 8px', borderRadius: '100px' }}>{bug.type?.toUpperCase() || "TRAP"}</span>
+              <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b' }}>{bug.section_ref}</span>
+            </div>
+            <p style={{ fontSize: '13px', color: '#002244', fontWeight: 600, margin: '0 0 12px 0', lineHeight: 1.4 }}>{bug.text}</p>
+            <div style={{ fontSize: '11px', color: '#e11d48', fontWeight: 800 }}>REMEDIATION: {bug.remediation}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 const ExecutiveRiskGauge = ({ score = 0, insights = "Initializing stateless compliance assessment..." }) => {
   const rotation = (score / 100) * 180 - 90;
@@ -609,6 +634,9 @@ const Audit = ({ onBack, initialUrl, initialFile }) => {
                   />
                   <AuditEfficiencyCard saved={4500} />
                 </div>
+
+                {/* COMPLIANCE BUGS INTERCEPT */}
+                <ComplianceBugs bugs={result?.bugs} />
 
                 {/* LITMUS FEED */}
                 <div style={{ marginBottom: '40px' }}>

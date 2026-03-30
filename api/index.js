@@ -121,28 +121,30 @@ app.post("/api/analyze-pdf", upload.single('file'), asyncHandler(async (req, res
       value: extraction.document_metadata?.estimated_value || extraction.estimated_value || "0",
       compliance: (extraction.requirements || []).slice(0, 10).map((r, i) => ({
         category: r.category,
-        verdict: r.is_disqualifying_if_missing ? "DISQUALIFIER" : "WARNING",
-        risk: r.risk_level === "High" ? 85 : r.risk_level === "Medium" ? 65 : 40,
+        verdict: r.is_lethal ? "DISQUALIFIER" : "WARNING",
+        risk: r.risk === "High" ? 85 : r.risk === "Med" ? 65 : 40,
         description: r.text,
-        sourceSnippet: r.source_excerpt || "EXTRACTED_FROM_SOURCE",
-        sectionRef: `Section ${r.section || '—'}, Page ${r.page_reference || '—'}`,
-        angle: i * 36, // Distribute on radar
+        sourceSnippet: r.source || "EXTRACTED_FROM_SOURCE",
+        sectionRef: `Section ${r.section || '—'}, Page ${r.page || '—'}`,
+        angle: i * 36,
         label: r.category ? r.category.slice(0, 3).toUpperCase() : "REQ"
       })),
+      bugs: extraction.compliance_bugs || [],
       requirements: (extraction.requirements || []).map(r => ({
         requirement: r.text,
         status: "Not reviewed",
-        risk: r.risk_level,
+        risk: r.risk,
         owner: ""
       })),
-      executiveSummary: `MERCURY_2 analysis complete. Identified ${(extraction.requirements || []).length} critical requirements. ${extraction.submission_details?.deadline ? `Deadline: ${extraction.submission_details.deadline}` : 'Manual review recommended for deadlines.'}`,
+      executiveSummary: extraction.executive_summary || `MERCURY_2 audit complete. Identified ${extraction.compliance_bugs?.length || 0} compliance bugs.`,
+      strategicAnalysis: extraction.strategic_analysis || null,
       riskAssessment: {
-        verdict: (extraction.requirements || []).some(r => r.is_disqualifying_if_missing) ? "HIGH_DISQUALIFICATION_RISK" : "ACTIONABLE",
-        score: (extraction.requirements || []).length > 5 ? 85 : 50,
-        breakdown: { delta_risk: 35, hazard_penalty: 50 },
-        delta_analysis: `Gemini 2.0 Flash identified high-priority compliance triggers in ${extraction.document_metadata?.detected_sections?.join(", ") || "the document"}.`
+        verdict: extraction.compliance_bugs?.length > 0 ? "LETHAL_TRAPS_IDENTIFIED" : "ACTIONABLE",
+        score: extraction.compliance_bugs?.length > 0 ? 95 : 55,
+        breakdown: { delta_risk: 35, hazard_penalty: 60 },
+        delta_analysis: `High-precision audit identified ${extraction.compliance_bugs?.length || 0} critical traps between Section L and M.`
       },
-      fatalError: (extraction.requirements || []).some(r => r.is_disqualifying_if_missing)
+      fatalError: extraction.compliance_bugs?.length > 0
     };
 
     res.json(response);
@@ -431,38 +433,38 @@ Respond in STRICT JSON with:
     });
   }
 
-  const requirements = extraction.requirements || [];
-  const response = {
-    id: meta.id || extraction.document_metadata?.solicitation_number || "LINK_AUDIT",
-    title: meta.title || extraction.document_metadata?.title || "Federal Solicitation",
-    agency: meta.agency || extraction.document_metadata?.agency || "Federal Agency",
-    value: meta.value || extraction.document_metadata?.estimated_value || "0",
-    decision: extraction.decision || { verdict: "CONDITIONAL_GO", confidence: 65, topRisks: ["Insufficient text"], nextSteps: ["Manual review"] },
-    compliance: requirements.slice(0, 10).map((r, i) => ({
-      category: r.category,
-      verdict: r.is_disqualifying_if_missing ? "DISQUALIFIER" : "WARNING",
-      risk: r.risk_level === "High" ? 85 : r.risk_level === "Medium" ? 65 : 40,
-      description: r.text,
-      sourceSnippet: r.source_excerpt || "EXTRACTED_FROM_SOURCE",
-      sectionRef: `Section ${r.section || "—"}, Page ${r.page_reference || "—"}`,
-      angle: i * 36,
-      label: r.category ? r.category.slice(0, 3).toUpperCase() : "REQ",
-    })),
-    requirements: requirements.map(r => ({
-      requirement: r.text || r.requirement,
-      status: "Extracted",
-      risk: r.risk_level || "Medium",
-    })),
-    executiveSummary: extraction.executive_summary || extraction.executiveSummary || `Analysis complete for ${meta.id}.`,
-    strategicAnalysis: extraction.strategic_analysis || extraction.strategicAnalysis || null,
-    riskAssessment: {
-      verdict: requirements.some(r => r.is_disqualifying_if_missing) ? "HIGH_DISQUALIFICATION_RISK" : "ACTIONABLE",
-      score: requirements.length > 5 ? 85 : 50,
-      breakdown: { delta_risk: 35, hazard_penalty: 50 },
-      delta_analysis: `High-priority compliance triggers identified in solicitation.`,
-    },
-    fatalError: requirements.some(r => r.is_disqualifying_if_missing),
-  };
+    const response = {
+      id: meta.id || extraction.document_metadata?.solicitation_number || "LINK_AUDIT",
+      title: meta.title || extraction.document_metadata?.title || "Federal Solicitation",
+      agency: meta.agency || extraction.document_metadata?.agency || "Federal Agency",
+      value: meta.value || extraction.document_metadata?.estimated_value || "0",
+      decision: extraction.decision || { verdict: "CONDITIONAL_GO", confidence: 65, topRisks: ["Insufficient text"], nextSteps: ["Manual review"] },
+      compliance: (extraction.requirements || []).slice(0, 10).map((r, i) => ({
+        category: r.category,
+        verdict: r.is_lethal ? "DISQUALIFIER" : "WARNING",
+        risk: r.risk === "High" ? 85 : r.risk === "Med" ? 65 : 40,
+        description: r.text,
+        sourceSnippet: r.source || "EXTRACTED_FROM_SOURCE",
+        sectionRef: `Section ${r.section || "—"}, Page ${r.page || "—"}`,
+        angle: i * 36,
+        label: r.category ? r.category.slice(0, 3).toUpperCase() : "REQ",
+      })),
+      bugs: extraction.compliance_bugs || [],
+      requirements: (extraction.requirements || []).map(r => ({
+        requirement: r.text || r.requirement,
+        status: "Extracted",
+        risk: r.risk || "Medium",
+      })),
+      executiveSummary: extraction.executive_summary || extraction.executiveSummary || `Analysis complete for ${meta.id}.`,
+      strategicAnalysis: extraction.strategic_analysis || extraction.strategicAnalysis || null,
+      riskAssessment: {
+        verdict: extraction.compliance_bugs?.length > 0 ? "LETHAL_TRAPS_IDENTIFIED" : "ACTIONABLE",
+        score: extraction.compliance_bugs?.length > 0 ? 95 : 55,
+        breakdown: { delta_risk: 35, hazard_penalty: 60 },
+        delta_analysis: `High-precision audit identified ${extraction.compliance_bugs?.length || 0} critical traps between Section L and M.`,
+      },
+      fatalError: extraction.compliance_bugs?.length > 0
+    };
 
   res.json(response);
 }));
