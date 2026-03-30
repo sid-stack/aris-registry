@@ -158,6 +158,8 @@ export default function App() {
         setUser(session.user);
         localStorage.setItem("aris_authenticated", "true");
       }
+    }).catch(err => {
+      console.warn("[ARIS_AUTH] Session fetch suppressed in Sovereign mode:", err.message);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
