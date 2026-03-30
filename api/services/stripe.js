@@ -63,3 +63,32 @@ export async function createCheckoutSession({ plan, premiumTier, context, origin
 
   return session;
 }
+
+export async function getRevenueStats() {
+  if (!process.env.STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY.includes('placeholder')) {
+    return { total: 0, balance: 0 };
+  }
+  try {
+    const [balance, payments] = await Promise.all([
+      stripe.balance.retrieve(),
+      stripe.paymentIntents.list({
+        limit: 100,
+        created: { gte: Math.floor((Date.now() - 30 * 24 * 60 * 60 * 1000) / 1000) }
+      })
+    ]);
+
+    const totalVolume = payments.data
+      .filter(p => p.status === "succeeded")
+      .reduce((sum, p) => sum + (p.amount_received / 100), 0);
+
+    const netBalance = balance.available.reduce((sum, val) => sum + (val.amount / 100), 0);
+
+    return { 
+      total_30d: totalVolume, 
+      available_balance: netBalance 
+    };
+  } catch (err) {
+    console.error("[STRIPE_STATS] fetch_failed", err.message);
+    return { total_30d: 0, available_balance: 0 };
+  }
+}

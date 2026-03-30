@@ -128,12 +128,14 @@ export async function getBetaSignupCount() {
   }
 }
 
+import { getRevenueStats } from "./stripe.js";
+
 export async function getAdminStats() {
   if (!analyticsDb) return { error: "Database not configured" };
   try {
     await ensureAnalyticsSchema();
 
-    const [signupCount, recentSignups, topEvents, recentEvents, dailyTraffic, featureUsage] = await Promise.all([
+    const [signupCount, recentSignups, topEvents, recentEvents, dailyTraffic, featureUsage, stripeStats] = await Promise.all([
       analyticsDb.query("SELECT COUNT(*) FROM beta_signups"),
       analyticsDb.query("SELECT email, created_at FROM beta_signups ORDER BY created_at DESC LIMIT 20"),
       analyticsDb.query(`
@@ -174,6 +176,7 @@ export async function getAdminStats() {
         GROUP BY 1
         ORDER BY 2 DESC
       `),
+      getRevenueStats()
     ]);
 
     // Funnel: page_view counts by path
@@ -207,6 +210,7 @@ export async function getAdminStats() {
       daily_traffic: dailyTraffic.rows,
       feature_usage: featureUsage.rows,
       funnel: funnelRes.rows,
+      stripe: stripeStats,
       generated_at: new Date().toISOString(),
     };
   } catch (err) {

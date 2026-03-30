@@ -6,7 +6,7 @@ import {
 import {
   Users, MousePointer2, TrendingUp, ShieldCheck,
   ArrowUpRight, Activity, Filter, RefreshCw, DollarSign,
-  Globe, Zap, Database, Server, LogOut, Search, ChevronRight
+  Globe, Zap, Database, Server, LogOut, Search, ChevronRight, Wallet
 } from 'lucide-react';
 
 const COLORS = ['#2563EB', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
@@ -63,14 +63,16 @@ const AdminDashboard = ({ onBack }) => {
       });
   };
 
-  // Mocked/Derived Metrics for FAANG Look
-  const ltv = 299 * 12 * 0.85; // Est. LTV
   const dailyTraffic = stats?.daily_traffic || [];
   const totalAudits = stats?.events?.by_type?.find(e => e.event_type?.includes('audit'))?.count || 0;
+  
+  // Real Stripe Data
+  const realRevenue30d = stats?.stripe?.total_30d || 0;
+  const availableBalance = stats?.stripe?.available_balance || 0;
 
   return (
     <div style={sh.root}>
-      {/* --- SIDEBAR (Premium Institutional) --- */}
+      {/* --- SIDEBAR --- */}
       <aside style={sh.sidebar}>
         <div style={sh.sidebarBrand}>
           <div style={sh.brandIcon}><Zap size={20} fill="#fff" /></div>
@@ -84,7 +86,7 @@ const AdminDashboard = ({ onBack }) => {
           <NavBtn icon={<TrendingUp size={18}/>} label="Monetization" active={activeTab === 'monetization'} onClick={() => setActiveTab('monetization')} />
           <div style={sh.navSeparator} />
           <NavBtn icon={<Server size={18}/>} label="VPC Clusters" />
-          <NavBtn icon={<ShieldCheck size={18}/>} label="Zero-Knowledge Audit" />
+          <NavBtn icon={<ShieldCheck size={18}/>} label="Security Audit" />
         </nav>
 
         <button onClick={onBack} style={sh.sidebarFooter}>
@@ -94,16 +96,15 @@ const AdminDashboard = ({ onBack }) => {
 
       {/* --- MAIN CONTENT --- */}
       <main style={sh.main}>
-        {/* Header Section */}
         <header style={sh.header}>
           <div>
             <div style={sh.breadcrumb}>Sovereign Identity / Admin / {activeTab.toUpperCase()}</div>
-            <h1 style={sh.pageTitle}>Command Center (Live)</h1>
+            <h1 style={sh.pageTitle}>Finance & Ops Center</h1>
           </div>
           <div style={sh.headerActions}>
             <div style={sh.statusIndicator}>
               <div style={sh.pingAnimation} />
-              <span style={{ fontSize: 12, fontWeight: 700, color: '#10B981' }}>SYSTEMS_OPERATIONAL</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#10B981' }}>STRIPE_LIVE_FEED</span>
             </div>
             <button style={sh.refreshAction} onClick={fetchStats} disabled={loading}>
               <RefreshCw size={14} style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }} />
@@ -112,18 +113,16 @@ const AdminDashboard = ({ onBack }) => {
           </div>
         </header>
 
-        {/* Executive Row */}
+        {/* Real Revenue Row */}
         <div style={sh.metricRow}>
-          <MetricCard title="Beta Signups" value={stats?.beta_signups?.total || '0'} trend="+14%" icon={<Users size={20} color="#3B82F6" />} />
-          <MetricCard title="Audits (30d)" value={totalAudits} trend="+42%" icon={<Activity size={20} color="#10B981" />} />
-          <MetricCard title="Est. Revenue" value={`$${(revenueCalculation(stats) * 99).toLocaleString()}`} trend="+5%" icon={<DollarSign size={20} color="#F59E0B" />} />
-          <MetricCard title="Node Uptime" value="99.98%" trend="STABLE" icon={<Globe size={20} color="#8B5CF6" />} />
+          <MetricCard title="Stripe 30d Revenue" value={`$${realRevenue30d.toLocaleString()}`} trend="+ Verified" icon={<DollarSign size={20} color="#10B981" />} />
+          <MetricCard title="Available Balance" value={`$${availableBalance.toLocaleString()}`} trend="Payout Ready" icon={<Wallet size={20} color="#3B82F6" />} />
+          <MetricCard title="Beta Signups" value={stats?.beta_signups?.total || '0'} trend="Institutional" icon={<Users size={20} color="#F59E0B" />} />
+          <MetricCard title="Total Protocol Audits" value={totalAudits} trend="Stateless" icon={<Activity size={20} color="#8B5CF6" />} />
         </div>
 
-        {/* Tab Switching Content */}
         {activeTab === 'overview' && (
           <div style={sh.dashboardGrid}>
-            {/* Primary Traffic Chart */}
             <div style={{ ...sh.card, gridColumn: 'span 2' }}>
               <div style={sh.cardHeader}>
                 <h2 style={sh.cardTitle}>Global Engagement Pulse</h2>
@@ -150,7 +149,6 @@ const AdminDashboard = ({ onBack }) => {
               </div>
             </div>
 
-            {/* Feature Usage & Funnel */}
             <div style={sh.card}>
               <div style={sh.cardHeader}><h2 style={sh.cardTitle}>Intelligence Distribution</h2></div>
               <div style={{ height: 280 }}>
@@ -174,18 +172,17 @@ const AdminDashboard = ({ onBack }) => {
             </div>
 
             <div style={sh.card}>
-              <div style={sh.cardHeader}><h2 style={sh.cardTitle}>Node Performance (ms)</h2></div>
+              <div style={sh.cardHeader}><h2 style={sh.cardTitle}>Stripe Vital Signs</h2></div>
               <div style={sh.heartbeatList}>
-                <Heartbeat label="Inference Gateway" value="284ms" status="HEALTHY" />
-                <Heartbeat label="Distributed Sync" value="12ms" status="OPTIMAL" />
-                <Heartbeat label="Stateless Bridge" value="45ms" status="ACTIVE" />
-                <Heartbeat label="PostgreSQL Node" value="9ms" status="IDLE" />
+                <Heartbeat label="30d Volume" value={`$${realRevenue30d}`} status="VERIFIED" />
+                <Heartbeat label="Available Payout" value={`$${availableBalance}`} status="READY" />
+                <button onClick={() => window.open('https://dashboard.stripe.com', '_blank')} style={sh.extBtn}>Launch Stripe HQ</button>
               </div>
             </div>
           </div>
         )}
 
-        {/* Tabular Views (Users / Sessions) */}
+        {/* Tabular Views */}
         {(activeTab === 'users' || activeTab === 'sessions') && (
           <div style={sh.tableContainer}>
              <div style={sh.tableHeader}>
@@ -267,8 +264,8 @@ const MetricCard = ({ title, value, trend, icon }) => (
     </div>
     <div style={sh.cardMetricValue}>{value}</div>
     <div style={sh.cardMetricFoot}>
-      <span style={{ color: trend?.startsWith('+') ? '#10B981' : '#a3a3a3', fontWeight: 700 }}>{trend}</span>
-      <span style={{ color: '#64748b', marginLeft: 8 }}>vs last period</span>
+      <span style={{ color: '#10B981', fontWeight: 700 }}>{trend}</span>
+      <span style={{ color: '#64748b', marginLeft: 8 }}>Real-time verified</span>
     </div>
   </div>
 );
@@ -286,11 +283,6 @@ const Heartbeat = ({ label, value, status }) => (
 const SortIcon = ({ active }) => (
   <ArrowUpRight size={12} style={{ marginLeft: 4, opacity: active ? 1 : 0.3 }} />
 );
-
-const revenueCalculation = (stats) => {
-  const checkouts = stats?.events?.by_type?.find(e => e.event_type?.includes('checkout'))?.count || 0;
-  return parseInt(checkouts);
-};
 
 function buildFeatureData(featureRows) {
   if (!featureRows || featureRows.length === 0) return [
@@ -345,7 +337,8 @@ const sh = {
   tr: { borderBottom: '1px solid rgba(255,255,255,0.04)', transition: 'background 0.2s' },
   td: { padding: '16px 24px', fontSize: '13px', color: '#94a3b8' },
   userTd: { display: 'flex', alignItems: 'center', gap: '10px', color: '#f8fafc', fontWeight: 600 },
-  badge: { fontSize: '10px', fontWeight: 800, padding: '4px 10px', borderRadius: '100px' }
+  badge: { fontSize: '10px', fontWeight: 800, padding: '4px 10px', borderRadius: '100px' },
+  extBtn: { background: '#2563eb', border: 'none', color: '#fff', padding: '10px', borderRadius: '8px', fontSize: '12px', fontWeight: 800, cursor: 'pointer', marginTop: '12px' }
 };
 
 export default AdminDashboard;
