@@ -151,32 +151,26 @@ export class FedSearchEngine {
    * Fuzzy spell correction for GovCon queries
    * Returns { corrected: string, wasChanged: boolean, original: string }
    */
-  correctQuery(query) {
+  async polishQuery(query) {
     const GOVCON_DICT = [
       "dfars", "far", "cmmc", "naics", "solicitation", "compliance", "cybersecurity",
       "procurement", "contract", "proposal", "acquisition", "defense", "federal",
       "agency", "award", "opportunity", "pentagon", "dod", "darpa", "nsa", "dhs",
-      "doe", "navy", "army", "classified", "setaside", "sbir", "sttr", "lpta",
+      "doe", "navy", "army", "air force", "classified", "setaside", "sbir", "sttr", "lpta",
       "bestvalue", "rfp", "rfi", "sources", "sought", "synopsis", "amendment",
       "modification", "protest", "debarment", "suspension", "certification",
       "representation", "subcontract", "teaming", "incumbent", "recompete",
       "capture", "pwin", "cwp", "pwscope", "sow", "soo", "performance",
-      "logistics", "intelligence"
+      "logistics", "intelligence", "cloud", "artificial", "intelligence", "infrastructure"
     ];
 
     const tokens = query.trim().toLowerCase().split(/\s+/);
-    let wasChanged = false;
-
-    const correctedTokens = tokens.map(token => {
-      // If token exactly matches a dict word, leave it alone
+    let preliminaryCorrected = tokens.map(token => {
       if (GOVCON_DICT.includes(token)) return token;
-
-      // Skip very short tokens (1-2 chars) — likely abbreviations
       if (token.length <= 2) return token;
 
-      // Find closest dict word with distance <= 2
-      let bestMatch = null;
-      let bestDist = Infinity;
+      let bestMatch = token;
+      let bestDist = 3; // Max distance
       for (const word of GOVCON_DICT) {
         const dist = this.levenshtein(token, word);
         if (dist < bestDist) {
@@ -184,35 +178,46 @@ export class FedSearchEngine {
           bestMatch = word;
         }
       }
+      return bestMatch;
+    }).join(" ");
 
-      if (bestDist <= 2 && bestMatch !== token) {
-        wasChanged = true;
-        return bestMatch;
+    // If preliminary failed to change significantly or we have OpenAI, use LLM to fix intent
+    if (openai) {
+      try {
+        const response = await openai.chat.completions.create({
+          model: "google/gemini-2.0-flash-001",
+          messages: [
+            { role: "system", content: "Correct typos and formalize this federal procurement search query. Return ONLY the corrected text. If it is already correct, return it as is." },
+            { role: "user", content: `Query: ${query}` }
+          ],
+          temperature: 0,
+          max_tokens: 100
+        });
+        const aiCorrected = response.choices[0].message.content.trim().replace(/^"|"$/g, '');
+        if (aiCorrected) return { corrected: aiCorrected, wasChanged: true, original: query };
+      } catch (err) {
+        console.warn("[SEARCH] LLM spell correction failed:", err.message);
       }
+    }
 
-      return token;
-    });
-
-    const corrected = correctedTokens.join(" ");
-    return { corrected, wasChanged, original: query };
+    return { corrected: preliminaryCorrected, wasChanged: preliminaryCorrected !== query.toLowerCase(), original: query };
   }
 
   async search(query, expand = false) {
-    // Apply fuzzy spell correction first
-    const correctionResult = this.correctQuery(query);
-    const effectiveQuery = correctionResult.wasChanged ? correctionResult.corrected : query;
+    // Apply fuzzy spell correction and intent polishing
+    const correctionResult = await this.polishQuery(query);
+    const effectiveQuery = correctionResult.corrected;
 
     const results = new Map();
-    let finalQuery = effectiveQuery;
+    let queryForExpansion = effectiveQuery;
 
-    if (expand) finalQuery = await this.expandQuery(effectiveQuery);
-    const queryTerms = this.tokenize(finalQuery);
+    if (expand) queryForExpansion = await this.expandQuery(effectiveQuery);
+    const queryTerms = this.tokenize(queryForExpansion);
 
-    // Layer 1: Redis inverted index (union — any term match counts)
+    // Layer 1: Redis inverted index
     if (queryTerms.length > 0 && redis) {
       try {
         const termKeys = queryTerms.map(t => `aris:mesh:term:${t}`);
-        // sunion returns docs matching ANY of the query terms (much broader than sinter)
         const matchedIds = termKeys.length === 1
           ? await redis.smembers(termKeys[0])
           : await redis.sunion(...termKeys.slice(0, 10));
@@ -231,10 +236,10 @@ export class FedSearchEngine {
       }
     }
 
-    // Layer 2: Vector semantic search
+    // Layer 2: Vector semantic search (Use POLISHED query)
     if (vectorIndex) {
       try {
-        const semanticMatches = await vectorIndex.query({ data: query, topK: 20, includeMetadata: true });
+        const semanticMatches = await vectorIndex.query({ data: effectiveQuery, topK: 20, includeMetadata: true });
         semanticMatches.forEach(match => {
           const id = match.id.replace("opt:", "");
           if (!results.has(id)) {
@@ -248,10 +253,10 @@ export class FedSearchEngine {
       }
     }
 
-    // Layer 3: Live USAspending fallback when mesh has no data
+    // Layer 3: Live USAspending fallback (Use POLISHED query)
     if (results.size === 0) {
       try {
-        const awards = await usaspending.getAwardsSummary(query);
+        const awards = await usaspending.getAwardsSummary(effectiveQuery);
         awards.forEach(a => {
           const id = a["Award ID"] || `award:${Math.random().toString(36).slice(2, 7)}`;
           if (!results.has(id)) {

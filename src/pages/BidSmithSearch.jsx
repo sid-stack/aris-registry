@@ -82,6 +82,7 @@ const BidSmithSearch = ({ onBack }) => {
   const [status, setStatus] = useState('');
   const [searchesUsed, setSearchesUsed] = useState(getSearchesUsed());
   const [showUpgradeWall, setShowUpgradeWall] = useState(false);
+  const [correction, setCorrection] = useState(null);
 
   const COLORS = {
     bg: '#f8fafc',
@@ -133,6 +134,7 @@ const BidSmithSearch = ({ onBack }) => {
       if (data.success) {
         setResults(data.results || []);
         setBriefing(data.briefing);
+        setCorrection(data.correction || null);
         setStatus(data.results?.length === 0 ? "No records matched your institutional query." : '');
       } else {
         setStatus('Mesh search failed. Check authentication.');
@@ -230,6 +232,20 @@ const BidSmithSearch = ({ onBack }) => {
               Search Records
             </button>
           </div>
+
+          {correction && correction.wasChanged && (
+            <div style={{ marginTop: '12px', fontSize: '14px', color: '#64748b', textAlign: 'left', padding: '0 16px' }}>
+              Showing results for: <span style={{ fontWeight: 800, color: '#2563eb', fontStyle: 'italic' }}>{correction.corrected}</span> 
+              <span style={{ marginLeft: '12px', color: '#94a3b8' }}>
+                Search instead for <button 
+                  onClick={() => executeSearch(correction.original, expanded)}
+                  style={{ background: 'none', border: 'none', padding: 0, color: '#64748b', textDecoration: 'underline', cursor: 'pointer', fontSize: '14px' }}
+                >
+                  {correction.original}
+                </button>
+              </span>
+            </div>
+          )}
 
           <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', marginTop: '24px' }}>
              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#64748b', fontWeight: 600 }}>
