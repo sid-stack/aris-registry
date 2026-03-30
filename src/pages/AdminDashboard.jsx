@@ -85,6 +85,7 @@ const AdminDashboard = ({ onBack }) => {
           <NavBtn icon={<Users size={18}/>} label="Identified Leads" active={activeTab === 'leads'} onClick={() => setActiveTab('leads')} />
           <NavBtn icon={<MousePointer2 size={18}/>} label="Anonymous Events" active={activeTab === 'events'} onClick={() => setActiveTab('events')} />
           <NavBtn icon={<Cpu size={18}/>} label="Logic Library" active={activeTab === 'logic'} onClick={() => setActiveTab('logic')} />
+          <NavBtn icon={<Wallet size={18}/>} label="Stripe Transactions" active={activeTab === 'stripe_logs'} onClick={() => setActiveTab('stripe_logs')} />
           <NavBtn icon={<Layers size={18}/>} label="Redis Mesh Cache" active={activeTab === 'mesh'} onClick={() => setActiveTab('mesh')} />
           
           <div style={sh.navSeparator} />
@@ -234,6 +235,7 @@ function getTabData(stats, tab) {
     case 'events': return stats.events?.rows || [];
     case 'logic': return stats.logic_library || [];
     case 'mesh': return stats.mesh?.rows || [];
+    case 'stripe_logs': return stats.stripe?.logs || [];
     default: return [];
   }
 }
@@ -276,6 +278,15 @@ function getTableHeaders(tab, sortKey, handleSort) {
           <th style={sh.th}>REGION</th>
         </>
       );
+    case 'stripe_logs':
+      return (
+        <>
+          <th style={sh.th}>CREATED</th>
+          <th style={sh.th}>TYPE</th>
+          <th style={sh.th}>ID</th>
+          <th style={sh.th}>DESCRIPTION</th>
+        </>
+      );
     default: return null;
   }
 }
@@ -316,6 +327,15 @@ function renderRow(tab, row) {
           <td style={{ ...sh.td, color: '#f8fafc', fontWeight: 600 }}>{row.title}</td>
           <td style={sh.td}>{row.agency}</td>
           <td style={sh.td}>{row.region}</td>
+        </>
+      );
+    case 'stripe_logs':
+      return (
+        <>
+          <td style={sh.td}>{new Date(row.created).toLocaleString()}</td>
+          <td style={{ ...sh.td, color: '#10B981', fontWeight: 700 }}>{row.type}</td>
+          <td style={sh.td}>{row.id}</td>
+          <td style={sh.td}>{String(row.description)}</td>
         </>
       );
     default: return null;
@@ -364,7 +384,7 @@ function buildFeatureData(featureRows) {
   if (!featureRows || featureRows.length === 0) return [
     { name: 'Audit', value: 10 }, { name: 'Search', value: 5 }, { name: 'Matrix', value: 3 }
   ];
-  return featureRows.map(r => ({ name: r.name, value: parseInt(r.value) }));
+  return featureRows.map(r => ({ name: r.name, value: parseInt(r.value || 0) }));
 }
 
 const sh = {

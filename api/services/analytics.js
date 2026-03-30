@@ -128,7 +128,7 @@ export async function getBetaSignupCount() {
   }
 }
 
-import { getRevenueStats } from "./stripe.js";
+import { getRevenueStats, getStripeLogs } from "./stripe.js";
 import { sovereignSearch } from "./fedSearch.js";
 
 export async function getAdminStats() {
@@ -145,6 +145,7 @@ export async function getAdminStats() {
       featureUsage, 
       logicLibrary,
       stripeStats,
+      stripeLogs,
       meshStats
     ] = await Promise.all([
       analyticsDb.query("SELECT COUNT(*) FROM beta_signups"),
@@ -189,6 +190,7 @@ export async function getAdminStats() {
       `),
       analyticsDb.query("SELECT * FROM logic_library ORDER BY updated_at DESC LIMIT 100"),
       getRevenueStats(),
+      getStripeLogs(),
       sovereignSearch.getStats()
     ]);
 
@@ -211,7 +213,7 @@ export async function getAdminStats() {
       },
       daily_traffic: dailyTraffic.rows,
       feature_usage: featureUsage.rows,
-      stripe: stripeStats,
+      stripe: { ...stripeStats, logs: stripeLogs },
       generated_at: new Date().toISOString(),
     };
   } catch (err) {

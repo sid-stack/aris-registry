@@ -92,3 +92,20 @@ export async function getRevenueStats() {
     return { total_30d: 0, available_balance: 0 };
   }
 }
+
+export async function getStripeLogs() {
+  if (!process.env.STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY.includes('placeholder')) return [];
+  try {
+    const events = await stripe.events.list({ limit: 50 });
+    return events.data.map(e => ({
+      id: e.id,
+      type: e.type,
+      created: new Date(e.created * 1000).toISOString(),
+      object: e.object,
+      description: e.data?.object?.description || e.data?.object?.email || e.data?.object?.amount || "System Event"
+    }));
+  } catch (err) {
+    console.error("[STRIPE_LOGS] failed", err.message);
+    return [];
+  }
+}
