@@ -216,7 +216,7 @@ const StrategicAnalysis = ({ analysis }) => (
   </div>
 );
 
-const SovereignSidebar = ({ logs = [], activeTools = [] }) => (
+const SovereignSidebar = ({ result, logs = [], onTerminate }) => (
   <aside style={{ width: '360px', background: '#ffffff', borderLeft: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column' }}>
     <div style={{ padding: '24px', flex: 1, display: 'flex', flexDirection: 'column' }}>
       <div style={{ marginBottom: '24px' }}>
@@ -244,12 +244,12 @@ const SovereignSidebar = ({ logs = [], activeTools = [] }) => (
         <div style={{ borderLeft: '2px solid #f1f5f9', marginLeft: '6px', paddingLeft: '20px' }}>
           <div style={{ position: 'relative', paddingBottom: '20px' }}>
             <div style={{ position: 'absolute', left: '-25px', top: '0', width: '8px', height: '8px', borderRadius: '50%', background: '#2563eb' }} />
-            <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '4px' }}>10:42 AM</div>
+            <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '4px' }}>{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
             <div style={{ fontSize: '12px', color: '#475569', fontWeight: 500 }}>Stateless Sync Sequence Initiated</div>
           </div>
           <div style={{ position: 'relative' }}>
             <div style={{ position: 'absolute', left: '-25px', top: '0', width: '8px', height: '8px', borderRadius: '50%', background: '#f1f5f9' }} />
-            <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '4px' }}>09:15 AM</div>
+            <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '4px' }}>{new Date(Date.now() - 3600000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
             <div style={{ fontSize: '12px', color: '#94a3b8' }}>Session Established</div>
           </div>
         </div>
@@ -257,7 +257,10 @@ const SovereignSidebar = ({ logs = [], activeTools = [] }) => (
     </div>
     
     <div style={{ padding: '24px', borderTop: '1px solid #f1f5f9', background: '#f8fafc' }}>
-      <button style={{ width: '100%', background: 'none', border: '1px solid #ef4444', color: '#ef4444', padding: '12px', borderRadius: '8px', fontSize: '12px', fontWeight: 800 }}>
+      <button 
+        onClick={onTerminate}
+        style={{ width: '100%', background: 'none', border: '1px solid #ef4444', color: '#ef4444', padding: '12px', borderRadius: '8px', fontSize: '12px', fontWeight: 800, cursor: 'pointer' }}
+      >
         TERMINATE SESSION & PURGE CACHE
       </button>
     </div>
@@ -799,7 +802,7 @@ const Audit = ({ onBack, initialUrl, initialFile }) => {
 
           {/* SOVEREIGN SIDEBAR */}
           {result && !isLoading && (
-            <SovereignSidebar result={result} logs={logs} />
+            <SovereignSidebar result={result} logs={logs} onTerminate={handleTerminate} />
           )}
         </div>
       )}
