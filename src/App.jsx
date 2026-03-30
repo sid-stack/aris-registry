@@ -282,7 +282,9 @@ export default function App() {
   } else if (view === "survey-analytics") {
     content = <SurveyAnalytics />;
   } else if (view === "demo-analytics") {
-    content = <DemoAnalytics />;
+    content = authenticated
+      ? <DemoAnalytics />
+      : <Login onLogin={() => { setAuthenticated(true); localStorage.setItem("aris_authenticated", "true"); }} />;
   } else if (view === "about") {
     content = <About onBack={() => setView("landing")} />;
   } else if (view === "labs") {
@@ -310,9 +312,13 @@ export default function App() {
   } else if (view === "rfp-generator") {
     content = <RfpMatrixGenerator onUpload={() => setView("app")} />;
   } else if (view === "outreach") {
-    content = <Outreach onBack={() => setView("landing")} />;
+    content = authenticated
+      ? <Outreach onBack={() => setView("landing")} />
+      : <Login onLogin={() => { setAuthenticated(true); localStorage.setItem("aris_authenticated", "true"); }} />;
   } else if (view === "admin") {
-    content = <AdminDashboard onBack={() => setView("landing")} />;
+    content = authenticated
+      ? <AdminDashboard onBack={() => setView("landing")} />
+      : <Login onLogin={() => { setAuthenticated(true); localStorage.setItem("aris_authenticated", "true"); }} />;
   } else if (view === "contact") {
     content = <Contact onBack={() => setView("landing")} />;
   } else if (view === "landing") {
