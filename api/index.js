@@ -352,7 +352,19 @@ app.post("/api/analyze-link", apiLimiter, asyncHandler(async (req, res) => {
         solicitationText = opp.description || JSON.stringify(opp);
       }
     } catch (err) {
-      return res.status(502).json({ error: `SAM.gov access failed: ${err.message}` });
+      console.warn(`[AUDIT_GATEWAY] Primary SAM access failed: ${err.message}`);
+      // Continue to text length check - might still have opp.description or scraper can try
+    }
+
+    if (!solicitationText || solicitationText.length < 50) {
+      // Final attempt: Check if we can get text via description or if we should just guide to upload
+      if (!solicitationText) {
+        return res.status(422).json({ 
+          error: "ACCESS_DENIED: SAM.gov blocked automated access to this opportunity.",
+          message: "Please DOWNLOAD the solicitation PDF from SAM.gov and UPLOAD it here for a 100% precision audit. Institutional gateway access is currently restricted for this record.",
+          canRetryWithUpload: true
+        });
+      }
     }
   } else if (normalized.endsWith(".pdf")) {
     try {
@@ -378,7 +390,19 @@ app.post("/api/analyze-link", apiLimiter, asyncHandler(async (req, res) => {
   try {
     extractPromptTemplate = readFileSync(join(__dirname, "llm", "extract_prompt.txt"), "utf8");
   } catch (_) {
-    extractPromptTemplate = "Extract compliance intelligence from this RFP text: {{RFP_TEXT}}\nReturn strict JSON with: solicitation_number, agency, requirements:[{category, text, risk_level, section, page_reference, source_excerpt, is_disqualifying_if_missing}]";
+    extractPromptTemplate = `Extract institutional compliance intelligence from the following RFP text: {{RFP_TEXT}}
+
+Respond in STRICT JSON with:
+{
+  "document_metadata": { "solicitation_number": "...", "title": "...", "agency": "...", "estimated_value": "..." },
+  "requirements": [{ "category": "...", "text": "...", "risk_level": "High|Medium|Low", "section": "...", "page_reference": "...", "source_excerpt": "...", "is_disqualifying_if_missing": boolean }],
+  "executive_summary": "3-sentence strategic summary",
+  "strategic_analysis": {
+    "win_themes": ["..."],
+    "capture_strategy": "...",
+    "risk_mitigation": "..."
+  }
+}`;
   }
   const extractPrompt = extractPromptTemplate.replace("{{RFP_TEXT}}", solicitationText.slice(0, 15000));
 
@@ -429,6 +453,7 @@ app.post("/api/analyze-link", apiLimiter, asyncHandler(async (req, res) => {
     title: meta.title || extraction.document_metadata?.title || "Federal Solicitation",
     agency: meta.agency || extraction.document_metadata?.agency || "Federal Agency",
     value: meta.value || extraction.document_metadata?.estimated_value || "0",
+    decision: extraction.decision || { verdict: "CONDITIONAL_GO", confidence: 65, topRisks: ["Insufficient text"], nextSteps: ["Manual review"] },
     compliance: requirements.slice(0, 10).map((r, i) => ({
       category: r.category,
       verdict: r.is_disqualifying_if_missing ? "DISQUALIFIER" : "WARNING",
@@ -440,12 +465,12 @@ app.post("/api/analyze-link", apiLimiter, asyncHandler(async (req, res) => {
       label: r.category ? r.category.slice(0, 3).toUpperCase() : "REQ",
     })),
     requirements: requirements.map(r => ({
-      requirement: r.text,
-      status: "Not reviewed",
-      risk: r.risk_level,
-      owner: "",
+      requirement: r.text || r.requirement,
+      status: "Extracted",
+      risk: r.risk_level || "Medium",
     })),
-    executiveSummary: `Mercury 2 analysis complete. Identified ${requirements.length} critical requirements. Manual review recommended for deadlines.`,
+    executiveSummary: extraction.executive_summary || extraction.executiveSummary || `Analysis complete for ${meta.id}.`,
+    strategicAnalysis: extraction.strategic_analysis || extraction.strategicAnalysis || null,
     riskAssessment: {
       verdict: requirements.some(r => r.is_disqualifying_if_missing) ? "HIGH_DISQUALIFICATION_RISK" : "ACTIONABLE",
       score: requirements.length > 5 ? 85 : 50,

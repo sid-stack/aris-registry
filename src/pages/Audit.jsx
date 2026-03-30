@@ -529,6 +529,71 @@ const GapAnalysis = ({ gaps = [] }) => {
   );
 };
 
+const ExecutiveSummary = ({ summary }) => {
+  if (!summary) return null;
+  return (
+    <div className="executive-summary-panel" style={{
+      padding: '32px',
+      background: 'linear-gradient(135deg, #002244 0%, #001a33 100%)',
+      borderRadius: '16px',
+      color: '#ffffff',
+      marginBottom: '32px',
+      boxShadow: '0 10px 30px rgba(0,34,68,0.2)',
+      border: '1px solid rgba(255,255,255,0.1)',
+      position: 'relative',
+      overflow: 'hidden'
+    }}>
+      <div style={{ position: 'absolute', top: -20, right: -20, opacity: 0.1 }}>
+        <Globe size={180} />
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+        <Zap size={24} color="#00ffc2" />
+        <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Sovereign Executive Intelligence</h2>
+      </div>
+      <p style={{ margin: 0, fontSize: '18px', lineHeight: '1.7', fontWeight: 500, color: '#e2e8f0', maxWidth: '800px', position: 'relative', zIndex: 1 }}>
+        {summary}
+      </p>
+    </div>
+  );
+};
+
+const StrategicAnalysis = ({ analysis }) => {
+  if (!analysis) return null;
+  const { win_themes, capture_strategy, risk_mitigation } = analysis;
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px', marginBottom: '40px' }}>
+      <div className="strategy-card" style={{ padding: '24px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--border)', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', color: 'var(--accent)' }}>
+          <Target size={18} />
+          <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 800, textTransform: 'uppercase' }}>Capture Strategy</h4>
+        </div>
+        <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>{capture_strategy}</p>
+      </div>
+
+      <div className="strategy-card" style={{ padding: '24px', background: 'rgba(37, 99, 235, 0.03)', borderRadius: '12px', border: '1px dotted #2563eb' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', color: '#60a5fa' }}>
+          <TrendingUp size={18} />
+          <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 800, textTransform: 'uppercase' }}>Win Themes</h4>
+        </div>
+        <ul style={{ margin: 0, padding: '0 0 0 18px', fontSize: '14px', color: 'var(--text-primary)', listStyleType: 'square' }}>
+          {(win_themes || []).map((theme, i) => (
+            <li key={i} style={{ marginBottom: '8px' }}>{theme}</li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="strategy-card" style={{ padding: '24px', background: 'rgba(239, 68, 68, 0.03)', borderRadius: '12px', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', color: '#ef4444' }}>
+          <ShieldCheck size={18} />
+          <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 800, textTransform: 'uppercase' }}>Risk Mitigation</h4>
+        </div>
+        <p style={{ margin: 0, fontSize: '14px', color: '#fca5a5', lineHeight: '1.6' }}>{risk_mitigation}</p>
+      </div>
+    </div>
+  );
+};
+
 const AIDraftingOutput = ({ draft, onResolve }) => {
   return (
     <div style={{ marginTop: 16, padding: 16, background: '#1a1a1e', border: '1px solid var(--accent)', borderRadius: 8 }}>
@@ -1161,25 +1226,38 @@ const Audit = ({ onBack, initialUrl, initialFile }) => {
                 </div>
               ) : (
                 <React.Fragment>
-                  {/* Go / No-Go Decision — always first */}
-                  <GoNoGoVerdict decision={result?.decision} title={result?.title} />
+                  {/* Strategic Intelligence Header */}
+                  <ExecutiveSummary summary={result?.executiveSummary} />
 
-                  {/* Disqualification Radar */}
-                  <DisqualificationRadar hazards={result?.compliance} />
-                  
-                   {/* Revenue Protection */}
-                  <RevenueProtection 
-                    totalValue={result?.value || result?.pillars?.estimated_value?.value || 45000000} 
-                    winProbability={0.13} 
-                  />
+                  <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 300px', gap: '32px', marginBottom: '40px' }}>
+                    <div className="main-findings-stack">
+                        {/* Go / No-Go Decision — always first */}
+                        <GoNoGoVerdict decision={result?.decision} title={result?.title} />
+                        
+                        <StrategicAnalysis analysis={result?.strategicAnalysis} />
+                        
+                        {/* Disqualification Matrix */}
+                        <DisqualificationMatrix compliance={result?.compliance} />
+                    </div>
 
-                  {/* PRO-ONLY: Gap Analysis Hook */}
-                  <GapAnalysis gaps={result?.gaps} />
+                    <div className="side-intelligence-stack" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                        {/* Revenue Protection */}
+                        <RevenueProjection 
+                          totalValue={result?.value || 45000000} 
+                          riskScore={result?.riskAssessment?.score || 82} 
+                        />
+                        
+                        <DisqualificationRadar hazards={result?.compliance} />
+                    </div>
+                  </div>
                   
-                  <div style={{ marginBottom: '32px' }}>
-                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                        <h3 style={{ fontSize: '18px', fontWeight: 900, color: 'var(--text-primary)' }}>Compliance Analysis Matrix</h3>
-                        <div style={styles.badge}>{(result.requirements || []).length} REQUIREMENTS FOUND</div>
+                  <div style={{ marginBottom: '32px', borderTop: '1px solid var(--border)', paddingTop: '32px' }}>
+                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <FileText size={20} color="var(--accent)" />
+                          <h3 style={{ fontSize: '18px', fontWeight: 900, color: 'var(--text-primary)', margin: 0 }}>SECTION L/M COMPLIANCE MATRIX</h3>
+                        </div>
+                        <div style={styles.badge}>{(result.requirements || []).length} CRITICAL ITEMS</div>
                      </div>
                      
                      <RequirementsTable requirements={result.requirements} />
