@@ -8,19 +8,11 @@ const openai = process.env.OPENROUTER_API_KEY ? new OpenAI({
   defaultHeaders: { "HTTP-Referer": "https://bidsmith.pro", "X-Title": "ARIS Sovereign Discovery" }
 }) : null;
 
-/**
- * Sovereign Intelligence V7 (The Knowledge Architecture)
- * Features:
- * 1. Distributed Inverted Index (Union-based, not intersection)
- * 2. Knowledge Graph / Ontology Mesh
- * 3. PageRank-inspired Authority Reranking
- * 4. Live USAspending fallback when mesh is empty
- */
+
 export class FedSearchEngine {
   constructor() {
     this.stopWords = new Set(["the", "and", "for", "with", "from", "that", "this", "are", "was", "is"]);
 
-    // SOVEREIGN ONTOLOGY (Knowledge Graph)
     this.ontology = {
       "artificial intelligence": ["machine learning", "neural networks", "llm", "generative ai", "darpa", "nsf"],
       "cybersecurity": ["zero trust", "threat intelligence", "nist", "cisa", "encryption"],
@@ -30,9 +22,6 @@ export class FedSearchEngine {
     };
   }
 
-  /**
-   * Strategic Query Expansion (Ontology-first, LLM fallback)
-   */
   async expandQuery(query) {
     const q = query.toLowerCase();
     let terms = [];
@@ -61,9 +50,7 @@ export class FedSearchEngine {
     return Array.from(new Set([query, ...terms])).join(" ");
   }
 
-  /**
-   * THE SINGLE WRITER (append-only, deduplicated)
-   */
+
   async syncSovereignTable(opportunities, region = "US") {
     if (!opportunities || !Array.isArray(opportunities) || opportunities.length === 0) return;
     if (!redis) return;
@@ -78,7 +65,6 @@ export class FedSearchEngine {
 
         const docData = this.normalizeDoc(opt, region);
 
-        // Atomic deduplication: only write if new
         pipeline.hsetnx("aris:mesh:docs", docId, JSON.stringify(docData));
 
         const terms = this.tokenize(`${docData.title} ${docData.agency}`);
@@ -90,7 +76,6 @@ export class FedSearchEngine {
 
       await pipeline.exec();
 
-      // Vector upsert: include `data` field so Upstash auto-embeds the text
       if (vectorIndex && addedCount > 0) {
         await vectorIndex.upsert(opportunities.slice(0, 50).map(o => {
           const doc = this.normalizeDoc(o, region);
@@ -106,9 +91,7 @@ export class FedSearchEngine {
     }
   }
 
-  /**
-   * SOVEREIGN RERANKER (PageRank-style authority + recency scoring)
-   */
+
   rankResults(results) {
     const now = new Date();
     const highAuthorityAgencies = new Set(["darpa", "dod", "dhs", "nsa", "doe", "army", "navy", "air force"]);
@@ -181,7 +164,6 @@ export class FedSearchEngine {
       return bestMatch;
     }).join(" ");
 
-    // If preliminary failed to change significantly or we have OpenAI, use LLM to fix intent
     if (openai) {
       try {
         const response = await openai.chat.completions.create({
@@ -204,7 +186,6 @@ export class FedSearchEngine {
   }
 
   async search(query, expand = false) {
-    // Apply fuzzy spell correction and intent polishing
     const correctionResult = await this.polishQuery(query);
     const effectiveQuery = correctionResult.corrected;
 
@@ -214,7 +195,6 @@ export class FedSearchEngine {
     if (expand) queryForExpansion = await this.expandQuery(effectiveQuery);
     const queryTerms = this.tokenize(queryForExpansion);
 
-    // Layer 1: Redis inverted index
     if (queryTerms.length > 0 && redis) {
       try {
         const termKeys = queryTerms.map(t => `aris:mesh:term:${t}`);
@@ -236,7 +216,6 @@ export class FedSearchEngine {
       }
     }
 
-    // Layer 2: Vector semantic search (Use POLISHED query)
     if (vectorIndex) {
       try {
         const semanticMatches = await vectorIndex.query({ data: effectiveQuery, topK: 20, includeMetadata: true });
@@ -253,7 +232,6 @@ export class FedSearchEngine {
       }
     }
 
-    // Layer 3: Live USAspending fallback (Use POLISHED query)
     if (results.size === 0) {
       try {
         const awards = await usaspending.getAwardsSummary(effectiveQuery);
@@ -290,7 +268,7 @@ export class FedSearchEngine {
       postedDate: opt.postedDate || opt.publishDate || opt["Start Date"] || new Date().toISOString().split("T")[0],
       region: region || "US",
       url: opt.url || (opt.noticeId ? `https://sam.gov/opp/${docId}/view` : ""),
-      // Preserve award-specific fields for rich snippets
+
       recipient: opt["Recipient Name"] || opt.recipient || null,
       amount: opt["Award Amount"] || opt.amount || null,
       description: opt.description || opt.synopsis || null,

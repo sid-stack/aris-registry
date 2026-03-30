@@ -51,700 +51,220 @@ const PIPELINE_LOGS = [
   "AUDIT_COMPLETE_IDLE"
 ];
 
-// ── BIDSMITH AUDIT WORKSPACE COMPONENTS ──
+// ── SOVEREIGN AUDIT WORKSPACE COMPONENTS ──
 
-const LogTerminal = ({ pipelineStatus }) => {
-  const [logs, setLogs] = useState([
-    { type: 'io', msg: '[IO]: INITIALIZING_MERCURY_PIPELINE' },
-    { type: 'sec', msg: '[SEC]: ESTABLISHING_ZERO_KNOWLEDGE_VAULT' },
-    { type: 'sys', msg: '[SYS]: LOADING_FEDERAL_COMPLIANCE_MATRIX' }
-  ]);
-  
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const newLogs = [
-        { type: 'io', msg: '[IO]: SHREDDING_SECTION_M' },
-        { type: 'sec', msg: '[SEC]: ENCRYPTING_PII_VAULT' },
-        { type: 'sys', msg: '[SYS]: MAPPING_FAR_CLAUSES' },
-        { type: 'risk', msg: '[RISK]: DETECTING_DQ_TRIGGERS' },
-        { type: 'intel', msg: '[INTEL]: EXTRACTING_WIN_THEMES' }
-      ];
-      
-      setLogs(prev => {
-        const randomLog = newLogs[Math.floor(Math.random() * newLogs.length)];
-        return [...prev.slice(-8), randomLog];
-      });
-    }, 2000);
-    
-    return () => clearInterval(interval);
-  }, []);
-  
-  return (
-    <div className="log-terminal">
-      <div className="terminal-header">
-        <span className="terminal-title">SYSTEM AUDIT LOG</span>
-        <div className="terminal-indicators">
-          <div className="indicator active"></div>
-          <div className="indicator"></div>
-          <div className="indicator"></div>
-        </div>
-      </div>
-      <div className="terminal-body">
-        {logs.map((log, i) => (
-          <div key={i} className={`terminal-log ${log.type}`}>
-            {log.msg}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-const DisqualificationRadar = ({ hazards = [] }) => {
-  const radarPoints = hazards.length > 0 ? hazards : [
-    { angle: 0, risk: 93, label: 'L.3.2' },
-    { angle: 60, risk: 87, label: 'M.4' },
-    { angle: 120, risk: 78, label: 'FAR 52' },
-    { angle: 180, risk: 65, label: 'NIST 800' },
-    { angle: 240, risk: 82, label: 'IL4 ATO' },
-    { angle: 300, risk: 71, label: 'DISA JSP' }
-  ];
-  
-  return (
-    <div className="disqualification-radar">
-      <div className="radar-title">DISQUALIFICATION RADAR</div>
-      <div className="radar-container">
-        <svg className="radar-svg" viewBox="0 0 200 200">
-          {/* Radar circles */}
-          {[25, 50, 75, 100].map((radius, i) => (
-            <circle
-              key={i}
-              cx="100"
-              cy="100"
-              r={radius}
-              fill="none"
-              stroke="rgba(0, 255, 194, 0.1)"
-              strokeWidth="1"
-            />
-          ))}
-          
-          {/* Radar lines */}
-          {[0, 60, 120, 180, 240, 300].map((angle, i) => {
-            const radian = (angle * Math.PI) / 180;
-            const x2 = 100 + 100 * Math.cos(radian);
-            const y2 = 100 + 100 * Math.sin(radian);
-            return (
-              <line
-                key={i}
-                x1="100"
-                y1="100"
-                x2={x2}
-                y2={y2}
-                stroke="rgba(0, 255, 194, 0.1)"
-                strokeWidth="1"
-              />
-            );
-          })}
-          
-          {/* Hazard points */}
-          {radarPoints.map((point, i) => {
-            const radian = (point.angle * Math.PI) / 180;
-            const distance = (point.risk / 100) * 90;
-            const x = 100 + distance * Math.cos(radian);
-            const y = 100 + distance * Math.sin(radian);
-            const isHighRisk = point.risk > 80;
-            
-            return (
-              <g key={i}>
-                <circle
-                  cx={x}
-                  cy={y}
-                  r="4"
-                  fill={isHighRisk ? '#FF3E3E' : '#00FFC2'}
-                  className={isHighRisk ? 'pulse-hazard' : ''}
-                />
-                <text
-                  x={x}
-                  y={y - 8}
-                  textAnchor="middle"
-                  fill="white"
-                  fontSize="8"
-                  fontFamily="JetBrains Mono"
-                >
-                  {point.label}
-                </text>
-              </g>
-            );
-          })}
-        </svg>
-      </div>
-    </div>
-  );
-};
-
-const RevenueProtection = ({ totalValue = 45000000, winProbability = 0.13 }) => {
-  const weightedValue = Math.round(totalValue * winProbability);
-  
-  return (
-    <div className="revenue-protection">
-      <div className="protection-header">
-        <ShieldCheck size={14} />
-        <span>REVENUE PROTECTION</span>
-      </div>
-      <div className="protection-metrics">
-        <div className="metric-row">
-          <span className="metric-label">Total Value</span>
-          <span className="metric-value">${totalValue.toLocaleString()}</span>
-        </div>
-        <div className="metric-row">
-          <span className="metric-label">Win Probability</span>
-          <span className="metric-value">{(winProbability * 100).toFixed(0)}%</span>
-        </div>
-        <div className="metric-divider"></div>
-        <div className="weighted-value">
-          <span className="weighted-label">Weighted Value</span>
-          <span className="weighted-amount mercury-teal-glow">
-            ${weightedValue.toLocaleString()}
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const SecureComplianceShield = ({ onUnlock, price = 99, isLoading = false }) => {
-  const [isHovered, setIsHovered] = useState(false);
-  
-  return (
-    <div className="secure-shield-container">
-      <button 
-        className={`secure-compliance-shield pulse-bridge ${isLoading ? 'loading' : ''}`}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        onClick={onUnlock}
-        disabled={isLoading}
-      >
-        <div className="shield-icon">
-          {isLoading ? (
-            <div className="spinner-mini" />
-          ) : (
-            <ShieldCheck size={32} />
-          )}
-        </div>
-        <div className="shield-text">
-          <div className="shield-title">
-            {isLoading ? "Establishing Bridge..." : "Secure Compliance Shield"}
-          </div>
-          {!isLoading && isHovered && (
-            <div className="shield-tooltip">
-              Unlock 30-Page Remediation Matrix — ${price}
-            </div>
-          )}
-        </div>
+const SovereignGlobalHeader = ({ title, agency, status, onBack, onExport }) => (
+  <header style={{
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    padding: '16px 32px', background: '#ffffff', borderBottom: '1px solid #e2e8f0',
+    position: 'sticky', top: 0, zIndex: 100
+  }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <button onClick={onBack} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+        <ChevronRight size={18} style={{ transform: 'rotate(180deg)' }} />
       </button>
-    </div>
-  );
-};
-
-const StatelessProgressTracker = ({ isActive, sessionTime }) => {
-  const [timeLeft, setTimeLeft] = useState(sessionTime);
-  
-  useEffect(() => {
-    if (!isActive) return;
-    const timer = setInterval(() => {
-      setTimeLeft(prev => Math.max(0, prev - 1));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [isActive]);
-  
-  const minutes = Math.floor(timeLeft / 60);
-  const seconds = timeLeft % 60;
-  
-  return (
-    <div className="stateless-tracker">
-      <div className="encryption-status">
-        <Wifi className="pulse-bridge" size={12} color="var(--accent)" />
-        <span>Zero-Knowledge Encryption: <span className="flicker">ACTIVE</span></span>
-      </div>
-      <div className="session-purge">
-        <Clock size={12} />
-        <span>Session Purge: {minutes}:{seconds.toString().padStart(2, '0')}</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#64748b', fontWeight: 600 }}>
+        <span>Projects</span>
+        <span style={{ opacity: 0.5 }}>/</span>
+        <span>{agency || "FEDERAL_ENTITY"}</span>
+        <span style={{ opacity: 0.5 }}>/</span>
+        <span style={{ color: '#0f172a' }}>Audit #{title?.substring(0,8) || "SYS_PROT_001"}</span>
       </div>
     </div>
-  );
-};
 
-const LiveFeedSidebar = ({ logs, isActive }) => {
-  const pipelineStages = [
-    "SCANNING_SECTION_L",
-    "MAPPING_FAR_CLAUSES", 
-    "IDENTIFYING_DQ_TRIGGERS",
-    "CALCULATING_RISK_VECTOR",
-    "GENERATING_REMEDIATION"
-  ];
-  
-  return (
-    <div className="live-feed-sidebar">
-      <div className="panel-header">
-        <Terminal size={14} /> Real-time Pipeline
-      </div>
-      <div className="pipeline-terminal live">
-        {logs.map((log, i) => (
-          <div key={i} className={`terminal-line ${log.type}`}>
-            <span className="timestamp">[{new Date().toLocaleTimeString('en-GB', { hour12: false })}]</span> {log.msg}
-          </div>
-        ))}
-        {isActive && (
-          <>
-            {pipelineStages.map((stage, i) => (
-              <div key={i} className="terminal-line info pulse-bridge">
-                {'>'} {stage}...
-              </div>
-            ))}
-          </>
-        )}
-      </div>
-    </div>
-  );
-};
-
-const VERDICT_CONFIG = {
-  DISQUALIFIER: { color: "#ef4444", bg: "rgba(239,68,68,0.1)", border: "#ef4444", label: "✗ DISQUALIFIER" },
-  WARNING:      { color: "#f59e0b", bg: "rgba(245,158,11,0.08)", border: "#f59e0b", label: "⚠ WARNING" },
-  PASS:         { color: "#22c55e", bg: "rgba(34,197,94,0.08)", border: "#22c55e", label: "✓ PASS" },
-};
-
-const DECISION_CFG = {
-  GO:             { color: "#22c55e", bg: "rgba(34,197,94,0.08)",  border: "rgba(34,197,94,0.3)",  icon: "🟢", label: "GO" },
-  NO_GO:          { color: "#ef4444", bg: "rgba(239,68,68,0.08)",  border: "rgba(239,68,68,0.3)",  icon: "🔴", label: "NO-GO" },
-  CONDITIONAL_GO: { color: "#f59e0b", bg: "rgba(245,158,11,0.07)", border: "rgba(245,158,11,0.3)", icon: "🟡", label: "CONDITIONAL GO" },
-};
-
-const GoNoGoVerdict = ({ decision, title }) => {
-  if (!decision) return null;
-  const cfg = DECISION_CFG[decision.verdict] || DECISION_CFG.NO_GO;
-
-  return (
-    <div style={{
-      border: `1px solid ${cfg.border}`,
-      background: cfg.bg,
-      borderRadius: 12,
-      padding: "20px 22px",
-      marginBottom: 20,
-    }}>
-      {/* Verdict header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ fontSize: "1.6rem", lineHeight: 1 }}>{cfg.icon}</span>
-          <div>
-            <div style={{ fontSize: "0.62rem", fontWeight: 700, letterSpacing: ".1em", color: cfg.color, textTransform: "uppercase", marginBottom: 3 }}>
-              Bid Decision
-            </div>
-            <div style={{ fontSize: "1.4rem", fontWeight: 900, color: cfg.color, lineHeight: 1 }}>
-              {cfg.label}
-            </div>
-          </div>
-        </div>
-        <div style={{ textAlign: "right" }}>
-          <div style={{ fontSize: "0.62rem", color: "#52525b", letterSpacing: ".06em", marginBottom: 2 }}>CONFIDENCE</div>
-          <div style={{ fontSize: "1.5rem", fontWeight: 900, color: cfg.color }}>{decision.confidence ?? "—"}<span style={{ fontSize: "0.75rem", fontWeight: 400 }}>/100</span></div>
-        </div>
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-        {/* Top risks */}
-        <div>
-          <div style={{ fontSize: "0.65rem", fontWeight: 700, letterSpacing: ".1em", color: "#6b7280", textTransform: "uppercase", marginBottom: 8 }}>
-            ⚠ Top Risks
-          </div>
-          <ol style={{ margin: 0, padding: "0 0 0 16px", display: "flex", flexDirection: "column", gap: 7 }}>
-            {(decision.topRisks || []).map((risk, i) => (
-              <li key={i} style={{ fontSize: "0.82rem", color: "#d1d5db", lineHeight: 1.5 }}>{risk}</li>
-            ))}
-          </ol>
-        </div>
-
-        {/* Next steps */}
-        <div>
-          <div style={{ fontSize: "0.65rem", fontWeight: 700, letterSpacing: ".1em", color: "#6b7280", textTransform: "uppercase", marginBottom: 8 }}>
-            💡 Do This Now
-          </div>
-          <ol style={{ margin: 0, padding: "0 0 0 16px", display: "flex", flexDirection: "column", gap: 7 }}>
-            {(decision.nextSteps || []).map((step, i) => (
-              <li key={i} style={{ fontSize: "0.82rem", color: "#d1d5db", lineHeight: 1.5 }}>{step}</li>
-            ))}
-          </ol>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const DisqualificationMatrix = ({ compliance = [] }) => {
-  const [expanded, setExpanded] = useState(null);
-
-  const items = compliance.length > 0 ? compliance : [
-    { category: "ATO Documentation", verdict: "DISQUALIFIER", risk: 93, description: "IL4 pathway not documented", sourceSnippet: "INFERRED — IL4 security baseline required for DoD cloud workloads", sectionRef: "Section L.4 / DFARS 252.239-7010" },
-    { category: "Section L Compliance", verdict: "WARNING", risk: 82, description: "Missing technical volume requirements", sourceSnippet: "INFERRED — technical volume page limits and format requirements unclear", sectionRef: "Section L, Instructions to Offerors" },
-    { category: "FAR 52.204-21", verdict: "WARNING", risk: 68, description: "Basic safeguarding of covered contractor systems", sourceSnippet: "INFERRED — standard FAR clause present in most federal IT contracts", sectionRef: "Section I, FAR 52.204-21" },
-  ];
-
-  // Sort: DISQUALIFIERs first, then WARNINGs, then PASSes
-  const sorted = [...items].sort((a, b) => (b.risk || 0) - (a.risk || 0));
-
-  return (
-    <div className="disqualification-matrix">
-      <div className="panel-header">
-        <AlertTriangle size={14} /> Compliance Findings
-        <span style={{ marginLeft: "auto", fontSize: "0.7rem", color: "#52525b" }}>
-          {items.filter(i => i.verdict === "DISQUALIFIER").length} disqualifier(s) · click to expand
-        </span>
-      </div>
-      <div className="hazards-grid">
-        {sorted.map((hazard, i) => {
-          const cfg = VERDICT_CONFIG[hazard.verdict] || VERDICT_CONFIG.WARNING;
-          const isOpen = expanded === i;
-          const hasSnippet = hazard.sourceSnippet && !hazard.sourceSnippet.startsWith("INFERRED");
-          return (
-            <div
-              key={i}
-              className={`hazard-card ${hazard.risk > 80 ? 'critical-glow' : ''}`}
-              style={{ borderLeft: `3px solid ${cfg.border}`, cursor: "pointer", background: isOpen ? cfg.bg : undefined }}
-              onClick={() => setExpanded(isOpen ? null : i)}
-            >
-              <div className="hazard-score" style={{ color: cfg.color }}>
-                <span className="score-value">{hazard.risk}</span>
-                <span className="score-label">RISK</span>
-              </div>
-              <div className="hazard-details" style={{ flex: 1 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                  <div className="hazard-category">{hazard.category}</div>
-                  <span style={{ fontSize: "0.65rem", fontWeight: 700, color: cfg.color, letterSpacing: "0.05em", whiteSpace: "nowrap" }}>
-                    {cfg.label}
-                  </span>
-                </div>
-                <div className="hazard-description">{hazard.description}</div>
-
-                {/* Expandable evidence block */}
-                {isOpen && (
-                  <div style={{ marginTop: 12 }}>
-                    {hazard.sourceSnippet && (
-                      <blockquote style={{
-                        margin: "0 0 8px",
-                        padding: "10px 14px",
-                        background: "rgba(0,0,0,0.3)",
-                        borderLeft: `3px solid ${hasSnippet ? cfg.color : "#52525b"}`,
-                        borderRadius: "0 6px 6px 0",
-                      }}>
-                        <p style={{ margin: 0, fontSize: "0.82rem", color: hasSnippet ? "#e4e4e7" : "#71717a", fontStyle: hasSnippet ? "italic" : "normal", lineHeight: 1.6 }}>
-                          {hasSnippet ? `"${hazard.sourceSnippet.replace(/^"|"$/g, '')}"` : hazard.sourceSnippet}
-                        </p>
-                      </blockquote>
-                    )}
-                    {hazard.sectionRef && (
-                      <div style={{ fontSize: "0.72rem", color: "#52525b", letterSpacing: "0.04em" }}>
-                        📍 {hazard.sectionRef}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-              <div style={{ color: "#52525b", fontSize: "0.7rem", alignSelf: "flex-start", paddingTop: 2 }}>
-                {isOpen ? "▲" : "▼"}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-};
-
-const RevenueProjection = ({ estimatedValue = 50000000, riskScore = 87 }) => {
-  const valueAtRisk = Math.round(estimatedValue * (riskScore / 100));
-  
-  return (
-    <div className="revenue-projection">
-      <div className="projection-header">
-        <DollarSign size={14} /> Contract Value at Risk
-      </div>
-      <div className="projection-amount">
-        <span className="currency">$</span>
-        <span className="amount">{valueAtRisk.toLocaleString()}</span>
-      </div>
-      <div className="projection-subtitle">
-        Based on {riskScore}/100 risk score
-      </div>
-    </div>
-  );
-};
-
-const ConversionLayer = ({ onPurchase, price = 99, disqualifierCount = 0 }) => {
-  return (
-    <div className="conversion-layer">
-      <button 
-        className="secure-matrix-btn pulse-bridge"
-        onClick={onPurchase}
-      >
-        <Lock size={16} />
-        <span>Secure Full Compliance Matrix (${price})</span>
-      </button>
-      
-      <div className="human-chat-bubble">
-        <MessageCircle size={14} className="chat-icon" />
-        <div className="chat-content">
-          <strong>Mercury 2 has identified {disqualifierCount > 0 ? disqualifierCount : 'potential'} critical {disqualifierCount === 1 ? 'trigger' : 'triggers'}.</strong><br/>
-          Secure the RTM to verify.
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const GapAnalysis = ({ gaps = [] }) => {
-  const items = gaps.length > 0 ? gaps : [
-    { type: 'Missing Response', detail: 'Technical approach for task 3.2 (Cybersecurity) is not addressed.', risk: 'High' },
-    { type: 'Risk', detail: 'Past performance citation for projects >$10M is missing.', risk: 'Medium' },
-    { type: 'Compliance Gap', detail: 'Section L requires 12pt Times New Roman; current inferred format is Arial.', risk: 'Low' }
-  ];
-
-  return (
-    <div className="gap-analysis-container" style={{ marginTop: 32, padding: 24, background: 'rgba(239, 68, 68, 0.05)', borderRadius: 12, border: '1px solid rgba(239, 68, 68, 0.2)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-        <AlertTriangle size={20} color="#ef4444" />
-        <h3 style={{ fontSize: '1.2rem', fontWeight: 900, color: '#ef4444', margin: 0 }}>GAP ANALYSIS</h3>
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {items.map((gap, i) => (
-          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'rgba(0,0,0,0.2)', borderRadius: 8 }}>
-            <div>
-              <span style={{ fontSize: '0.65rem', fontWeight: 800, color: gap.risk === 'High' ? '#ef4444' : '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{gap.type}</span>
-              <p style={{ margin: '4px 0 0', fontSize: '0.9rem', color: '#e4e4e7' }}>{gap.detail}</p>
-            </div>
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: gap.risk === 'High' ? '#ef4444' : '#f59e0b' }}>{gap.risk} RISK</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-const ExecutiveSummary = ({ summary }) => {
-  if (!summary) return null;
-  return (
-    <div className="executive-summary-panel" style={{
-      padding: '32px',
-      background: 'linear-gradient(135deg, #002244 0%, #001a33 100%)',
-      borderRadius: '16px',
-      color: '#ffffff',
-      marginBottom: '32px',
-      boxShadow: '0 10px 30px rgba(0,34,68,0.2)',
-      border: '1px solid rgba(255,255,255,0.1)',
-      position: 'relative',
-      overflow: 'hidden'
-    }}>
-      <div style={{ position: 'absolute', top: -20, right: -20, opacity: 0.1 }}>
-        <Globe size={180} />
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
-        <Zap size={24} color="#00ffc2" />
-        <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Sovereign Executive Intelligence</h2>
-      </div>
-      <p style={{ margin: 0, fontSize: '18px', lineHeight: '1.7', fontWeight: 500, color: '#e2e8f0', maxWidth: '800px', position: 'relative', zIndex: 1 }}>
-        {summary}
-      </p>
-    </div>
-  );
-};
-
-const StrategicAnalysis = ({ analysis }) => {
-  if (!analysis) return null;
-  const { win_themes, capture_strategy, risk_mitigation } = analysis;
-
-  return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px', marginBottom: '40px' }}>
-      <div className="strategy-card" style={{ padding: '24px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--border)', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', color: 'var(--accent)' }}>
-          <Target size={18} />
-          <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 800, textTransform: 'uppercase' }}>Capture Strategy</h4>
-        </div>
-        <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>{capture_strategy}</p>
-      </div>
-
-      <div className="strategy-card" style={{ padding: '24px', background: 'rgba(37, 99, 235, 0.03)', borderRadius: '12px', border: '1px dotted #2563eb' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', color: '#60a5fa' }}>
-          <TrendingUp size={18} />
-          <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 800, textTransform: 'uppercase' }}>Win Themes</h4>
-        </div>
-        <ul style={{ margin: 0, padding: '0 0 0 18px', fontSize: '14px', color: 'var(--text-primary)', listStyleType: 'square' }}>
-          {(win_themes || []).map((theme, i) => (
-            <li key={i} style={{ marginBottom: '8px' }}>{theme}</li>
-          ))}
-        </ul>
-      </div>
-
-      <div className="strategy-card" style={{ padding: '24px', background: 'rgba(239, 68, 68, 0.03)', borderRadius: '12px', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', color: '#ef4444' }}>
-          <ShieldCheck size={18} />
-          <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 800, textTransform: 'uppercase' }}>Risk Mitigation</h4>
-        </div>
-        <p style={{ margin: 0, fontSize: '14px', color: '#fca5a5', lineHeight: '1.6' }}>{risk_mitigation}</p>
-      </div>
-    </div>
-  );
-};
-
-const AIDraftingOutput = ({ draft, onResolve }) => {
-  return (
-    <div style={{ marginTop: 16, padding: 16, background: '#1a1a1e', border: '1px solid var(--accent)', borderRadius: 8 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--accent)' }}>AI ASSISTED DRAFT</span>
-        <button onClick={onResolve} style={{ background: 'none', border: 'none', color: '#71717a', cursor: 'pointer', fontSize: '12px' }}>✕</button>
-      </div>
-      <div style={{ fontSize: '0.85rem', color: '#e4e4e7', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
-        {draft}
-      </div>
-      <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
-        <button className="cyber-btn" style={{ padding: '4px 12px', fontSize: '10px' }}>Apply to Proposal</button>
-        <button style={{ background: 'none', border: '1px solid #333', color: '#e4e4e7', padding: '4px 12px', borderRadius: 4, fontSize: '10px', cursor: 'pointer' }}>Regenerate</button>
-      </div>
-    </div>
-  );
-};
-
-const RequirementsTable = ({ requirements = [] }) => {
-  const [draftingIdx, setDraftingIdx] = useState(null);
-  const [activeDraft, setActiveDraft] = useState(null);
-  
-  if (!requirements || requirements.length === 0) {
-    return (
-      <div style={{ padding: '60px', textAlign: 'center', background: 'rgba(0,0,0,0.1)', borderRadius: '12px', border: '1px dashed var(--border)' }}>
-        <p style={{ color: 'var(--text-dim)', fontSize: '14px', fontWeight: 600 }}>NO_REQUIREMENTS_EXTRACTED_FROM_CURRENT_SLICE</p>
-      </div>
-    );
-  }
-
-  const handleDraft = (idx, req) => {
-    setDraftingIdx(idx);
-    setTimeout(() => {
-      setDraftingIdx(null);
-      setActiveDraft({
-        idx,
-        content: `Based on the requirement "${req.requirement || req.description}", here is a proposed draft response:\n\n"Our team of certified professionals holds active TS/SCI clearances as required. We have a proven tracking record of maintaining 100% compliance with government security protocols in NCR facilities, as demonstrated in our previous work with DHA on Project Mercury..."`
-      });
-    }, 1500);
-  };
-
-  return (
-    <div className="compliance-matrix-container" style={{ marginTop: '32px', width: '100%' }}>
-      {/* 
-          Institutional Compliance Matrix 
-          Design: Navy/White/Teal
-      */}
+    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
       <div style={{ 
-        background: '#ffffff', 
-        borderRadius: '12px', 
-        border: '1px solid #e2e8f0', 
-        overflow: 'hidden',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+        display: 'flex', alignItems: 'center', gap: '8px', 
+        padding: '6px 12px', borderRadius: '99px',
+        background: status === 'LIVE' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(37, 99, 235, 0.1)',
+        color: status === 'LIVE' ? '#22c55e' : '#2563eb',
+        fontSize: '11px', fontWeight: 800, letterSpacing: '0.05em'
       }}>
-        <div style={{ padding: '20px 24px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <FileText size={20} color="#002244" />
-            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#002244', letterSpacing: '-0.01em' }}>REQUISITION_COMPLIANCE_MATRIX</h3>
-          </div>
-          <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', background: '#f1f5f9', padding: '4px 12px', borderRadius: '99px' }}>
-            {requirements.length} ITEMS IDENTIFIED
-          </div>
-        </div>
+        <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'currentColor', animation: 'flicker 1.5s infinite' }} />
+        [{status}] {status === 'LIVE' ? 'AI ANALYSIS IN PROGRESS' : 'AUDIT COMPLETE'}
+      </div>
+      
+      <div style={{ display: 'flex', gap: '8px' }}>
+        <button onClick={onExport} style={{ 
+          background: '#002244', color: 'white', border: 'none', padding: '8px 16px', 
+          borderRadius: '8px', fontSize: '12px', fontWeight: 700, cursor: 'pointer',
+          display: 'flex', alignItems: 'center', gap: '8px'
+        }}>
+          <FileText size={14} /> EXPORT COMPLIANCE MATRIX (XLSX)
+        </button>
+        <button style={{ background: 'none', border: '1px solid #e2e8f0', padding: '8px', borderRadius: '8px', color: '#64748b' }}><Globe size={16} /></button>
+      </div>
+    </div>
+  </header>
+);
 
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
-            <thead>
-              <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Requirement Detail</th>
-                <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Verification Status</th>
-                <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Risk Vector</th>
-                <th style={{ padding: '16px 24px', fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>Intelligence</th>
-              </tr>
-            </thead>
-            <tbody>
-              {requirements.map((req, i) => (
-                <React.Fragment key={i}>
-                  <tr style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s ease' }} className="matrix-row">
-                    <td style={{ padding: '20px 24px', verticalAlign: 'top' }}>
-                      <div style={{ fontSize: '14px', color: '#1e293b', lineHeight: '1.6', fontWeight: 500 }}>
-                        {req.requirement || req.description}
-                      </div>
-                    </td>
-                    <td style={{ padding: '20px 24px', verticalAlign: 'top' }}>
-                      <span style={{ 
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        padding: '4px 10px',
-                        borderRadius: '6px',
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        background: '#f0f9ff',
-                        color: '#0369a1',
-                        textTransform: 'uppercase'
-                      }}>
-                        <CheckCircle2 size={12} />
-                        {req.status || "IDENTIFIED"}
-                      </span>
-                    </td>
-                    <td style={{ padding: '20px 24px', verticalAlign: 'top' }}>
-                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <div style={{ width: '40px', height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
-                            <div style={{ 
-                              width: req.risk === 'High' ? '90%' : req.risk === 'Medium' ? '50%' : '20%', 
-                              height: '100%', 
-                              background: req.risk === 'High' ? '#ef4444' : req.risk === 'Medium' ? '#f59e0b' : '#10b981'
-                            }} />
-                          </div>
-                          <span style={{ fontSize: '11px', fontWeight: 700, color: req.risk === 'High' ? '#ef4444' : '#64748b' }}>
-                            {req.risk || "LOW"}
-                          </span>
-                       </div>
-                    </td>
-                    <td style={{ padding: '20px 24px', verticalAlign: 'top', textAlign: 'right' }}>
-                      <button 
-                        onClick={() => handleDraft(i, req)}
-                        disabled={draftingIdx !== null}
-                        style={{
-                          background: '#002244',
-                          color: '#ffffff',
-                          border: 'none',
-                          padding: '8px 16px',
-                          borderRadius: '6px',
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease',
-                          opacity: draftingIdx === i ? 0.6 : 1
-                        }}
-                      >
-                        {draftingIdx === i ? 'PROCESSING...' : 'GENERATE DRAFT'}
-                      </button>
-                    </td>
-                  </tr>
-                  {activeDraft?.idx === i && (
-                    <tr>
-                      <td colSpan="4" style={{ padding: '0 24px 24px', background: '#f8fafc' }}>
-                        <AIDraftingOutput draft={activeDraft.content} onResolve={() => setActiveDraft(null)} />
-                      </td>
-                    </tr>
-                  )}
-                </React.Fragment>
-              ))}
-            </tbody>
-          </table>
+const ExecutiveRiskGauge = ({ score = 0, insights = "Initializing stateless compliance assessment..." }) => {
+  const rotation = (score / 100) * 180 - 90;
+  return (
+    <div style={{ 
+      gridColumn: 'span 2', padding: '24px', background: '#ffffff', borderRadius: '16px', 
+      border: '1px solid #e2e8f0', display: 'flex', gap: '24px', alignItems: 'center'
+    }}>
+      <div style={{ position: 'relative', width: '140px', height: '80px', flexShrink: 0 }}>
+        <svg viewBox="0 0 100 50" style={{ width: '100%', height: '100%' }}>
+          <path d="M 10 45 A 40 40 0 0 1 90 45" fill="none" stroke="#f1f5f9" strokeWidth="8" strokeLinecap="round" />
+          <path d="M 10 45 A 40 40 0 0 1 90 45" fill="none" stroke={score > 80 ? "#22c55e" : "#f59e0b"} strokeWidth="8" strokeLinecap="round" strokeDasharray={`${(score/100)*126} 126`} />
+        </svg>
+        <div style={{ position: 'absolute', bottom: '0', left: '50%', transform: 'translateX(-50%)', textAlign: 'center' }}>
+          <div style={{ fontSize: '24px', fontWeight: 900, color: '#0f172a' }}>{score}%</div>
+        </div>
+      </div>
+      <div>
+        <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', letterSpacing: '0.05em', marginBottom: '4px' }}>COMPLIANCE PROBABILITY</div>
+        <div style={{ fontSize: '14px', color: '#475569', lineHeight: '1.4', fontWeight: 500 }}>
+          {insights || "Analyzing Section L for disqualifiers..."}
         </div>
       </div>
     </div>
   );
 };
+
+const RfpVitalSigns = ({ dueDate = "CALCULATING...", value = "ANALYZING...", complexity = "TBD" }) => (
+  <div style={{ 
+    padding: '24px', background: '#ffffff', borderRadius: '16px', 
+    border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '12px'
+  }}>
+    <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', mb: 8 }}>RFP VITAL SIGNS</div>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <span style={{ fontSize: '12px', color: '#64748b' }}>Due Date</span>
+      <span style={{ fontSize: '12px', fontWeight: 700, color: '#ef4444' }}>{dueDate}</span>
+    </div>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <span style={{ fontSize: '12px', color: '#64748b' }}>Est. Value</span>
+      <span style={{ fontSize: '12px', fontWeight: 700 }}>{value}</span>
+    </div>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <span style={{ fontSize: '12px', color: '#64748b' }}>Complexity</span>
+      <span style={{ 
+        fontSize: '10px', fontWeight: 900, padding: '2px 8px', borderRadius: '4px',
+        background: '#fef2f2', color: '#991b1b'
+      }}>{complexity.toUpperCase()}</span>
+    </div>
+  </div>
+);
+
+const AuditEfficiencyCard = ({ saved = 0 }) => (
+  <div style={{ 
+    padding: '24px', background: '#ffffff', borderRadius: '16px', 
+    border: '1px solid #e2e8f0', textAlign: 'center'
+  }}>
+    <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', marginBottom: '16px' }}>AUDIT EFFICIENCY</div>
+    <div style={{ fontSize: '24px', fontWeight: 900, color: '#002244' }}>{saved > 0 ? `$${saved}` : "—"}</div>
+    <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>Saved vs. Human Manual Review</div>
+    <div style={{ marginTop: '12px', height: '4px', background: '#f1f5f9', borderRadius: '2px', overflow: 'hidden' }}>
+      <div style={{ width: '92%', height: '100%', background: '#2563eb' }} />
+    </div>
+  </div>
+);
+
+const LitmusFeed = ({ requirements = [] }) => (
+  <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+      <thead>
+        <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+          <th style={{ padding: '16px 24px', fontSize: '11px', fontWeight: 800, color: '#64748b' }}>SECTION</th>
+          <th style={{ padding: '16px 24px', fontSize: '11px', fontWeight: 800, color: '#64748b' }}>REQUIREMENT (SOURCE RFP)</th>
+          <th style={{ padding: '16px 24px', fontSize: '11px', fontWeight: 800, color: '#64748b' }}>BIDSMITH FLAG</th>
+          <th style={{ padding: '16px 24px', fontSize: '11px', fontWeight: 800, color: '#64748b' }}>AI RECOMMENDATION</th>
+        </tr>
+      </thead>
+      <tbody>
+        {requirements.map((req, i) => (
+          <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
+            <td style={{ padding: '20px 24px', fontSize: '12px', color: '#64748b', fontWeight: 700 }}>{req.section || "L.3.1"}</td>
+            <td style={{ padding: '20px 24px', fontSize: '13px', color: '#0f172a', fontWeight: 500, maxWidth: '400px' }}>{req.requirement}</td>
+            <td style={{ padding: '20px 24px' }}>
+              <span style={{ 
+                padding: '4px 10px', borderRadius: '6px', fontSize: '10px', fontWeight: 900,
+                background: req.risk === 'High' ? '#fef2f2' : req.risk === 'Medium' ? '#fffbeb' : '#f0fdf4',
+                color: req.risk === 'High' ? '#ef4444' : req.risk === 'Medium' ? '#f59e0b' : '#22c55e',
+                display: 'inline-flex', alignItems: 'center', gap: '4px'
+              }}>
+                {req.risk === 'High' ? '❌ MISSING' : req.risk === 'Medium' ? '⚠️ WARNING' : '✅ MATCH'}
+              </span>
+            </td>
+            <td style={{ padding: '20px 24px', fontSize: '12px', color: '#475569', fontStyle: 'italic', fontWeight: 500 }}>
+              {req.recommendation || "Verified in compliance baseline."}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+);
+
+const ExecutiveSummary = ({ summary }) => (
+  <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '32px', marginBottom: '24px' }}>
+    <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', marginBottom: '16px', letterSpacing: '0.05em' }}>EXECUTIVE_COMPLIANCE_SUMMARY</div>
+    <div className="prose" style={{ fontSize: '15px', color: '#334155', lineHeight: '1.7' }}>
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>{summary || "Generating institutional summary..."}</ReactMarkdown>
+    </div>
+  </div>
+);
+
+const StrategicAnalysis = ({ analysis }) => (
+  <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '32px' }}>
+    <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', marginBottom: '16px', letterSpacing: '0.05em' }}>STRATEGIC_DELTA_ANALYSIS</div>
+    <div className="prose" style={{ fontSize: '14px', color: '#334155', lineHeight: '1.6' }}>
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>{analysis || "Generating strategic insights..."}</ReactMarkdown>
+    </div>
+  </div>
+);
+
+const SovereignSidebar = ({ logs = [], activeTools = [] }) => (
+  <aside style={{ width: '360px', background: '#ffffff', borderLeft: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ padding: '24px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ marginBottom: '24px' }}>
+        <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', marginBottom: '12px' }}>AI CHAT (CONTEXT-AWARE)</div>
+        <div style={{ display: 'flex', gap: '8px', background: '#f8fafc', padding: '8px 12px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+          <MessageCircle size={16} color="#94a3b8" />
+          <input placeholder="Ask anything about Section M..." style={{ background: 'none', border: 'none', fontSize: '13px', color: '#0f172a', outline: 'none', width: '100%' }} />
+        </div>
+      </div>
+
+      <div style={{ marginBottom: '24px' }}>
+        <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', marginBottom: '12px' }}>CONTEXT INJECTION (MCP)</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {['FAR-Compliance-Checker', 'Legacy-NLP-Mapper', 'DOD-Cost-Analyst'].map(tool => (
+            <div key={tool} style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e' }} />
+              <span style={{ fontSize: '12px', color: '#475569', fontWeight: 600 }}>{tool}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', marginBottom: '12px' }}>AUDIT HISTORY</div>
+        <div style={{ borderLeft: '2px solid #f1f5f9', marginLeft: '6px', paddingLeft: '20px' }}>
+          <div style={{ position: 'relative', paddingBottom: '20px' }}>
+            <div style={{ position: 'absolute', left: '-25px', top: '0', width: '8px', height: '8px', borderRadius: '50%', background: '#2563eb' }} />
+            <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '4px' }}>10:42 AM</div>
+            <div style={{ fontSize: '12px', color: '#475569', fontWeight: 500 }}>Stateless Sync Sequence Initiated</div>
+          </div>
+          <div style={{ position: 'relative' }}>
+            <div style={{ position: 'absolute', left: '-25px', top: '0', width: '8px', height: '8px', borderRadius: '50%', background: '#f1f5f9' }} />
+            <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '4px' }}>09:15 AM</div>
+            <div style={{ fontSize: '12px', color: '#94a3b8' }}>Session Established</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div style={{ padding: '24px', borderTop: '1px solid #f1f5f9', background: '#f8fafc' }}>
+      <button style={{ width: '100%', background: 'none', border: '1px solid #ef4444', color: '#ef4444', padding: '12px', borderRadius: '8px', fontSize: '12px', fontWeight: 800 }}>
+        TERMINATE SESSION & PURGE CACHE
+      </button>
+    </div>
+  </aside>
+);
+
+
 
 const PipelineTerminal = ({ logs, active }) => {
   const terminalRef = useRef(null);
@@ -1151,355 +671,146 @@ const Audit = ({ onBack, initialUrl, initialFile }) => {
   };
 
   return (
-    <div className="audit-page-container bidsmith-audit-workspace">
-      {!isMobile && <NavBar theme="dark" onToggleTheme={null} onBack={onBack} />}
-      
-      {/* Government Data Sources Banner */}
-      <GovernmentBanner />
-      
+    <div className="bidsmith-audit-workspace" style={{ background: '#f8fafc', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      {/* GLOBAL HEADER */}
+      {result && !isLoading && (
+        <SovereignGlobalHeader 
+          title={result.id} 
+          agency={result.agency} 
+          status={isLoading ? "LIVE" : "FINAL"} 
+          onBack={handleTerminate}
+          onExport={handleExportExcel}
+        />
+      )}
+
+      {/* INGESTION VIEW */}
       {!result && !isLoading ? (
-        <div className="ingestion-view">
-          <div className="ingestion-hero">
-            <Activity className="cyber-glow" size={40} color="var(--accent)" />
-            <h1 style={{ fontSize: '2.5rem', fontWeight: 900, marginTop: '24px' }}>Stateless Audit Workspace</h1>
-            <p style={{ color: 'var(--text-secondary)', marginTop: '16px' }}>
-              BidSmith Core • Zero-Knowledge Analysis • Federal Compliance Engine
-            </p>
+        <div className="ingestion-view" style={{ flex: 1 }}>
+          <div className="ingestion-card" style={{ maxWidth: '600px', width: '100%', textAlign: 'center', padding: '60px 40px', background: '#ffffff', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,34,68,0.08)', border: '1px solid #e2e8f0' }}>
+            <div className="logo-section" style={{ marginBottom: '40px' }}>
+              <div style={{ display: 'inline-flex', padding: '16px', background: 'rgba(0,34,68,0.05)', borderRadius: '20px', marginBottom: '24px' }}>
+                <Globe size={40} color="#002244" />
+              </div>
+              <h1 style={{ fontSize: '32px', fontWeight: 900, color: '#002244', letterSpacing: '-0.02em', margin: 0 }}>METRIC_AUDIT_INFRA</h1>
+              <p style={{ color: '#64748b', fontSize: '16px', fontWeight: 500, marginTop: '12px' }}>Institutional Grade RFP Intelligence & Stateless Audit Chain</p>
+            </div>
             
-            <div className="cyber-input-wrapper">
-              <Globe className="search-icon-fixed" style={{ position: 'absolute', left: '16px', top: '18px', color: 'var(--accent)' }} size={20} />
+            <div className="cyber-input-wrapper" style={{ position: 'relative', marginBottom: '16px' }}>
+              <Search style={{ position: 'absolute', left: '16px', top: '18px', color: '#94a3b8' }} size={20} />
               <input 
                 className="cyber-input" 
-                placeholder="https://sam.gov/opp/..." 
+                placeholder="Paste SAM.gov Opportunity URL..." 
                 value={samUrl} 
                 onChange={e => setSamUrl(e.target.value)}
                 onKeyPress={e => e.key === 'Enter' && startAudit()}
+                style={{
+                  width: '100%', padding: '18px 20px 18px 52px', background: '#f1f5f9',
+                  border: '2px solid transparent', borderRadius: '14px', fontSize: '16px',
+                  outline: 'none', transition: 'all 0.2s ease', fontWeight: 500
+                }}
               />
             </div>
             
-            <button className="cyber-btn" onClick={() => startAudit()}>
-              DEPLOY MERCURY 2 INTELLIGENCE ENGINE
+            <button 
+              className="cyber-btn" 
+              onClick={() => startAudit()}
+              style={{
+                width: '100%', background: '#002244', color: 'white', padding: '18px',
+                borderRadius: '14px', border: 'none', fontWeight: 800, fontSize: '16px',
+                cursor: 'pointer', boxShadow: '0 8px 16px rgba(0,34,68,0.15)'
+              }}
+            >
+              DEPLOY MERCURY_2 INTELLIGENCE
             </button>
+            
+            <div style={{ marginTop: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '24px', opacity: 0.6 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <ShieldCheck size={14} /> Zero_Knowledge
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <Activity size={14} /> Stateless_Sync
+              </div>
+            </div>
           </div>
         </div>
       ) : (
-        <div className="bidsmith-layout">
-          {/* Left: Log Terminal */}
-          <aside className="bidsmith-panel bidsmith-left">
-            <LogTerminal pipelineStatus={result?.status} />
-            
-            {/* Mission Context */}
-            <div className="mission-context-compact">
-              <div className="panel-header">
-                <Target size={14} /> Mission Context
-              </div>
-              <div className="context-compact">
-                <div className="context-item">
-                  <label>AGENCY</label>
-                  <p>{result?.agency || "PARSING..."}</p>
-                </div>
-                <div className="context-item">
-                  <label>SOLICITATION</label>
-                  <p>{result?.id || "N/A"}</p>
-                </div>
-                <div className="context-item">
-                  <label>STATUS</label>
-                  <p className="flicker" style={{ color: 'var(--accent)' }}>
-                    {isLoading ? "ENCRYPTED_STREAM" : "STATELESS_IDLE"}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </aside>
-
-          {/* Center: Main Intelligence Workspace */}
-          <main className="bidsmith-panel bidsmith-center">
-            <div className="panel-header">
-              <ShieldCheck size={14} /> Audit Canvas
-            </div>
-            <div className="panel-content">
-              {isLoading ? (
-                <div style={{ padding: '40px', textAlign: 'center' }}>
-                  <div className="spinner-outer" style={{ margin: '0 auto 40px' }} />
-                  <h2 style={{ fontSize: '20px', fontWeight: 800 }}>ANALYSIS ACTIVE</h2>
+        <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
+          {/* MAIN CANVAS */}
+          <main style={{ flex: 1, overflowY: 'auto', padding: '32px 40px' }}>
+            {isLoading ? (
+              <div style={{ maxWidth: '800px', margin: '140px auto', textAlign: 'center' }}>
+                <div className="mercury-loading-spinner" style={{ 
+                  width: '60px', height: '60px', border: '4px solid #f1f5f9', 
+                  borderTop: '4px solid #002244', borderRadius: '50%', margin: '0 auto 40px',
+                  animation: 'spin 1s linear infinite'
+                }} />
+                <h2 style={{ fontSize: '20px', fontWeight: 900, color: '#002244', marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Initializing Stateless Bridge...</h2>
+                <div style={{ background: '#000', borderRadius: '12px', padding: '24px', textAlign: 'left', border: '1px solid #333' }}>
                   <PipelineTerminal logs={logs} active={isLoading} />
                 </div>
-              ) : (
-                <React.Fragment>
-                  {/* Strategic Intelligence Header */}
-                  <ExecutiveSummary summary={result?.executiveSummary} />
-
-                  <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 300px', gap: '32px', marginBottom: '40px' }}>
-                    <div className="main-findings-stack">
-                        {/* Go / No-Go Decision — always first */}
-                        <GoNoGoVerdict decision={result?.decision} title={result?.title} />
-                        
-                        <StrategicAnalysis analysis={result?.strategicAnalysis} />
-                        
-                        {/* Disqualification Matrix */}
-                        <DisqualificationMatrix compliance={result?.compliance} />
-                    </div>
-
-                    <div className="side-intelligence-stack" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                        {/* Revenue Protection */}
-                        <RevenueProjection 
-                          totalValue={result?.value || 45000000} 
-                          riskScore={result?.riskAssessment?.score || 82} 
-                        />
-                        
-                        <DisqualificationRadar hazards={result?.compliance} />
-                    </div>
-                  </div>
-                  
-                  <div style={{ marginBottom: '32px', borderTop: '1px solid var(--border)', paddingTop: '32px' }}>
-                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <FileText size={20} color="var(--accent)" />
-                          <h3 style={{ fontSize: '18px', fontWeight: 900, color: 'var(--text-primary)', margin: 0 }}>SECTION L/M COMPLIANCE MATRIX</h3>
-                        </div>
-                        <div style={styles.badge}>{(result.requirements || []).length} CRITICAL ITEMS</div>
-                     </div>
-                     
-                     <RequirementsTable requirements={result.requirements} />
-                     
-                     {/* Conversion Hook - The Export CTA */}
-                     <div style={{ marginTop: '24px', padding: '24px', background: 'rgba(103, 232, 249, 0.05)', borderRadius: '12px', border: '1px solid rgba(103, 232, 249, 0.2)', textAlign: 'center' }}>
-                        <h4 style={{ fontSize: '18px', fontWeight: 900, marginBottom: '8px', color: '#fff' }}>Download Compliance Matrix (.XLSX)</h4>
-                        <p style={{ fontSize: '13px', color: '#a1a1aa', marginBottom: '20px', fontWeight: 500 }}>Ready for solicitation response & submission teams.</p>
-                        <button 
-                          className="cyber-btn" 
-                          onClick={handleExportExcel}
-                          style={{ padding: '16px 32px', fontSize: '14px', width: isMobile ? '100%' : 'auto', fontWeight: 800 }}
-                        >
-                          <FileText size={18} style={{ marginRight: '8px' }} />
-                          EXPORT FINAL MATRIX
-                        </button>
-                     </div>
-                  </div>
-
-                  {/* High Risk Alerts */}
-                  <div className="critical-alert" style={{ background: '#fff5f5', border: '1px solid #feb2b2', borderRadius: '8px' }}>
-                    <AlertTriangle size={20} color="#c53030" />
-                    <div className="alert-content">
-                      <h4 style={{ fontSize: '12px', fontWeight: 800, color: '#c53030' }}>FINDING: MISSING_IL4_ATO_CITATION</h4>
-                      <p style={{ fontSize: '12px', color: '#718096' }}>DHA/DISA JSP reciprocity agreement not identified in Section L.3.2. High probability of technical disqualification.</p>
-                    </div>
-                  </div>
-
-                  {/* Secure Compliance Shield (Remediation Paywall) */}
-                  <SecureComplianceShield 
-                    onUnlock={handlePurchase} 
-                    price={dynamicPrice} 
-                    isLoading={isCheckoutLoading}
+              </div>
+            ) : (
+              <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+                {/* BENTO GRID - SIGNALS */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '32px' }}>
+                  <ExecutiveRiskGauge 
+                    score={result.riskAssessment?.score || 90} 
+                    insights={result.riskAssessment?.delta_analysis || "Solicitation displaying standard procurement friction profiles."}
                   />
+                  <RfpVitalSigns 
+                    value={result.value || "TBD"} 
+                    dueDate={result.requirements?.find(r => r.section === 'L' || r.section === 'M')?.due_date || null} 
+                    complexity={result.requirements?.length > 20 ? "High" : result.requirements?.length > 10 ? "Medium" : "Low"}
+                  />
+                  <AuditEfficiencyCard saved={result.requirements?.length ? (result.requirements.length * 45) : 0} />
+                </div>
 
-                  {/* Minimized Status Feed instead of large terminal */}
-                  <div style={{ marginTop: '40px', padding: '12px', background: '#0c0c0e', border: '1px solid #1a1a1e', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                     <div style={{ width: 8, height: 8, background: '#10b981', borderRadius: '50%', boxShadow: '0 0 8px #10b981' }} />
-                     <span style={{ fontSize: '11px', color: '#71717a', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                        AUDIT STATUS: {logs[logs.length - 1]?.msg || 'ACTIVE'}
-                     </span>
+                {/* LITMUS FEED - MAIN CONTENT */}
+                <div style={{ marginBottom: '40px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+                    <Activity size={20} color="#002244" />
+                    <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Litmus Compliance Feed</h2>
                   </div>
-                  
-                  {/* Report Section */}
-                  {report?.proposal_draft && (
-                    <div className="report-section">
-                      <div className="report-header">
-                        <Terminal size={14} /> Remediation Script
-                      </div>
-                      <div className="report-content">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{report.proposal_draft}</ReactMarkdown>
-                      </div>
-                    </div>
-                  )}
-                  
-                  <button className="cyber-btn terminate-btn" onClick={handleTerminate}>
-                    TERMINATE SESSION
-                  </button>
-                </React.Fragment>
-              )}
-            </div>
+                  <LitmusFeed requirements={result.requirements || []} />
+                </div>
+
+                {/* STRATEGIC ANALYSIS CONTAINER */}
+                <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '40px' }}>
+                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+                      <Zap size={20} color="#002244" />
+                      <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Strategic Intelligence Panels</h2>
+                   </div>
+                   <ExecutiveSummary summary={result.executiveSummary} />
+                   <StrategicAnalysis analysis={result.strategicAnalysis} />
+                </div>
+                
+                {/* TERMINATE SESSION CTA */}
+                <div style={{ marginTop: '60px', borderTop: '1px solid #f1f5f9', paddingTop: '30px', textAlign: 'center' }}>
+                    <button 
+                      onClick={handleTerminate}
+                      style={{ background: 'none', border: '1px solid #ef4444', color: '#ef4444', padding: '12px 24px', borderRadius: '8px', fontSize: '12px', fontWeight: 800, cursor: 'pointer' }}
+                    >
+                      TERMINATE SESSION & WIPE MEMORY
+                    </button>
+                </div>
+              </div>
+            )}
           </main>
 
-          </div>
-      )}
-
-      {/* Vault Status Bar */}
-      <div className="vault-status-bar">
-        <div className="vault-glow flash" />
-        <span>SECURE_VAULT: ENCRYPTED</span>
-        <span style={{ opacity: 0.3 }}>|</span>
-        <span style={{ color: 'var(--text-secondary)' }}>BS_PROTOCOL_ACTIVE</span>
-      </div>
-
-      {/* Payment Modal */}
-      {showPaymentModal && paymentInfo && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0, 0, 0, 0.8)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 10000
-        }}>
-          <div style={{
-            background: '#0d0f14',
-            border: '1px solid #333',
-            borderRadius: '12px',
-            padding: '32px',
-            maxWidth: '480px',
-            width: '90%',
-            textAlign: 'center'
-          }}>
-            <h3 style={{ color: '#f4f4f5', marginBottom: '16px' }}>Report Limit Reached</h3>
-            <p style={{ color: '#a1a1aa', marginBottom: '24px' }}>
-              {paymentInfo.message}
-            </p>
-            <div style={{ 
-              background: 'rgba(255,255,255,0.05)', 
-              padding: '16px', 
-              borderRadius: '8px', 
-              marginBottom: '24px' 
-            }}>
-              <p style={{ color: '#818cf8', margin: '0' }}>
-                {paymentInfo.reportsUsed} of {paymentInfo.reportsLimit} free reports used
-              </p>
-              <p style={{ color: '#a1a1aa', fontSize: '14px', margin: '8px 0 0' }}>
-                Next reset: {paymentInfo.nextReset}
-              </p>
-            </div>
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-              <button
-                onClick={() => setShowPaymentModal(false)}
-                style={{
-                  background: 'transparent',
-                  color: '#a1a1aa',
-                  border: '1px solid #333',
-                  padding: '12px 24px',
-                  borderRadius: '8px',
-                  cursor: 'pointer'
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => window.location.href = paymentInfo.paymentLink}
-                style={{
-                  background: '#4f46e5',
-                  color: '#ffffff',
-                  border: 'none',
-                  padding: '12px 24px',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontWeight: '600'
-                }}
-              >
-                Upgrade for Unlimited Reports
-              </button>
-            </div>
-          </div>
+          {/* SOVEREIGN SIDEBAR */}
+          {result && !isLoading && (
+            <SovereignSidebar result={result} logs={logs} />
+          )}
         </div>
       )}
-
-      {/* Mercury 2 Fatal Error Banner */}
-      {showFatalError && fatalErrorData && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(220, 38, 38, 0.95)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 10001,
-          backdropFilter: 'blur(8px)'
-        }}>
-          <div style={{
-            background: '#1a0000',
-            border: '2px solid #dc2626',
-            borderRadius: '12px',
-            padding: '40px',
-            maxWidth: '600px',
-            width: '90%',
-            textAlign: 'center',
-            boxShadow: '0 0 40px rgba(220, 38, 38, 0.5)'
-          }}>
-            <div style={{
-              fontSize: '48px',
-              marginBottom: '16px',
-              animation: 'pulse 2s infinite'
-            }}>
-              ⚠️
-            </div>
-            <h2 style={{ 
-              color: '#dc2626', 
-              marginBottom: '16px', 
-              fontSize: '24px',
-              fontWeight: 'bold',
-              textTransform: 'uppercase'
-            }}>
-              COMPLIANCE KILL-SWITCH ACTIVATED
-            </h2>
-            <div style={{
-              background: 'rgba(220, 38, 38, 0.2)',
-              padding: '20px',
-              borderRadius: '8px',
-              marginBottom: '24px',
-              border: '1px solid rgba(220, 38, 38, 0.3)'
-            }}>
-              <p style={{ color: '#dc2626', fontSize: '20px', margin: '0 0 8px' }}>
-                Verdict: {fatalErrorData.verdict}
-              </p>
-              <p style={{ color: '#ffffff', fontSize: '32px', margin: '8px 0', fontWeight: 'bold' }}>
-                Risk Score: {fatalErrorData.score}/99
-              </p>
-              <p style={{ color: '#a1a1aa', fontSize: '14px', margin: '8px 0 0' }}>
-                {fatalErrorData.deltaAnalysis}
-              </p>
-            </div>
-            <div style={{ 
-              background: 'rgba(255,255,255,0.05)', 
-              padding: '16px', 
-              borderRadius: '8px', 
-              marginBottom: '24px',
-              textAlign: 'left'
-            }}>
-              <p style={{ color: '#a1a1aa', margin: '0 0 8px', fontSize: '14px' }}>
-                <strong>Score Breakdown:</strong>
-              </p>
-              <p style={{ color: '#818cf8', margin: '4px 0', fontSize: '12px' }}>
-                Delta Risk: {fatalErrorData.breakdown?.delta_risk || 0} points
-              </p>
-              <p style={{ color: '#f59e0b', margin: '4px 0', fontSize: '12px' }}>
-                Hazard Penalty: {fatalErrorData.breakdown?.hazard_penalty || 0} points
-              </p>
-            </div>
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexDirection: 'column' }}>
-              <p style={{ color: '#ffffff', margin: '0 0 16px', fontSize: '16px' }}>
-                <strong>⚠️ HIGH PROBABILITY OF DISQUALIFICATION DETECTED</strong>
-              </p>
-              <button
-                onClick={() => setShowFatalError(false)}
-                style={{
-                  background: '#dc2626',
-                  color: '#ffffff',
-                  border: 'none',
-                  padding: '16px 32px',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontWeight: '600',
-                  fontSize: '16px'
-                }}
-              >
-                Acknowledge Risk Assessment
-              </button>
-            </div>
+      
+      {/* GLOBAL OVERLAYS */}
+      {showPaymentModal && paymentInfo && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0, 0, 0, 0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 }}>
+          <div style={{ background: '#0d0f14', border: '1px solid #333', borderRadius: '12px', padding: '32px', maxWidth: '480px', width: '90%', textAlign: 'center' }}>
+            <h3 style={{ color: '#f4f4f5', marginBottom: '16px' }}>Report Limit Reached</h3>
+            <p style={{ color: '#a1a1aa', marginBottom: '24px' }}>{paymentInfo.message}</p>
+            <button onClick={() => window.location.href = paymentInfo.paymentLink} style={{ background: '#4f46e5', color: '#ffffff', border: 'none', padding: '12px 24px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' }}>Upgrade for Unlimited Reports</button>
           </div>
         </div>
       )}

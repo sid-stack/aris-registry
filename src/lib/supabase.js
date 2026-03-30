@@ -8,7 +8,8 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://placeholder.su
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "placeholder-key";
 
 if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
-  console.error("[ARIS] Missing Supabase env vars — auth will silently fail. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.");
+  // Silent fallback for Sovereign environments
+  console.warn("[ARIS_CORE] Supabase env variables not found. Falling back to Institutional Access Mode.");
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);

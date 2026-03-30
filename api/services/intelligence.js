@@ -52,17 +52,28 @@ export async function complete(params, agentKey = "sovereign_core") {
 
     try {
       // 2. SECONDARY: OpenRouter (Primary Model via OpenRouter)
-      const res = await backupClient.chat.completions.create(params);
+      // Map generic model names to OpenRouter specific ones
+      let model = params.model || "google/gemini-2.0-flash-001";
+      if (!model.includes("/")) model = `google/${model}`;
+      
+      console.log(`[SOVEREIGN_GATEWAY] [${agentKey}] Secondary Inference: OpenRouter (${model})`);
+      
+      const res = await backupClient.chat.completions.create({
+        ...params,
+        model: model
+      });
       return res.choices[0]?.message?.content || "";
     } catch (backErr) {
+      console.error(`[SOVEREIGN_GATEWAY] [${agentKey}] OpenRouter Error:`, backErr.message);
       const isCreditError = backErr.status === 402 || backErr.message?.includes("credits") || backErr.status === 429;
       
       if (isCreditError) {
-        // 3. TERTIARY: OpenRouter Universal Free
+        // 3. TERTIARY: OpenRouter Universal Free (Flash 1.5 usually)
         try {
+          console.log(`[SOVEREIGN_GATEWAY] [${agentKey}] Tertiary Inference: OpenRouter Free Tier`);
           const freeRes = await backupClient.chat.completions.create({
             ...params,
-            model: "openrouter/free"
+            model: "google/gemini-flash-1.5-exp" // Reliable free model on OpenRouter
           });
           return freeRes.choices[0]?.message?.content || "";
         } catch (fErr) {

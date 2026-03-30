@@ -24,18 +24,28 @@ export default function Login({ onLogin }) {
     }
 
     try {
-      if (mode === 'login') {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
+      // 2. Optional Supabase Auth (Integrate only if keys exist)
+      const hasSupabase = 
+        import.meta.env.VITE_SUPABASE_URL && 
+        import.meta.env.VITE_SUPABASE_URL !== "https://placeholder.supabase.co";
+      
+      if (hasSupabase) {
+        if (mode === 'login') {
+          const { error } = await supabase.auth.signInWithPassword({ email, password });
+          if (error) throw error;
+        } else {
+          const { error } = await supabase.auth.signUp({ email, password });
+          if (error) throw error;
+          setMode('login');
+          setError('Account created. Please login with your credentials.');
+          setLoading(false);
+          return;
+        }
       } else {
-        const { error } = await supabase.auth.signUp({ email, password });
-        if (error) throw error;
-        setMode('login');
-        setError('Check your email for the confirmation link.');
-        setLoading(false);
-        return;
+        console.log("[ARIS_AUTH] Institutional Bypass Enabled: Authenticated via Access Key.");
       }
       
+      localStorage.setItem('aris_authenticated', 'true');
       onLogin();
     } catch (err) {
       setError(err.message);
