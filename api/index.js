@@ -243,7 +243,8 @@ async function startHarvester() {
           const awards = await usaspending.getAwardsSummary(seed);
           if (awards?.length > 0) await sovereignSearch.syncSovereignTable(awards, "US");
         } catch (err) { console.warn(`[HARVESTER] USAspending failed for "${seed}":`, err.message); }
-        await new Promise(r => setTimeout(r, 2000));
+        console.log(`[HARVESTER] Cooling down for 15s to respect SAM.gov rate limits...`);
+        await new Promise(r => setTimeout(r, 15000));
       }
       lastHarvestTime = Date.now();
     } catch (err) { console.error("[HARVESTER] failure:", err.message); }
