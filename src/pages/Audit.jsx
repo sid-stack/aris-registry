@@ -202,7 +202,6 @@ const ComplianceBugs = ({ bugs = [] }) => {
 };
 
 const ExecutiveRiskGauge = ({ score = 0, insights = "Initializing stateless compliance assessment..." }) => {
-  const rotation = (score / 100) * 180 - 90;
   return (
     <div style={{ 
       gridColumn: 'span 2', padding: '24px', background: '#ffffff', borderRadius: '16px', 
@@ -403,14 +402,6 @@ const PipelineTerminal = ({ logs, active }) => {
 };
 
 const Audit = ({ onBack, initialUrl, initialFile }) => {
-  const [isMobile, setIsMobile] = useState(typeof window !== "undefined" && window.innerWidth < 768);
-
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
   const [samUrl, setSamUrl] = useState(initialUrl || "");
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -434,7 +425,7 @@ const Audit = ({ onBack, initialUrl, initialFile }) => {
     } else if (initialUrl) {
       startAudit(initialUrl);
     }
-  }, []);
+  }, [initialFile, initialUrl]);
 
   const addLog = (msg, type = "info") => {
     setLogs(prev => [...prev.slice(-20), { msg, type, timestamp: new Date().toLocaleTimeString() }]);
