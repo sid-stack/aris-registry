@@ -10,7 +10,6 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 let client;
 
 if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.includes("placeholder")) {
-  console.warn("[ARIS_CORE] Supabase env variables not found. Falling back to Institutional Access Mode.");
 
   // Mock implementation to prevent "Failed to fetch" errors during fallback
   client = {
