@@ -18,8 +18,9 @@ import { sanitizeMarkdown } from "./utils/markdown.js";
 
 // Services & MCP Client
 import { getSamClient, getAuditClient, callMcpTool } from "./services/mcpClient.js";
-import { createCheckoutSession, createDynamicCheckoutSession } from "./services/stripe.js";
+import { createCheckoutSession, createDynamicCheckoutSession, getRevenueStats, getStripeLogs } from "./services/stripe.js";
 import { recordAnalyticsEvent, renderAnalyticsDashboard, recordBetaSignup, getAdminStats } from "./services/analytics.js";
+import { invokeAuditSwarm } from "./agents/coordinator.js";
 import { AUDIT_PROMPT, SYS_PROMPT } from "./src/prompts.js";
 import { sovereignSearch } from "./services/fedSearch.js";
 import { usaspending } from "./services/usaspending.js";
@@ -127,12 +128,22 @@ app.post("/api/analyze-pdf", upload.single('file'), asyncHandler(async (req, res
     const extraction = await complete(extractPrompt, "You are the ARIS High-Precision RFP Auditor. Extract compliance intelligence into strict JSON.", { json: true, traceName: "pdf_full_extraction" });
 
     // Map Gemini extraction to the ARIS-standard UI format
+    // DEPLOY_SOVEREIGN_AGENT_SWARM
+    const swarmResult = await invokeAuditSwarm({
+      text: rfpText,
+      buffer: req.file.buffer
+    }, (logEntry) => {
+      console.log(`[AGENT_SWARM] ${logEntry}`);
+      // Future: SSE/Socket streaming for real-time UI logs
+    });
+
+    // Map Swarm results to the ARIS-standard UI format
     const response = {
-      id: extraction.document_metadata?.solicitation_number || "UPLOADED_PDF",
+      id: swarmResult.document_metadata?.solicitation_number || "UPLOADED_PDF_SWARM",
       title: req.file.originalname,
-      agency: extraction.document_metadata?.agency || "Extracted from PDF",
-      value: extraction.document_metadata?.estimated_value || extraction.estimated_value || "0",
-      compliance: (extraction.requirements || []).slice(0, 10).map((r, i) => ({
+      agency: swarmResult.document_metadata?.agency || "Extracted from PDF",
+      value: swarmResult.document_metadata?.estimated_value || "0",
+      compliance: (swarmResult.requirements || []).slice(0, 10).map((r, i) => ({
         category: r.category,
         verdict: r.is_lethal ? "DISQUALIFIER" : "WARNING",
         risk: r.risk === "High" ? 85 : r.risk === "Med" ? 65 : 40,
@@ -142,22 +153,22 @@ app.post("/api/analyze-pdf", upload.single('file'), asyncHandler(async (req, res
         angle: i * 36,
         label: r.category ? r.category.slice(0, 3).toUpperCase() : "REQ"
       })),
-      bugs: extraction.compliance_bugs || [],
-      requirements: (extraction.requirements || []).map(r => ({
+      bugs: swarmResult.bugs || [],
+      requirements: (swarmResult.requirements || []).map(r => ({
         requirement: r.text,
         status: "Not reviewed",
         risk: r.risk,
         owner: ""
       })),
-      executiveSummary: extraction.executive_summary || `MERCURY_2 audit complete. Identified ${extraction.compliance_bugs?.length || 0} compliance bugs.`,
-      strategicAnalysis: formatStrategicAnalysis(extraction.strategic_analysis),
+      executiveSummary: swarmResult.executiveSummary,
+      strategicAnalysis: formatStrategicAnalysis(swarmResult.strategicAnalysis),
       riskAssessment: {
-        verdict: extraction.compliance_bugs?.length > 0 ? "LETHAL_TRAPS_IDENTIFIED" : "ACTIONABLE",
-        score: extraction.compliance_bugs?.length > 0 ? 95 : 55,
-        breakdown: { delta_risk: 35, hazard_penalty: 60 },
-        delta_analysis: `High-precision audit identified ${extraction.compliance_bugs?.length || 0} critical traps between Section L and M.`
+        verdict: swarmResult.riskAssessment?.verdict || "ACTIONABLE",
+        score: swarmResult.riskAssessment?.score || 55,
+        breakdown: swarmResult.riskAssessment?.breakdown || { delta_risk: 35, hazard_penalty: 40 },
+        delta_analysis: swarmResult.riskAssessment?.delta_analysis || `Swarm identified high-priority compliance triggers.`
       },
-      fatalError: extraction.compliance_bugs?.length > 0
+      fatalError: swarmResult.fatalError
     };
 
     res.json(response);
@@ -362,15 +373,13 @@ app.post("/api/analyze-link", apiLimiter, asyncHandler(async (req, res) => {
       }
     } catch (err) {
       console.warn(`[AUDIT_GATEWAY] Primary SAM access failed: ${err.message}`);
-      // Continue to text length check - might still have opp.description or scraper can try
     }
 
     if (!solicitationText || solicitationText.length < 50) {
-      // Final attempt: Check if we can get text via description or if we should just guide to upload
       if (!solicitationText) {
         return res.status(422).json({ 
           error: "ACCESS_DENIED: SAM.gov blocked automated access to this opportunity.",
-          message: "Please DOWNLOAD the solicitation PDF from SAM.gov and UPLOAD it here for a 100% precision audit. Institutional gateway access is currently restricted for this record.",
+          message: "Please DOWNLOAD the solicitation PDF from SAM.gov and UPLOAD it here for a 100% precision audit.",
           canRetryWithUpload: true
         });
       }
@@ -381,7 +390,7 @@ app.post("/api/analyze-link", apiLimiter, asyncHandler(async (req, res) => {
       if (!pdfRes.ok) throw new Error(`HTTP ${pdfRes.status}`);
       const buffer = Buffer.from(await pdfRes.arrayBuffer());
       const pdfData = await pdfParse(buffer);
-      solicitationText = pdfData.text.slice(0, 15000);
+      solicitationText = pdfData.text;
       meta = { id: "PDF_LINK", title: url.split("/").pop(), agency: "Unknown", value: "0" };
     } catch (err) {
       return res.status(502).json({ error: `PDF download failed: ${err.message}` });
@@ -394,34 +403,53 @@ app.post("/api/analyze-link", apiLimiter, asyncHandler(async (req, res) => {
     return res.status(422).json({ error: "Could not extract text from the provided URL." });
   }
 
-  const { readFileSync } = await import("fs");
-  let extractPromptTemplate;
   try {
-    extractPromptTemplate = readFileSync(join(__dirname, "llm", "extract_prompt.txt"), "utf8");
-  } catch (_) {
-    extractPromptTemplate = `Extract institutional compliance intelligence from the following RFP text: {{RFP_TEXT}}
+    // DEPLOY_SOVEREIGN_AGENT_SWARM (URL_VECTOR)
+    const swarmResult = await invokeAuditSwarm({
+      text: solicitationText,
+      buffer: Buffer.from(solicitationText) 
+    }, (logEntry) => {
+      console.log(`[AGENT_SWARM_URL] ${logEntry}`);
+    });
 
-Respond in STRICT JSON with:
-{
-  "document_metadata": { "solicitation_number": "...", "title": "...", "agency": "...", "estimated_value": "..." },
-  "requirements": [{ "category": "...", "text": "...", "risk_level": "High|Medium|Low", "section": "...", "page_reference": "...", "source_excerpt": "...", "is_disqualifying_if_missing": boolean }],
-  "executive_summary": "3-sentence strategic summary",
-  "strategic_analysis": {
-    "win_themes": ["..."],
-    "capture_strategy": "...",
-    "risk_mitigation": "..."
-  }
-}`;
-  }
-  const extractPrompt = extractPromptTemplate.replace("{{RFP_TEXT}}", solicitationText.slice(0, 15000));
+    const response = {
+      id: meta.id || swarmResult.document_metadata?.solicitation_number || "LINK_AUDIT_SWARM",
+      title: meta.title || "Extracted Opportunity",
+      agency: meta.agency || swarmResult.document_metadata?.agency || "Extracted from Link",
+      value: meta.value || swarmResult.document_metadata?.estimated_value || "0",
+      compliance: (swarmResult.requirements || []).slice(0, 10).map((r, i) => ({
+        category: r.category,
+        verdict: r.is_lethal ? "DISQUALIFIER" : "WARNING",
+        risk: r.risk === "High" ? 85 : r.risk === "Med" ? 65 : 40,
+        description: r.text,
+        sourceSnippet: r.source || "EXTRACTED_FROM_LINK",
+        sectionRef: `Section ${r.section || '—'}`,
+        angle: i * 36,
+        label: r.category ? r.category.slice(0, 3).toUpperCase() : "REQ"
+      })),
+      bugs: swarmResult.bugs || [],
+      requirements: (swarmResult.requirements || []).map(r => ({
+        requirement: r.text,
+        status: "Not reviewed",
+        risk: r.risk,
+        owner: ""
+      })),
+      executiveSummary: swarmResult.executiveSummary,
+      strategicAnalysis: formatStrategicAnalysis(swarmResult.strategicAnalysis),
+      riskAssessment: {
+        verdict: swarmResult.riskAssessment?.verdict || "ACTIONABLE",
+        score: swarmResult.riskAssessment?.score || 55,
+        breakdown: swarmResult.riskAssessment?.breakdown || { delta_risk: 35, hazard_penalty: 40 },
+        delta_analysis: `Swarm identified high-priority compliance triggers.`
+      },
+      fatalError: swarmResult.fatalError
+    };
 
-  let extraction;
-  try {
-    extraction = await complete(extractPrompt, "You are the ARIS High-Precision RFP Auditor. Extract compliance intelligence into strict JSON.", { json: true, traceName: "link_full_extraction" });
+    res.json(response);
   } catch (err) {
-    console.warn("[LINK_ANALYSIS] LLM failed, using fallback shredder:", err.message);
+    console.warn("[LINK_ANALYSIS] Swarm failed, using fallback:", err.message);
     const requirements = shredText(solicitationText);
-    return res.json({
+    res.json({
       id: meta.id || "LINK_AUDIT_FALLBACK",
       title: meta.title || "Federal Solicitation (Fallback)",
       agency: meta.agency || "Federal Agency (Fallback)",
@@ -445,41 +473,6 @@ Respond in STRICT JSON with:
       fatalError: false
     });
   }
-
-    const response = {
-      id: meta.id || extraction.document_metadata?.solicitation_number || "LINK_AUDIT",
-      title: meta.title || extraction.document_metadata?.title || "Federal Solicitation",
-      agency: meta.agency || extraction.document_metadata?.agency || "Federal Agency",
-      value: meta.value || extraction.document_metadata?.estimated_value || "0",
-      decision: extraction.decision || { verdict: "CONDITIONAL_GO", confidence: 65, topRisks: ["Insufficient text"], nextSteps: ["Manual review"] },
-      compliance: (extraction.requirements || []).slice(0, 10).map((r, i) => ({
-        category: r.category,
-        verdict: r.is_lethal ? "DISQUALIFIER" : "WARNING",
-        risk: r.risk === "High" ? 85 : r.risk === "Med" ? 65 : 40,
-        description: r.text,
-        sourceSnippet: r.source || "EXTRACTED_FROM_SOURCE",
-        sectionRef: `Section ${r.section || "—"}, Page ${r.page || "—"}`,
-        angle: i * 36,
-        label: r.category ? r.category.slice(0, 3).toUpperCase() : "REQ",
-      })),
-      bugs: extraction.compliance_bugs || [],
-      requirements: (extraction.requirements || []).map(r => ({
-        requirement: r.text || r.requirement,
-        status: "Extracted",
-        risk: r.risk || "Medium",
-      })),
-      executiveSummary: extraction.executive_summary || extraction.executiveSummary || `Analysis complete for ${meta.id}.`,
-      strategicAnalysis: formatStrategicAnalysis(extraction.strategic_analysis || extraction.strategicAnalysis),
-      riskAssessment: {
-        verdict: extraction.compliance_bugs?.length > 0 ? "LETHAL_TRAPS_IDENTIFIED" : "ACTIONABLE",
-        score: extraction.compliance_bugs?.length > 0 ? 95 : 55,
-        breakdown: { delta_risk: 35, hazard_penalty: 60 },
-        delta_analysis: `High-precision audit identified ${extraction.compliance_bugs?.length || 0} critical traps between Section L and M.`,
-      },
-      fatalError: extraction.compliance_bugs?.length > 0
-    };
-
-  res.json(response);
 }));
 
 // ─── /api/create-dynamic-checkout-session ────────────────────────────────────
@@ -565,6 +558,35 @@ Keep it under 600 words. Use markdown headers and bullets.`;
     send("error", { message: err.message });
   }
   res.end();
+}));
+
+// ─── Contact Form ────────────────────────────────────────────────────────────
+app.post("/api/contact", asyncHandler(async (req, res) => {
+  const { name, email, service, message } = req.body;
+  if (!name || !email || !message) {
+    return res.status(400).json({ error: "Name, email, and message are required." });
+  }
+
+  const nodemailer = (await import("nodemailer")).default;
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST || "smtp.gmail.com",
+    port: parseInt(process.env.SMTP_PORT || "587"),
+    secure: false,
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+  });
+
+  await transporter.sendMail({
+    from: `"ARIS Contact" <${process.env.SMTP_USER}>`,
+    to: process.env.CONTACT_TO || "sid@bidsmith.pro",
+    replyTo: email,
+    subject: `New Contact: ${name} — ${service || "General Inquiry"}`,
+    text: `Name: ${name}\nEmail: ${email}\nService: ${service || "N/A"}\n\n${message}`,
+  });
+
+  res.json({ ok: true });
 }));
 
 app.get("*", (req, res) => res.sendFile(join(__dirname, "../dist/index.html")));

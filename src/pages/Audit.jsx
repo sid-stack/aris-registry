@@ -437,7 +437,7 @@ const Audit = ({ onBack, initialUrl, initialFile }) => {
   }, []);
 
   const addLog = (msg, type = "info") => {
-    setLogs(prev => [...prev.slice(-15), { msg, type }]);
+    setLogs(prev => [...prev.slice(-20), { msg, type, timestamp: new Date().toLocaleTimeString() }]);
   };
 
   const startAudit = async (customUrl) => {
@@ -473,16 +473,46 @@ const Audit = ({ onBack, initialUrl, initialFile }) => {
       const formData = new FormData();
       formData.append("file", file);
 
+      // START_AGENT_ORCHESTRATION_VISUALIZER
+      const agentSequences = [
+        "DEPLOYING_EXTRACTION_AGENT...",
+        "[EXTRACTION] INITIALIZING_OCR_INFRA...",
+        "[EXTRACTION] ANALYZING_SECTION_L_TABLES...",
+        "DEPLOYING_COMPLIANCE_AGENT...",
+        "[COMPLIANCE] SCANNING_REGULATORY_TRAPS...",
+        "[COMPLIANCE] AUDITING_SECTION_M_CONFLICTS...",
+        "DEPLOYING_STRATEGY_AGENT...",
+        "[STRATEGY] SYNTHESIZING_WIN_THEMES...",
+        "[STRATEGY] CALCULATING_CAPTURE_PROBABILITY..."
+      ];
+
+      let logIdx = 0;
+      const logInterval = setInterval(() => {
+        if (logIdx < agentSequences.length) {
+          addLog(agentSequences[logIdx]);
+          setProgress(prev => Math.min(prev + 8, 90));
+          logIdx++;
+        } else {
+          clearInterval(logInterval);
+        }
+      }, 1500);
+
       const res = await fetch("/api/analyze-pdf", {
         method: "POST",
         body: formData,
       });
 
-      if (!res.ok) throw new Error("PDF_ANALYSIS_FAILED");
+      if (!res.ok) {
+        clearInterval(logInterval);
+        throw new Error("PDF_ANALYSIS_FAILED");
+      }
+
       const data = await res.json();
-      
+      clearInterval(logInterval);
+      addLog("SWARM_AUDIT_COMPLETE_IDLE", "success");
       setResult(data);
       setIsLoading(false);
+      
       // Trigger Lead Capture if email unknown
       if (!userEmail) setShowLeadModal(true);
     } catch (e) {

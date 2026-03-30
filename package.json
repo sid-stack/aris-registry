@@ -13,6 +13,8 @@
     "cypress:open": "cypress open"
   },
   "dependencies": {
+    "@aws-sdk/client-kms": "^3.1019.0",
+    "@aws-sdk/client-textract": "^3.1019.0",
     "@google/generative-ai": "^0.24.1",
     "@modelcontextprotocol/sdk": "^1.0.1",
     "@supabase/supabase-js": "^2.42.0",
@@ -31,6 +33,7 @@
     "langsmith": "^0.1.20",
     "lucide-react": "^0.395.0",
     "multer": "^1.4.5-lts.1",
+    "nodemailer": "^8.0.4",
     "openai": "^4.52.7",
     "pdf-parse": "^1.1.1",
     "pg": "^8.12.0",
