@@ -17,15 +17,16 @@ import { complete as sovereignComplete } from "../services/intelligence.js";
  * Traceable wrapper for LLM calls with Sovereign Orchestration.
  * Delegates to intelligence.js for provider-agnostic failover.
  */
-export const traceLLM = traceable(
-  async (clientOpenAI, params, agentKey) => {
-    return await sovereignComplete(params, agentKey);
-  },
-  {
-    name: "ARIS_Agentic_Trajectory",
-    project_name: process.env.LANGSMITH_PROJECT || "ARIS_Core",
-  }
-);
+const baseTraceLLM = async (clientOpenAI, params, agentKey) => {
+  return await sovereignComplete(params, agentKey);
+};
+
+export const traceLLM = process.env.LANGSMITH_API_KEY
+  ? traceable(baseTraceLLM, {
+      name: "ARIS_Agentic_Trajectory",
+      project_name: process.env.LANGSMITH_PROJECT || "ARIS_Core",
+    })
+  : baseTraceLLM;
 
 /**
  * Manual span for logging intermediate logic steps (e.g., "Step 2: identified Section L").

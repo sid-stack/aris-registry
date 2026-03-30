@@ -29,7 +29,7 @@ import pdfParse from "pdf-parse";
 
 // ─── Gemini Core Completer ───────────────────────────────────────────────────
 async function complete(prompt, systemInstruction, options = {}) {
-  const result = await traceLLM(null, {
+  const result = await traceLLM(undefined, {
     model: "google/gemini-2.0-flash",
     messages: [
       { role: "system", content: systemInstruction },
@@ -107,7 +107,7 @@ app.post("/api/analyze-pdf", upload.single('file'), asyncHandler(async (req, res
   const extractPrompt = extractPromptTemplate.replace("{{RFP_TEXT}}", rfpText);
 
   try {
-    const rawAnalysis = await traceLLM(null, {
+    const rawAnalysis = await traceLLM(undefined, {
       model: "google/gemini-2.0-flash",
       messages: [
         { role: "system", content: "You are the ARIS High-Precision RFP Auditor. Extract compliance intelligence into strict JSON." },
@@ -381,17 +381,46 @@ app.post("/api/analyze-link", apiLimiter, asyncHandler(async (req, res) => {
   }
   const extractPrompt = extractPromptTemplate.replace("{{RFP_TEXT}}", solicitationText.slice(0, 15000));
 
-  const rawAnalysis = await traceLLM(null, {
-    model: "google/gemini-2.0-flash",
-    messages: [
-      { role: "system", content: "You are the ARIS High-Precision RFP Auditor. Extract compliance intelligence into strict JSON." },
-      { role: "user", content: extractPrompt }
-    ],
-    temperature: 0.1
-  }, "link_full_extraction");
+  let extraction;
+  try {
+    const rawAnalysis = await traceLLM(undefined, {
+      model: "google/gemini-2.0-flash",
+      messages: [
+        { role: "system", content: "You are the ARIS High-Precision RFP Auditor. Extract compliance intelligence into strict JSON." },
+        { role: "user", content: extractPrompt }
+      ],
+      temperature: 0.1
+    }, "link_full_extraction");
 
-  const jsonMatch = rawAnalysis.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
-  const extraction = JSON.parse(jsonMatch ? jsonMatch[0] : rawAnalysis);
+    const jsonMatch = rawAnalysis.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+    extraction = JSON.parse(jsonMatch ? jsonMatch[0] : rawAnalysis);
+  } catch (err) {
+    console.warn("[LINK_ANALYSIS] LLM failed, using fallback shredder:", err.message);
+    const requirements = shredText(solicitationText);
+    return res.json({
+      id: meta.id || "LINK_AUDIT_FALLBACK",
+      title: meta.title || "Federal Solicitation (Fallback)",
+      agency: meta.agency || "Federal Agency (Fallback)",
+      value: meta.value || "0",
+      compliance: requirements.slice(0, 5).map(r => ({
+        category: "System Extraction",
+        verdict: "WARNING",
+        risk: r.risk === "High" ? 85 : 50,
+        description: r.requirement,
+        sourceSnippet: r.requirement,
+        sectionRef: "Direct Link Analysis"
+      })),
+      requirements: requirements,
+      executiveSummary: `Fallback extraction ran after LLM failure. Detected ${requirements.length} potential requirements.`,
+      riskAssessment: {
+        verdict: "MANUAL_REVIEW_REQUIRED",
+        score: 55,
+        breakdown: { delta_risk: 25, hazard_penalty: 30 },
+        delta_analysis: "Sovereign gateway fallback enabled due to primary intelligence timeout."
+      },
+      fatalError: false
+    });
+  }
 
   const requirements = extraction.requirements || [];
   const response = {
@@ -496,7 +525,7 @@ Write a prioritized P0/P1 remediation script with:
 
 Keep it under 600 words. Use markdown headers and bullets.`;
 
-    const proposalDraft = await traceLLM(null, {
+    const proposalDraft = await traceLLM(undefined, {
       model: "google/gemini-2.0-flash",
       messages: [
         { role: "system", content: "You are a senior federal proposal strategist." },

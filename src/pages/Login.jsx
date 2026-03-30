@@ -17,7 +17,7 @@ export default function Login({ onLogin }) {
 
     // 1. Validate Access Key (Institutional Gatekeeping)
     const validAccessKey = import.meta.env.VITE_ACCESS_KEY;
-    if (accessKey !== validAccessKey && accessKey !== 'aris-beta-2026') {
+    if (accessKey !== validAccessKey) {
       setError('Invalid Institutional Access Key');
       setLoading(false);
       return;

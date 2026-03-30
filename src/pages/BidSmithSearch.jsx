@@ -67,10 +67,10 @@ function buildSnippet(res) {
 
 const FREE_LIMIT = 5; // Government tier session limit
 function getSearchesUsed() {
-  try { return parseInt(sessionStorage.getItem('aris_searches') || '0'); } catch { return 0; }
+  try { return parseInt(localStorage.getItem('aris_searches') || '0'); } catch { return 0; }
 }
 function incrementSearches() {
-  try { sessionStorage.setItem('aris_searches', String(getSearchesUsed() + 1)); } catch {}
+  try { localStorage.setItem('aris_searches', String(getSearchesUsed() + 1)); } catch {}
 }
 
 const BidSmithSearch = ({ onBack }) => {
