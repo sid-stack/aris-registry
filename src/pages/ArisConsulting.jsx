@@ -43,7 +43,7 @@ export default function ArisConsulting() {
 
       {/* HERO */}
       <section style={s.hero}>
-        <p style={s.eyebrow}>Sovereign AI Infrastructure</p>
+        <p style={s.eyebrow}>ARIS Labs: BidSmith — Contracting Made Better</p>
         <h1 style={s.headline}>
           Eliminating AI Debt<br />for High-Stakes Enterprise.
         </h1>
