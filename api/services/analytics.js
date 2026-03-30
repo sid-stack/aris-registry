@@ -129,27 +129,38 @@ export async function getBetaSignupCount() {
 }
 
 import { getRevenueStats } from "./stripe.js";
+import { sovereignSearch } from "./fedSearch.js";
 
 export async function getAdminStats() {
   if (!analyticsDb) return { error: "Database not configured" };
   try {
     await ensureAnalyticsSchema();
 
-    const [signupCount, recentSignups, topEvents, recentEvents, dailyTraffic, featureUsage, stripeStats] = await Promise.all([
+    const [
+      signupCount, 
+      recentSignups, 
+      topEvents, 
+      recentEvents, 
+      dailyTraffic, 
+      featureUsage, 
+      logicLibrary,
+      stripeStats,
+      meshStats
+    ] = await Promise.all([
       analyticsDb.query("SELECT COUNT(*) FROM beta_signups"),
-      analyticsDb.query("SELECT email, created_at FROM beta_signups ORDER BY created_at DESC LIMIT 20"),
+      analyticsDb.query("SELECT * FROM beta_signups ORDER BY created_at DESC LIMIT 50"),
       analyticsDb.query(`
         SELECT event_type, COUNT(*) as count, SUM(value) as total_value
         FROM analytics_events
         GROUP BY event_type
         ORDER BY count DESC
-        LIMIT 20
+        LIMIT 50
       `),
       analyticsDb.query(`
-        SELECT uid, event_type, page, path, value, created_at
+        SELECT uid, event_type, page, path, value, created_at, metadata
         FROM analytics_events
         ORDER BY created_at DESC
-        LIMIT 50
+        LIMIT 100
       `),
       analyticsDb.query(`
         SELECT
@@ -176,40 +187,30 @@ export async function getAdminStats() {
         GROUP BY 1
         ORDER BY 2 DESC
       `),
-      getRevenueStats()
+      analyticsDb.query("SELECT * FROM logic_library ORDER BY updated_at DESC LIMIT 100"),
+      getRevenueStats(),
+      sovereignSearch.getStats()
     ]);
 
-    // Funnel: page_view counts by path
-    const funnelRes = await analyticsDb.query(`
-      SELECT
-        CASE
-          WHEN path = '/' OR path = '' THEN 'Landing'
-          WHEN path ILIKE '%pricing%' THEN 'Pricing'
-          WHEN path ILIKE '%app%' OR path ILIKE '%audit%' THEN 'App/Demo'
-          WHEN event_type IN ('checkout_initiated','subscription_upgrade','purchase_complete') THEN 'Pro Subscription'
-          ELSE NULL
-        END AS stage,
-        COUNT(*) AS value
-      FROM analytics_events
-      WHERE created_at >= NOW() - INTERVAL '30 days'
-        AND (path IN ('/','') OR path ILIKE '%pricing%' OR path ILIKE '%app%' OR event_type IN ('checkout_initiated','subscription_upgrade','purchase_complete'))
-      GROUP BY 1
-      HAVING (CASE WHEN path = '/' OR path = '' THEN 'Landing' WHEN path ILIKE '%pricing%' THEN 'Pricing' WHEN path ILIKE '%app%' OR path ILIKE '%audit%' THEN 'App/Demo' WHEN event_type IN ('checkout_initiated','subscription_upgrade','purchase_complete') THEN 'Pro Subscription' ELSE NULL END) IS NOT NULL
-      ORDER BY 2 DESC
-    `).catch(() => ({ rows: [] }));
+    // Fetch Mesh Documents if requested (limiting for safety)
+    const meshDocs = await sovereignSearch.getTableData(process.env.VITE_ACCESS_KEY).catch(() => []);
 
     return {
       beta_signups: {
         total: parseInt(signupCount.rows[0].count),
-        recent: recentSignups.rows,
+        rows: recentSignups.rows,
       },
       events: {
         by_type: topEvents.rows,
-        recent: recentEvents.rows,
+        rows: recentEvents.rows,
+      },
+      logic_library: logicLibrary.rows,
+      mesh: {
+        stats: meshStats,
+        rows: meshDocs.slice(0, 100)
       },
       daily_traffic: dailyTraffic.rows,
       feature_usage: featureUsage.rows,
-      funnel: funnelRes.rows,
       stripe: stripeStats,
       generated_at: new Date().toISOString(),
     };

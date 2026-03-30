@@ -6,7 +6,8 @@ import {
 import {
   Users, MousePointer2, TrendingUp, ShieldCheck,
   ArrowUpRight, Activity, Filter, RefreshCw, DollarSign,
-  Globe, Zap, Database, Server, LogOut, Search, ChevronRight, Wallet
+  Globe, Zap, Database, Server, LogOut, Search, ChevronRight, Wallet,
+  FileText, Cpu, Layers, Terminal
 } from 'lucide-react';
 
 const COLORS = ['#2563EB', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
@@ -81,12 +82,14 @@ const AdminDashboard = ({ onBack }) => {
         
         <nav style={sh.sideNav}>
           <NavBtn icon={<Activity size={18}/>} label="Executive Overview" active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} />
-          <NavBtn icon={<Users size={18}/>} label="User Intelligence" active={activeTab === 'users'} onClick={() => setActiveTab('users')} />
-          <NavBtn icon={<Database size={18}/>} label="Audit Streams" active={activeTab === 'sessions'} onClick={() => setActiveTab('sessions')} />
-          <NavBtn icon={<TrendingUp size={18}/>} label="Monetization" active={activeTab === 'monetization'} onClick={() => setActiveTab('monetization')} />
+          <NavBtn icon={<Users size={18}/>} label="Identified Leads" active={activeTab === 'leads'} onClick={() => setActiveTab('leads')} />
+          <NavBtn icon={<MousePointer2 size={18}/>} label="Anonymous Events" active={activeTab === 'events'} onClick={() => setActiveTab('events')} />
+          <NavBtn icon={<Cpu size={18}/>} label="Logic Library" active={activeTab === 'logic'} onClick={() => setActiveTab('logic')} />
+          <NavBtn icon={<Layers size={18}/>} label="Redis Mesh Cache" active={activeTab === 'mesh'} onClick={() => setActiveTab('mesh')} />
+          
           <div style={sh.navSeparator} />
-          <NavBtn icon={<Server size={18}/>} label="VPC Clusters" />
-          <NavBtn icon={<ShieldCheck size={18}/>} label="Security Audit" />
+          <NavBtn icon={<TrendingUp size={18}/>} label="Monetization HQ" onClick={() => window.open('https://dashboard.stripe.com', '_blank')} />
+          <NavBtn icon={<Terminal size={18}/>} label="PostHog Stream" onClick={() => window.open('https://app.posthog.com', '_blank')} />
         </nav>
 
         <button onClick={onBack} style={sh.sidebarFooter}>
@@ -117,7 +120,7 @@ const AdminDashboard = ({ onBack }) => {
         <div style={sh.metricRow}>
           <MetricCard title="Stripe 30d Revenue" value={`$${realRevenue30d.toLocaleString()}`} trend="+ Verified" icon={<DollarSign size={20} color="#10B981" />} />
           <MetricCard title="Available Balance" value={`$${availableBalance.toLocaleString()}`} trend="Payout Ready" icon={<Wallet size={20} color="#3B82F6" />} />
-          <MetricCard title="Beta Signups" value={stats?.beta_signups?.total || '0'} trend="Institutional" icon={<Users size={20} color="#F59E0B" />} />
+          <MetricCard title="Identified Leads" value={stats?.beta_signups?.total || '0'} trend="High Intent" icon={<Users size={20} color="#F59E0B" />} />
           <MetricCard title="Total Protocol Audits" value={totalAudits} trend="Stateless" icon={<Activity size={20} color="#8B5CF6" />} />
         </div>
 
@@ -172,24 +175,24 @@ const AdminDashboard = ({ onBack }) => {
             </div>
 
             <div style={sh.card}>
-              <div style={sh.cardHeader}><h2 style={sh.cardTitle}>Stripe Vital Signs</h2></div>
+              <div style={sh.cardHeader}><h2 style={sh.cardTitle}>Operational Clusters</h2></div>
               <div style={sh.heartbeatList}>
-                <Heartbeat label="30d Volume" value={`$${realRevenue30d}`} status="VERIFIED" />
-                <Heartbeat label="Available Payout" value={`$${availableBalance}`} status="READY" />
+                <Heartbeat label="Redis Mesh Docs" value={stats?.mesh?.stats?.tableRows || 0} status="HEALTHY" />
+                <Heartbeat label="Logic Library Patterns" value={stats?.logic_library?.length || 0} status="ACTIVE" />
                 <button onClick={() => window.open('https://dashboard.stripe.com', '_blank')} style={sh.extBtn}>Launch Stripe HQ</button>
               </div>
             </div>
           </div>
         )}
 
-        {/* Tabular Views */}
-        {(activeTab === 'users' || activeTab === 'sessions') && (
+        {/* --- DYNAMIC TABLES --- */}
+        {activeTab !== 'overview' && (
           <div style={sh.tableContainer}>
              <div style={sh.tableHeader}>
                 <div style={sh.searchBox}>
                    <Search size={16} />
                    <input 
-                     placeholder="Search intelligence matrix..." 
+                     placeholder={`Search ${activeTab} intelligence...`} 
                      value={searchTerm} 
                      onChange={(e) => setSearchTerm(e.target.value)} 
                      style={sh.searchInput}
@@ -199,39 +202,13 @@ const AdminDashboard = ({ onBack }) => {
              <table style={sh.table}>
                 <thead>
                    <tr>
-                      {activeTab === 'users' ? (
-                        <>
-                          <th style={sh.th} onClick={() => handleSort('email')}>USER_ENTITY <SortIcon active={sortKey === 'email'} /></th>
-                          <th style={sh.th} onClick={() => handleSort('created_at')}>ENTRY_PROTOCOL <SortIcon active={sortKey === 'created_at'} /></th>
-                          <th style={sh.th}>VERIFICATION</th>
-                        </>
-                      ) : (
-                        <>
-                          <th style={sh.th} onClick={() => handleSort('created_at')}>TIMESTAMP</th>
-                          <th style={sh.th}>EVENT_SIGNATURE</th>
-                          <th style={sh.th}>PROTOCOL_PATH</th>
-                          <th style={sh.th}>VALUE_X</th>
-                        </>
-                      )}
+                      {getTableHeaders(activeTab, sortKey, handleSort)}
                    </tr>
                 </thead>
                 <tbody>
-                   {(activeTab === 'users' ? processTableData(stats?.beta_signups?.recent) : processTableData(stats?.events?.recent)).map((row, i) => (
+                   {processTableData(getTabData(stats, activeTab)).map((row, i) => (
                      <tr key={i} style={sh.tr}>
-                        {activeTab === 'users' ? (
-                          <>
-                            <td style={sh.td}><div style={sh.userTd}><Zap size={14} color="#3B82F6" /> {row.email}</div></td>
-                            <td style={sh.td}>{new Date(row.created_at).toLocaleString()}</td>
-                            <td style={sh.td}><span style={{ ...sh.badge, background: 'rgba(59,130,246,0.1)', color: '#3B82F6' }}>GOV_TIER_BETA</span></td>
-                          </>
-                        ) : (
-                          <>
-                            <td style={sh.td}>{new Date(row.created_at).toLocaleTimeString()}</td>
-                            <td style={{ ...sh.td, color: '#f8fafc', fontWeight: 600 }}>{row.event_type}</td>
-                            <td style={sh.td}>{row.path}</td>
-                            <td style={{ ...sh.td, color: '#10B981', fontWeight: 700 }}>+${row.value || 0}</td>
-                          </>
-                        )}
+                        {renderRow(activeTab, row)}
                      </tr>
                    ))}
                 </tbody>
@@ -247,6 +224,105 @@ const AdminDashboard = ({ onBack }) => {
     </div>
   );
 };
+
+// --- TABLE HELPERS ---
+
+function getTabData(stats, tab) {
+  if (!stats) return [];
+  switch(tab) {
+    case 'leads': return stats.beta_signups?.rows || [];
+    case 'events': return stats.events?.rows || [];
+    case 'logic': return stats.logic_library || [];
+    case 'mesh': return stats.mesh?.rows || [];
+    default: return [];
+  }
+}
+
+function getTableHeaders(tab, sortKey, handleSort) {
+  switch(tab) {
+    case 'leads':
+      return (
+        <>
+          <th style={sh.th} onClick={() => handleSort('email')}>EMAIL_ENTITY <SortIcon active={sortKey === 'email'} /></th>
+          <th style={sh.th} onClick={() => handleSort('created_at')}>TIMESTAMP <SortIcon active={sortKey === 'created_at'} /></th>
+          <th style={sh.th}>METADATA</th>
+        </>
+      );
+    case 'events':
+      return (
+        <>
+          <th style={sh.th} onClick={() => handleSort('created_at')}>TIME</th>
+          <th style={sh.th}>TYPE</th>
+          <th style={sh.th}>UID</th>
+          <th style={sh.th}>VAL</th>
+          <th style={sh.th}>PATH</th>
+        </>
+      );
+    case 'logic':
+      return (
+        <>
+          <th style={sh.th}>ARCHETYPE</th>
+          <th style={sh.th}>CONFLICT</th>
+          <th style={sh.th}>FREQ</th>
+          <th style={sh.th}>STRATEGY</th>
+        </>
+      );
+    case 'mesh':
+      return (
+        <>
+          <th style={sh.th}>DOC_ID</th>
+          <th style={sh.th}>TITLE</th>
+          <th style={sh.th}>AGENCY</th>
+          <th style={sh.th}>REGION</th>
+        </>
+      );
+    default: return null;
+  }
+}
+
+function renderRow(tab, row) {
+  switch(tab) {
+    case 'leads':
+      return (
+        <>
+          <td style={sh.td}><div style={sh.userTd}><Zap size={14} color="#3B82F6" /> {row.email}</div></td>
+          <td style={sh.td}>{new Date(row.created_at).toLocaleString()}</td>
+          <td style={sh.td}>{JSON.stringify(row.metadata)}</td>
+        </>
+      );
+    case 'events':
+      return (
+        <>
+          <td style={sh.td}>{new Date(row.created_at).toLocaleTimeString()}</td>
+          <td style={{ ...sh.td, color: '#f8fafc', fontWeight: 600 }}>{row.event_type}</td>
+          <td style={sh.td}>{row.uid?.substring(0,8)}...</td>
+          <td style={{ ...sh.td, color: '#10B981', fontWeight: 700 }}>+${row.value || 0}</td>
+          <td style={sh.td}>{row.path}</td>
+        </>
+      );
+    case 'logic':
+      return (
+        <>
+          <td style={sh.td}>{row.agency_archetype}</td>
+          <td style={{ ...sh.td, fontWeight: 700 }}>{row.conflict_type}</td>
+          <td style={sh.td}>{row.frequency}</td>
+          <td style={sh.td}><span style={sh.truncate}>{row.remediation_strategy}</span></td>
+        </>
+      );
+    case 'mesh':
+      return (
+        <>
+          <td style={sh.td}>{row.id}</td>
+          <td style={{ ...sh.td, color: '#f8fafc', fontWeight: 600 }}>{row.title}</td>
+          <td style={sh.td}>{row.agency}</td>
+          <td style={sh.td}>{row.region}</td>
+        </>
+      );
+    default: return null;
+  }
+}
+
+// --- UI COMPONENTS ---
 
 const NavBtn = ({ icon, label, active, onClick }) => (
   <button onClick={onClick} style={{ ...sh.navBtn, ...(active ? sh.navBtnActive : {}) }}>
@@ -302,7 +378,7 @@ const sh = {
   navBtnActive: { background: 'rgba(255,255,255,0.05)', color: '#fff' },
   navSeparator: { height: '1px', background: 'rgba(255,255,255,0.06)', margin: '16px' },
   sidebarFooter: { marginTop: 'auto', background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)', padding: '12px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12px', fontWeight: 800, cursor: 'pointer', letterSpacing: '0.05em' },
-  main: { flex: 1, padding: '48px 64px', maxWidth: '1400px', margin: '0 auto', width: '100%' },
+  main: { flex: 1, padding: '48px 64px', maxWidth: '1440px', margin: '0 auto', width: '100%' },
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '48px' },
   breadcrumb: { color: '#64748b', fontSize: '12px', fontWeight: 600, letterSpacing: '0.05em', marginBottom: '8px' },
   pageTitle: { fontSize: '32px', fontWeight: 900, margin: 0, letterSpacing: '-0.02em' },
@@ -338,7 +414,8 @@ const sh = {
   td: { padding: '16px 24px', fontSize: '13px', color: '#94a3b8' },
   userTd: { display: 'flex', alignItems: 'center', gap: '10px', color: '#f8fafc', fontWeight: 600 },
   badge: { fontSize: '10px', fontWeight: 800, padding: '4px 10px', borderRadius: '100px' },
-  extBtn: { background: '#2563eb', border: 'none', color: '#fff', padding: '10px', borderRadius: '8px', fontSize: '12px', fontWeight: 800, cursor: 'pointer', marginTop: '12px' }
+  extBtn: { background: '#2563eb', border: 'none', color: '#fff', padding: '10px', borderRadius: '8px', fontSize: '12px', fontWeight: 800, cursor: 'pointer', marginTop: '12px' },
+  truncate: { display: 'block', maxWidth: '300px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }
 };
 
 export default AdminDashboard;
