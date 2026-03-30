@@ -1,6 +1,6 @@
 import React from 'react';
 
-const TYPEFORM_URL = "YOUR_TYPEFORM_URL_HERE"; // replace with your Typeform embed URL
+const TYPEFORM_URL = "https://form.typeform.com/to/JPolFoVE";
 
 const services = [
   {
