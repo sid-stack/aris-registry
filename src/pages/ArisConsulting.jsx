@@ -5,30 +5,36 @@ const TYPEFORM_URL = "https://form.typeform.com/to/JPolFoVE";
 const services = [
   {
     index: "01",
-    title: "Infrastructure Audit",
+    title: "AI Systems Diagnostic",
     price: "$1,800",
-    value: "Identify data residency leaks and hallucination risks in your RAG pipeline.",
-    deliverable: "48-hour Technical Safeguard Report",
+    value: "A structured assessment of your AI stack — identifying where risk accumulates, where decisions break down, and what stands between you and a production failure.",
+    deliverable: "48-hour Safeguard Report with prioritised remediation path",
   },
   {
     index: "02",
-    title: "Stateless Bridge Implementation",
+    title: "Architecture Remediation",
     price: "$5,000+",
-    value: "Decouple core business logic from the LLM layer for Federal and FinTech compliance.",
-    deliverable: "Production-ready deployment on FastAPI / Railway",
+    value: "For organisations operating in regulated environments where AI cannot be a black box. We rebuild the boundary between your business logic and AI dependencies — cleanly, with full auditability.",
+    deliverable: "Production deployment with documentation and handover",
   },
   {
     index: "03",
-    title: "MCP Registry & Tool Injection",
+    title: "Intelligent Agent Design",
     price: "Custom",
-    value: "Move from chat-wrappers to deterministic agents with real-time tool access.",
-    deliverable: "Custom Model Context Protocol server",
+    value: "Purpose-built automation that operates with precision and accountability. Not a chatbot. A system that acts, reasons, and reports — within boundaries you define.",
+    deliverable: "End-to-end agent infrastructure, deployed and tested",
   },
 ];
 
 export default function ArisConsulting() {
   return (
     <div style={s.page}>
+
+      {/* TOP NAV */}
+      <nav style={s.nav}>
+        <a href="/" style={s.homeLink}>← Home</a>
+        <a href="mailto:sid@bidsmith.pro" style={s.navEmail}>sid@bidsmith.pro</a>
+      </nav>
 
       {/* LOGO */}
       <header style={s.header}>
@@ -42,12 +48,11 @@ export default function ArisConsulting() {
           Eliminating AI Debt<br />for High-Stakes Enterprise.
         </h1>
         <p style={s.sub}>
-          Stateless bridge architecture and deterministic logic —<br />
+          Stateless architecture and deterministic logic —
           built for federal and regulated environments.
         </p>
       </section>
 
-      {/* DIVIDER */}
       <div style={s.rule} />
 
       {/* SERVICES */}
@@ -64,7 +69,7 @@ export default function ArisConsulting() {
                 </div>
                 <p style={s.serviceValue}>{svc.value}</p>
                 <p style={s.serviceDeliverable}>
-                  <span style={s.deliverableLabel}>Deliverable</span>{" "}
+                  <span style={s.deliverableLabel}>Deliverable — </span>
                   {svc.deliverable}
                 </p>
               </div>
@@ -73,7 +78,6 @@ export default function ArisConsulting() {
         </div>
       </section>
 
-      {/* DIVIDER */}
       <div style={s.rule} />
 
       {/* CONTACT */}
@@ -84,7 +88,7 @@ export default function ArisConsulting() {
             No sales calls.<br />No discovery decks.
           </h2>
           <p style={s.contactSub}>
-            Sid reviews every inquiry personally.<br />
+            Sid reviews every inquiry personally.
             Response within 4 hours.
           </p>
           <div style={s.contactMeta}>
@@ -95,20 +99,13 @@ export default function ArisConsulting() {
         </div>
 
         <div style={s.contactRight}>
-          {TYPEFORM_URL === "YOUR_TYPEFORM_URL_HERE" ? (
-            <div style={s.formPlaceholder}>
-              <p style={s.placeholderText}>Typeform embed will appear here.</p>
-              <p style={s.placeholderSub}>Paste your Typeform URL to activate.</p>
-            </div>
-          ) : (
-            <iframe
-              src={TYPEFORM_URL}
-              title="ARIS Labs Contact"
-              style={s.iframe}
-              frameBorder="0"
-              allow="camera; microphone; autoplay; encrypted-media;"
-            />
-          )}
+          <iframe
+            src={TYPEFORM_URL}
+            title="ARIS Labs Contact"
+            style={s.iframe}
+            frameBorder="0"
+            allow="camera; microphone; autoplay; encrypted-media;"
+          />
         </div>
       </section>
 
@@ -121,6 +118,24 @@ export default function ArisConsulting() {
         <a href="mailto:sid@bidsmith.pro" style={s.footerLink}>sid@bidsmith.pro</a>
       </footer>
 
+      {/* MOBILE STYLES */}
+      <style>{`
+        @media (max-width: 768px) {
+          .aris-contact-section {
+            grid-template-columns: 1fr !important;
+            gap: 48px !important;
+          }
+          .aris-service-card {
+            flex-direction: column !important;
+            gap: 12px !important;
+          }
+          .aris-service-top {
+            flex-direction: column !important;
+            gap: 4px !important;
+          }
+        }
+      `}</style>
+
     </div>
   );
 }
@@ -132,44 +147,71 @@ const s = {
     color: '#1a1a1a',
     fontFamily: '"Georgia", "Times New Roman", serif',
   },
+  nav: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '20px 32px',
+    borderBottom: '1px solid #eeede9',
+  },
+  homeLink: {
+    fontSize: 12,
+    fontFamily: '"Helvetica Neue", Arial, sans-serif',
+    fontWeight: 600,
+    color: '#888',
+    textDecoration: 'none',
+    letterSpacing: '0.06em',
+    textTransform: 'uppercase',
+  },
+  navEmail: {
+    fontSize: 12,
+    fontFamily: '"Helvetica Neue", Arial, sans-serif',
+    color: '#aaa',
+    textDecoration: 'none',
+    letterSpacing: '0.03em',
+  },
   header: {
     display: 'flex',
     justifyContent: 'center',
-    padding: '48px 40px 0',
+    padding: '52px 32px 0',
   },
   logo: {
-    height: 36,
-    opacity: 0.9,
+    height: 64,
+    opacity: 0.92,
   },
   hero: {
-    maxWidth: 780,
+    maxWidth: 720,
     margin: '0 auto',
-    padding: '72px 40px 64px',
+    padding: '56px 32px 60px',
     textAlign: 'center',
   },
   eyebrow: {
-    fontSize: 11,
+    fontSize: 10,
     fontFamily: '"Helvetica Neue", Arial, sans-serif',
-    fontWeight: 600,
-    letterSpacing: '0.18em',
+    fontWeight: 700,
+    letterSpacing: '0.2em',
     textTransform: 'uppercase',
-    color: '#888',
-    marginBottom: 28,
+    color: '#999',
+    marginBottom: 24,
+    margin: '0 0 24px',
   },
   headline: {
-    fontSize: 'clamp(36px, 5vw, 60px)',
+    fontSize: 'clamp(32px, 6vw, 58px)',
     fontWeight: 400,
-    lineHeight: 1.12,
+    lineHeight: 1.1,
     color: '#0f0f0f',
     letterSpacing: '-0.02em',
-    margin: '0 0 28px',
+    margin: '0 0 24px',
   },
   sub: {
-    fontSize: 17,
-    color: '#666',
-    lineHeight: 1.7,
+    fontSize: 16,
+    color: '#777',
+    lineHeight: 1.75,
     fontStyle: 'italic',
     margin: 0,
+    maxWidth: 520,
+    marginLeft: 'auto',
+    marginRight: 'auto',
   },
   rule: {
     width: '100%',
@@ -177,9 +219,9 @@ const s = {
     background: '#e4e4e0',
   },
   servicesSection: {
-    maxWidth: 960,
+    maxWidth: 880,
     margin: '0 auto',
-    padding: '72px 40px',
+    padding: '64px 32px',
   },
   sectionLabel: {
     fontSize: 10,
@@ -187,29 +229,29 @@ const s = {
     fontWeight: 700,
     letterSpacing: '0.22em',
     textTransform: 'uppercase',
-    color: '#aaa',
-    marginBottom: 48,
+    color: '#bbb',
+    margin: '0 0 44px',
   },
   servicesGrid: {
     display: 'flex',
     flexDirection: 'column',
-    gap: 0,
   },
   serviceCard: {
     display: 'flex',
-    gap: 40,
-    padding: '36px 0',
-    borderBottom: '1px solid #e4e4e0',
+    gap: 36,
+    padding: '40px 0',
+    borderBottom: '1px solid #e8e8e4',
     alignItems: 'flex-start',
   },
   serviceIndex: {
     fontSize: 11,
     fontFamily: '"Helvetica Neue", Arial, sans-serif',
-    fontWeight: 600,
-    color: '#bbb',
+    fontWeight: 500,
+    color: '#ccc',
     letterSpacing: '0.08em',
-    minWidth: 28,
-    paddingTop: 4,
+    minWidth: 24,
+    paddingTop: 5,
+    flexShrink: 0,
   },
   serviceBody: {
     flex: 1,
@@ -218,58 +260,60 @@ const s = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'baseline',
-    marginBottom: 12,
+    marginBottom: 14,
     gap: 16,
+    flexWrap: 'wrap',
   },
   serviceTitle: {
-    fontSize: 22,
+    fontSize: 'clamp(18px, 2.5vw, 24px)',
     fontWeight: 400,
     color: '#0f0f0f',
     margin: 0,
-    letterSpacing: '-0.01em',
+    letterSpacing: '-0.015em',
   },
   servicePrice: {
     fontSize: 13,
     fontFamily: '"Helvetica Neue", Arial, sans-serif',
-    fontWeight: 600,
-    color: '#444',
+    fontWeight: 500,
+    color: '#666',
     whiteSpace: 'nowrap',
-    letterSpacing: '0.02em',
+    letterSpacing: '0.03em',
   },
   serviceValue: {
     fontSize: 15,
     color: '#555',
-    lineHeight: 1.65,
-    margin: '0 0 12px',
+    lineHeight: 1.75,
+    margin: '0 0 16px',
     fontStyle: 'italic',
+    maxWidth: 640,
   },
   serviceDeliverable: {
     fontSize: 12,
     fontFamily: '"Helvetica Neue", Arial, sans-serif',
-    color: '#999',
+    color: '#aaa',
     margin: 0,
     letterSpacing: '0.01em',
+    lineHeight: 1.5,
   },
   deliverableLabel: {
     fontWeight: 700,
     textTransform: 'uppercase',
-    letterSpacing: '0.1em',
-    fontSize: 10,
-    color: '#bbb',
-    marginRight: 4,
+    letterSpacing: '0.12em',
+    fontSize: 9,
+    color: '#ccc',
   },
   contactSection: {
-    maxWidth: 960,
+    maxWidth: 880,
     margin: '0 auto',
-    padding: '72px 40px',
+    padding: '64px 32px',
     display: 'grid',
-    gridTemplateColumns: '1fr 1.4fr',
-    gap: 80,
+    gridTemplateColumns: '1fr 1.5fr',
+    gap: 72,
     alignItems: 'start',
   },
   contactLeft: {},
   contactHeadline: {
-    fontSize: 'clamp(26px, 3vw, 38px)',
+    fontSize: 'clamp(24px, 3.5vw, 36px)',
     fontWeight: 400,
     color: '#0f0f0f',
     lineHeight: 1.2,
@@ -278,15 +322,15 @@ const s = {
   },
   contactSub: {
     fontSize: 15,
-    color: '#666',
-    lineHeight: 1.7,
+    color: '#777',
+    lineHeight: 1.75,
     fontStyle: 'italic',
     margin: '0 0 36px',
   },
   contactMeta: {
     display: 'flex',
     flexDirection: 'column',
-    gap: 8,
+    gap: 10,
   },
   metaLine: {
     fontSize: 13,
@@ -297,61 +341,39 @@ const s = {
   metaLink: {
     fontSize: 12,
     fontFamily: '"Helvetica Neue", Arial, sans-serif',
-    color: '#888',
+    color: '#999',
     textDecoration: 'none',
     letterSpacing: '0.04em',
-    borderBottom: '1px solid #ddd',
-    paddingBottom: 1,
+    borderBottom: '1px solid #e0e0da',
+    paddingBottom: 2,
     width: 'fit-content',
   },
   contactRight: {},
   iframe: {
     width: '100%',
-    height: 520,
+    height: 540,
     border: '1px solid #e4e4e0',
-    borderRadius: 4,
+    borderRadius: 6,
     background: '#fff',
-  },
-  formPlaceholder: {
-    height: 520,
-    border: '1px dashed #d0d0cc',
-    borderRadius: 4,
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: '#fff',
-    gap: 8,
-  },
-  placeholderText: {
-    fontSize: 14,
-    fontFamily: '"Helvetica Neue", Arial, sans-serif',
-    color: '#aaa',
-    margin: 0,
-  },
-  placeholderSub: {
-    fontSize: 12,
-    fontFamily: '"Helvetica Neue", Arial, sans-serif',
-    color: '#ccc',
-    margin: 0,
   },
   footer: {
     borderTop: '1px solid #e4e4e0',
-    padding: '28px 40px',
+    padding: '28px 32px',
     display: 'flex',
     justifyContent: 'center',
+    flexWrap: 'wrap',
     gap: 12,
-    fontSize: 11,
+    fontSize: 10,
     fontFamily: '"Helvetica Neue", Arial, sans-serif',
-    color: '#aaa',
-    letterSpacing: '0.08em',
+    color: '#bbb',
+    letterSpacing: '0.1em',
     textTransform: 'uppercase',
   },
   footerDot: {
     color: '#ddd',
   },
   footerLink: {
-    color: '#aaa',
+    color: '#bbb',
     textDecoration: 'none',
   },
 };
