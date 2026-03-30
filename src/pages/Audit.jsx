@@ -327,6 +327,16 @@ const Audit = ({ onBack, initialUrl, initialFile }) => {
   const [error, setError] = useState("");
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentInfo, setPaymentInfo] = useState(null);
+  const [progress, setProgress] = useState(0);
+  const [currentStage, setCurrentStage] = useState(0);
+
+  const STAGES = [
+    { id: 'INGEST', label: 'Ingesting Solicitation Data', icon: <Globe size={16} /> },
+    { id: 'PARSE', label: 'Parsing Structural Components', icon: <Layers size={16} /> },
+    { id: 'EXTRACT', label: 'Extracting Section L/M Requirements', icon: <FileText size={16} /> },
+    { id: 'SHRED', label: 'Executing Regulatory Cross-Check', icon: <ShieldCheck size={16} /> },
+    { id: 'SYNTH', label: 'Finalizing Intelligence Synthesis', icon: <Zap size={16} /> }
+  ];
   const [showFatalError, setShowFatalError] = useState(false);
   const [fatalErrorData, setFatalErrorData] = useState(null);
   const [result, setResult] = useState(null);
@@ -498,10 +508,16 @@ const Audit = ({ onBack, initialUrl, initialFile }) => {
     addLog(`INITIATING_AUDIT_ON: ${finalUrl.split('/').pop()}`, "info");
     trackAuditStart();
     
-    // Simulate streaming logs
-    const stages = PIPELINE_LOGS.slice(0, -1);
-    stages.forEach((stage, i) => {
-      setTimeout(() => addLog(stage, i === stages.length - 1 ? "success" : "info"), i * 1200);
+    // Simulate streaming logs and progress
+    const stagesCount = STAGES.length;
+    STAGES.forEach((stage, i) => {
+      setTimeout(() => {
+        if (isLoading) {
+          setCurrentStage(i);
+          setProgress(((i + 1) / stagesCount) * 100);
+          addLog(`${stage.id}_${PIPELINE_LOGS[i]}`, i === stagesCount - 1 ? "success" : "info");
+        }
+      }, i * 3000); // 3s per stage visual transition
     });
 
     try {
@@ -741,15 +757,39 @@ const Audit = ({ onBack, initialUrl, initialFile }) => {
           {/* MAIN CANVAS */}
           <main style={{ flex: 1, overflowY: 'auto', padding: '32px 40px' }}>
             {isLoading ? (
-              <div style={{ maxWidth: '800px', margin: '140px auto', textAlign: 'center' }}>
-                <div className="mercury-loading-spinner" style={{ 
-                  width: '60px', height: '60px', border: '4px solid #f1f5f9', 
-                  borderTop: '4px solid #002244', borderRadius: '50%', margin: '0 auto 40px',
-                  animation: 'spin 1s linear infinite'
-                }} />
-                <h2 style={{ fontSize: '20px', fontWeight: 900, color: '#002244', marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Initializing Stateless Bridge...</h2>
-                <div style={{ background: '#000', borderRadius: '12px', padding: '24px', textAlign: 'left', border: '1px solid #333' }}>
-                  <PipelineTerminal logs={logs} active={isLoading} />
+              <div style={{ maxWidth: '800px', margin: '40px auto', textAlign: 'center' }}>
+                <div style={{ marginBottom: '60px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '24px' }}>
+                    <div style={{ padding: '12px', background: 'rgba(0,34,68,0.05)', borderRadius: '12px' }}>
+                      <Activity size={32} color="#002244" className="animate-pulse" />
+                    </div>
+                    <div style={{ textAlign: 'left' }}>
+                      <h2 style={{ fontSize: '20px', fontWeight: 900, color: '#002244', margin: 0 }}>Processing Sovereign Cluster 2.0</h2>
+                      <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>LATENCY: 42ms | CLUSTER: US-EAST-1_HS</div>
+                    </div>
+                  </div>
+
+                  {/* HIGH PRECISION PROGRESS BAR */}
+                  <div style={{ width: '100%', height: '8px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden', marginBottom: '24px' }}>
+                    <div style={{ width: `${progress}%`, height: '100%', background: 'linear-gradient(90deg, #002244, #2563eb)', transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)' }} />
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px' }}>
+                    {STAGES.map((stage, i) => (
+                      <div key={stage.id} style={{ opacity: i <= currentStage ? 1 : 0.3, transition: 'all 0.3s' }}>
+                        <div style={{ fontSize: '10px', fontWeight: 800, color: i === currentStage ? '#2563eb' : '#64748b', marginBottom: '4px' }}>{stage.id}</div>
+                        <div style={{ height: '4px', background: i <= currentStage ? '#2563eb' : '#e2e8f0', borderRadius: '2px' }} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ background: '#0a0d14', borderRadius: '16px', padding: '32px', textAlign: 'left', border: '1px solid #1e293b', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
+                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', color: '#3b82f6' }}>
+                     <Terminal size={18} />
+                     <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em' }}>MERCURY_FLOW_INGESTION_STREAM</span>
+                   </div>
+                   <PipelineTerminal logs={logs} active={isLoading} />
                 </div>
               </div>
             ) : (

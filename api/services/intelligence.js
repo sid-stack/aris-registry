@@ -25,15 +25,17 @@ export async function complete(params, agentKey = "sovereign_core") {
 
   try {
     // 1. PRIMARY: Google AI Studio (Direct Gemini 2.0 Flash)
-    // Extract last message and system context for Gemini SDK
     const systemPrompt = messages.find(m => m.role === 'system')?.content || "";
     const userPrompt = messages.find(m => m.role === 'user')?.content || "";
-    const history = messages.filter(m => m.role !== 'system' && m.role !== 'user');
 
     console.log(`[SOVEREIGN_GATEWAY] [${agentKey}] Primary Inference: Gemini 2.0 Studio`);
     
-    // Simple mapping for demonstration; can be expanded for full history
-    const result = await geminiModel.generateContent({
+    // Add 30s timeout to avoid perpetual "Waiting" for the user
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error("PRIMARY_GATEWAY_TIMEOUT")), 30000)
+    );
+
+    const inferencePromise = geminiModel.generateContent({
       contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
       systemInstruction: systemPrompt,
       generationConfig: {
@@ -42,6 +44,7 @@ export async function complete(params, agentKey = "sovereign_core") {
       }
     });
 
+    const result = await Promise.race([inferencePromise, timeoutPromise]);
     const responseText = result.response.text();
     if (responseText) return responseText;
     

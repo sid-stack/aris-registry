@@ -23,24 +23,28 @@ import { recordAnalyticsEvent, renderAnalyticsDashboard, recordBetaSignup, getAd
 import { AUDIT_PROMPT, SYS_PROMPT } from "./src/prompts.js";
 import { sovereignSearch } from "./services/fedSearch.js";
 import { usaspending } from "./services/usaspending.js";
+import { complete as sovereignComplete } from "./services/intelligence.js";
 
 import multer from "multer";
 import pdfParse from "pdf-parse";
 
-// ─── Gemini Core Completer ───────────────────────────────────────────────────
+// ─── Sovereign Intelligence Completer ──────────────────────────────────────
 async function complete(prompt, systemInstruction, options = {}) {
-  const result = await traceLLM(undefined, {
-    model: "google/gemini-2.0-flash",
+  const result = await sovereignComplete({
+    model: options.model || "google/gemini-2.0-flash",
     messages: [
       { role: "system", content: systemInstruction },
       { role: "user", content: prompt }
     ],
-    temperature: options.temperature || 0.1
+    temperature: options.temperature || 0.1,
+    max_tokens: options.max_tokens || 4096,
   }, options.traceName || "govcon_ai_completion");
 
   if (options.json) {
+    // Regex for robust JSON extraction from LLM chatter
     const match = result.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
-    return JSON.parse(match ? match[0] : result);
+    if (!match) throw new Error("INVALID_LLM_JSON_RESPONSE");
+    return JSON.parse(match[0]);
   }
   return result;
 }
@@ -107,17 +111,7 @@ app.post("/api/analyze-pdf", upload.single('file'), asyncHandler(async (req, res
   const extractPrompt = extractPromptTemplate.replace("{{RFP_TEXT}}", rfpText);
 
   try {
-    const rawAnalysis = await traceLLM(undefined, {
-      model: "google/gemini-2.0-flash",
-      messages: [
-        { role: "system", content: "You are the ARIS High-Precision RFP Auditor. Extract compliance intelligence into strict JSON." },
-        { role: "user", content: extractPrompt }
-      ],
-      temperature: 0.1
-    }, "pdf_full_extraction");
-
-    const jsonMatch = rawAnalysis.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
-    const extraction = JSON.parse(jsonMatch ? jsonMatch[0] : rawAnalysis);
+    const extraction = await complete(extractPrompt, "You are the ARIS High-Precision RFP Auditor. Extract compliance intelligence into strict JSON.", { json: true, traceName: "pdf_full_extraction" });
 
     // Map Gemini extraction to the ARIS-standard UI format
     const response = {
@@ -408,17 +402,7 @@ Respond in STRICT JSON with:
 
   let extraction;
   try {
-    const rawAnalysis = await traceLLM(undefined, {
-      model: "google/gemini-2.0-flash",
-      messages: [
-        { role: "system", content: "You are the ARIS High-Precision RFP Auditor. Extract compliance intelligence into strict JSON." },
-        { role: "user", content: extractPrompt }
-      ],
-      temperature: 0.1
-    }, "link_full_extraction");
-
-    const jsonMatch = rawAnalysis.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
-    extraction = JSON.parse(jsonMatch ? jsonMatch[0] : rawAnalysis);
+    extraction = await complete(extractPrompt, "You are the ARIS High-Precision RFP Auditor. Extract compliance intelligence into strict JSON.", { json: true, traceName: "link_full_extraction" });
   } catch (err) {
     console.warn("[LINK_ANALYSIS] LLM failed, using fallback shredder:", err.message);
     const requirements = shredText(solicitationText);
