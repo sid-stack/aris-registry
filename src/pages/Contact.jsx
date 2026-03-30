@@ -12,19 +12,28 @@ const Contact = ({ onBack }) => {
     return () => window.removeEventListener('resize', handler);
   }, []);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    
-    // For now, we'll simulate a submission to a Google Form backend
-    // USER: Replace the action URL with your actual Google Form 'formResponse' URL
-    // and make sure the 'name' attributes match your form's entry IDs (e.g., entry.123456)
-    
-    setTimeout(() => {
-      setLoading(false);
+    const data = Object.fromEntries(new FormData(e.target).entries());
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: data['entry.fullname'],
+          email: data['entry.email'],
+          service: data['entry.company'],
+          message: data['entry.message'],
+        }),
+      });
+      if (!res.ok) throw new Error('Failed');
       setSubmitted(true);
-      // Optional: Post to actual GForm via fetch/iframe if URL provided
-    }, 1500);
+    } catch {
+      alert('Something went wrong. Please email sid@bidsmith.pro directly.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (submitted) {
