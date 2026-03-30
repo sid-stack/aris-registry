@@ -80,7 +80,7 @@ export default function Login({ onLogin }) {
               <Lock size={16} style={styles.icon} />
               <input 
                 type="password" 
-                placeholder="aris369" 
+                placeholder="••••••••" 
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 required 

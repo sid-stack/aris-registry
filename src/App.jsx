@@ -33,6 +33,7 @@ const RfpMatrixGenerator = lazy(() => import("./pages/seo/RfpMatrixGenerator"));
 const Outreach = lazy(() => import("./pages/Outreach"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const Contact = lazy(() => import("./pages/Contact"));
+const ArisConsulting = lazy(() => import("./pages/ArisConsulting"));
 
 const BASE_URL = "https://www.bidsmith.pro";
 
@@ -59,6 +60,7 @@ const PAGE_META = {
   outreach: { title: "Outreach Dashboard | BidSmith Internal", description: "Internal outreach tracking dashboard.", path: "/outreach" },
   admin: { title: "Admin Portal | BidSmith", description: "Internal analytics portal.", path: "/admin" },
   contact: { title: "Contact BidSmith | Talk to a Federal Capture Specialist", description: "Get in touch with the BidSmith team. Request a demo, ask about pricing, or connect with a federal capture specialist for your next solicitation.", path: "/contact" },
+  aris: { title: "ARIS Strategic Consulting | 7-Day Institutional AI Audit — BidSmith", description: "Secure your next federal prime contract with elite AI-driven compliance. Our 7-Day AI Audit protocol transforms your capture strategy using sovereign intelligence.", path: "/aris" },
 };
 
 function usePageMeta(view) {
@@ -140,6 +142,7 @@ export default function App() {
     if (p.startsWith("/labs")) return "labs";
     if (p.startsWith("/compliance/")) return "compliance";
     if (aliasSection) return "landing";
+    if (p === "/aris") return "aris";
     if (p === "/" || p === "") return "landing";
     return "404";
   });
@@ -215,6 +218,8 @@ export default function App() {
       logicalPath = window.location.pathname;
     } else if (view === "compliance") {
       logicalPath = window.location.pathname;
+    } else if (view === "aris") {
+      logicalPath = "/aris";
     } else if (view === "landing") {
       logicalPath = aliasSection ? `/#${aliasSection}` : "/";
     }
@@ -323,6 +328,8 @@ export default function App() {
       : <Login onLogin={() => { setAuthenticated(true); localStorage.setItem("aris_authenticated", "true"); }} />;
   } else if (view === "contact") {
     content = <Contact onBack={() => setView("landing")} />;
+  } else if (view === "aris") {
+    content = <ArisConsulting onGetStarted={() => setView("app")} />;
   } else if (view === "landing") {
     content = (
       <Landing
