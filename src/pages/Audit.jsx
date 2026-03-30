@@ -424,7 +424,7 @@ const Audit = ({ onBack, initialUrl, initialFile }) => {
     addLog(`INITIATING_MERCURY_FLOW: ${url}`, "info");
 
     try {
-      const res = await fetch("/api/analyze", {
+      const res = await fetch("/api/analyze-link", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url })
