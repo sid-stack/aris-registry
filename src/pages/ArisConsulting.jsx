@@ -34,12 +34,14 @@ export default function ArisConsulting() {
   };
 
   return (
-    <div>
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{markdown}</ReactMarkdown>
+    <div style={{ minHeight: '100vh', background: '#ffffff', color: '#111', padding: '40px 24px' }}>
+      <div style={{ maxWidth: 800, margin: '0 auto 40px', lineHeight: 1.7, fontSize: 15 }}>
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>{markdown}</ReactMarkdown>
+      </div>
 
-      <hr />
+      <hr style={{ border: 'none', borderTop: '1px solid #e5e5e5', maxWidth: 800, margin: '0 auto 40px' }} />
 
-      <section style={{ maxWidth: 480, margin: '40px auto', padding: '40px', background: '#fff', borderRadius: 12, boxShadow: '0 2px 16px rgba(0,0,0,0.08)' }}>
+      <section style={{ maxWidth: 480, margin: '0 auto', padding: '40px', background: '#fff', borderRadius: 12, boxShadow: '0 2px 16px rgba(0,0,0,0.08)', border: '1px solid #ebebeb' }}>
         <img src="/aris-labs.png" alt="ARIS Labs" style={{ height: 40, marginBottom: 16, display: 'block' }} />
         <h3 style={{ margin: '0 0 8px', fontSize: 20, fontWeight: 700 }}>ARIS Labs Consultancy</h3>
         <p style={{ margin: '0 0 28px', color: '#555', fontSize: 14 }}>No sales fluff. Expect a response within 4 hours.</p>
@@ -78,6 +80,7 @@ export default function ArisConsulting() {
       </section>
     </div>
   );
+
 }
 
 const labelStyle = { display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 5, color: '#333' };
