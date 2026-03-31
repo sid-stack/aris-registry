@@ -2,7 +2,6 @@
 import "dotenv/config";
 
 import express from "express";
-import proxy from "express-http-proxy";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
 import { dirname, join } from "path";
@@ -12,43 +11,19 @@ import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { asyncHandler } from "./utils/asyncHandler.js";
 
 // Stateless Utils & Infrastructure
-import { incrMonthlyUsage } from "./utils/upstash.js";
 import { traceLLM } from "./utils/tracing.js";
-import { sanitizeMarkdown } from "./utils/markdown.js";
+import { callLLM } from "./llm/openrouter.js";
 
-// Services & MCP Client
-import { getSamClient, getAuditClient, callMcpTool } from "./services/mcpClient.js";
-import { createCheckoutSession, createDynamicCheckoutSession, getRevenueStats, getStripeLogs } from "./services/stripe.js";
-import { recordAnalyticsEvent, renderAnalyticsDashboard, recordBetaSignup, getAdminStats } from "./services/analytics.js";
+// Services
+import { createCheckoutSession, createDynamicCheckoutSession, getAdminStats } from "./services/stripe.js";
+import { recordAnalyticsEvent, getAdminStats as getAnalyticsStats } from "./services/analytics.js";
 import { invokeAuditSwarm } from "./agents/coordinator.js";
-import { AUDIT_PROMPT, SYS_PROMPT } from "./src/prompts.js";
+import { fetchSolicitationText, parseNoticeId } from "./services/samGov.js";
+import { runAudit } from "./agents/auditPipeline.js";
 import { sovereignSearch } from "./services/fedSearch.js";
-import { usaspending } from "./services/usaspending.js";
-import { complete as sovereignComplete } from "./services/intelligence.js";
 
 import multer from "multer";
 import pdfParse from "pdf-parse";
-
-// ─── Sovereign Intelligence Completer ──────────────────────────────────────
-async function complete(prompt, systemInstruction, options = {}) {
-  const result = await sovereignComplete({
-    model: options.model || "google/gemini-2.0-flash",
-    messages: [
-      { role: "system", content: systemInstruction },
-      { role: "user", content: prompt }
-    ],
-    temperature: options.temperature || 0.1,
-    max_tokens: options.max_tokens || 4096,
-  }, options.traceName || "govcon_ai_completion");
-
-  if (options.json) {
-    // Regex for robust JSON extraction from LLM chatter
-    const match = result.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
-    if (!match) throw new Error("INVALID_LLM_JSON_RESPONSE");
-    return JSON.parse(match[0]);
-  }
-  return result;
-}
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 8080;
@@ -73,133 +48,27 @@ fetch("http://127.0.0.1:7911/ingest/27c0c5ba-848a-4204-b45d-bd04160c9694", {
 const upload = multer({ storage: multer.memoryStorage() });
 
 // ─── Simple AF PDF Shredder Logic (Fallback) ────────────────────────────────
-function shredText(text) {
-  const lines = text.split('\n');
-  return lines
-    .filter(line => {
-      const l = line.toLowerCase();
-      return l.includes('shall') || l.includes('must') || l.includes('required');
-    })
-    .slice(0, 15)
-    .map(line => ({
-      requirement: line.trim().slice(0, 200),
-      status: "Not reviewed",
-      risk: (line.toLowerCase().includes('security') || line.toLowerCase().includes('clearance')) ? "High" : "Unknown",
-      owner: ""
-    }));
-}
-
-function formatStrategicAnalysis(sa) {
-  if (!sa) return null;
-  if (typeof sa === 'string') return sa;
-  return `### **Capture Strategy**
-${sa.capture_strategy || 'N/A'}
-
-### **Win Themes**
-${(sa.win_themes || []).map(t => `- ${t}`).join('\n')}
-
-### **Risk Mitigation**
-${sa.risk_mitigation || 'N/A'}`;
-}
-
-// ─── Gemini-Powered PDF compliance Extraction ────────────────────────────────
-app.post("/api/analyze-pdf", upload.single('file'), asyncHandler(async (req, res) => {
+// ─── /api/analyze-pdf ────────────────────────────────────────────────────────
+app.post("/api/analyze-pdf", upload.single("file"), asyncHandler(async (req, res) => {
   if (!req.file) return res.status(400).json({ error: "No file uploaded" });
-  
+
   const data = await pdfParse(req.file.buffer);
-  const rfpText = data.text.slice(0, 15000); // Guardrails for context window if needed, but Gemini 2.0 handles more
-  
-  console.log(`[ANALYSIS] [PDF] Analyzing: ${req.file.originalname} (${rfpText.length} chars)`);
+  const rfpText = data.text?.trim();
 
-  const { readFileSync } = await import("fs");
-  const { join, dirname } = await import("path");
-  const { fileURLToPath } = await import("url");
-  const __dirname = dirname(fileURLToPath(import.meta.url));
-  
-  let extractPromptTemplate;
-  try {
-    extractPromptTemplate = readFileSync(join(__dirname, "llm", "extract_prompt.txt"), "utf8");
-  } catch (err) {
-    extractPromptTemplate = "Extract compliance intelligence: {{RFP_TEXT}}\nDirect JSON extraction. solicitation_number, agency, requirements:[{category, text, risk_level, section, page_reference, source_excerpt}]";
+  if (!rfpText || rfpText.length < 100) {
+    return res.status(422).json({ error: "Could not extract readable text from this PDF." });
   }
-  const extractPrompt = extractPromptTemplate.replace("{{RFP_TEXT}}", rfpText);
 
-  try {
-    const extraction = await complete(extractPrompt, "You are the ARIS High-Precision RFP Auditor. Extract compliance intelligence into strict JSON.", { json: true, traceName: "pdf_full_extraction" });
+  console.log(`[PDF_AUDIT] ${req.file.originalname} — ${rfpText.length} chars`);
 
-    // Map Gemini extraction to the ARIS-standard UI format
-    // DEPLOY_SOVEREIGN_AGENT_SWARM
-    const swarmResult = await invokeAuditSwarm({
-      text: rfpText,
-      buffer: req.file.buffer
-    }, (logEntry) => {
-      console.log(`[AGENT_SWARM] ${logEntry}`);
-      // Future: SSE/Socket streaming for real-time UI logs
-    });
+  const result = await runAudit(rfpText, {
+    id: req.file.originalname.replace(/\.pdf$/i, ""),
+    title: req.file.originalname,
+    agency: "Extracted from PDF",
+    value: "0",
+  });
 
-    // Map Swarm results to the ARIS-standard UI format
-    const response = {
-      id: swarmResult.document_metadata?.solicitation_number || "UPLOADED_PDF_SWARM",
-      title: req.file.originalname,
-      agency: swarmResult.document_metadata?.agency || "Extracted from PDF",
-      value: swarmResult.document_metadata?.estimated_value || "0",
-      compliance: (swarmResult.requirements || []).slice(0, 10).map((r, i) => ({
-        category: r.category,
-        verdict: r.is_lethal ? "DISQUALIFIER" : "WARNING",
-        risk: r.risk === "High" ? 85 : r.risk === "Med" ? 65 : 40,
-        description: r.text,
-        sourceSnippet: r.source || "EXTRACTED_FROM_SOURCE",
-        sectionRef: `Section ${r.section || '—'}, Page ${r.page || '—'}`,
-        angle: i * 36,
-        label: r.category ? r.category.slice(0, 3).toUpperCase() : "REQ"
-      })),
-      bugs: swarmResult.bugs || [],
-      requirements: (swarmResult.requirements || []).map(r => ({
-        requirement: r.text,
-        status: "Not reviewed",
-        risk: r.risk,
-        owner: ""
-      })),
-      executiveSummary: swarmResult.executiveSummary,
-      strategicAnalysis: formatStrategicAnalysis(swarmResult.strategicAnalysis),
-      riskAssessment: {
-        verdict: swarmResult.riskAssessment?.verdict || "ACTIONABLE",
-        score: swarmResult.riskAssessment?.score || 55,
-        breakdown: swarmResult.riskAssessment?.breakdown || { delta_risk: 35, hazard_penalty: 40 },
-        delta_analysis: swarmResult.riskAssessment?.delta_analysis || `Swarm identified high-priority compliance triggers.`
-      },
-      fatalError: swarmResult.fatalError
-    };
-
-    res.json(response);
-
-  } catch (err) {
-    console.warn("[PDF_ANALYSIS] LLM failed, using fallback shredder:", err.message);
-    const requirements = shredText(data.text);
-    res.json({
-      id: "UPLOADED_PDF_FALLBACK",
-      title: req.file.originalname,
-      agency: "Extracted from PDF (Fallback)",
-      value: "000000",
-      compliance: requirements.slice(0, 5).map(r => ({
-        category: "System Extraction",
-        verdict: "WARNING",
-        risk: r.risk === "High" ? 85 : 50,
-        description: r.requirement,
-        sourceSnippet: r.requirement,
-        sectionRef: "PDF Upload"
-      })),
-      requirements: requirements,
-      executiveSummary: `NOTICE: High server load currently active due to multiple concurrent institutional users. ARIS is utilizing a high-speed stateless fallback for this audit.`,
-      riskAssessment: {
-        verdict: "CONCURRENT_DEMAND_FALLBACK",
-        score: 55,
-        breakdown: { delta_risk: 25, hazard_penalty: 30 },
-        delta_analysis: "Sovereign gateway currently managing high throughput. Switching to direct pattern-matching extraction."
-      },
-      fatalError: false
-    });
-  }
+  res.json(result);
 }));
 
 app.post("/api/privacy/consent", asyncHandler(async (req, res) => {
@@ -246,24 +115,23 @@ const HARVEST_INTERVAL = 12 * 60 * 60 * 1000;
 const SAM_API_KEY = process.env.SAM_API_KEY || process.env.SAM_GOV_API_KEY;
 
 async function startHarvester() {
+  if (!SAM_API_KEY) return; // Nothing to harvest without credentials
   const pulse = async () => {
     try {
       const now = Date.now();
       if (now - lastHarvestTime < 10 * 60 * 1000) return;
       for (const seed of DISCOVERY_SEEDS) {
-        if (SAM_API_KEY) {
-          try {
-            const samClient = await getSamClient();
-            const samMcpResult = await callMcpTool(samClient, "search_opportunities", { q: seed, limit: 30 });
-            const opportunities = JSON.parse(samMcpResult.content[0].text);
-            if (Array.isArray(opportunities) && opportunities.length > 0) await sovereignSearch.syncSovereignTable(opportunities, "US");
-          } catch (err) { console.warn(`[HARVESTER] SAM failed for "${seed}":`, err.message); }
-        }
         try {
-          const awards = await usaspending.getAwardsSummary(seed);
-          if (awards?.length > 0) await sovereignSearch.syncSovereignTable(awards, "US");
-        } catch (err) { console.warn(`[HARVESTER] USAspending failed for "${seed}":`, err.message); }
-        console.log(`[HARVESTER] Cooling down for 15s to respect SAM.gov rate limits...`);
+          const res = await fetch(
+            `https://api.sam.gov/opportunities/v2/search?q=${encodeURIComponent(seed)}&limit=30&api_key=${SAM_API_KEY}`,
+            { signal: AbortSignal.timeout(15_000) }
+          );
+          if (res.ok) {
+            const data = await res.json();
+            const opportunities = data?.opportunitiesData || [];
+            if (opportunities.length > 0) await sovereignSearch.syncSovereignTable(opportunities, "US");
+          }
+        } catch (err) { console.warn(`[HARVESTER] SAM failed for "${seed}":`, err.message); }
         await new Promise(r => setTimeout(r, 15000));
       }
       lastHarvestTime = Date.now();
@@ -308,30 +176,30 @@ app.post("/api/track", apiLimiter, asyncHandler(async (req, res) => {
 
 app.post("/api/govcon/generate-matrix", asyncHandler(async (req, res) => {
   const { rfpText } = req.body;
-  const response = await complete(
-    `Analyze RFP and extract compliance matrix (JSON array): ${rfpText.substring(0, 15000)}`,
-    "You are a senior federal compliance auditor. Keys: id, requirement, source, status, strategy.",
-    { json: true }
+  const response = await callLLM(
+    "You are a senior federal compliance auditor. Extract a compliance matrix as a JSON array. Each item: { id, requirement, source, status, strategy }. Return STRICT JSON only.",
+    `Analyze this RFP and extract the compliance matrix: ${rfpText?.substring(0, 15000)}`
   );
-  res.json(response);
+  try { res.json(JSON.parse(response)); } catch { res.json({ raw: response }); }
 }));
 
 app.post("/api/govcon/draft-proposal", asyncHandler(async (req, res) => {
   const { rfpText, companyInfo } = req.body;
-  const draft = await complete(
-    `Draft Executive Summary. Company: ${companyInfo}. RFP: ${rfpText?.substring(0, 10000)}`,
-    "You are a senior proposal writer for top-tier defense contractors."
+  const draft = await callLLM(
+    "You are a senior proposal writer for top-tier defense contractors.",
+    `Draft an Executive Summary. Company: ${companyInfo}. RFP: ${rfpText?.substring(0, 10000)}`
   );
   res.json({ draft });
 }));
 
 app.post("/api/govcon/chat", asyncHandler(async (req, res) => {
   const { messages, context } = req.body;
-  const text = await complete(
-    messages[messages.length - 1].content || messages[messages.length - 1].text,
-    `You are GovCon AI. Specialized assistant. RFP context: ${context?.substring(0, 5000)}`
+  const userMessage = messages[messages.length - 1].content || messages[messages.length - 1].text;
+  const text = await callLLM(
+    `You are GovCon AI, a specialized federal contracting assistant. RFP context: ${context?.substring(0, 5000)}`,
+    userMessage
   );
-  res.json({ text, response: text }); // Support both formats
+  res.json({ text, response: text });
 }));
 
 // ─── /api/admin/stats ────────────────────────────────────────────────────────
@@ -350,129 +218,36 @@ app.post("/api/analyze-link", apiLimiter, asyncHandler(async (req, res) => {
   let meta = { id: "LINK_AUDIT", title: "Federal Solicitation", agency: "Federal Agency", value: "0" };
 
   if (normalized.includes("sam.gov")) {
-    try {
-      const samClient = await getSamClient();
-      const oppResult = await callMcpTool(samClient, "get_opportunity", { url });
-      const opp = JSON.parse(oppResult.content[0].text);
-      meta = {
-        id: opp.solicitationNumber || opp.noticeId || "SAM_OPP",
-        title: opp.title || "Federal Solicitation",
-        agency: opp.fullParentPathName || opp.departmentName || opp.subtierName || "Federal Agency",
-        value: opp.award?.amount || opp.totalBaseAndAllOptionsValue || "0",
-      };
-      const links = (opp.resourceLinks || []).map(r => typeof r === "string" ? r : r.url).filter(Boolean);
-      if (links.length > 0) {
-        try {
-          const dlResult = await callMcpTool(samClient, "download_solicitation", { links, noticeId: meta.id });
-          solicitationText = dlResult.content[0].text || "";
-        } catch (_) {
-          solicitationText = opp.description || JSON.stringify(opp);
-        }
-      } else {
-        solicitationText = opp.description || JSON.stringify(opp);
-      }
-    } catch (err) {
-      console.warn(`[AUDIT_GATEWAY] Primary SAM access failed: ${err.message}`);
-    }
+    // Direct SAM.gov fetch — no MCP subprocess
+    const { text, meta: samMeta } = await fetchSolicitationText(url);
+    solicitationText = text;
+    meta = samMeta;
 
-    if (!solicitationText || solicitationText.length < 50) {
-      if (!solicitationText) {
-        return res.status(422).json({ 
-          error: "ACCESS_DENIED: SAM.gov blocked automated access to this opportunity.",
-          message: "Please DOWNLOAD the solicitation PDF from SAM.gov and UPLOAD it here for a 100% precision audit.",
-          canRetryWithUpload: true
-        });
-      }
+    if (!solicitationText) {
+      return res.status(422).json({
+        error: "SAM.gov did not return solicitation text for this opportunity.",
+        message: "Download the solicitation PDF from SAM.gov and upload it for a full audit.",
+        canRetryWithUpload: true,
+      });
     }
   } else if (normalized.endsWith(".pdf")) {
-    try {
-      const pdfRes = await fetch(url, { redirect: "follow" });
-      if (!pdfRes.ok) throw new Error(`HTTP ${pdfRes.status}`);
-      const buffer = Buffer.from(await pdfRes.arrayBuffer());
-      const pdfData = await pdfParse(buffer);
-      solicitationText = pdfData.text;
-      meta = { id: "PDF_LINK", title: url.split("/").pop(), agency: "Unknown", value: "0" };
-    } catch (err) {
-      return res.status(502).json({ error: `PDF download failed: ${err.message}` });
-    }
+    const pdfRes = await fetch(url, { redirect: "follow", signal: AbortSignal.timeout(20_000) });
+    if (!pdfRes.ok) return res.status(502).json({ error: `PDF download failed: HTTP ${pdfRes.status}` });
+    const buffer = Buffer.from(await pdfRes.arrayBuffer());
+    const pdfData = await pdfParse(buffer);
+    solicitationText = pdfData.text?.trim();
+    meta = { id: "PDF_LINK", title: url.split("/").pop(), agency: "Unknown", value: "0" };
   } else {
     return res.status(400).json({ error: "Unsupported URL. Provide a SAM.gov link or direct PDF URL." });
   }
 
-  if (!solicitationText || solicitationText.length < 30) {
-    return res.status(422).json({ error: "Could not extract text from the provided URL." });
+  if (!solicitationText || solicitationText.length < 50) {
+    return res.status(422).json({ error: "Could not extract usable text from the provided URL." });
   }
 
-  try {
-    // DEPLOY_SOVEREIGN_AGENT_SWARM (URL_VECTOR)
-    const swarmResult = await invokeAuditSwarm({
-      text: solicitationText,
-      buffer: Buffer.from(solicitationText) 
-    }, (logEntry) => {
-      console.log(`[AGENT_SWARM_URL] ${logEntry}`);
-    });
-
-    const response = {
-      id: meta.id || swarmResult.document_metadata?.solicitation_number || "LINK_AUDIT_SWARM",
-      title: meta.title || "Extracted Opportunity",
-      agency: meta.agency || swarmResult.document_metadata?.agency || "Extracted from Link",
-      value: meta.value || swarmResult.document_metadata?.estimated_value || "0",
-      compliance: (swarmResult.requirements || []).slice(0, 10).map((r, i) => ({
-        category: r.category,
-        verdict: r.is_lethal ? "DISQUALIFIER" : "WARNING",
-        risk: r.risk === "High" ? 85 : r.risk === "Med" ? 65 : 40,
-        description: r.text,
-        sourceSnippet: r.source || "EXTRACTED_FROM_LINK",
-        sectionRef: `Section ${r.section || '—'}`,
-        angle: i * 36,
-        label: r.category ? r.category.slice(0, 3).toUpperCase() : "REQ"
-      })),
-      bugs: swarmResult.bugs || [],
-      requirements: (swarmResult.requirements || []).map(r => ({
-        requirement: r.text,
-        status: "Not reviewed",
-        risk: r.risk,
-        owner: ""
-      })),
-      executiveSummary: swarmResult.executiveSummary,
-      strategicAnalysis: formatStrategicAnalysis(swarmResult.strategicAnalysis),
-      riskAssessment: {
-        verdict: swarmResult.riskAssessment?.verdict || "ACTIONABLE",
-        score: swarmResult.riskAssessment?.score || 55,
-        breakdown: swarmResult.riskAssessment?.breakdown || { delta_risk: 35, hazard_penalty: 40 },
-        delta_analysis: `Swarm identified high-priority compliance triggers.`
-      },
-      fatalError: swarmResult.fatalError
-    };
-
-    res.json(response);
-  } catch (err) {
-    console.warn("[LINK_ANALYSIS] Swarm failed, using fallback:", err.message);
-    const requirements = shredText(solicitationText);
-    res.json({
-      id: meta.id || "LINK_AUDIT_FALLBACK",
-      title: meta.title || "Federal Solicitation (Fallback)",
-      agency: meta.agency || "Federal Agency (Fallback)",
-      value: meta.value || "0",
-      compliance: requirements.slice(0, 5).map(r => ({
-        category: "System Extraction",
-        verdict: "WARNING",
-        risk: r.risk === "High" ? 85 : 50,
-        description: r.requirement,
-        sourceSnippet: r.requirement,
-        sectionRef: "Direct Link Analysis"
-      })),
-      requirements: requirements,
-      executiveSummary: `NOTICE: High server load currently active. ARIS is utilizing a high-speed stateless fallback for this URL scan.`,
-      riskAssessment: {
-        verdict: "CONCURRENT_DEMAND_FALLBACK",
-        score: 55,
-        breakdown: { delta_risk: 25, hazard_penalty: 30 },
-        delta_analysis: "Sovereign gateway managing multiple users. Switching to direct pattern-matching extraction."
-      },
-      fatalError: false
-    });
-  }
+  console.log(`[LINK_AUDIT] ${meta.id} — ${solicitationText.length} chars`);
+  const result = await runAudit(solicitationText, meta);
+  res.json(result);
 }));
 
 // ─── /api/create-dynamic-checkout-session ────────────────────────────────────
