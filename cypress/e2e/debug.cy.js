@@ -1,6 +1,6 @@
 describe('Debug Home', () => {
   it('should show the body content', () => {
-    cy.visit('http://127.0.0.1:5173/', {
+    cy.visit('/', {
       onBeforeLoad(win) {
         win.localStorage.setItem('bidsmith-analytics-consent', 'true');
         const style = win.document.createElement('style');
