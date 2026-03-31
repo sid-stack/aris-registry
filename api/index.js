@@ -15,8 +15,8 @@ import { traceLLM } from "./utils/tracing.js";
 import { callLLM } from "./llm/openrouter.js";
 
 // Services
-import { createCheckoutSession, createDynamicCheckoutSession, getAdminStats } from "./services/stripe.js";
-import { recordAnalyticsEvent, getAdminStats as getAnalyticsStats } from "./services/analytics.js";
+import { createCheckoutSession, createDynamicCheckoutSession } from "./services/stripe.js";
+import { recordAnalyticsEvent, getAdminStats } from "./services/analytics.js";
 import { invokeAuditSwarm } from "./agents/coordinator.js";
 import { fetchSolicitationText, parseNoticeId } from "./services/samGov.js";
 import { runAudit } from "./agents/auditPipeline.js";
