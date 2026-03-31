@@ -12,9 +12,9 @@
 const OPENROUTER_BASE = "https://openrouter.ai/api/v1/chat/completions";
 
 const MODELS = [
-  "google/gemini-2.0-flash-001",
-  "anthropic/claude-3-5-haiku",
-  "google/gemini-flash-1.5",
+  "google/gemini-2.5-flash",         // primary — fast, 1M ctx, strong JSON
+  "google/gemini-2.0-flash-001",     // fallback — proven stable
+  "anthropic/claude-3.5-haiku",      // fallback — strong instruction follow
 ];
 
 function buildHeaders() {
