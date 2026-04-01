@@ -71,6 +71,18 @@ app.post("/api/analyze-pdf", upload.single("file"), asyncHandler(async (req, res
   res.json(result);
 }));
 
+// ─── /api/analyze-text ───────────────────────────────────────────────────────
+// Raw text paste → full intelligence audit (used by GovConDashboard text mode)
+app.post("/api/analyze-text", apiLimiter, asyncHandler(async (req, res) => {
+  const { text } = req.body;
+  if (!text || text.trim().length < 100) {
+    return res.status(400).json({ error: "Text too short — paste at least 200 characters of solicitation content." });
+  }
+  console.log(`[TEXT_AUDIT] ${text.length} chars`);
+  const result = await runAudit(text.trim(), { id: "TEXT_AUDIT", title: "Pasted Solicitation", agency: "Unknown", value: "0" });
+  res.json(result);
+}));
+
 app.post("/api/privacy/consent", asyncHandler(async (req, res) => {
   const { analytics, marketing, source } = req.body;
   console.log(`[PRIVACY] Consent update from ${source}: analytics=${analytics}, marketing=${marketing}`);

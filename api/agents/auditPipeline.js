@@ -47,15 +47,44 @@ function shredText(text) {
 
 function toUIFormat(parsed, meta) {
   const requirements = parsed.requirements || [];
+  const intel = parsed.intelligence || {};
 
   return {
-    // Identity
+    // ── Identity ──────────────────────────────────────────────────────────────
     id: parsed.solicitation_number || meta?.id || "AUDIT",
     title: meta?.title || parsed.agency || "Federal Solicitation",
     agency: parsed.agency || meta?.agency || "Federal Agency",
     value: parsed.estimated_value || meta?.value || "0",
+    naics_code: parsed.naics_code,
+    set_aside_type: parsed.set_aside_type,
+    contract_type: parsed.contract_type,
+    due_date: parsed.due_date,
+    response_window_days: parsed.response_window_days || null,
 
-    // Compliance matrix rows (for the radar/table in ComplianceMatrix.jsx)
+    // ── Verdict (Panel 1) ─────────────────────────────────────────────────────
+    verdict: {
+      recommendation: parsed.verdict?.recommendation || parsed.bid_no_bid || "CONDITIONAL",
+      win_probability: parsed.verdict?.win_probability ?? 50,
+      confidence: parsed.verdict?.confidence || "MEDIUM",
+      summary: parsed.verdict?.summary || parsed.executive_summary || "",
+      rationale: parsed.verdict?.rationale || parsed.bid_no_bid_rationale || "",
+    },
+
+    // ── Intelligence signals (Panel 2) ────────────────────────────────────────
+    intelligence: {
+      incumbent_signal: intel.incumbent_signal || { score: 0, label: "LOW", signals_detected: [], explanation: "" },
+      evaluation_type: intel.evaluation_type || "Unknown",
+      evaluation_reality: intel.evaluation_reality || "",
+      price_to_win: intel.price_to_win || { low: 0, high: 0, currency: "USD", rationale: "" },
+      team_signal: intel.team_signal || "SELF-PERFORM",
+      team_signal_explanation: intel.team_signal_explanation || "",
+      timeline_pressure: intel.timeline_pressure || { detected: false, days_to_respond: null, explanation: "" },
+      top_risks: intel.top_risks || [],
+      key_discriminators: intel.key_discriminators || [],
+      hidden_requirements: intel.hidden_requirements || [],
+    },
+
+    // ── Compliance matrix rows ────────────────────────────────────────────────
     compliance: requirements.slice(0, 12).map((r, i) => ({
       category: r.category || "Other",
       verdict: r.is_disqualifier ? "DISQUALIFIER" : r.risk === "HIGH" ? "HIGH_RISK" : "WARNING",
@@ -67,7 +96,7 @@ function toUIFormat(parsed, meta) {
       label: (r.category || "REQ").slice(0, 3).toUpperCase(),
     })),
 
-    // Full requirement rows (for the matrix table)
+    // ── Full requirement rows ─────────────────────────────────────────────────
     requirements: requirements.map((r) => ({
       id: r.id,
       requirement: r.text,
@@ -76,29 +105,40 @@ function toUIFormat(parsed, meta) {
       status: "Not reviewed",
       risk: r.risk,
       is_disqualifier: r.is_disqualifier,
+      action_required: r.action_required || "",
+      source_excerpt: r.source_excerpt || "",
       owner: "",
     })),
 
-    // L/M conflicts
+    // ── L/M conflicts ─────────────────────────────────────────────────────────
     bugs: (parsed.section_lm_conflicts || []).map((c) => ({
       type: "L/M Conflict",
       text: c.description,
       section_ref: `${c.section_l_ref} ↔ ${c.section_m_ref}`,
+      implication: c.implication || "",
       risk_score: c.risk === "HIGH" ? 0.9 : 0.6,
-      remediation: "Resolve conflict before submission",
+      remediation: c.implication || "Resolve conflict before submission",
     })),
 
-    // FAR/DFARS flags
-    farFlags: parsed.far_dfars_flags || [],
+    // ── FAR/DFARS flags ───────────────────────────────────────────────────────
+    farFlags: (parsed.far_dfars_flags || []).map((f) => ({
+      ...f,
+      note: f.plain_english || f.note || "",
+    })),
 
-    // Formatting constraints
+    // ── Formatting constraints ────────────────────────────────────────────────
     formattingConstraints: parsed.formatting_constraints || {},
 
-    // Narrative outputs
+    // ── Action plan (Panel 4) ─────────────────────────────────────────────────
+    action_plan: parsed.action_plan || [],
+    suggested_questions: parsed.suggested_questions || [],
+    proposal_roadmap: parsed.proposal_roadmap || [],
+
+    // ── Narrative outputs ─────────────────────────────────────────────────────
     executiveSummary: parsed.executive_summary || "",
     strategicAnalysis: parsed.bid_no_bid_rationale || "",
 
-    // Risk scoring
+    // ── Risk scoring ──────────────────────────────────────────────────────────
     riskAssessment: {
       verdict: parsed.bid_no_bid || "CONDITIONAL",
       score: parsed.risk_score || deriveScore(requirements),
@@ -111,12 +151,7 @@ function toUIFormat(parsed, meta) {
     },
 
     fatalError: (parsed.section_lm_conflicts?.length || 0) > 2,
-
-    // Metadata
-    naics_code: parsed.naics_code,
-    set_aside_type: parsed.set_aside_type,
-    contract_type: parsed.contract_type,
-    due_date: parsed.due_date,
+    generated_at: new Date().toISOString(),
   };
 }
 
