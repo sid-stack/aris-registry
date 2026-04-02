@@ -1,59 +1,108 @@
 /**
  * SAM.gov Service — Direct HTTP, no subprocess.
  *
- * Replaces the MCP stdio subprocess which failed silently on Railway.
- * All network calls are direct fetch() with explicit timeouts.
+ * Two fetch paths:
+ *   1. v3 internal path (no API key needed) — uses URL UUID to get attachments
+ *   2. v2 search API (SAM_API_KEY required) — fallback for non-standard URLs
+ *
+ * PDF downloads go through SAM.gov CDN (no auth needed for public attachments).
  */
 
 import pdfParse from "pdf-parse/lib/pdf-parse.js";
 
 const SAM_API_KEY = process.env.SAM_API_KEY || process.env.SAM_GOV_API_KEY;
-const SAM_BASE = "https://api.sam.gov/opportunities/v2";
+const SAM_BASE    = "https://api.sam.gov/opportunities/v2";
+const SAM_V3_BASE = "https://sam.gov/api/prod/opps/v3";
 
 // ─── URL parsing ──────────────────────────────────────────────────────────────
 
 export function parseNoticeId(url) {
-  const uuid = url.match(/\/opp\/([a-f0-9]{32})/i);
-  if (uuid) return uuid[1];
-  const hex = url.match(/\/opp\/([a-f0-9]+)/i);
-  if (hex) return hex[1];
+  // /workspace/contract/opp/{uuid}/view  — internal frontend UUID
+  const workspace = url.match(/\/opp\/([a-f0-9]{32})(?:\/|$)/i);
+  if (workspace) return { id: workspace[1], type: "uuid" };
+
+  // Standard noticeid UUID in path
+  const path = url.match(/\/opp\/([a-f0-9]+)/i);
+  if (path) return { id: path[1], type: "uuid" };
+
+  // ?noticeId= query param
   const qs = url.match(/[?&]noticeId=([^&]+)/i);
-  if (qs) return qs[1];
+  if (qs) return { id: qs[1], type: "noticeid" };
+
   return null;
 }
 
-// ─── Opportunity metadata ─────────────────────────────────────────────────────
+// ─── v3 path: fetch resources via SAM.gov internal API (no auth needed) ──────
 
-export async function getOpportunity(noticeId) {
-  // Try authenticated first (higher rate limits + attachment access)
-  if (SAM_API_KEY) {
-    const res = await fetch(
-      `${SAM_BASE}/search?noticeid=${noticeId}&limit=1&api_key=${SAM_API_KEY}`,
-      { signal: AbortSignal.timeout(15_000) }
-    );
-    if (res.status === 429) throw new Error("SAM_RATE_LIMIT");
-    if (res.ok) {
-      const data = await res.json();
-      const opp = data?.opportunitiesData?.[0];
-      if (opp) return opp;
+async function fetchViaV3(uuid) {
+  const res = await fetch(
+    `${SAM_V3_BASE}/opportunities/${uuid}/resources`,
+    {
+      headers: { Accept: "application/hal+json" },
+      signal: AbortSignal.timeout(15_000),
+    }
+  );
+
+  if (!res.ok) throw new Error(`SAM v3 HTTP ${res.status}`);
+
+  const data = await res.json();
+  const attachments = data?._embedded?.opportunityAttachmentList?.[0]?.attachments || [];
+
+  if (attachments.length === 0) throw new Error("No attachments found via v3 API");
+
+  // Score and pick best PDF
+  const pdfs = attachments
+    .filter(a => a.mimeType === ".pdf" && a.accessLevel === "public" && a.deletedFlag === "0")
+    .map(a => ({ ...a, score: scoreFilename(a.name) }))
+    .sort((a, b) => b.score - a.score);
+
+  if (pdfs.length === 0) throw new Error("No public PDF attachments found");
+
+  // Try top 3 PDFs
+  for (const pdf of pdfs.slice(0, 3)) {
+    const downloadUrl = `${SAM_V3_BASE}/opportunities/resources/files/${pdf.resourceId}/download`;
+    try {
+      const text = await downloadAndParsePdf(downloadUrl);
+      if (text && text.length > 200) {
+        console.log(`[SAM_GOV] ✓ v3 PDF: ${pdf.name} (${text.length} chars)`);
+        return {
+          text,
+          meta: {
+            id: uuid,
+            title: "Federal Solicitation",
+            agency: "Federal Agency",
+            value: "0",
+          }
+        };
+      }
+    } catch (err) {
+      console.warn(`[SAM_GOV] ✗ v3 PDF ${pdf.name}: ${err.message}`);
     }
   }
 
-  // Fallback: public endpoint (no API key required, rate-limited)
-  console.log(`[SAM_GOV] No API key — trying public endpoint for ${noticeId}`);
-  const pub = await fetch(
-    `${SAM_BASE}/search?noticeid=${noticeId}&limit=1`,
+  throw new Error("Could not extract text from any PDF attachments");
+}
+
+// ─── v2 search API path (SAM_API_KEY required) ────────────────────────────────
+
+export async function getOpportunity(noticeId) {
+  if (!SAM_API_KEY) throw new Error("SAM_API_KEY not configured");
+
+  const res = await fetch(
+    `${SAM_BASE}/search?noticeid=${noticeId}&limit=1&api_key=${SAM_API_KEY}`,
     { signal: AbortSignal.timeout(15_000) }
   );
-  if (pub.status === 429) throw new Error("SAM_RATE_LIMIT");
-  if (!pub.ok) throw new Error(`SAM.gov HTTP ${pub.status}`);
-  const pubData = await pub.json();
-  const opp = pubData?.opportunitiesData?.[0];
+
+  if (res.status === 429) throw new Error("SAM_RATE_LIMIT");
+  if (!res.ok) throw new Error(`SAM.gov HTTP ${res.status}`);
+
+  const data = await res.json();
+  const opp = data?.opportunitiesData?.[0];
   if (!opp) throw new Error("Opportunity not found on SAM.gov");
   return opp;
 }
 
-// ─── Attachment download ──────────────────────────────────────────────────────
+// ─── Attachment download helpers ──────────────────────────────────────────────
 
 function scoreFilename(name = "") {
   const n = name.toLowerCase();
@@ -61,22 +110,37 @@ function scoreFilename(name = "") {
   if (/solicitation|combined|rfp|sol_|sol-/.test(n)) score += 50;
   if (/statement.of.work|sow/.test(n)) score += 40;
   if (/performance.work.statement|pws/.test(n)) score += 30;
-  if (/amendment|amd|qa|questions/.test(n)) score -= 20;
-  if (/wage.determination|exhibit/.test(n)) score -= 60;
+  if (/amendment|amd/.test(n)) score -= 10;
+  if (/qa|questions|q.*a/.test(n)) score -= 20;
+  if (/wage.determination|exhibit|map|coordinates|landfill/.test(n)) score -= 60;
+  if (/attachment_\d+/.test(n) && /statement/i.test(n)) score += 20;
   return score;
+}
+
+async function downloadAndParsePdf(url) {
+  const res = await fetch(url, {
+    redirect: "follow",
+    signal: AbortSignal.timeout(25_000),
+  });
+  if (!res.ok) throw new Error(`PDF HTTP ${res.status}`);
+  const buffer = Buffer.from(await res.arrayBuffer());
+  const parsed = await pdfParse(buffer);
+  return parsed.text?.trim() || "";
 }
 
 async function resolveFilename(url) {
   try {
     const sep = url.includes("?") ? "&" : "?";
-    const full = url.includes("api_key") ? url : `${url}${sep}api_key=${SAM_API_KEY}`;
+    const full = SAM_API_KEY && !url.includes("api_key")
+      ? `${url}${sep}api_key=${SAM_API_KEY}`
+      : url;
     const res = await fetch(full, {
       method: "HEAD",
       redirect: "manual",
       signal: AbortSignal.timeout(8_000),
     });
     const disp = res.headers.get("content-disposition") || "";
-    const loc = decodeURIComponent(res.headers.get("location") || "");
+    const loc  = decodeURIComponent(res.headers.get("location") || "");
     const m = disp.match(/filename[^;=\n]*=["']?([^"'\n]+)/i) ||
               loc.match(/filename=([^&]+)/);
     return m?.[1]?.trim() || url.split("/").pop();
@@ -85,14 +149,9 @@ async function resolveFilename(url) {
   }
 }
 
-/**
- * Given an array of attachment URLs, find the best PDF solicitation and
- * return its extracted text. Returns "" if nothing useful found.
- */
 export async function downloadBestSolicitation(links) {
   if (!links?.length) return "";
 
-  // Score all links concurrently (cap at 15 to avoid flooding SAM)
   const sample = links.slice(0, 15);
   const scored = await Promise.all(
     sample.map(async (url) => {
@@ -100,31 +159,22 @@ export async function downloadBestSolicitation(links) {
       return { url, name, score: scoreFilename(name) };
     })
   );
-
   scored.sort((a, b) => b.score - a.score);
 
-  // Try the top 3 scoring PDFs until one parses successfully
-  const candidates = scored.filter((r) => /\.pdf$/i.test(r.name)).slice(0, 3);
+  const candidates = scored.filter(r => /\.pdf$/i.test(r.name)).slice(0, 3);
 
   for (const { url, name } of candidates) {
     try {
-      const downloadUrl = url.includes("api_key")
-        ? url
-        : `${url}?api_key=${SAM_API_KEY}`;
-
-      const res = await fetch(downloadUrl, { signal: AbortSignal.timeout(20_000) });
-      if (!res.ok) continue;
-
-      const buffer = Buffer.from(await res.arrayBuffer());
-      const parsed = await pdfParse(buffer);
-      const text = parsed.text?.trim();
-
+      const downloadUrl = SAM_API_KEY && !url.includes("api_key")
+        ? `${url}${url.includes("?") ? "&" : "?"}api_key=${SAM_API_KEY}`
+        : url;
+      const text = await downloadAndParsePdf(downloadUrl);
       if (text && text.length > 200) {
-        console.log(`[SAM_GOV] ✓ Downloaded & parsed: ${name} (${text.length} chars)`);
+        console.log(`[SAM_GOV] ✓ v2 PDF: ${name} (${text.length} chars)`);
         return text;
       }
     } catch (err) {
-      console.warn(`[SAM_GOV] ✗ Failed to parse ${name}: ${err.message}`);
+      console.warn(`[SAM_GOV] ✗ v2 PDF ${name}: ${err.message}`);
     }
   }
 
@@ -133,44 +183,40 @@ export async function downloadBestSolicitation(links) {
 
 // ─── Main entrypoint ──────────────────────────────────────────────────────────
 
-/**
- * Fetch the best available solicitation text for a SAM.gov URL.
- *
- * Priority:
- *   1. Downloaded PDF attachments (best quality)
- *   2. opp.description (fallback — often just an abstract)
- *
- * @returns {{ text: string, meta: object }}
- */
 export async function fetchSolicitationText(url) {
-  const noticeId = parseNoticeId(url);
-  if (!noticeId) throw new Error("Could not parse a notice ID from the URL");
+  const parsed = parseNoticeId(url);
+  if (!parsed) throw new Error("Could not parse a notice ID from the URL");
 
-  const opp = await getOpportunity(noticeId);
+  const { id } = parsed;
+
+  // Path 1: v3 internal API — works with URL UUID, no auth needed for public PDFs
+  try {
+    const result = await fetchViaV3(id);
+    if (result.text) return result;
+  } catch (v3Err) {
+    console.log(`[SAM_GOV] v3 path failed (${v3Err.message}), trying v2 search API`);
+  }
+
+  // Path 2: v2 search API (needs SAM_API_KEY)
+  if (!SAM_API_KEY) {
+    throw new Error("SAM.gov v3 path failed and no SAM_API_KEY configured");
+  }
+
+  const opp = await getOpportunity(id);
 
   const meta = {
-    id: opp.solicitationNumber || opp.noticeId || noticeId,
-    title: opp.title || "Federal Solicitation",
-    agency:
-      opp.fullParentPathName ||
-      opp.departmentName ||
-      opp.subtierName ||
-      "Federal Agency",
-    value:
-      opp.award?.amount ||
-      opp.totalBaseAndAllOptionsValue ||
-      "0",
+    id:     opp.solicitationNumber || opp.noticeId || id,
+    title:  opp.title || "Federal Solicitation",
+    agency: opp.fullParentPathName || opp.departmentName || opp.subtierName || "Federal Agency",
+    value:  opp.award?.amount || opp.totalBaseAndAllOptionsValue || "0",
   };
 
-  // Build attachment URL list
   const links = (opp.resourceLinks || [])
-    .map((r) => (typeof r === "string" ? r : r?.url))
+    .map(r => (typeof r === "string" ? r : r?.url))
     .filter(Boolean);
 
-  // Try PDF download first
   let text = await downloadBestSolicitation(links);
 
-  // Fall back to description
   if (!text && opp.description) {
     text = opp.description;
     console.log(`[SAM_GOV] Using description fallback (${text.length} chars)`);
