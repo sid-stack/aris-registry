@@ -4,17 +4,57 @@
 .env
 .env.*
 .env.local
+.env.production
+.env.staging
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+credentials/
+service-account*.json
 
 # =========================
-# DEPENDENCIES
+# NODE DEPENDENCIES
 # =========================
 node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.npm
+.yarn/cache
+.yarn/unplugged
+.pnp.*
+
+# =========================
+# PYTHON
+# =========================
 venv/
+.venv/
+env/
 backend_venv/
 __pycache__/
-*.pyc
+*.py[cod]
 *.pyo
-demo/output_report.pdf
+*.pyd
+*.pyc
+.Python
+*.egg-info/
+dist/
+*.egg
+.eggs/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.nox/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.hypothesis/
+pytestdebug.log
 
 # =========================
 # BUILD OUTPUT
@@ -23,56 +63,94 @@ dist/
 build/
 .next/
 .out/
+out/
+*.tsbuildinfo
+.turbo/
 
 # =========================
 # LOGS & CACHE
 # =========================
 *.log
+logs/
 .cache/
-.cache_ggshield/
+.cache_ggshield
+.parcel-cache/
+.eslintcache
+.stylelintcache
 
 # =========================
 # OS FILES
 # =========================
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+Desktop.ini
 
 # =========================
-# PYTHON
+# EDITOR & IDE
 # =========================
-__pycache__/
-*.py[cod]
-*.pyo
-*.pyd
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-workspace
+*.sublime-project
 
 # =========================
-# TESTING
+# TESTING & COVERAGE
 # =========================
 coverage/
-.pytest_cache/
+*.lcov
+.nyc_output/
+cypress/videos/
+cypress/screenshots/
+cypress/downloads/
+test-results/
+playwright-report/
 
 # =========================
 # DEPLOYMENT
 # =========================
 .vercel/
+.netlify/
+
+# =========================
+# DEMO ARTIFACTS
+# =========================
+demo/output_report.pdf
+demo/*.pdf
+demo/*.xlsx
+*.generated.pdf
 
 # =========================
 # PROJECT-SPECIFIC
 # =========================
 dummy.pdf
+sample_audit_*.md
+draft_*.md
+send_batch_*.md
+bidsmith_*.md
 
 # =========================
 # GTM (private ops)
 # =========================
 gtm/*.csv
 gtm/CLAUDE.md
-
+content/referral_partner_outreach_list.md
 
 # =========================
-# EDITOR
+# UPLOADED ASSETS (large binaries)
 # =========================
-.vscode/
-.idea/
-
-# Added by ggshield
-.cache_ggshield
+*.pages
+*.numbers
+*.key
+uploads/
+tmp/
