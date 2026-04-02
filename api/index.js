@@ -215,16 +215,27 @@ app.post("/api/analyze-link", apiLimiter, asyncHandler(async (req, res) => {
   let meta = { id: "LINK_AUDIT", title: "Federal Solicitation", agency: "Federal Agency", value: "0" };
 
   if (normalized.includes("sam.gov")) {
-    // Direct SAM.gov fetch — no MCP subprocess
-    const { text, meta: samMeta } = await fetchSolicitationText(url);
-    solicitationText = text;
-    meta = samMeta;
+    try {
+      const { text, meta: samMeta } = await fetchSolicitationText(url);
+      solicitationText = text;
+      meta = samMeta;
+    } catch (samErr) {
+      console.error(`[LINK_AUDIT] SAM.gov fetch failed: ${samErr.message}`);
+      // Return 422 (not 500) with a human-readable message + hint to use text paste
+      return res.status(422).json({
+        error: samErr.message.includes("SAM_RATE_LIMIT")
+          ? "SAM.gov rate limit hit — wait 60 seconds and try again."
+          : "Could not fetch this SAM.gov opportunity. The opportunity may be closed or restricted.",
+        hint: "Switch to the 'Paste RFP Text' tab — copy the solicitation text from SAM.gov and paste it directly.",
+        canRetryWithText: true,
+      });
+    }
 
     if (!solicitationText) {
       return res.status(422).json({
-        error: "SAM.gov did not return solicitation text for this opportunity.",
-        message: "Download the solicitation PDF from SAM.gov and upload it for a full audit.",
-        canRetryWithUpload: true,
+        error: "SAM.gov returned no solicitation text for this opportunity. The attachments may be inaccessible.",
+        hint: "Switch to the 'Paste RFP Text' tab and paste the solicitation text directly.",
+        canRetryWithText: true,
       });
     }
   } else if (normalized.endsWith(".pdf")) {

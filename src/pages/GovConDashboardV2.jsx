@@ -246,6 +246,7 @@ function NewAuditModal({ onClose, onAuditComplete, userId }) {
   const [loading, setLoading] = useState(false);
   const [loadStep, setLoadStep] = useState(0);
   const [error, setError] = useState('');
+  const [errorHint, setErrorHint] = useState('');
 
   // Advance step counter while loading
   const startStepTimer = () => {
@@ -281,7 +282,7 @@ function NewAuditModal({ onClose, onAuditComplete, userId }) {
   const handleUrl = async (e) => {
     e.preventDefault();
     if (!url.trim()) return;
-    setLoading(true); setLoadStep(0); setError('');
+    setLoading(true); setLoadStep(0); setError(''); setErrorHint('');
     const iv = startStepTimer();
     try {
       const res = await fetch('/api/analyze-link', {
@@ -291,7 +292,9 @@ function NewAuditModal({ onClose, onAuditComplete, userId }) {
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || body.message || `Server error ${res.status}`);
+        if (body.hint) setErrorHint(body.hint);
+        if (body.canRetryWithText) setMode('text');
+        throw new Error(body.error || `Server error ${res.status}`);
       }
       await saveAndReturn(await res.json());
     } catch (err) {
@@ -398,7 +401,7 @@ function NewAuditModal({ onClose, onAuditComplete, userId }) {
             <p style={{ fontSize: '11px', color: '#94a3b8', margin: '0 0 20px 0' }}>
               Paste any SAM.gov opportunity URL — BidSmith extracts the full solicitation automatically.
             </p>
-            {error && <ErrorBox msg={error} />}
+            {error && <ErrorBox msg={error} hint={errorHint} />}
             <SubmitBtn loading={loading} disabled={!canSubmit} />
           </form>
         ) : (
@@ -423,7 +426,7 @@ function NewAuditModal({ onClose, onAuditComplete, userId }) {
             <p style={{ fontSize: '11px', color: '#94a3b8', margin: '0 0 20px 0' }}>
               {rfpText.length} chars — {rfpText.length < 200 ? `need at least ${200 - rfpText.length} more` : 'ready to audit'}
             </p>
-            {error && <ErrorBox msg={error} />}
+            {error && <ErrorBox msg={error} hint={errorHint} />}
             <SubmitBtn loading={loading} disabled={!canSubmit} />
           </form>
         )}
@@ -434,13 +437,20 @@ function NewAuditModal({ onClose, onAuditComplete, userId }) {
   );
 }
 
-function ErrorBox({ msg }) {
+function ErrorBox({ msg, hint }) {
   return (
     <div style={{
       background: '#fff5f5', border: '1px solid #fca5a5',
-      borderRadius: '8px', padding: '10px 14px',
-      fontSize: '12px', color: '#dc2626', marginBottom: '16px', lineHeight: 1.5
-    }}>{msg}</div>
+      borderRadius: '8px', padding: '12px 14px',
+      fontSize: '12px', color: '#dc2626', marginBottom: '16px', lineHeight: 1.6
+    }}>
+      <div style={{ fontWeight: 700, marginBottom: hint ? '6px' : 0 }}>{msg}</div>
+      {hint && (
+        <div style={{ color: '#7c3aed', fontWeight: 600, background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: '6px', padding: '6px 10px', marginTop: '6px' }}>
+          {hint}
+        </div>
+      )}
+    </div>
   );
 }
 

@@ -25,18 +25,30 @@ export function parseNoticeId(url) {
 // ─── Opportunity metadata ─────────────────────────────────────────────────────
 
 export async function getOpportunity(noticeId) {
-  if (!SAM_API_KEY) throw new Error("SAM_API_KEY not set in environment");
+  // Try authenticated first (higher rate limits + attachment access)
+  if (SAM_API_KEY) {
+    const res = await fetch(
+      `${SAM_BASE}/search?noticeid=${noticeId}&limit=1&api_key=${SAM_API_KEY}`,
+      { signal: AbortSignal.timeout(15_000) }
+    );
+    if (res.status === 429) throw new Error("SAM_RATE_LIMIT");
+    if (res.ok) {
+      const data = await res.json();
+      const opp = data?.opportunitiesData?.[0];
+      if (opp) return opp;
+    }
+  }
 
-  const res = await fetch(
-    `${SAM_BASE}/search?noticeid=${noticeId}&limit=1&api_key=${SAM_API_KEY}`,
+  // Fallback: public endpoint (no API key required, rate-limited)
+  console.log(`[SAM_GOV] No API key — trying public endpoint for ${noticeId}`);
+  const pub = await fetch(
+    `${SAM_BASE}/search?noticeid=${noticeId}&limit=1`,
     { signal: AbortSignal.timeout(15_000) }
   );
-
-  if (res.status === 429) throw new Error("SAM_RATE_LIMIT");
-  if (!res.ok) throw new Error(`SAM.gov HTTP ${res.status}`);
-
-  const data = await res.json();
-  const opp = data?.opportunitiesData?.[0];
+  if (pub.status === 429) throw new Error("SAM_RATE_LIMIT");
+  if (!pub.ok) throw new Error(`SAM.gov HTTP ${pub.status}`);
+  const pubData = await pub.json();
+  const opp = pubData?.opportunitiesData?.[0];
   if (!opp) throw new Error("Opportunity not found on SAM.gov");
   return opp;
 }
