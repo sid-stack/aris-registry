@@ -125,6 +125,7 @@ export default function App() {
     const p = window.location.pathname;
     const isApp = p.startsWith("/app") || window.location.search.includes("app=true");
     if (isApp) return "app";
+    if (p === "/dashboard-v2") return "app";
     if (p === "/templates") return "templates";
     if (p === "/pricing") return "pricing";
     if (p === "/rfp-compliance-matrix-generator") return "rfp-generator";
@@ -145,7 +146,6 @@ export default function App() {
     if (p === "/beta" || p === "/sovereign-beta") return "beta";
     if (p === "/demo") return "demo";
     if (p === "/govcon-guide" || p === "/how-it-works") return "govcon-guide";
-    if (p === "/dashboard-v2") return "govcon-dashboard-v2";
     if (p === "/dashboard" || p === "/app/dashboard") return "govcon-dashboard";
     if (p.startsWith("/labs")) return "labs";
     if (p.startsWith("/compliance/")) return "compliance";
@@ -224,8 +224,6 @@ export default function App() {
       logicalPath = "/demo";
     } else if (view === "govcon-guide") {
       logicalPath = "/govcon-guide";
-    } else if (view === "govcon-dashboard-v2") {
-      logicalPath = "/dashboard-v2";
     } else if (view === "govcon-dashboard") {
       logicalPath = window.location.pathname;
     } else if (view === "compliance") {
@@ -312,10 +310,6 @@ export default function App() {
     content = <About onBack={() => setView("landing")} />;
   } else if (view === "labs") {
     content = <Labs onBack={() => setView("landing")} />;
-  } else if (view === "govcon-dashboard-v2") {
-    content = authenticated
-      ? <GovConDashboardV2 onBack={() => setView("landing")} user={user} />
-      : <Login onLogin={() => { setAuthenticated(true); localStorage.setItem("aris_authenticated", "true"); }} />;
   } else if (view === "govcon-dashboard") {
     content = authenticated
       ? <GovConDashboard onBack={() => setView("landing")} user={user} />
@@ -368,7 +362,7 @@ export default function App() {
       />
     );
   } else if (view === "app") {
-    content = <Audit onBack={() => setView("landing")} initialUrl={initialUrl} initialFile={initialFile} />;
+    content = <GovConDashboardV2 onBack={() => setView("landing")} user={user} />;
   } else if (view === "404") {
     content = <NotFound onBack={() => setView("landing")} />;
   } else if (!authenticated) {
