@@ -7,7 +7,7 @@ import {
   Users, MousePointer2, TrendingUp, ShieldCheck,
   ArrowUpRight, Activity, Filter, RefreshCw, DollarSign,
   Globe, Zap, Database, Server, LogOut, Search, ChevronRight, Wallet,
-  FileText, Cpu, Layers, Terminal
+  FileText, Cpu, Layers, Terminal, Star, Mail, Send, CheckCircle
 } from 'lucide-react';
 
 const COLORS = ['#2563EB', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
@@ -21,6 +21,15 @@ const AdminDashboard = ({ onBack }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortKey, setSortKey] = useState('created_at');
   const [sortOrder, setSortOrder] = useState('desc');
+
+  // Waitlist state
+  const [waitlist, setWaitlist] = useState([]);
+  const [waitlistStats, setWaitlistStats] = useState(null);
+  const [waitlistLoading, setWaitlistLoading] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [inviteMsg, setInviteMsg] = useState('');
+  const [inviting, setInviting] = useState(false);
+  const [inviteResult, setInviteResult] = useState(null);
 
   const fetchStats = async () => {
     setLoading(true);
@@ -38,6 +47,43 @@ const AdminDashboard = ({ onBack }) => {
   };
 
   useEffect(() => { fetchStats(); }, []);
+
+  const fetchWaitlist = async () => {
+    setWaitlistLoading(true);
+    try {
+      const res = await fetch('/api/waitlist/list', {
+        headers: { Authorization: `Bearer ${localStorage.getItem('aris_authenticated') === 'true' ? (window.__ADMIN_PW || 'aris369') : ''}` }
+      });
+      const data = await res.json();
+      setWaitlist(data.entries || []);
+      setWaitlistStats(data.stats || {});
+    } catch (e) { console.warn('waitlist fetch failed', e); }
+    finally { setWaitlistLoading(false); }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'waitlist') fetchWaitlist();
+  }, [activeTab]);
+
+  const sendInvites = async () => {
+    if (!selectedIds.length) return;
+    setInviting(true); setInviteResult(null);
+    try {
+      const res = await fetch('/api/waitlist/invite', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${window.__ADMIN_PW || 'aris369'}`
+        },
+        body: JSON.stringify({ ids: selectedIds, custom_message: inviteMsg || undefined })
+      });
+      const data = await res.json();
+      setInviteResult(`✓ Sent ${data.sent} invite${data.sent !== 1 ? 's' : ''}`);
+      setSelectedIds([]);
+      fetchWaitlist();
+    } catch (e) { setInviteResult('Failed to send invites'); }
+    finally { setInviting(false); }
+  };
 
   const handleSort = (key) => {
     if (sortKey === key) {
@@ -87,7 +133,8 @@ const AdminDashboard = ({ onBack }) => {
           <NavBtn icon={<Cpu size={18}/>} label="Logic Library" active={activeTab === 'logic'} onClick={() => setActiveTab('logic')} />
           <NavBtn icon={<Wallet size={18}/>} label="Stripe Transactions" active={activeTab === 'stripe_logs'} onClick={() => setActiveTab('stripe_logs')} />
           <NavBtn icon={<Layers size={18}/>} label="Redis Mesh Cache" active={activeTab === 'mesh'} onClick={() => setActiveTab('mesh')} />
-          
+          <NavBtn icon={<Star size={18}/>} label="Early Access List" active={activeTab === 'waitlist'} onClick={() => setActiveTab('waitlist')} />
+
           <div style={sh.navSeparator} />
           <NavBtn icon={<TrendingUp size={18}/>} label="Monetization HQ" onClick={() => window.open('https://dashboard.stripe.com', '_blank')} />
           <NavBtn icon={<Terminal size={18}/>} label="PostHog Stream" onClick={() => window.open('https://app.posthog.com', '_blank')} />
@@ -214,6 +261,177 @@ const AdminDashboard = ({ onBack }) => {
                    ))}
                 </tbody>
              </table>
+          </div>
+        )}
+
+        {/* ── EARLY ACCESS WAITLIST TAB ─────────────────────────────────── */}
+        {activeTab === 'waitlist' && (
+          <div style={{ padding: '0 32px 32px' }}>
+            {/* Stats row */}
+            {waitlistStats && (
+              <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' }}>
+                {[
+                  { label: 'Total', value: waitlistStats.total, color: '#0f172a' },
+                  { label: 'Today', value: waitlistStats.today, color: '#7c3aed' },
+                  { label: 'This Week', value: waitlistStats.this_week, color: '#2563eb' },
+                  { label: 'Pending', value: waitlistStats.pending, color: '#d97706' },
+                  { label: 'Invited', value: waitlistStats.invited, color: '#16a34a' },
+                ].map(s => (
+                  <div key={s.label} style={{
+                    background: '#fff', border: '1px solid #e2e8f0',
+                    borderRadius: '12px', padding: '16px 24px', textAlign: 'center',
+                    minWidth: '100px'
+                  }}>
+                    <div style={{ fontSize: '28px', fontWeight: 900, color: s.color }}>{s.value || 0}</div>
+                    <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Invite controls */}
+            {selectedIds.length > 0 && (
+              <div style={{
+                background: '#eff6ff', border: '1px solid #bfdbfe',
+                borderRadius: '12px', padding: '16px 20px', marginBottom: '20px',
+                display: 'flex', gap: '12px', alignItems: 'flex-start', flexWrap: 'wrap'
+              }}>
+                <div style={{ flex: 1, minWidth: '200px' }}>
+                  <p style={{ fontSize: '13px', fontWeight: 700, color: '#1d4ed8', margin: '0 0 8px' }}>
+                    {selectedIds.length} user{selectedIds.length !== 1 ? 's' : ''} selected
+                  </p>
+                  <textarea
+                    value={inviteMsg}
+                    onChange={e => setInviteMsg(e.target.value)}
+                    placeholder="Custom invite message (optional — leave blank for default)"
+                    rows={2}
+                    style={{
+                      width: '100%', padding: '8px 12px', fontSize: '12px',
+                      border: '1px solid #bfdbfe', borderRadius: '8px',
+                      resize: 'none', fontFamily: 'inherit', boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <button onClick={sendInvites} disabled={inviting} style={{
+                    padding: '10px 20px', background: '#002244', color: '#fff',
+                    border: 'none', borderRadius: '8px', fontWeight: 700,
+                    fontSize: '13px', cursor: 'pointer', display: 'flex',
+                    alignItems: 'center', gap: '6px', whiteSpace: 'nowrap'
+                  }}>
+                    <Send size={13} /> {inviting ? 'Sending…' : 'Send Invites'}
+                  </button>
+                  <button onClick={() => setSelectedIds([])} style={{
+                    padding: '8px 20px', background: 'transparent', color: '#64748b',
+                    border: '1px solid #e2e8f0', borderRadius: '8px',
+                    fontWeight: 600, fontSize: '12px', cursor: 'pointer'
+                  }}>Clear</button>
+                </div>
+                {inviteResult && (
+                  <div style={{ fontSize: '13px', color: '#16a34a', fontWeight: 700, alignSelf: 'center' }}>
+                    {inviteResult}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Waitlist table */}
+            <div style={{
+              background: '#fff', border: '1px solid #e2e8f0',
+              borderRadius: '12px', overflow: 'hidden'
+            }}>
+              <div style={{
+                padding: '14px 20px', borderBottom: '1px solid #f1f5f9',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+              }}>
+                <span style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
+                  Early Access Requests
+                </span>
+                <button onClick={fetchWaitlist} disabled={waitlistLoading} style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: '#64748b', fontSize: '12px', fontWeight: 600,
+                  display: 'flex', alignItems: 'center', gap: '4px'
+                }}>
+                  <RefreshCw size={12} /> Refresh
+                </button>
+              </div>
+
+              {waitlistLoading ? (
+                <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
+                  Loading…
+                </div>
+              ) : waitlist.length === 0 ? (
+                <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
+                  No requests yet. Share the link and check back.
+                </div>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                    <thead>
+                      <tr style={{ background: '#f8fafc' }}>
+                        <th style={{ padding: '10px 12px', textAlign: 'left', width: '32px' }}>
+                          <input type="checkbox"
+                            checked={selectedIds.length === waitlist.filter(w => w.status === 'pending').length && waitlist.filter(w => w.status === 'pending').length > 0}
+                            onChange={e => setSelectedIds(e.target.checked ? waitlist.filter(w => w.status === 'pending').map(w => w.id) : [])}
+                          />
+                        </th>
+                        {['Name', 'Email', 'Company', 'Role', 'Use Case', 'Status', 'Date'].map(h => (
+                          <th key={h} style={{
+                            padding: '10px 12px', textAlign: 'left',
+                            fontSize: '10px', fontWeight: 800, color: '#64748b',
+                            textTransform: 'uppercase', letterSpacing: '0.06em',
+                            borderBottom: '1px solid #f1f5f9'
+                          }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {waitlist.map((w, i) => (
+                        <tr key={w.id} style={{ borderBottom: '1px solid #f8fafc' }}
+                          onMouseEnter={e => e.currentTarget.style.background = '#fafbfc'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                        >
+                          <td style={{ padding: '10px 12px' }}>
+                            {w.status === 'pending' && (
+                              <input type="checkbox"
+                                checked={selectedIds.includes(w.id)}
+                                onChange={e => setSelectedIds(e.target.checked
+                                  ? [...selectedIds, w.id]
+                                  : selectedIds.filter(id => id !== w.id)
+                                )}
+                              />
+                            )}
+                            {w.status === 'invited' && <CheckCircle size={14} color="#16a34a" />}
+                          </td>
+                          <td style={{ padding: '10px 12px', fontWeight: 700, color: '#0f172a' }}>{w.name}</td>
+                          <td style={{ padding: '10px 12px', color: '#2563eb', fontFamily: 'monospace' }}>{w.email}</td>
+                          <td style={{ padding: '10px 12px', color: '#475569' }}>{w.company || '—'}</td>
+                          <td style={{ padding: '10px 12px', color: '#475569' }}>{w.role || '—'}</td>
+                          <td style={{ padding: '10px 12px', color: '#64748b', maxWidth: '200px' }}>
+                            <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {w.use_case || '—'}
+                            </span>
+                          </td>
+                          <td style={{ padding: '10px 12px' }}>
+                            <span style={{
+                              fontSize: '10px', fontWeight: 800, padding: '3px 8px',
+                              borderRadius: '20px',
+                              color: w.status === 'invited' ? '#16a34a' : w.status === 'joined' ? '#2563eb' : '#d97706',
+                              background: w.status === 'invited' ? '#f0fdf4' : w.status === 'joined' ? '#eff6ff' : '#fef9f0',
+                            }}>
+                              {w.status?.toUpperCase()}
+                            </span>
+                          </td>
+                          <td style={{ padding: '10px 12px', color: '#94a3b8', whiteSpace: 'nowrap' }}>
+                            {new Date(w.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </main>

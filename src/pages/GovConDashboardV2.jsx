@@ -16,12 +16,13 @@ import { useState, useEffect } from 'react';
 import {
   Shield, Zap, Layers, FileText, LogOut,
   ChevronRight, Plus, TrendingUp, AlertOctagon,
-  Clock, BarChart2, Eye, ArrowLeft
+  Clock, BarChart2, Eye, ArrowLeft, Star
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import IntelligenceBrief from '../components/forge/IntelligenceBrief';
 import ProposalForge from '../components/forge/ProposalForge';
 import ComplianceMatrix from '../components/dashboard/ComplianceMatrix';
+import WaitlistModal from '../components/WaitlistModal';
 
 // ─── Demo audit data (shown when no audit is loaded) ──────────────────────────
 
@@ -487,6 +488,7 @@ export default function GovConDashboardV2({ onBack, user }) {
   const [activeAudit, setActiveAudit] = useState(DEMO_AUDIT_DATA); // current audit data
   const [session, setSession] = useState(null);
   const [showNewAudit, setShowNewAudit] = useState(false);
+  const [showWaitlist, setShowWaitlist] = useState(false);
 
   useEffect(() => {
     document.documentElement.style.setProperty('--background', '#f1f5f9');
@@ -604,9 +606,25 @@ export default function GovConDashboardV2({ onBack, user }) {
           })}
         </div>
 
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {/* Early access CTA */}
+          <button
+            onClick={() => setShowWaitlist(true)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '7px',
+              padding: '8px 16px',
+              background: 'linear-gradient(135deg, #7c3aed, #4f46e5)',
+              color: '#fff', border: 'none', borderRadius: '8px',
+              fontWeight: 700, fontSize: '12px', cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(124,58,237,0.3)',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <Star size={13} />
+            Request Early Access
+          </button>
           <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>
-            {session?.user?.email?.split('@')[0].toUpperCase() || 'USER'}
+            {session?.user?.email?.split('@')[0].toUpperCase() || 'DEMO'}
           </span>
           <button
             onClick={handleLogout}
@@ -709,6 +727,10 @@ export default function GovConDashboardV2({ onBack, user }) {
           onAuditComplete={handleAuditComplete}
           userId={session?.user?.id}
         />
+      )}
+
+      {showWaitlist && (
+        <WaitlistModal onClose={() => setShowWaitlist(false)} source="dashboard" />
       )}
 
       <style dangerouslySetInnerHTML={{ __html: `

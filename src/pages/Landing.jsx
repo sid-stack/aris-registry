@@ -5,6 +5,8 @@ import "./Landing.css";
 import DemoSection from "../components/DemoSection";
 import PricingComparison from "../components/PricingComparison";
 
+import WaitlistModal from "../components/WaitlistModal";
+
 export default function Landing({
   onEnterApp,
   onViewSample,
@@ -15,6 +17,7 @@ export default function Landing({
   onEnterDashboard,
   onGoHome,
 }) {
+  const [showWaitlist, setShowWaitlist] = useState(false);
   const handlePlanClick = (plan) => {
     if (plan.buttonLink && (plan.buttonLink.startsWith("http") || plan.buttonLink.startsWith("mailto:"))) {
       window.location.href = plan.buttonLink;
@@ -112,10 +115,16 @@ export default function Landing({
                 />
                 <button onClick={handleStartAnalysis} style={styles.mainBtnSmall}>Audit Free</button>
              </div>
-             <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
+             <div style={{ display: 'flex', gap: 12, marginTop: 12, flexWrap: 'wrap' }}>
                 <button onClick={() => fileInputRef.current.click()} style={styles.secBtnSmall}>Upload PDF</button>
                 <button onClick={onBidSmithSearch} style={styles.secBtnSmall}>Search Bids</button>
                 <button onClick={() => demoRef.current?.scrollIntoView({ behavior: 'smooth' })} style={styles.secBtnSmall}>Watch Demo</button>
+                <button
+                  onClick={() => setShowWaitlist(true)}
+                  style={{ ...styles.secBtnSmall, background: 'linear-gradient(135deg,#7c3aed,#4f46e5)', color: '#fff', border: 'none', fontWeight: 700 }}
+                >
+                  ✦ Request Early Access
+                </button>
              </div>
           </div>
 
@@ -250,6 +259,8 @@ export default function Landing({
         <div style={styles.footerBottom}>© 2026 BIDSMITH. All Rights Reserved.</div>
       </footer>
     </main>
+
+    {showWaitlist && <WaitlistModal onClose={() => setShowWaitlist(false)} source="landing" />}
   );
 }
 
