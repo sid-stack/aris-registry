@@ -28,21 +28,30 @@ import pdfParse from "pdf-parse";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 8080;
 const app = express();
-// #region agent log
-fetch("http://127.0.0.1:7911/ingest/27c0c5ba-848a-4204-b45d-bd04160c9694", {
-  method: "POST",
-  headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "c09883" },
-  body: JSON.stringify({
-    sessionId: "c09883",
-    runId: "run1",
-    hypothesisId: "H2",
-    location: "api/index.js:58",
-    message: "api startup reached app initialization",
-    data: { port: PORT, nodeEnv: process.env.NODE_ENV || "undefined" },
-    timestamp: Date.now()
-  })
-}).catch(() => {});
-// #endregion
+
+// Railway sits behind a proxy; trust 1 hop so rate limiting uses client IP.
+const trustProxyEnv = process.env.TRUST_PROXY;
+let trustProxySetting = 1;
+if (trustProxyEnv === "0" || trustProxyEnv === "false") {
+  trustProxySetting = false;
+} else if (trustProxyEnv && trustProxyEnv !== "true") {
+  const parsed = Number(trustProxyEnv);
+  trustProxySetting = Number.isNaN(parsed) ? 1 : parsed;
+}
+app.set("trust proxy", trustProxySetting);
+
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 50,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests, please try again later." }
+});
+
+app.use(express.json());
+app.use(cors());
+app.use(requestId);
+app.use(express.static(join(__dirname, "../dist")));
 
 // Multer for memory upload
 const upload = multer({ storage: multer.memoryStorage() });
@@ -89,30 +98,6 @@ app.post("/api/privacy/consent", asyncHandler(async (req, res) => {
   // In a real app, you might save this to a DB or send to an analytics proxy
   res.json({ success: true, updated: new Date().toISOString() });
 }));
-
-// Railway sits behind a proxy; trust 1 hop so rate limiting uses client IP.
-const trustProxyEnv = process.env.TRUST_PROXY;
-let trustProxySetting = 1;
-if (trustProxyEnv === "0" || trustProxyEnv === "false") {
-  trustProxySetting = false;
-} else if (trustProxyEnv && trustProxyEnv !== "true") {
-  const parsed = Number(trustProxyEnv);
-  trustProxySetting = Number.isNaN(parsed) ? 1 : parsed;
-}
-app.set("trust proxy", trustProxySetting);
-
-const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, 
-  max: 50,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: "Too many requests, please try again later." }
-});
-
-app.use(express.json());
-app.use(cors());
-app.use(requestId);
-app.use(express.static(join(__dirname, "../dist")));
 
 // ─── Sovereign Discovery: Asynchronous Harvester ──────────────────────────────
 
