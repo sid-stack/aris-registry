@@ -189,170 +189,275 @@ function PipelineStats({ pipeline }) {
   );
 }
 
+// ─── Loading overlay shown during audit ────────────────────────────────────────
+
+const AUDIT_STEPS = [
+  'Fetching solicitation text…',
+  'Shredding Section L/M requirements…',
+  'Running compliance extraction…',
+  'Scoring incumbent signals…',
+  'Generating intelligence brief…',
+  'Building proposal roadmap…',
+];
+
+function AuditLoadingOverlay({ step }) {
+  return (
+    <div style={{
+      position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.96)',
+      borderRadius: '16px', display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center', gap: '20px', zIndex: 10
+    }}>
+      <div style={{ position: 'relative', width: '64px', height: '64px' }}>
+        <svg width="64" height="64" style={{ animation: 'spin 1.4s linear infinite' }}>
+          <circle cx="32" cy="32" r="28" fill="none" stroke="#e2e8f0" strokeWidth="5" />
+          <circle cx="32" cy="32" r="28" fill="none" stroke="#002244" strokeWidth="5"
+            strokeDasharray="44 132" strokeLinecap="round" />
+        </svg>
+        <Shield size={22} color="#002244" style={{ position: 'absolute', top: '21px', left: '21px' }} />
+      </div>
+      <div style={{ textAlign: 'center' }}>
+        <p style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', margin: '0 0 8px 0' }}>
+          Running Intelligence Audit
+        </p>
+        <p style={{ fontSize: '13px', color: '#64748b', margin: 0, minHeight: '20px', transition: 'all 0.3s' }}>
+          {AUDIT_STEPS[step % AUDIT_STEPS.length]}
+        </p>
+      </div>
+      <div style={{ display: 'flex', gap: '6px' }}>
+        {AUDIT_STEPS.map((_, i) => (
+          <div key={i} style={{
+            width: i <= step ? '20px' : '6px', height: '6px', borderRadius: '3px',
+            background: i <= step ? '#002244' : '#e2e8f0',
+            transition: 'all 0.4s ease'
+          }} />
+        ))}
+      </div>
+      <p style={{ fontSize: '11px', color: '#94a3b8', margin: 0 }}>~60–90 seconds</p>
+    </div>
+  );
+}
+
 // ─── New Audit Modal ───────────────────────────────────────────────────────────
 
 function NewAuditModal({ onClose, onAuditComplete, userId }) {
+  const [mode, setMode] = useState('url'); // 'url' | 'text'
   const [url, setUrl] = useState('');
-  const [title, setTitle] = useState('');
+  const [rfpText, setRfpText] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadStep, setLoadStep] = useState(0);
   const [error, setError] = useState('');
 
-  const handleSubmit = async (e) => {
+  // Advance step counter while loading
+  const startStepTimer = () => {
+    let s = 0;
+    const iv = setInterval(() => {
+      s++;
+      setLoadStep(s);
+      if (s >= AUDIT_STEPS.length - 1) clearInterval(iv);
+    }, 9000);
+    return iv;
+  };
+
+  const saveAndReturn = async (auditData) => {
+    if (userId) {
+      try {
+        await supabase.from('audits').insert({
+          user_id: userId,
+          title: auditData.title || 'Federal Solicitation',
+          agency: auditData.agency || 'Federal Agency',
+          verdict: auditData.verdict,
+          due_date: auditData.due_date || null,
+          audit_data: auditData,
+          created_at: new Date().toISOString()
+        });
+      } catch (dbErr) {
+        console.warn('[V2] Supabase save failed — showing in-memory:', dbErr.message);
+      }
+    }
+    onAuditComplete(auditData);
+    onClose();
+  };
+
+  const handleUrl = async (e) => {
     e.preventDefault();
     if (!url.trim()) return;
-    setLoading(true);
-    setError('');
-
+    setLoading(true); setLoadStep(0); setError('');
+    const iv = startStepTimer();
     try {
       const res = await fetch('/api/analyze-link', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: url.trim() })
       });
-
-      if (!res.ok) throw new Error(`API error: ${res.status}`);
-      const auditData = await res.json();
-
-      // Save to Supabase if user is logged in
-      if (userId) {
-        try {
-          await supabase.from('audits').insert({
-            user_id: userId,
-            title: title.trim() || auditData.title || 'Federal Solicitation',
-            agency: auditData.agency || 'Federal Agency',
-            verdict: auditData.verdict,
-            due_date: auditData.due_date || null,
-            audit_data: auditData,
-            created_at: new Date().toISOString()
-          });
-        } catch (dbErr) {
-          console.warn('[V2] Supabase save failed — showing in-memory:', dbErr.message);
-        }
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || body.message || `Server error ${res.status}`);
       }
-
-      onAuditComplete(auditData);
-      onClose();
+      await saveAndReturn(await res.json());
     } catch (err) {
       setError(err.message || 'Audit failed. Check the URL and try again.');
     } finally {
-      setLoading(false);
+      clearInterval(iv); setLoading(false);
     }
   };
 
+  const handleText = async (e) => {
+    e.preventDefault();
+    if (rfpText.trim().length < 200) {
+      setError('Paste at least 200 characters of RFP text.');
+      return;
+    }
+    setLoading(true); setLoadStep(0); setError('');
+    const iv = startStepTimer();
+    try {
+      const res = await fetch('/api/analyze-text', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: rfpText.trim() })
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || `Server error ${res.status}`);
+      }
+      await saveAndReturn(await res.json());
+    } catch (err) {
+      setError(err.message || 'Audit failed. Try again or check the pasted text.');
+    } finally {
+      clearInterval(iv); setLoading(false);
+    }
+  };
+
+  const canSubmit = mode === 'url' ? url.trim().length > 10 : rfpText.trim().length >= 200;
+
   return (
     <div style={{
-      position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)',
+      position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.65)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       zIndex: 1000, backdropFilter: 'blur(4px)'
     }}>
       <div style={{
         background: '#fff', borderRadius: '16px', padding: '32px',
-        width: '100%', maxWidth: '520px', boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
-        position: 'relative'
+        width: '100%', maxWidth: '560px', boxShadow: '0 24px 64px rgba(0,0,0,0.22)',
+        position: 'relative', overflow: 'hidden'
       }}>
-        <button
-          onClick={onClose}
-          style={{
-            position: 'absolute', top: '16px', right: '16px',
-            background: 'none', border: 'none', cursor: 'pointer',
-            color: '#94a3b8', fontSize: '20px', lineHeight: 1
-          }}
-        >
-          ×
-        </button>
+        {loading && <AuditLoadingOverlay step={loadStep} />}
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+        <button onClick={onClose} disabled={loading} style={{
+          position: 'absolute', top: '16px', right: '16px',
+          background: 'none', border: 'none', cursor: 'pointer',
+          color: '#94a3b8', fontSize: '22px', lineHeight: 1
+        }}>×</button>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
           <Shield size={20} color="#002244" />
           <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-            Analyze a Solicitation
+            New Intelligence Audit
           </h2>
         </div>
-        <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 24px 0', lineHeight: 1.5 }}>
-          Paste a SAM.gov opportunity URL. BidSmith will extract the full RFP and generate your Intelligence Brief in ~90 seconds.
-        </p>
 
-        <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: '16px' }}>
+        {/* Mode toggle */}
+        <div style={{
+          display: 'flex', gap: '4px', background: '#f1f5f9',
+          borderRadius: '10px', padding: '4px', marginBottom: '20px'
+        }}>
+          {[
+            { id: 'url', label: 'SAM.gov URL' },
+            { id: 'text', label: 'Paste RFP Text' },
+          ].map(m => (
+            <button key={m.id} onClick={() => { setMode(m.id); setError(''); }}
+              style={{
+                flex: 1, padding: '8px 12px', fontSize: '13px', fontWeight: 700,
+                borderRadius: '7px', border: 'none', cursor: 'pointer',
+                background: mode === m.id ? '#fff' : 'transparent',
+                color: mode === m.id ? '#0f172a' : '#64748b',
+                boxShadow: mode === m.id ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
+                transition: 'all 0.15s'
+              }}
+            >{m.label}</button>
+          ))}
+        </div>
+
+        {mode === 'url' ? (
+          <form onSubmit={handleUrl}>
             <label style={{ fontSize: '12px', fontWeight: 700, color: '#374151', display: 'block', marginBottom: '6px' }}>
-              SAM.gov URL *
+              SAM.gov Opportunity URL
             </label>
             <input
-              type="url"
-              value={url}
-              onChange={e => setUrl(e.target.value)}
+              type="text" value={url} onChange={e => setUrl(e.target.value)}
               placeholder="https://sam.gov/opp/..."
               disabled={loading}
-              required
               style={{
-                width: '100%', padding: '10px 14px', fontSize: '13px',
+                width: '100%', padding: '11px 14px', fontSize: '13px',
                 border: '1px solid #e2e8f0', borderRadius: '8px',
                 outline: 'none', color: '#0f172a', background: '#f8fafc',
-                boxSizing: 'border-box',
-                transition: 'border-color 0.15s'
+                boxSizing: 'border-box', marginBottom: '8px'
               }}
               onFocus={e => e.target.style.borderColor = '#002244'}
               onBlur={e => e.target.style.borderColor = '#e2e8f0'}
             />
-          </div>
-
-          <div style={{ marginBottom: '20px' }}>
+            <p style={{ fontSize: '11px', color: '#94a3b8', margin: '0 0 20px 0' }}>
+              Paste any SAM.gov opportunity URL — BidSmith extracts the full solicitation automatically.
+            </p>
+            {error && <ErrorBox msg={error} />}
+            <SubmitBtn loading={loading} disabled={!canSubmit} />
+          </form>
+        ) : (
+          <form onSubmit={handleText}>
             <label style={{ fontSize: '12px', fontWeight: 700, color: '#374151', display: 'block', marginBottom: '6px' }}>
-              Label (optional)
+              RFP / Solicitation Text
             </label>
-            <input
-              type="text"
-              value={title}
-              onChange={e => setTitle(e.target.value)}
-              placeholder="e.g. Army IT Infrastructure Q2"
-              disabled={loading}
+            <textarea
+              value={rfpText} onChange={e => setRfpText(e.target.value)}
+              placeholder="Paste the full solicitation text here — Section L, Section M, PWS, or the full document..."
+              disabled={loading} rows={8}
               style={{
-                width: '100%', padding: '10px 14px', fontSize: '13px',
+                width: '100%', padding: '11px 14px', fontSize: '12px',
                 border: '1px solid #e2e8f0', borderRadius: '8px',
                 outline: 'none', color: '#0f172a', background: '#f8fafc',
-                boxSizing: 'border-box'
+                boxSizing: 'border-box', resize: 'vertical', lineHeight: 1.5,
+                marginBottom: '8px', fontFamily: 'inherit'
               }}
+              onFocus={e => e.target.style.borderColor = '#002244'}
+              onBlur={e => e.target.style.borderColor = '#e2e8f0'}
             />
-          </div>
-
-          {error && (
-            <div style={{
-              background: '#fff5f5', border: '1px solid #fca5a5',
-              borderRadius: '8px', padding: '10px 14px',
-              fontSize: '12px', color: '#dc2626', marginBottom: '16px'
-            }}>
-              {error}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading || !url.trim()}
-            style={{
-              width: '100%', padding: '12px',
-              background: loading ? '#64748b' : '#002244',
-              color: 'white', border: 'none', borderRadius: '10px',
-              fontWeight: 800, fontSize: '14px', cursor: loading ? 'not-allowed' : 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-              transition: 'background 0.15s'
-            }}
-          >
-            {loading ? (
-              <>
-                <span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>⟳</span>
-                Analyzing solicitation…
-              </>
-            ) : (
-              <>
-                <Zap size={15} />
-                Run Intelligence Audit
-              </>
-            )}
-          </button>
-        </form>
+            <p style={{ fontSize: '11px', color: '#94a3b8', margin: '0 0 20px 0' }}>
+              {rfpText.length} chars — {rfpText.length < 200 ? `need at least ${200 - rfpText.length} more` : 'ready to audit'}
+            </p>
+            {error && <ErrorBox msg={error} />}
+            <SubmitBtn loading={loading} disabled={!canSubmit} />
+          </form>
+        )}
 
         <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
       </div>
     </div>
+  );
+}
+
+function ErrorBox({ msg }) {
+  return (
+    <div style={{
+      background: '#fff5f5', border: '1px solid #fca5a5',
+      borderRadius: '8px', padding: '10px 14px',
+      fontSize: '12px', color: '#dc2626', marginBottom: '16px', lineHeight: 1.5
+    }}>{msg}</div>
+  );
+}
+
+function SubmitBtn({ loading, disabled }) {
+  return (
+    <button type="submit" disabled={disabled || loading} style={{
+      width: '100%', padding: '13px',
+      background: disabled || loading ? '#94a3b8' : '#002244',
+      color: 'white', border: 'none', borderRadius: '10px',
+      fontWeight: 800, fontSize: '14px',
+      cursor: disabled || loading ? 'not-allowed' : 'pointer',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+      transition: 'background 0.15s', letterSpacing: '0.01em'
+    }}>
+      <Zap size={15} />
+      Run Intelligence Audit
+    </button>
   );
 }
 
