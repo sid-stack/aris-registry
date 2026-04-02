@@ -26,6 +26,7 @@ const CompliancePage = lazy(() => import("./pages/CompliancePage"));
 const SurveyAnalytics = lazy(() => import("./components/SurveyAnalytics"));
 const DemoAnalytics = lazy(() => import("./components/DemoAnalytics"));
 const GovConDashboard = lazy(() => import("./pages/GovConDashboard"));
+const GovConDashboardV2 = lazy(() => import("./pages/GovConDashboardV2"));
 const GovConGuide = lazy(() => import("./pages/GovConGuide"));
 const Demo = lazy(() => import("./pages/Demo"));
 const PricingGrid = lazy(() => import("./pages/PricingGrid"));
@@ -144,6 +145,7 @@ export default function App() {
     if (p === "/beta" || p === "/sovereign-beta") return "beta";
     if (p === "/demo") return "demo";
     if (p === "/govcon-guide" || p === "/how-it-works") return "govcon-guide";
+    if (p === "/dashboard-v2") return "govcon-dashboard-v2";
     if (p === "/dashboard" || p === "/app/dashboard") return "govcon-dashboard";
     if (p.startsWith("/labs")) return "labs";
     if (p.startsWith("/compliance/")) return "compliance";
@@ -222,6 +224,8 @@ export default function App() {
       logicalPath = "/demo";
     } else if (view === "govcon-guide") {
       logicalPath = "/govcon-guide";
+    } else if (view === "govcon-dashboard-v2") {
+      logicalPath = "/dashboard-v2";
     } else if (view === "govcon-dashboard") {
       logicalPath = window.location.pathname;
     } else if (view === "compliance") {
@@ -308,6 +312,10 @@ export default function App() {
     content = <About onBack={() => setView("landing")} />;
   } else if (view === "labs") {
     content = <Labs onBack={() => setView("landing")} />;
+  } else if (view === "govcon-dashboard-v2") {
+    content = authenticated
+      ? <GovConDashboardV2 onBack={() => setView("landing")} user={user} />
+      : <Login onLogin={() => { setAuthenticated(true); localStorage.setItem("aris_authenticated", "true"); }} />;
   } else if (view === "govcon-dashboard") {
     content = authenticated
       ? <GovConDashboard onBack={() => setView("landing")} user={user} />

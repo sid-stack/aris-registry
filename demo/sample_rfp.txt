@@ -1,0 +1,44 @@
+SOLICITATION: W912EE-26-R-0042
+AGENCY: Army Corps of Engineers, Walla Walla District
+TITLE: IT Infrastructure Support Services
+NAICS: 541512
+SET-ASIDE: Small Business
+CONTRACT TYPE: IDIQ
+ESTIMATED VALUE: $12,400,000
+RESPONSE DEADLINE: April 14, 2026
+
+SECTION L — INSTRUCTIONS TO OFFERORS
+
+L.1 ELIGIBILITY
+All offerors shall be registered in SAM.gov at time of proposal submission and must maintain active registration through award.
+
+L.2 TECHNICAL VOLUME REQUIREMENTS
+Offerors shall demonstrate a minimum of five (5) years of experience providing IT infrastructure support services to Department of Defense components.
+
+Offerors shall provide three (3) past performance references. Each reference must represent a contract valued at $5,000,000 or greater, completed within the past five (5) years.
+
+Offerors shall submit documentation confirming CMMC Level 2 certification status per DFARS 252.204-7021. Proposals without CMMC documentation will be deemed non-responsive.
+
+L.3 PERSONNEL REQUIREMENTS
+Key Personnel must hold active Secret security clearances. No interim clearances will be accepted. Personnel must be available for on-site performance at Walla Walla, WA no later than Day 1 of contract performance.
+
+L.4 CYBERSECURITY
+Offerors shall have a current NIST SP 800-171 self-assessment posted to the Supplier Performance Risk System (SPRS) at the time of proposal submission. DFARS 252.204-7012 applies to all data processed under this contract.
+
+SECTION M — EVALUATION CRITERIA
+
+M.1 BASIS FOR AWARD
+Award will be made on a Best Value basis. Technical Approach is the most important evaluation factor. Past Performance is the second most important. Price is least important.
+
+M.2 TECHNICAL EVALUATION
+Technical Approach shall be evaluated on:
+- Cloud migration methodology and zero-downtime transition planning
+- CMMC Level 2 documented posture
+- Network operations experience at DoD facilities
+
+M.3 PAST PERFORMANCE
+Past performance shall be evaluated for relevance, recency, and quality. References with direct Army experience shall be rated more favorably.
+
+SECTION H — SPECIAL CONTRACT REQUIREMENTS
+H.1 SUBCONTRACTING PLAN: Small Business set-aside applies per FAR 52.219-6.
+H.4 BID BOND: Not required per this solicitation.

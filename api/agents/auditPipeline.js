@@ -42,6 +42,21 @@ function shredText(text) {
     }));
 }
 
+// ─── Value parser ─────────────────────────────────────────────────────────────
+// Converts "$12.4M", "$500K", "12400000" etc. → integer number
+
+function parseValueToNumber(raw) {
+  if (!raw) return 0;
+  if (typeof raw === "number") return Math.round(raw);
+  const s = String(raw).replace(/[$,\s]/g, "").toUpperCase();
+  const num = parseFloat(s);
+  if (isNaN(num)) return 0;
+  if (s.endsWith("B")) return Math.round(num * 1_000_000_000);
+  if (s.endsWith("M")) return Math.round(num * 1_000_000);
+  if (s.endsWith("K")) return Math.round(num * 1_000);
+  return Math.round(num);
+}
+
 // ─── UI format mapper ─────────────────────────────────────────────────────────
 // Maps the LLM JSON schema to the shape the frontend ComplianceMatrix expects.
 
@@ -52,9 +67,11 @@ function toUIFormat(parsed, meta) {
   return {
     // ── Identity ──────────────────────────────────────────────────────────────
     id: parsed.solicitation_number || meta?.id || "AUDIT",
+    solicitation_number: parsed.solicitation_number || meta?.id || null,
     title: meta?.title || parsed.agency || "Federal Solicitation",
     agency: parsed.agency || meta?.agency || "Federal Agency",
-    value: parsed.estimated_value || meta?.value || "0",
+    value: parseValueToNumber(parsed.estimated_value || meta?.value),
+    naics: parsed.naics_code,
     naics_code: parsed.naics_code,
     set_aside_type: parsed.set_aside_type,
     contract_type: parsed.contract_type,
