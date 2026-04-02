@@ -65,6 +65,7 @@ export default function Landing({
   };
 
   return (
+    <>
     <main style={styles.page}>
       <input type="file" ref={fileInputRef} style={{ display: "none" }} accept=".pdf" onChange={handleFileChange} />
 
@@ -261,6 +262,7 @@ export default function Landing({
     </main>
 
     {showWaitlist && <WaitlistModal onClose={() => setShowWaitlist(false)} source="landing" />}
+    </>
   );
 }
 
