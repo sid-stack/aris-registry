@@ -9,16 +9,16 @@ import { fileURLToPath } from "url";
 import { requestId } from "./middleware/requestId.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { asyncHandler } from "./utils/asyncHandler.js";
+import { sendEmail } from "./utils/mailer.js";
 
 // Stateless Utils & Infrastructure
 import { traceLLM } from "./utils/tracing.js";
 import { callLLM } from "./llm/openrouter.js";
 
 // Services
-import { createCheckoutSession, createDynamicCheckoutSession } from "./services/stripe.js";
+import { createDynamicCheckoutSession } from "./services/stripe.js";
 import { recordAnalyticsEvent, getAdminStats } from "./services/analytics.js";
-import { invokeAuditSwarm } from "./agents/coordinator.js";
-import { fetchSolicitationText, parseNoticeId } from "./services/samGov.js";
+import { fetchSolicitationText } from "./services/samGov.js";
 import { runAudit } from "./agents/auditPipeline.js";
 import { sovereignSearch } from "./services/fedSearch.js";
 import { addToWaitlist, getWaitlist, getWaitlistStats, markInvited } from "./services/waitlist.js";
@@ -57,7 +57,6 @@ app.use(express.static(join(__dirname, "../dist")));
 // Multer for memory upload
 const upload = multer({ storage: multer.memoryStorage() });
 
-// ─── Simple AF PDF Shredder Logic (Fallback) ────────────────────────────────
 // ─── /api/analyze-pdf ────────────────────────────────────────────────────────
 app.post("/api/analyze-pdf", upload.single("file"), asyncHandler(async (req, res) => {
   if (!req.file) return res.status(400).json({ error: "No file uploaded" });
@@ -82,7 +81,6 @@ app.post("/api/analyze-pdf", upload.single("file"), asyncHandler(async (req, res
 }));
 
 // ─── /api/analyze-text ───────────────────────────────────────────────────────
-// Raw text paste → full intelligence audit (used by GovConDashboard text mode)
 app.post("/api/analyze-text", apiLimiter, asyncHandler(async (req, res) => {
   const { text } = req.body;
   if (!text || text.trim().length < 100) {
@@ -93,19 +91,23 @@ app.post("/api/analyze-text", apiLimiter, asyncHandler(async (req, res) => {
   res.json(result);
 }));
 
+// ─── /api/privacy/consent ────────────────────────────────────────────────────
+app.get("/api/privacy/consent", asyncHandler(async (_req, res) => {
+  res.json({ success: true, consent: null });
+}));
+
 app.post("/api/privacy/consent", asyncHandler(async (req, res) => {
   const { analytics, marketing, source } = req.body;
   console.log(`[PRIVACY] Consent update from ${source}: analytics=${analytics}, marketing=${marketing}`);
-  // In a real app, you might save this to a DB or send to an analytics proxy
   res.json({ success: true, updated: new Date().toISOString() });
 }));
 
-// ─── Sovereign Discovery: Asynchronous Harvester ──────────────────────────────
+// ─── Sovereign Discovery Harvester ───────────────────────────────────────────
 
 const DISCOVERY_SEEDS = [
   "Artificial Intelligence", "Generative AI", "Cybersecurity", "Zero Trust",
   "Petroleum", "Oil & Gas", "Energy Security", "Land Acquisition",
-  "Defense Procurement", "Weapon Systems", "Military Logistics", "Wars"
+  "Defense Procurement", "Weapon Systems", "Military Logistics",
 ];
 
 let lastHarvestTime = 0;
@@ -113,7 +115,7 @@ const HARVEST_INTERVAL = 12 * 60 * 60 * 1000;
 const SAM_API_KEY = process.env.SAM_API_KEY || process.env.SAM_GOV_API_KEY;
 
 async function startHarvester() {
-  if (!SAM_API_KEY) return; // Nothing to harvest without credentials
+  if (!SAM_API_KEY) return;
   const pulse = async () => {
     try {
       const now = Date.now();
@@ -139,12 +141,7 @@ async function startHarvester() {
 }
 startHarvester();
 
-// ─── API Endpoints ───────────────────────────────────────────────────────────
-
-app.get("/api/privacy/consent", asyncHandler(async (_req, res) => {
-  res.json({ success: true, consent: null });
-}));
-
+// ─── /api/fed-search ─────────────────────────────────────────────────────────
 app.post("/api/fed-search", apiLimiter, asyncHandler(async (req, res) => {
   const { query, limit = 20, expand = true } = req.body;
   try {
@@ -156,21 +153,18 @@ app.post("/api/fed-search", apiLimiter, asyncHandler(async (req, res) => {
   }
 }));
 
+// ─── /api/track ──────────────────────────────────────────────────────────────
 app.post("/api/track", apiLimiter, asyncHandler(async (req, res) => {
   const { uid, event, value, page, metadata } = req.body;
   const success = await recordAnalyticsEvent({
-    uid,
-    eventType: event,
-    value,
-    page,
+    uid, eventType: event, value, page,
     path: metadata?.path || (page ? new URL(page).pathname : "/unknown"),
-    metadata
+    metadata,
   });
   res.json({ success });
 }));
 
-
-// ─── GOVCON AI DASHBOARD ENDPOINTS ──────────────────────────────────────────
+// ─── GovCon AI Dashboard Endpoints ───────────────────────────────────────────
 
 app.post("/api/govcon/generate-matrix", asyncHandler(async (req, res) => {
   const { rfpText } = req.body;
@@ -216,71 +210,51 @@ app.post("/api/waitlist", asyncHandler(async (req, res) => {
     return res.status(400).json({ error: "Invalid email address." });
   }
 
-  const entry = await addToWaitlist({ name: name.trim(), email: email.trim(), company, role, use_case, source });
+  await addToWaitlist({ name: name.trim(), email: email.trim(), company, role, use_case, source });
 
-  // Send confirmation email
-  try {
-    const nodemailer = (await import("nodemailer")).default;
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || "smtp.gmail.com",
-      port: parseInt(process.env.SMTP_PORT || "587"),
-      secure: false,
-      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-    });
-    await transporter.sendMail({
-      from: `"BidSmith" <${process.env.SMTP_USER}>`,
-      to: email.trim(),
-      subject: "You're on the BidSmith early access list",
-      html: `
-        <div style="font-family:Inter,sans-serif;max-width:560px;margin:0 auto;padding:32px;background:#fff">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px">
-            <span style="font-size:22px;font-weight:900;color:#0B3D91;letter-spacing:0.05em;font-family:'Georgia',serif">BIDSMITH</span>
-            <span style="font-size:10px;font-weight:700;color:#7c3aed;background:#f3e8ff;padding:2px 8px;border-radius:20px">EARLY ACCESS</span>
-          </div>
-          <h2 style="color:#0f172a;font-size:20px;margin:0 0 12px">You're in, ${name.split(' ')[0]}.</h2>
-          <p style="color:#475569;font-size:14px;line-height:1.6;margin:0 0 16px">
-            We've added you to the BidSmith early access list. You'll be among the first to get full access
-            when we open — with a personal invite and a referral link to share with your network.
-          </p>
-          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px;margin:16px 0">
-            <p style="color:#0f172a;font-size:13px;font-weight:700;margin:0 0 8px">What BidSmith does:</p>
-            <ul style="color:#475569;font-size:13px;line-height:1.7;margin:0;padding-left:18px">
-              <li>Audits any SAM.gov solicitation in ~90 seconds</li>
-              <li>Instant bid/no-bid recommendation with win probability</li>
-              <li>Compliance matrix, hidden requirements, FAR/DFARS flags</li>
-              <li>Price-to-win estimate and proposal roadmap</li>
-            </ul>
-          </div>
-          <p style="color:#94a3b8;font-size:12px;margin:24px 0 0">
-            Questions? Reply to this email — Sid reads every one.<br>
-            <a href="https://bidsmith.pro" style="color:#0B3D91">bidsmith.pro</a>
-          </p>
-        </div>
-      `,
-    });
-    console.log(`[WAITLIST] Confirmation email sent to ${email}`);
-  } catch (emailErr) {
-    console.warn(`[WAITLIST] Email failed (non-fatal): ${emailErr.message}`);
-  }
-
-  // Notify Sid
-  try {
-    const nodemailer = (await import("nodemailer")).default;
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || "smtp.gmail.com",
-      port: parseInt(process.env.SMTP_PORT || "587"),
-      secure: false,
-      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-    });
-    await transporter.sendMail({
-      from: `"BidSmith Waitlist" <${process.env.SMTP_USER}>`,
-      to: process.env.CONTACT_TO || "sid@bidsmith.pro",
-      subject: `🎯 New early access request — ${company || name}`,
-      html: `<p><b>${name}</b> (${email}) from <b>${company || "—"}</b> just joined the waitlist.<br>Role: ${role || "—"}<br>Use case: ${use_case || "—"}</p>`,
-    });
-  } catch (e) { /* non-fatal */ }
-
+  // ── Respond immediately — don't block on email delivery ─────────────────
+  // Email is fire-and-forget. SMTP timeouts were causing the form to hang.
   res.json({ success: true, message: "You're on the list. Check your inbox." });
+
+  // Send emails in background (non-blocking)
+  const firstName = name.split(' ')[0];
+  sendEmail({
+    to: email.trim(),
+    subject: "You're on the BidSmith early access list",
+    html: `
+      <div style="font-family:Inter,sans-serif;max-width:560px;margin:0 auto;padding:32px;background:#fff">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px">
+          <span style="font-size:22px;font-weight:900;color:#0B3D91;letter-spacing:0.05em;font-family:'Georgia',serif">BIDSMITH</span>
+          <span style="font-size:10px;font-weight:700;color:#7c3aed;background:#f3e8ff;padding:2px 8px;border-radius:20px">EARLY ACCESS</span>
+        </div>
+        <h2 style="color:#0f172a;font-size:20px;margin:0 0 12px">You're in, ${firstName}.</h2>
+        <p style="color:#475569;font-size:14px;line-height:1.6;margin:0 0 16px">
+          We've added you to the BidSmith early access list. You'll be among the first to get full access
+          when we open — with a personal invite and a referral link to share with your network.
+        </p>
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px;margin:16px 0">
+          <p style="color:#0f172a;font-size:13px;font-weight:700;margin:0 0 8px">What BidSmith does:</p>
+          <ul style="color:#475569;font-size:13px;line-height:1.7;margin:0;padding-left:18px">
+            <li>Audits any SAM.gov solicitation in ~90 seconds</li>
+            <li>Instant bid/no-bid recommendation with win probability</li>
+            <li>Compliance matrix, hidden requirements, FAR/DFARS flags</li>
+            <li>Price-to-win estimate and proposal roadmap</li>
+          </ul>
+        </div>
+        <p style="color:#94a3b8;font-size:12px;margin:24px 0 0">
+          Questions? Reply to this email — Sid reads every one.<br>
+          <a href="https://bidsmith.pro" style="color:#0B3D91">bidsmith.pro</a>
+        </p>
+      </div>
+    `,
+  }).then(ok => ok && console.log(`[WAITLIST] Confirmation sent to ${email}`));
+
+  sendEmail({
+    from: `"BidSmith Waitlist" <${process.env.SMTP_USER}>`,
+    to: process.env.CONTACT_TO || "sid@bidsmith.pro",
+    subject: `🎯 New signup — ${company || name}`,
+    html: `<p><b>${name}</b> (${email}) from <b>${company || "—"}</b> just joined the waitlist.<br>Role: ${role || "—"}<br>Use case: ${use_case || "—"}</p>`,
+  });
 }));
 
 // ─── /api/waitlist/list — admin only ─────────────────────────────────────────
@@ -304,47 +278,33 @@ app.post("/api/waitlist/invite", asyncHandler(async (req, res) => {
 
   const entries = await getWaitlist();
   const targets = entries.filter(e => ids.includes(e.id));
-
   await markInvited(ids);
-
-  // Send invite emails
-  const nodemailer = (await import("nodemailer")).default;
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || "smtp.gmail.com",
-    port: parseInt(process.env.SMTP_PORT || "587"),
-    secure: false,
-    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-  });
 
   let sent = 0;
   for (const entry of targets) {
-    try {
-      await transporter.sendMail({
-        from: `"Sid @ BidSmith" <${process.env.SMTP_USER}>`,
-        to: entry.email,
-        subject: "Your BidSmith access is ready",
-        html: `
-          <div style="font-family:Inter,sans-serif;max-width:560px;margin:0 auto;padding:32px;background:#fff">
-            <span style="font-size:22px;font-weight:900;color:#0B3D91;letter-spacing:0.05em;font-family:'Georgia',serif">BIDSMITH</span>
-            <h2 style="color:#0f172a;font-size:20px;margin:24px 0 12px">Your access is ready, ${entry.name.split(' ')[0]}.</h2>
-            <p style="color:#475569;font-size:14px;line-height:1.6;margin:0 0 20px">
-              ${custom_message || "You're one of the first people to get access to BidSmith — the AI audit engine for government contractors. Go ahead and run your first audit."}
-            </p>
-            <a href="https://bidsmith.pro/app" style="display:inline-block;background:#002244;color:white;padding:14px 28px;border-radius:10px;font-weight:800;font-size:14px;text-decoration:none;margin-bottom:24px">
-              Open BidSmith →
-            </a>
-            <p style="color:#64748b;font-size:13px;line-height:1.6">
-              Share with a colleague who bids on government contracts and they'll get priority access too:<br>
-              <a href="https://bidsmith.pro/app?ref=${entry.id.slice(0,8)}" style="color:#0B3D91;font-weight:600">bidsmith.pro/app?ref=${entry.id.slice(0,8)}</a>
-            </p>
-            <p style="color:#94a3b8;font-size:12px;margin:24px 0 0">Reply to this email if you have any questions — Sid reads every one.</p>
-          </div>
-        `,
-      });
-      sent++;
-    } catch (err) {
-      console.warn(`[INVITE] Failed for ${entry.email}: ${err.message}`);
-    }
+    const ok = await sendEmail({
+      from: `"Sid @ BidSmith" <${process.env.SMTP_USER}>`,
+      to: entry.email,
+      subject: "Your BidSmith access is ready",
+      html: `
+        <div style="font-family:Inter,sans-serif;max-width:560px;margin:0 auto;padding:32px;background:#fff">
+          <span style="font-size:22px;font-weight:900;color:#0B3D91;letter-spacing:0.05em;font-family:'Georgia',serif">BIDSMITH</span>
+          <h2 style="color:#0f172a;font-size:20px;margin:24px 0 12px">Your access is ready, ${entry.name.split(' ')[0]}.</h2>
+          <p style="color:#475569;font-size:14px;line-height:1.6;margin:0 0 20px">
+            ${custom_message || "You're one of the first people to get access to BidSmith — the AI audit engine for government contractors. Go ahead and run your first audit."}
+          </p>
+          <a href="https://bidsmith.pro/app" style="display:inline-block;background:#002244;color:white;padding:14px 28px;border-radius:10px;font-weight:800;font-size:14px;text-decoration:none;margin-bottom:24px">
+            Open BidSmith →
+          </a>
+          <p style="color:#64748b;font-size:13px;line-height:1.6">
+            Share with a colleague:<br>
+            <a href="https://bidsmith.pro/app?ref=${entry.id.slice(0,8)}" style="color:#0B3D91;font-weight:600">bidsmith.pro/app?ref=${entry.id.slice(0,8)}</a>
+          </p>
+          <p style="color:#94a3b8;font-size:12px;margin:24px 0 0">Reply to this email with any questions — Sid reads every one.</p>
+        </div>
+      `,
+    });
+    if (ok) sent++;
   }
 
   res.json({ success: true, sent, total: targets.length });
@@ -366,7 +326,6 @@ app.post("/api/analyze-link", apiLimiter, asyncHandler(async (req, res) => {
       meta = samMeta;
     } catch (samErr) {
       console.error(`[LINK_AUDIT] SAM.gov fetch failed: ${samErr.message}`);
-      // Return 422 (not 500) with a human-readable message + hint to use text paste
       return res.status(422).json({
         error: samErr.message.includes("SAM_RATE_LIMIT")
           ? "SAM.gov rate limit hit — wait 60 seconds and try again."
@@ -378,7 +337,7 @@ app.post("/api/analyze-link", apiLimiter, asyncHandler(async (req, res) => {
 
     if (!solicitationText) {
       return res.status(422).json({
-        error: "SAM.gov returned no solicitation text for this opportunity. The attachments may be inaccessible.",
+        error: "SAM.gov returned no solicitation text for this opportunity.",
         hint: "Switch to the 'Paste RFP Text' tab and paste the solicitation text directly.",
         canRetryWithText: true,
       });
@@ -488,31 +447,20 @@ Keep it under 600 words. Use markdown headers and bullets.`;
   res.end();
 }));
 
-// ─── Contact Form ────────────────────────────────────────────────────────────
+// ─── /api/contact ────────────────────────────────────────────────────────────
 app.post("/api/contact", asyncHandler(async (req, res) => {
   const { name, email, service, message } = req.body;
   if (!name || !email || !message) {
     return res.status(400).json({ error: "Name, email, and message are required." });
   }
 
-  const nodemailer = (await import("nodemailer")).default;
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || "smtp.gmail.com",
-    port: parseInt(process.env.SMTP_PORT || "587"),
-    secure: false,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  });
-
-  await transporter.sendMail({
+  await sendEmail({
     from: `"ARIS Contact" <${process.env.SMTP_USER}>`,
     to: process.env.CONTACT_TO || "sid@bidsmith.pro",
     replyTo: email,
     subject: `New Contact: ${name} — ${service || "General Inquiry"}`,
     text: `Name: ${name}\nEmail: ${email}\nService: ${service || "N/A"}\n\n${message}`,
-  });
+  }, { fatal: true });
 
   res.json({ ok: true });
 }));
@@ -522,4 +470,4 @@ app.get("*", (req, res) => res.sendFile(join(__dirname, "../dist/index.html")));
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-app.listen(PORT, () => console.log(`✅ ARIS Protocol v2.2 -> http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`✅ BidSmith API v2.3 -> http://localhost:${PORT}`));
