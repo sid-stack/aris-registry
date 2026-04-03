@@ -38,7 +38,7 @@ async function tryMercury(system, user, opts = {}) {
           { role: "user",   content: user   },
         ],
       }),
-      signal: AbortSignal.timeout(60_000),
+      signal: AbortSignal.timeout(30_000),
     });
     if (!res.ok) {
       logger.debug("llm_provider_failed", {
@@ -89,7 +89,7 @@ async function tryGemini(system, user, opts = {}) {
           contents: [{ role: "user", parts: [{ text: user }] }],
           generationConfig: { maxOutputTokens: max_tokens, temperature: 0.1 },
         }),
-        signal: AbortSignal.timeout(60_000),
+        signal: AbortSignal.timeout(30_000),
       }
     );
     if (!res.ok) {
