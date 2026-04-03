@@ -23,6 +23,7 @@ import IntelligenceBrief from '../components/forge/IntelligenceBrief';
 import ProposalForge from '../components/forge/ProposalForge';
 import ComplianceMatrix from '../components/dashboard/ComplianceMatrix';
 import WaitlistModal from '../components/WaitlistModal';
+import HighLoadNotice from './HighLoadNotice';
 
 // ─── Demo audit data (shown when no audit is loaded) ──────────────────────────
 
@@ -240,7 +241,7 @@ function AuditLoadingOverlay({ step }) {
 
 // ─── New Audit Modal ───────────────────────────────────────────────────────────
 
-function NewAuditModal({ onClose, onAuditComplete, userId, userEmail }) {
+function NewAuditModal({ onClose, onAuditComplete, onServerError, userId, userEmail }) {
   const [mode, setMode] = useState('url'); // 'url' | 'text' | 'pdf'
   const [url, setUrl] = useState('');
   const [rfpText, setRfpText] = useState('');
@@ -250,6 +251,15 @@ function NewAuditModal({ onClose, onAuditComplete, userId, userEmail }) {
   const [loadStep, setLoadStep] = useState(0);
   const [error, setError] = useState('');
   const [errorHint, setErrorHint] = useState('');
+
+  // 5xx or network failure → show HighLoadNotice instead of inline error
+  const handleServerError = (status) => {
+    if (status >= 500 || status === 0) {
+      onServerError?.();
+      return true;
+    }
+    return false;
+  };
 
   // Advance step counter while loading
   const startStepTimer = () => {
@@ -287,13 +297,15 @@ function NewAuditModal({ onClose, onAuditComplete, userId, userEmail }) {
         body: JSON.stringify({ url: url.trim() })
       });
       if (!res.ok) {
+        if (handleServerError(res.status)) return;
         const body = await res.json().catch(() => ({}));
         if (body.hint) setErrorHint(body.hint);
         if (body.canRetryWithText) setMode('text');
-        throw new Error(body.error || `Server error ${res.status}`);
+        throw new Error(body.error || `Error ${res.status}`);
       }
       await saveAndReturn(await res.json());
     } catch (err) {
+      if (err.name === 'TypeError') { handleServerError(0); return; } // network failure
       setError(err.message || 'Audit failed. Check the URL and try again.');
     } finally {
       clearInterval(iv); setLoading(false);
@@ -315,11 +327,13 @@ function NewAuditModal({ onClose, onAuditComplete, userId, userEmail }) {
         body: JSON.stringify({ text: rfpText.trim() })
       });
       if (!res.ok) {
+        if (handleServerError(res.status)) return;
         const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || `Server error ${res.status}`);
+        throw new Error(body.error || `Error ${res.status}`);
       }
       await saveAndReturn(await res.json());
     } catch (err) {
+      if (err.name === 'TypeError') { handleServerError(0); return; }
       setError(err.message || 'Audit failed. Try again or check the pasted text.');
     } finally {
       clearInterval(iv); setLoading(false);
@@ -337,11 +351,16 @@ function NewAuditModal({ onClose, onAuditComplete, userId, userEmail }) {
       const headers = {};
       if (userEmail) headers['x-user-email'] = userEmail;
       const res = await fetch('/api/analyze-pdf', { method: 'POST', headers, body: formData });
-      const data = await res.json().catch(() => ({}));
-      if (data.queued || !res.ok) { setQueued(true); return; }
-      await saveAndReturn(data);
+      if (res.ok) {
+        const data = await res.json().catch(() => ({}));
+        if (data.queued) { setQueued(true); return; }
+        await saveAndReturn(data);
+      } else {
+        if (handleServerError(res.status)) return;
+        setQueued(true);
+      }
     } catch {
-      setQueued(true);
+      handleServerError(0); // network failure
     } finally {
       clearInterval(iv); setLoading(false);
     }
@@ -577,6 +596,7 @@ export default function GovConDashboardV2({ onBack, user }) {
   const [activeAudit, setActiveAudit] = useState(DEMO_AUDIT_DATA);
   const [showNewAudit, setShowNewAudit] = useState(false);
   const [showWaitlist, setShowWaitlist] = useState(false);
+  const [serverError, setServerError] = useState(false);
 
   useEffect(() => {
     document.documentElement.style.setProperty('--background', '#f1f5f9');
@@ -629,6 +649,8 @@ export default function GovConDashboardV2({ onBack, user }) {
     setActiveAudit(auditData);
     if (user?.id) loadPipeline(user.id);
   };
+
+  if (serverError) return <HighLoadNotice />;
 
   return (
     <div style={{
@@ -813,6 +835,7 @@ export default function GovConDashboardV2({ onBack, user }) {
         <NewAuditModal
           onClose={() => setShowNewAudit(false)}
           onAuditComplete={handleAuditComplete}
+          onServerError={() => { setShowNewAudit(false); setServerError(true); }}
           userId={user?.id}
           userEmail={user?.email}
         />

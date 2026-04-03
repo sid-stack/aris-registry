@@ -315,7 +315,9 @@ export default function App() {
   } else if (view === "labs") {
     content = <Labs onBack={() => setView("landing")} />;
   } else if (view === "govcon-dashboard") {
-    content = <HighLoadNotice />;
+    content = authenticated && user
+      ? <GovConDashboardV2 onBack={() => setView("landing")} user={user} />
+      : <Login onLogin={(u) => { setAuthenticated(true); setUser(u); localStorage.setItem("aris_authenticated", "true"); }} />;
   } else if (view === "compliance") {
     const slug = window.location.pathname.replace("/compliance/", "");
     content = <CompliancePage slug={slug} onBack={() => setView("app")} />;
@@ -364,7 +366,9 @@ export default function App() {
       />
     );
   } else if (view === "app") {
-    content = <HighLoadNotice />;
+    content = authenticated && user
+      ? <GovConDashboardV2 onBack={() => setView("landing")} user={user} />
+      : <Login onLogin={(u) => { setAuthenticated(true); setUser(u); localStorage.setItem("aris_authenticated", "true"); }} />;
   } else if (view === "404") {
     content = <NotFound onBack={() => setView("landing")} />;
   } else if (!authenticated) {
