@@ -18,7 +18,7 @@ import { callLLM } from "./llm/openrouter.js";
 
 // Services
 import { createDynamicCheckoutSession } from "./services/stripe.js";
-import { recordAnalyticsEvent, getAdminStats, saveAudit, getAuditHistory, getAuditById } from "./services/analytics.js";
+import { recordAnalyticsEvent, getAdminStats, saveAudit, getAuditHistory, getAuditById, savePendingReport, getPendingReports, getPendingReportById, markReportSent, updateReportNotes } from "./services/analytics.js";
 import { fetchSolicitationText } from "./services/samGov.js";
 import { runAudit } from "./agents/auditPipeline.js";
 import { sovereignSearch } from "./services/fedSearch.js";
@@ -100,6 +100,7 @@ app.post("/api/analyze-pdf", upload.single("file"), asyncHandler(async (req, res
   }).catch(() => {}); // never block the response
 
   // ── Try automated audit; fall back to queued if it fails ─────────────────
+  const userId = req.headers["x-user-id"] || "anonymous";
   try {
     const result = await runAudit(rfpText, {
       id: filename.replace(/\.pdf$/i, ""),
@@ -107,6 +108,17 @@ app.post("/api/analyze-pdf", upload.single("file"), asyncHandler(async (req, res
       agency: "Extracted from PDF",
       value: "0",
     });
+    savePendingReport({
+      uid: userId,
+      user_email: userEmail,
+      sam_url: null,
+      solicitation_number: result.solicitation_number || null,
+      title: result.title || filename,
+      agency: result.agency || "Extracted from PDF",
+      verdict: result.verdict?.recommendation || null,
+      win_probability: result.verdict?.win_probability ?? null,
+      audit_result: result,
+    }).catch(() => {});
     res.json(result);
   } catch (err) {
     logger.warn("pdf_audit_failed", requestMeta(req, {
@@ -123,10 +135,24 @@ app.post("/api/analyze-text", apiLimiter, asyncHandler(async (req, res) => {
   if (!text || text.trim().length < 100) {
     return res.status(400).json({ error: "Text too short — paste at least 200 characters of solicitation content." });
   }
+  const userId = req.headers["x-user-id"] || "anonymous";
+  const userEmail = req.headers["x-user-email"] || "unknown";
   logger.info("text_audit_received", requestMeta(req, {
     chars: text.length,
+    user_email: userEmail,
   }));
   const result = await runAudit(text.trim(), { id: "TEXT_AUDIT", title: "Pasted Solicitation", agency: "Unknown", value: "0" });
+  savePendingReport({
+    uid: userId,
+    user_email: userEmail,
+    sam_url: null,
+    solicitation_number: result.solicitation_number || null,
+    title: result.title || "Pasted Solicitation",
+    agency: result.agency || "Unknown",
+    verdict: result.verdict?.recommendation || null,
+    win_probability: result.verdict?.win_probability ?? null,
+    audit_result: result,
+  }).catch(() => {});
   res.json(result);
 }));
 
@@ -255,6 +281,88 @@ app.get("/api/admin/stats", asyncHandler(async (req, res) => {
   res.json(stats);
 }));
 
+// ─── /api/admin/pending-reports ──────────────────────────────────────────────
+app.get("/api/admin/pending-reports", asyncHandler(async (req, res) => {
+  const { status } = req.query;
+  const reports = await getPendingReports(status || null);
+  res.json({ reports });
+}));
+
+app.patch("/api/admin/pending-reports/:id/notes", asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { notes } = req.body;
+  await updateReportNotes(id, notes || "");
+  res.json({ success: true });
+}));
+
+app.post("/api/admin/pending-reports/:id/send", asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const report = await getPendingReportById(id);
+  if (!report) return res.status(404).json({ error: "Report not found" });
+  if (!report.user_email || report.user_email === "unknown") {
+    return res.status(400).json({ error: "No user email on record for this report" });
+  }
+
+  const a = report.audit_result || {};
+  const verdict = report.verdict || a.verdict?.recommendation || "Review";
+  const winProb = report.win_probability ?? a.verdict?.win_probability ?? 0;
+  const agency = report.agency || a.agency || "Federal Agency";
+  const title = report.title || a.title || "Federal Solicitation";
+  const solNum = report.solicitation_number || a.solicitation_number || "—";
+  const adminNotes = report.admin_notes ? `<p style="margin-top:20px;padding:16px;background:#f8fafc;border-radius:8px;font-size:14px;color:#334155"><strong>Analyst Notes:</strong><br>${report.admin_notes.replace(/\n/g, "<br>")}</p>` : "";
+
+  const verdictColor = verdict?.toLowerCase().includes("bid") ? "#16a34a" : verdict?.toLowerCase().includes("no") ? "#dc2626" : "#d97706";
+
+  const emailSent = await sendEmail({
+    to: report.user_email,
+    subject: `Your BidSmith Audit Report — ${title}`,
+    html: `
+      <div style="font-family:Inter,system-ui,sans-serif;max-width:640px;margin:0 auto;background:#fff;padding:32px;border-radius:16px;border:1px solid #e2e8f0">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:28px">
+          <div style="width:40px;height:40px;background:#002244;border-radius:10px;display:flex;align-items:center;justify-content:center">
+            <span style="color:#fff;font-weight:900;font-size:18px">B</span>
+          </div>
+          <div>
+            <div style="font-weight:800;font-size:18px;color:#0f172a">BidSmith Audit Report</div>
+            <div style="font-size:12px;color:#64748b">Reviewed by ARIS Labs</div>
+          </div>
+        </div>
+
+        <h2 style="margin:0 0 4px;font-size:20px;color:#0f172a">${title}</h2>
+        <p style="margin:0 0 24px;font-size:13px;color:#64748b">${agency} · ${solNum}</p>
+
+        <div style="display:flex;gap:16px;margin-bottom:24px;flex-wrap:wrap">
+          <div style="flex:1;min-width:140px;padding:16px;border-radius:12px;border:1px solid #e2e8f0;text-align:center">
+            <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px">Verdict</div>
+            <div style="font-size:18px;font-weight:900;color:${verdictColor}">${verdict}</div>
+          </div>
+          <div style="flex:1;min-width:140px;padding:16px;border-radius:12px;border:1px solid #e2e8f0;text-align:center">
+            <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px">Win Probability</div>
+            <div style="font-size:18px;font-weight:900;color:#2563eb">${winProb}%</div>
+          </div>
+        </div>
+
+        ${a.executiveSummary ? `<div style="padding:16px;background:#f8fafc;border-radius:10px;margin-bottom:20px"><p style="margin:0;font-size:14px;color:#334155;line-height:1.7">${a.executiveSummary}</p></div>` : ""}
+
+        ${adminNotes}
+
+        ${report.sam_url ? `<div style="margin-top:20px"><a href="${report.sam_url}" style="color:#2563eb;font-size:13px">View on SAM.gov →</a></div>` : ""}
+
+        <div style="margin-top:32px;padding-top:20px;border-top:1px solid #f1f5f9">
+          <p style="margin:0;font-size:12px;color:#94a3b8">This report was generated by BidSmith and reviewed by ARIS Labs. Questions? Reply to this email or visit <a href="https://bidsmith.pro" style="color:#2563eb">bidsmith.pro</a>.</p>
+        </div>
+      </div>
+    `,
+  }, { fatal: false });
+
+  if (emailSent) {
+    await markReportSent(id);
+    res.json({ success: true, sent_to: report.user_email });
+  } else {
+    res.status(502).json({ error: "Email delivery failed — check SMTP configuration" });
+  }
+}));
+
 // ─── /api/waitlist — public join ─────────────────────────────────────────────
 app.post("/api/waitlist", asyncHandler(async (req, res) => {
   const { name, email, company, role, use_case, source } = req.body;
@@ -377,6 +485,8 @@ app.post("/api/waitlist/invite", asyncHandler(async (req, res) => {
 // ─── /api/analyze-link ───────────────────────────────────────────────────────
 app.post("/api/analyze-link", apiLimiter, asyncHandler(async (req, res) => {
   const { url } = req.body;
+  const userId = req.headers["x-user-id"] || "anonymous";
+  const userEmail = req.headers["x-user-email"] || "unknown";
   if (!url) return res.status(400).json({ error: "URL is required" });
 
   const normalized = url.toLowerCase().trim();
@@ -429,6 +539,17 @@ app.post("/api/analyze-link", apiLimiter, asyncHandler(async (req, res) => {
     chars: solicitationText.length,
   }));
   const result = await runAudit(solicitationText, meta);
+  savePendingReport({
+    uid: userId,
+    user_email: userEmail,
+    sam_url: url,
+    solicitation_number: result.solicitation_number || meta.id || null,
+    title: result.title || meta.title || null,
+    agency: result.agency || meta.agency || null,
+    verdict: result.verdict?.recommendation || null,
+    win_probability: result.verdict?.win_probability ?? null,
+    audit_result: result,
+  }).catch(() => {});
   res.json(result);
 }));
 

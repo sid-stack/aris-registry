@@ -293,7 +293,11 @@ function NewAuditModal({ onClose, onAuditComplete, onServerError, userId, userEm
     try {
       const res = await fetch('/api/analyze-link', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(userId && { 'x-user-id': userId }),
+          ...(userEmail && { 'x-user-email': userEmail }),
+        },
         body: JSON.stringify({ url: url.trim() })
       });
       if (!res.ok) {
@@ -323,7 +327,11 @@ function NewAuditModal({ onClose, onAuditComplete, onServerError, userId, userEm
     try {
       const res = await fetch('/api/analyze-text', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(userId && { 'x-user-id': userId }),
+          ...(userEmail && { 'x-user-email': userEmail }),
+        },
         body: JSON.stringify({ text: rfpText.trim() })
       });
       if (!res.ok) {
@@ -350,6 +358,7 @@ function NewAuditModal({ onClose, onAuditComplete, onServerError, userId, userEm
       formData.append('file', pdfFile);
       const headers = {};
       if (userEmail) headers['x-user-email'] = userEmail;
+      if (userId) headers['x-user-id'] = userId;
       const res = await fetch('/api/analyze-pdf', { method: 'POST', headers, body: formData });
       if (res.ok) {
         const data = await res.json().catch(() => ({}));

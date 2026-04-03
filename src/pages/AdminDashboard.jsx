@@ -31,6 +31,14 @@ const AdminDashboard = ({ onBack }) => {
   const [inviting, setInviting] = useState(false);
   const [inviteResult, setInviteResult] = useState(null);
 
+  // Pending Reports state
+  const [pendingReports, setPendingReports] = useState([]);
+  const [pendingLoading, setPendingLoading] = useState(false);
+  const [expandedReport, setExpandedReport] = useState(null);
+  const [reportNotes, setReportNotes] = useState({});
+  const [sendingReport, setSendingReport] = useState(null);
+  const [sendResult, setSendResult] = useState({});
+
   const fetchStats = async () => {
     setLoading(true);
     try {
@@ -64,6 +72,51 @@ const AdminDashboard = ({ onBack }) => {
   useEffect(() => {
     if (activeTab === 'waitlist') fetchWaitlist();
   }, [activeTab]);
+
+  const fetchPendingReports = async () => {
+    setPendingLoading(true);
+    try {
+      const res = await fetch('/api/admin/pending-reports');
+      const data = await res.json();
+      setPendingReports(data.reports || []);
+      const notes = {};
+      (data.reports || []).forEach(r => { notes[r.id] = r.admin_notes || ''; });
+      setReportNotes(notes);
+    } catch (e) { console.warn('pending reports fetch failed', e); }
+    finally { setPendingLoading(false); }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'pending_reports') fetchPendingReports();
+  }, [activeTab]);
+
+  const saveNotes = async (id) => {
+    await fetch(`/api/admin/pending-reports/${id}/notes`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ notes: reportNotes[id] || '' }),
+    });
+  };
+
+  const sendReport = async (id) => {
+    setSendingReport(id);
+    setSendResult(prev => ({ ...prev, [id]: null }));
+    try {
+      await saveNotes(id);
+      const res = await fetch(`/api/admin/pending-reports/${id}/send`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        setSendResult(prev => ({ ...prev, [id]: `Sent to ${data.sent_to}` }));
+        setPendingReports(prev => prev.map(r => r.id === id ? { ...r, status: 'sent' } : r));
+      } else {
+        setSendResult(prev => ({ ...prev, [id]: `Error: ${data.error}` }));
+      }
+    } catch (e) {
+      setSendResult(prev => ({ ...prev, [id]: 'Failed to send' }));
+    } finally {
+      setSendingReport(null);
+    }
+  };
 
   const sendInvites = async () => {
     if (!selectedIds.length) return;
@@ -134,6 +187,7 @@ const AdminDashboard = ({ onBack }) => {
           <NavBtn icon={<Wallet size={18}/>} label="Stripe Transactions" active={activeTab === 'stripe_logs'} onClick={() => setActiveTab('stripe_logs')} />
           <NavBtn icon={<Layers size={18}/>} label="Redis Mesh Cache" active={activeTab === 'mesh'} onClick={() => setActiveTab('mesh')} />
           <NavBtn icon={<Star size={18}/>} label="Early Access List" active={activeTab === 'waitlist'} onClick={() => setActiveTab('waitlist')} />
+          <NavBtn icon={<FileText size={18}/>} label="Pending Reports" active={activeTab === 'pending_reports'} onClick={() => setActiveTab('pending_reports')} />
 
           <div style={sh.navSeparator} />
           <NavBtn icon={<TrendingUp size={18}/>} label="Monetization HQ" onClick={() => window.open('https://dashboard.stripe.com', '_blank')} />
@@ -234,7 +288,7 @@ const AdminDashboard = ({ onBack }) => {
         )}
 
         {/* --- DYNAMIC TABLES --- */}
-        {activeTab !== 'overview' && (
+        {activeTab !== 'overview' && activeTab !== 'waitlist' && activeTab !== 'pending_reports' && (
           <div style={sh.tableContainer}>
              <div style={sh.tableHeader}>
                 <div style={sh.searchBox}>
@@ -434,6 +488,149 @@ const AdminDashboard = ({ onBack }) => {
             </div>
           </div>
         )}
+        {/* ── PENDING REPORTS TAB ───────────────────────────────────────── */}
+        {activeTab === 'pending_reports' && (
+          <div style={{ padding: '0 32px 32px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+              <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>User Audit Reports</h2>
+              <button onClick={fetchPendingReports} style={{
+                padding: '6px 14px', background: '#002244', color: '#fff',
+                border: 'none', borderRadius: '8px', fontSize: '12px',
+                fontWeight: 700, cursor: 'pointer'
+              }}>Refresh</button>
+              <span style={{ fontSize: '12px', color: '#94a3b8' }}>
+                {pendingReports.filter(r => r.status === 'pending').length} pending · {pendingReports.length} total
+              </span>
+            </div>
+
+            {pendingLoading && <p style={{ color: '#94a3b8', fontSize: '14px' }}>Loading...</p>}
+
+            {!pendingLoading && pendingReports.length === 0 && (
+              <p style={{ color: '#94a3b8', fontSize: '14px' }}>No reports yet. Reports appear here when users run audits.</p>
+            )}
+
+            {!pendingLoading && pendingReports.map(report => (
+              <div key={report.id} style={{
+                background: '#fff', border: '1px solid #e2e8f0',
+                borderRadius: '12px', marginBottom: '12px', overflow: 'hidden'
+              }}>
+                {/* Row */}
+                <div
+                  onClick={() => setExpandedReport(expandedReport === report.id ? null : report.id)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '16px',
+                    padding: '14px 20px', cursor: 'pointer',
+                    background: expandedReport === report.id ? '#f8fafc' : '#fff'
+                  }}
+                >
+                  <span style={{
+                    fontSize: '10px', fontWeight: 800, padding: '3px 8px', borderRadius: '20px',
+                    color: report.status === 'sent' ? '#16a34a' : '#d97706',
+                    background: report.status === 'sent' ? '#f0fdf4' : '#fef9f0',
+                    whiteSpace: 'nowrap'
+                  }}>{report.status?.toUpperCase()}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: '13px', color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {report.title || 'Untitled Solicitation'}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#64748b' }}>
+                      {report.agency || '—'} · {report.user_email}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                    {report.verdict && (
+                      <span style={{
+                        fontSize: '12px', fontWeight: 700,
+                        color: report.verdict?.toLowerCase().includes('bid') ? '#16a34a' : report.verdict?.toLowerCase().includes('no') ? '#dc2626' : '#d97706'
+                      }}>{report.verdict}</span>
+                    )}
+                    {report.win_probability != null && (
+                      <span style={{ fontSize: '11px', color: '#94a3b8', marginLeft: '8px' }}>{report.win_probability}% win</span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#94a3b8', whiteSpace: 'nowrap' }}>
+                    {new Date(report.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                </div>
+
+                {/* Expanded detail */}
+                {expandedReport === report.id && (
+                  <div style={{ padding: '20px', borderTop: '1px solid #f1f5f9', background: '#fafbfc' }}>
+                    {/* Info row */}
+                    <div style={{ display: 'flex', gap: '24px', marginBottom: '16px', flexWrap: 'wrap', fontSize: '13px' }}>
+                      <div><span style={{ color: '#64748b' }}>User: </span><strong>{report.user_email}</strong></div>
+                      {report.solicitation_number && <div><span style={{ color: '#64748b' }}>Sol #: </span><strong>{report.solicitation_number}</strong></div>}
+                      {report.sam_url && <div><a href={report.sam_url} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', fontWeight: 600 }}>View on SAM.gov →</a></div>}
+                      {report.sent_at && <div><span style={{ color: '#64748b' }}>Sent: </span><strong>{new Date(report.sent_at).toLocaleString()}</strong></div>}
+                    </div>
+
+                    {/* Audit summary */}
+                    {report.audit_result?.executiveSummary && (
+                      <div style={{ padding: '12px 16px', background: '#f1f5f9', borderRadius: '8px', marginBottom: '16px', fontSize: '13px', color: '#334155', lineHeight: 1.7 }}>
+                        <strong style={{ display: 'block', marginBottom: '4px', color: '#0f172a' }}>Executive Summary</strong>
+                        {report.audit_result.executiveSummary}
+                      </div>
+                    )}
+
+                    {/* Admin notes */}
+                    <div style={{ marginBottom: '12px' }}>
+                      <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '6px' }}>
+                        Admin Notes (included in email)
+                      </label>
+                      <textarea
+                        value={reportNotes[report.id] || ''}
+                        onChange={e => setReportNotes(prev => ({ ...prev, [report.id]: e.target.value }))}
+                        rows={3}
+                        placeholder="Add analyst notes, recommendations, or follow-up items..."
+                        style={{
+                          width: '100%', padding: '10px 12px', fontSize: '13px',
+                          border: '1px solid #e2e8f0', borderRadius: '8px',
+                          resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box',
+                          background: '#fff', color: '#0f172a'
+                        }}
+                      />
+                    </div>
+
+                    {/* Actions */}
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                      <button
+                        onClick={() => sendReport(report.id)}
+                        disabled={sendingReport === report.id || report.status === 'sent'}
+                        style={{
+                          padding: '10px 20px', background: report.status === 'sent' ? '#e2e8f0' : '#002244',
+                          color: report.status === 'sent' ? '#64748b' : '#fff',
+                          border: 'none', borderRadius: '8px', fontWeight: 700,
+                          fontSize: '13px', cursor: report.status === 'sent' ? 'default' : 'pointer',
+                          display: 'flex', alignItems: 'center', gap: '6px'
+                        }}
+                      >
+                        <Send size={14} />
+                        {sendingReport === report.id ? 'Sending...' : report.status === 'sent' ? 'Already Sent' : `Send to ${report.user_email}`}
+                      </button>
+                      <button
+                        onClick={() => saveNotes(report.id)}
+                        style={{
+                          padding: '10px 16px', background: '#f1f5f9', color: '#334155',
+                          border: '1px solid #e2e8f0', borderRadius: '8px', fontWeight: 700,
+                          fontSize: '13px', cursor: 'pointer'
+                        }}
+                      >
+                        Save Notes
+                      </button>
+                      {sendResult[report.id] && (
+                        <span style={{
+                          fontSize: '12px', fontWeight: 700,
+                          color: sendResult[report.id].startsWith('Sent') ? '#16a34a' : '#dc2626'
+                        }}>{sendResult[report.id]}</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
       </main>
 
       <style dangerouslySetInnerHTML={{ __html: `

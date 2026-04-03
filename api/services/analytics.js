@@ -59,10 +59,28 @@ export async function ensureAnalyticsSchema() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
 
+    CREATE TABLE IF NOT EXISTS pending_reports (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      uid TEXT NOT NULL DEFAULT 'anonymous',
+      user_email TEXT NOT NULL DEFAULT 'unknown',
+      sam_url TEXT,
+      solicitation_number TEXT,
+      title TEXT,
+      agency TEXT,
+      verdict TEXT,
+      win_probability INT,
+      audit_result JSONB NOT NULL DEFAULT '{}'::jsonb,
+      status TEXT NOT NULL DEFAULT 'pending',
+      admin_notes TEXT,
+      sent_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
     CREATE INDEX IF NOT EXISTS idx_logic_library_conflict ON logic_library (conflict_type);
     CREATE INDEX IF NOT EXISTS idx_analytics_events_created_at ON analytics_events (created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_beta_signups_email ON beta_signups (email);
     CREATE INDEX IF NOT EXISTS idx_saved_audits_uid ON saved_audits (uid, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_pending_reports_status ON pending_reports (status, created_at DESC);
   `);
 
   analyticsSchemaReady = true;
@@ -294,6 +312,80 @@ export async function getAuditById(id, uid) {
   } catch (err) {
     console.error("[SAVED_AUDITS] fetch_failed", err.message);
     return null;
+  }
+}
+
+// ─── Pending Reports ──────────────────────────────────────────────────────────
+
+export async function savePendingReport({ uid, user_email, sam_url, solicitation_number, title, agency, verdict, win_probability, audit_result }) {
+  if (!analyticsDb) return null;
+  try {
+    await ensureAnalyticsSchema();
+    const res = await analyticsDb.query(
+      `INSERT INTO pending_reports (uid, user_email, sam_url, solicitation_number, title, agency, verdict, win_probability, audit_result)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb)
+       RETURNING id`,
+      [uid || "anonymous", user_email || "unknown", sam_url || null, solicitation_number || null, title || null, agency || null, verdict || null, win_probability ?? null, JSON.stringify(audit_result || {})]
+    );
+    return res.rows[0];
+  } catch (err) {
+    console.error("[PENDING_REPORTS] save_failed", err.message);
+    return null;
+  }
+}
+
+export async function getPendingReports(status = null) {
+  if (!analyticsDb) return [];
+  try {
+    await ensureAnalyticsSchema();
+    const query = status
+      ? `SELECT * FROM pending_reports WHERE status = $1 ORDER BY created_at DESC LIMIT 200`
+      : `SELECT * FROM pending_reports ORDER BY created_at DESC LIMIT 200`;
+    const res = await analyticsDb.query(query, status ? [status] : []);
+    return res.rows;
+  } catch (err) {
+    console.error("[PENDING_REPORTS] list_failed", err.message);
+    return [];
+  }
+}
+
+export async function getPendingReportById(id) {
+  if (!analyticsDb) return null;
+  try {
+    await ensureAnalyticsSchema();
+    const res = await analyticsDb.query(`SELECT * FROM pending_reports WHERE id = $1`, [id]);
+    return res.rows[0] || null;
+  } catch (err) {
+    console.error("[PENDING_REPORTS] fetch_failed", err.message);
+    return null;
+  }
+}
+
+export async function markReportSent(id) {
+  if (!analyticsDb) return false;
+  try {
+    await analyticsDb.query(
+      `UPDATE pending_reports SET status = 'sent', sent_at = NOW() WHERE id = $1`,
+      [id]
+    );
+    return true;
+  } catch (err) {
+    console.error("[PENDING_REPORTS] mark_sent_failed", err.message);
+    return false;
+  }
+}
+
+export async function updateReportNotes(id, admin_notes) {
+  if (!analyticsDb) return false;
+  try {
+    await analyticsDb.query(
+      `UPDATE pending_reports SET admin_notes = $2 WHERE id = $1`,
+      [id, admin_notes]
+    );
+    return true;
+  } catch (err) {
+    console.error("[PENDING_REPORTS] notes_failed", err.message);
+    return false;
   }
 }
 

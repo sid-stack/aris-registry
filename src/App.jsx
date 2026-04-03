@@ -121,6 +121,7 @@ export default function App() {
   const aliasSection = LANDING_SECTION_ALIASES[path] || null;
   const [authenticated, setAuthenticated] = useState(() => localStorage.getItem("aris_authenticated") === "true");
   const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(() => localStorage.getItem("aris_authenticated") === "true");
   const [proposal, setProposal] = useState(null);
   const [view, setView] = useState(() => {
     const p = window.location.pathname;
@@ -167,9 +168,14 @@ export default function App() {
         setAuthenticated(true);
         setUser(session.user);
         localStorage.setItem("aris_authenticated", "true");
+      } else {
+        setAuthenticated(false);
+        localStorage.removeItem("aris_authenticated");
       }
+      setAuthLoading(false);
     }).catch(err => {
       console.warn("[ARIS_AUTH] Session fetch suppressed in Sovereign mode:", err.message);
+      setAuthLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -315,9 +321,13 @@ export default function App() {
   } else if (view === "labs") {
     content = <Labs onBack={() => setView("landing")} />;
   } else if (view === "govcon-dashboard") {
-    content = authenticated && user
-      ? <GovConDashboardV2 onBack={() => setView("landing")} user={user} />
-      : <Login onLogin={(u) => { setAuthenticated(true); setUser(u); localStorage.setItem("aris_authenticated", "true"); }} />;
+    if (authLoading) {
+      content = <div style={{ minHeight: "100vh", background: "#0d0f14" }} />;
+    } else {
+      content = authenticated && user
+        ? <GovConDashboardV2 onBack={() => setView("landing")} user={user} />
+        : <Login onLogin={(u) => { setAuthenticated(true); setUser(u); localStorage.setItem("aris_authenticated", "true"); }} />;
+    }
   } else if (view === "compliance") {
     const slug = window.location.pathname.replace("/compliance/", "");
     content = <CompliancePage slug={slug} onBack={() => setView("app")} />;
@@ -366,9 +376,13 @@ export default function App() {
       />
     );
   } else if (view === "app") {
-    content = authenticated && user
-      ? <GovConDashboardV2 onBack={() => setView("landing")} user={user} />
-      : <Login onLogin={(u) => { setAuthenticated(true); setUser(u); localStorage.setItem("aris_authenticated", "true"); }} />;
+    if (authLoading) {
+      content = <div style={{ minHeight: "100vh", background: "#0d0f14" }} />;
+    } else {
+      content = authenticated && user
+        ? <GovConDashboardV2 onBack={() => setView("landing")} user={user} />
+        : <Login onLogin={(u) => { setAuthenticated(true); setUser(u); localStorage.setItem("aris_authenticated", "true"); }} />;
+    }
   } else if (view === "404") {
     content = <NotFound onBack={() => setView("landing")} />;
   } else if (!authenticated) {
