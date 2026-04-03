@@ -95,6 +95,8 @@ Desktop.ini
 # =========================
 .vscode/
 .idea/
+.claude/settings.local.json
+.claude/*.local.json
 *.swp
 *.swo
 *~
@@ -154,3 +156,9 @@ content/referral_partner_outreach_list.md
 *.key
 uploads/
 tmp/
+
+# Added by ggshield
+.cache_ggshield
+
+# Added by ggshield
+.cache_ggshield
