@@ -37,6 +37,7 @@ const Contact = lazy(() => import("./pages/Contact"));
 const ArisConsulting = lazy(() => import("./pages/ArisConsulting"));
 const Earn = lazy(() => import("./pages/Earn"));
 const Newsletter = lazy(() => import("./pages/Newsletter"));
+const HighLoadNotice = lazy(() => import("./pages/HighLoadNotice"));
 
 const BASE_URL = "https://www.bidsmith.pro";
 
@@ -314,8 +315,7 @@ export default function App() {
   } else if (view === "labs") {
     content = <Labs onBack={() => setView("landing")} />;
   } else if (view === "govcon-dashboard") {
-    // Alias kept for safety — routes to V2 (same as /app)
-    content = <GovConDashboardV2 onBack={() => setView("landing")} user={user} />;
+    content = <HighLoadNotice />;
   } else if (view === "compliance") {
     const slug = window.location.pathname.replace("/compliance/", "");
     content = <CompliancePage slug={slug} onBack={() => setView("app")} />;
@@ -364,9 +364,7 @@ export default function App() {
       />
     );
   } else if (view === "app") {
-    content = authenticated && user
-      ? <GovConDashboardV2 onBack={() => setView("landing")} user={user} />
-      : <Login onLogin={(u) => { setAuthenticated(true); setUser(u); localStorage.setItem("aris_authenticated", "true"); }} />;
+    content = <HighLoadNotice />;
   } else if (view === "404") {
     content = <NotFound onBack={() => setView("landing")} />;
   } else if (!authenticated) {

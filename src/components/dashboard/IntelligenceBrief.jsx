@@ -40,6 +40,8 @@ function WinGauge({ probability, confidence }) {
 
 function SignalCard({ icon, title, label, labelColor, body, expandable, children }) {
   const [open, setOpen] = useState(false);
+  const pillColor = labelColor || '#475569';
+  const pillBackground = labelColor ? `${labelColor}18` : '#f1f5f9';
   return (
     <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 8 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -49,7 +51,7 @@ function SignalCard({ icon, title, label, labelColor, body, expandable, children
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           {label && (
-            <span style={{ fontSize: 10, fontWeight: 700, color: labelColor || '#475569', background: `${labelColor}18` || '#f1f5f9', border: `1px solid ${labelColor || '#e2e8f0'}`, padding: '2px 8px', borderRadius: 4, letterSpacing: '0.06em' }}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: pillColor, background: pillBackground, border: `1px solid ${labelColor || '#e2e8f0'}`, padding: '2px 8px', borderRadius: 4, letterSpacing: '0.06em' }}>
               {label}
             </span>
           )}
