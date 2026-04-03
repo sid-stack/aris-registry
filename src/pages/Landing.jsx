@@ -126,21 +126,7 @@ export default function Landing({
              </div>
           </div>
 
-          {!isProcessing ? (
-            <div style={styles.videoContainer}>
-              <div style={styles.videoSub}>Watch BidSmith shred a 200-page solicitation in 90s:</div>
-              <div style={styles.videoFrame}>
-                <video autoPlay muted loop playsInline style={styles.video}
-                  onError={(e) => { e.target.style.display = 'none'; }}>
-                  <source src="/aris-demo.mp4" type="video/mp4" />
-                </video>
-                <div style={styles.videoOverlay}>
-                  <Shield size={12} color="#fff" />
-                  <span>SECURE SESSION: AUDIT_PIPELINE_v2.2</span>
-                </div>
-              </div>
-            </div>
-          ) : (
+          {isProcessing && (
             <div style={styles.terminal}>
               <div style={styles.terminalHead}>BIDSMITH SECURE SESSION</div>
               <div style={styles.terminalBody}>
