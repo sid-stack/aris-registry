@@ -10,7 +10,9 @@
     "test": "node --test tests/*.test.js tests/v2_heuristics.js",
     "lint": "eslint .",
     "preview": "vite preview",
-    "cypress:open": "cypress open"
+    "cypress:open": "cypress open",
+    "leads": "node scripts/lead_gen_auto.js",
+    "leads:dry": "node scripts/lead_gen_auto.js --dry-run"
   },
   "dependencies": {
     "@aws-sdk/client-kms": "^3.1019.0",

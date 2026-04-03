@@ -1,141 +1,238 @@
-import { useState, useEffect } from 'react';
-import { Shield, Lock, User, ArrowRight, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
+import { useState } from 'react';
+import { Shield, Mail, Lock, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
+/**
+ * Login — real Supabase email/password auth.
+ * Supports signup + login in one screen.
+ * onLogin(user) called on success.
+ *
+ * NOTE: To skip email confirmation (recommended for prod),
+ * go to Supabase Dashboard → Auth → Email → disable "Confirm email".
+ */
 export default function Login({ onLogin }) {
-  const [username, setUsername] = useState('');
+  const [mode, setMode] = useState('login'); // 'login' | 'signup'
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [info, setInfo] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setInfo(null);
 
-    // Protocol Authentication Logic
-    const targetUser = "sid";
-    const inputUser = username.trim().toLowerCase();
-    const inputPass = password.trim();
-
-    // 1. Check against Environment Variable
-    const envPassword = (import.meta.env.VITE_ACCESS_KEY || "").trim();
-    // 2. Hardcoded Recovery Pattern (Directly requested by Sid)
-    const recoveryPassword = "aris369";
-    
-    const isAuthorizedUser = inputUser === targetUser;
-    const isAuthorizedPass = (inputPass === envPassword && envPassword !== "") || (inputPass === recoveryPassword);
-
-    if (!isAuthorizedUser) {
-      setError('ACCESS_DENIED: Unauthorized User Identity');
+    if (!email.trim() || !password) {
+      setError('Email and password are required.');
       setLoading(false);
       return;
     }
 
-    if (!isAuthorizedPass) {
-      setError('ACCESS_DENIED: Invalid Protocol Password');
-      setLoading(false);
-      return;
+    try {
+      if (mode === 'signup') {
+        const { data, error: err } = await supabase.auth.signUp({
+          email: email.trim().toLowerCase(),
+          password,
+        });
+        if (err) {
+          setError(err.message);
+        } else if (data?.user && !data.session) {
+          setInfo('Check your email for a confirmation link, then sign in.');
+          setMode('login');
+        } else if (data?.user) {
+          onLogin(data.user);
+        }
+      } else {
+        const { data, error: err } = await supabase.auth.signInWithPassword({
+          email: email.trim().toLowerCase(),
+          password,
+        });
+        if (err) {
+          setError(err.message === 'Invalid login credentials'
+            ? 'Wrong email or password.'
+            : err.message);
+        } else {
+          onLogin(data.user);
+        }
+      }
+    } catch (err) {
+      setError('Something went wrong. Please try again or contact sid@bidsmith.pro');
     }
 
-    // Success Sequence
-    console.log("[ARIS_AUTH] Authenticated Successfully as " + targetUser.toUpperCase());
-    localStorage.setItem('aris_authenticated', 'true');
-    onLogin();
     setLoading(false);
   };
 
   return (
-    <div style={styles.root}>
-      <div style={styles.card}>
-        <div style={styles.cardHeader}>
-          <div style={styles.iconContainer}>
-            <Shield size={24} color="white" />
+    <div style={s.root}>
+      <div style={s.card}>
+
+        {/* Header */}
+        <div style={s.header}>
+          <div style={s.icon}>
+            <Shield size={22} color="#fff" />
           </div>
-          <h1 style={styles.title}>Sovereign Login</h1>
-          <p style={styles.subtitle}>
-            Enter Sid's credentials to gain root access to the ARIS Protocol
+          <h1 style={s.title}>BidSmith</h1>
+          <p style={s.sub}>
+            {mode === 'login' ? 'Sign in to your account' : 'Create your account'}
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} style={styles.form}>
-          <div style={styles.field}>
-            <label style={styles.label}>USER IDENTITY</label>
-            <div style={styles.inputWrapper}>
-              <User size={16} style={styles.icon} />
-              <input 
-                type="text" 
-                placeholder="sid" 
-                value={username}
-                onChange={e => setUsername(e.target.value)}
-                required 
-                style={styles.input} 
-                autoComplete="off"
+        {/* Mode toggle */}
+        <div style={s.tabs}>
+          {['login', 'signup'].map(m => (
+            <button
+              key={m}
+              onClick={() => { setMode(m); setError(null); setInfo(null); }}
+              style={{
+                ...s.tab,
+                background: mode === m ? '#fff' : 'transparent',
+                color: mode === m ? '#0f172a' : '#94a3b8',
+                fontWeight: mode === m ? 700 : 500,
+                boxShadow: mode === m ? '0 1px 3px rgba(0,0,0,0.12)' : 'none',
+              }}
+            >
+              {m === 'login' ? 'Sign In' : 'Sign Up'}
+            </button>
+          ))}
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} style={s.form}>
+          <div style={s.field}>
+            <label style={s.label}>Email</label>
+            <div style={s.inputRow}>
+              <Mail size={15} style={s.inputIcon} />
+              <input
+                type="email"
+                placeholder="you@company.com"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                required
+                style={s.input}
+                autoComplete="email"
               />
             </div>
           </div>
 
-          <div style={styles.field}>
-            <label style={styles.label}>PROTOCOL KEY</label>
-            <div style={styles.inputWrapper}>
-              <Lock size={16} style={styles.icon} />
-              <input 
-                type="password" 
-                placeholder="••••••••" 
+          <div style={s.field}>
+            <label style={s.label}>Password</label>
+            <div style={s.inputRow}>
+              <Lock size={15} style={s.inputIcon} />
+              <input
+                type="password"
+                placeholder={mode === 'signup' ? 'Min 6 characters' : '••••••••'}
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                required 
-                style={styles.input} 
+                required
+                minLength={6}
+                style={s.input}
+                autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
               />
             </div>
           </div>
 
           {error && (
-            <div style={styles.errorBox}>
-              <AlertCircle size={14} style={{ flexShrink: 0 }} />
+            <div style={s.errorBox}>
+              <AlertCircle size={13} style={{ flexShrink: 0 }} />
               <span>{error}</span>
             </div>
           )}
 
-          <button 
-            type="submit" 
-            disabled={loading}
-            style={styles.submitBtn}
-          >
-            {loading ? <Loader2 size={20} className="animate-spin" /> : 'AUTHENTICATE_PROTOCOL'}
-            {!loading && <ArrowRight size={20} />}
+          {info && (
+            <div style={s.infoBox}>
+              <span>{info}</span>
+            </div>
+          )}
+
+          <button type="submit" disabled={loading} style={s.btn}>
+            {loading
+              ? <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
+              : <>
+                  {mode === 'login' ? 'Sign In' : 'Create Account'}
+                  <ArrowRight size={16} />
+                </>
+            }
           </button>
         </form>
 
-        <div style={styles.footer}>
-          <p style={{ color: '#475569', fontSize: '11px', margin: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-            {import.meta.env.VITE_ACCESS_KEY ? (
-              <><CheckCircle size={10} color="#10b981" /> KEY_STATE: LOADED</>
-            ) : (
-              <><AlertCircle size={10} color="#f59e0b" /> KEY_STATE: RECOVERY_ENABLED</>
-            )}
-            <span style={{ opacity: 0.2 }}>|</span>
-            SECURED_BY: ARIS_CORE VPC
-          </p>
-        </div>
+        <p style={s.footer}>
+          {mode === 'login'
+            ? <>No account? <button onClick={() => { setMode('signup'); setError(null); }} style={s.link}>Sign up free</button></>
+            : <>Already have an account? <button onClick={() => { setMode('login'); setError(null); }} style={s.link}>Sign in</button></>
+          }
+        </p>
       </div>
     </div>
   );
 }
 
-const styles = {
-  root: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a0d14', fontFamily: "'Inter', sans-serif", padding: '20px' },
-  card: { width: '100%', maxWidth: '400px', background: 'rgba(13,17,24,0.8)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '24px', padding: '40px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' },
-  cardHeader: { textAlign: 'center', marginBottom: '32px' },
-  iconContainer: { width: '48px', height: '48px', background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' },
-  title: { fontSize: '24px', fontWeight: 800, color: '#f8fafc', marginBottom: '8px' },
-  subtitle: { fontSize: '14px', color: '#94a3b8', lineHeight: 1.5 },
-  form: { display: 'flex', flexDirection: 'column', gap: '24px' },
-  field: { display: 'flex', flexDirection: 'column', gap: '8px' },
-  label: { fontSize: '11px', fontWeight: 700, color: '#64748b', letterSpacing: '0.05em' },
-  inputWrapper: { position: 'relative', display: 'flex', alignItems: 'center' },
-  icon: { position: 'absolute', left: '12px', color: '#475569' },
-  input: { width: '100%', padding: '12px 16px 12px 40px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', color: '#f1f5f9', fontSize: '14px', outline: 'none', transition: 'all 0.2s' },
-  errorBox: { padding: '12px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '8px', color: '#f87171', fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '10px' },
-  submitBtn: { width: '100%', padding: '14px', background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 800, fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', transition: 'all 0.2s', boxShadow: '0 10px 15px -3px rgba(37,99,235,0.2)' },
-  footer: { marginTop: '32px', textAlign: 'center' }
+const s = {
+  root: {
+    minHeight: '100vh', display: 'flex', alignItems: 'center',
+    justifyContent: 'center', background: '#0a0d14',
+    fontFamily: "'Inter', system-ui, sans-serif", padding: '20px',
+  },
+  card: {
+    width: '100%', maxWidth: '400px',
+    background: 'rgba(13,17,24,0.95)',
+    border: '1px solid rgba(255,255,255,0.08)',
+    borderRadius: '20px', padding: '36px',
+    boxShadow: '0 25px 60px rgba(0,0,0,0.5)',
+  },
+  header: { textAlign: 'center', marginBottom: '28px' },
+  icon: {
+    width: '44px', height: '44px', margin: '0 auto 14px',
+    background: 'linear-gradient(135deg, #0B3D91, #1d4ed8)',
+    borderRadius: '12px', display: 'flex',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  title: { fontSize: '22px', fontWeight: 800, color: '#f8fafc', margin: '0 0 6px' },
+  sub: { fontSize: '13px', color: '#64748b', margin: 0 },
+  tabs: {
+    display: 'flex', background: 'rgba(255,255,255,0.04)',
+    borderRadius: '10px', padding: '3px', marginBottom: '24px',
+  },
+  tab: {
+    flex: 1, padding: '8px', border: 'none', borderRadius: '8px',
+    fontSize: '13px', cursor: 'pointer', transition: 'all 0.15s',
+  },
+  form: { display: 'flex', flexDirection: 'column', gap: '18px' },
+  field: { display: 'flex', flexDirection: 'column', gap: '6px' },
+  label: { fontSize: '11px', fontWeight: 700, color: '#64748b', letterSpacing: '0.05em', textTransform: 'uppercase' },
+  inputRow: { position: 'relative', display: 'flex', alignItems: 'center' },
+  inputIcon: { position: 'absolute', left: '12px', color: '#475569', flexShrink: 0 },
+  input: {
+    width: '100%', padding: '11px 14px 11px 38px',
+    background: 'rgba(255,255,255,0.04)',
+    border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: '10px', color: '#f1f5f9',
+    fontSize: '14px', outline: 'none', boxSizing: 'border-box',
+  },
+  errorBox: {
+    padding: '10px 12px', background: 'rgba(239,68,68,0.1)',
+    border: '1px solid rgba(239,68,68,0.2)',
+    borderRadius: '8px', color: '#f87171',
+    fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px',
+  },
+  infoBox: {
+    padding: '10px 12px', background: 'rgba(34,197,94,0.1)',
+    border: '1px solid rgba(34,197,94,0.2)',
+    borderRadius: '8px', color: '#4ade80', fontSize: '13px',
+  },
+  btn: {
+    width: '100%', padding: '13px',
+    background: 'linear-gradient(135deg, #0B3D91, #1d4ed8)',
+    color: '#fff', border: 'none', borderRadius: '10px',
+    fontWeight: 700, fontSize: '14px', cursor: 'pointer',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+    boxShadow: '0 4px 12px rgba(11,61,145,0.35)',
+    transition: 'opacity 0.15s',
+  },
+  footer: { marginTop: '20px', textAlign: 'center', fontSize: '13px', color: '#475569' },
+  link: {
+    background: 'none', border: 'none', color: '#60a5fa',
+    cursor: 'pointer', fontSize: '13px', fontWeight: 600, padding: 0,
+  },
 };

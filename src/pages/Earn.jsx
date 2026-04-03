@@ -140,22 +140,22 @@ export default function Earn({ onBack }) {
           </thead>
           <tbody>
             <tr>
-              <td style={styles.td}>Pro</td>
+              <td style={styles.td}>Starter</td>
               <td style={styles.td}>$99 / mo</td>
               <td style={styles.tdGreen}>$19.80 / mo</td>
               <td style={styles.td}>$237.60</td>
             </tr>
             <tr style={styles.trAlt}>
-              <td style={styles.td}>Team</td>
+              <td style={styles.td}>Pro</td>
               <td style={styles.td}>$299 / mo</td>
               <td style={styles.tdGreen}>$59.80 / mo</td>
               <td style={styles.td}>$717.60</td>
             </tr>
             <tr>
-              <td style={styles.td}>Annual Pro</td>
-              <td style={styles.td}>$799 / yr</td>
-              <td style={styles.tdGreen}>$159.80 one-time</td>
-              <td style={styles.td}>$159.80</td>
+              <td style={styles.td}>Enterprise</td>
+              <td style={styles.td}>$999 / mo</td>
+              <td style={styles.tdGreen}>$199.80 / mo</td>
+              <td style={styles.td}>$2,397.60</td>
             </tr>
           </tbody>
         </table>

@@ -6,10 +6,11 @@ import cors from "cors";
 import rateLimit from "express-rate-limit";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
-import { requestId } from "./middleware/requestId.js";
+import { requestId, requestLogger } from "./middleware/requestId.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { asyncHandler } from "./utils/asyncHandler.js";
 import { sendEmail } from "./utils/mailer.js";
+import { logger, requestMeta } from "./utils/logger.js";
 
 // Stateless Utils & Infrastructure
 import { traceLLM } from "./utils/tracing.js";
@@ -17,7 +18,7 @@ import { callLLM } from "./llm/openrouter.js";
 
 // Services
 import { createDynamicCheckoutSession } from "./services/stripe.js";
-import { recordAnalyticsEvent, getAdminStats } from "./services/analytics.js";
+import { recordAnalyticsEvent, getAdminStats, saveAudit, getAuditHistory, getAuditById } from "./services/analytics.js";
 import { fetchSolicitationText } from "./services/samGov.js";
 import { runAudit } from "./agents/auditPipeline.js";
 import { sovereignSearch } from "./services/fedSearch.js";
@@ -52,6 +53,7 @@ const apiLimiter = rateLimit({
 app.use(express.json());
 app.use(cors());
 app.use(requestId);
+app.use(requestLogger);
 app.use(express.static(join(__dirname, "../dist")));
 
 // Multer for memory upload
@@ -68,16 +70,51 @@ app.post("/api/analyze-pdf", upload.single("file"), asyncHandler(async (req, res
     return res.status(422).json({ error: "Could not extract readable text from this PDF." });
   }
 
-  console.log(`[PDF_AUDIT] ${req.file.originalname} — ${rfpText.length} chars`);
+  const filename = req.file.originalname;
+  const userEmail = req.headers["x-user-email"] || req.body?.userEmail || "unknown";
+  const ts = new Date().toLocaleString("en-US", { timeZone: "America/New_York" });
 
-  const result = await runAudit(rfpText, {
-    id: req.file.originalname.replace(/\.pdf$/i, ""),
-    title: req.file.originalname,
-    agency: "Extracted from PDF",
-    value: "0",
-  });
+  logger.info("pdf_audit_received", requestMeta(req, {
+    filename,
+    chars: rfpText.length,
+    user_email: userEmail,
+  }));
 
-  res.json(result);
+  // ── Notify Sid immediately (fire-and-forget) ─────────────────────────────
+  sendEmail({
+    to: "sid@bidsmith.pro",
+    subject: `🔔 RFP Upload — ${filename}`,
+    html: `
+      <h2 style="margin:0 0 16px">New RFP PDF Uploaded</h2>
+      <table style="font-size:14px;line-height:1.8;border-collapse:collapse">
+        <tr><td style="padding-right:16px;color:#64748b">File</td><td><strong>${filename}</strong></td></tr>
+        <tr><td style="padding-right:16px;color:#64748b">User</td><td>${userEmail}</td></tr>
+        <tr><td style="padding-right:16px;color:#64748b">Time</td><td>${ts} ET</td></tr>
+        <tr><td style="padding-right:16px;color:#64748b">Size</td><td>${rfpText.length.toLocaleString()} chars extracted</td></tr>
+      </table>
+      <p style="margin-top:20px;font-size:13px;color:#475569">
+        Download the PDF from Railway logs or ask the user to resend to sid@bidsmith.pro.<br>
+        Run your local audit script and email the report back to <strong>${userEmail}</strong>.
+      </p>
+    `,
+  }).catch(() => {}); // never block the response
+
+  // ── Try automated audit; fall back to queued if it fails ─────────────────
+  try {
+    const result = await runAudit(rfpText, {
+      id: filename.replace(/\.pdf$/i, ""),
+      title: filename,
+      agency: "Extracted from PDF",
+      value: "0",
+    });
+    res.json(result);
+  } catch (err) {
+    logger.warn("pdf_audit_failed", requestMeta(req, {
+      filename,
+      error: err.message,
+    }));
+    res.json({ queued: true });
+  }
 }));
 
 // ─── /api/analyze-text ───────────────────────────────────────────────────────
@@ -86,7 +123,9 @@ app.post("/api/analyze-text", apiLimiter, asyncHandler(async (req, res) => {
   if (!text || text.trim().length < 100) {
     return res.status(400).json({ error: "Text too short — paste at least 200 characters of solicitation content." });
   }
-  console.log(`[TEXT_AUDIT] ${text.length} chars`);
+  logger.info("text_audit_received", requestMeta(req, {
+    chars: text.length,
+  }));
   const result = await runAudit(text.trim(), { id: "TEXT_AUDIT", title: "Pasted Solicitation", agency: "Unknown", value: "0" });
   res.json(result);
 }));
@@ -98,7 +137,11 @@ app.get("/api/privacy/consent", asyncHandler(async (_req, res) => {
 
 app.post("/api/privacy/consent", asyncHandler(async (req, res) => {
   const { analytics, marketing, source } = req.body;
-  console.log(`[PRIVACY] Consent update from ${source}: analytics=${analytics}, marketing=${marketing}`);
+  logger.info("privacy_consent_updated", requestMeta(req, {
+    source,
+    analytics,
+    marketing,
+  }));
   res.json({ success: true, updated: new Date().toISOString() });
 }));
 
@@ -131,11 +174,20 @@ async function startHarvester() {
             const opportunities = data?.opportunitiesData || [];
             if (opportunities.length > 0) await sovereignSearch.syncSovereignTable(opportunities, "US");
           }
-        } catch (err) { console.warn(`[HARVESTER] SAM failed for "${seed}":`, err.message); }
+        } catch (err) {
+          logger.warn("harvester_seed_failed", {
+            seed,
+            error: err.message,
+          });
+        }
         await new Promise(r => setTimeout(r, 15000));
       }
       lastHarvestTime = Date.now();
-    } catch (err) { console.error("[HARVESTER] failure:", err.message); }
+    } catch (err) {
+      logger.error("harvester_failed", {
+        error: err.message,
+      });
+    }
   };
   setInterval(pulse, HARVEST_INTERVAL);
 }
@@ -148,7 +200,10 @@ app.post("/api/fed-search", apiLimiter, asyncHandler(async (req, res) => {
     const { results, correction } = await sovereignSearch.search(query, expand);
     res.json({ success: true, query, results: results.slice(0, limit), correction, version: "v4.1" });
   } catch (err) {
-    console.error(`[SEARCH_ERROR] ${err.message}`, err.stack);
+    logger.error("fed_search_failed", requestMeta(req, {
+      error: err.message,
+      stack: err.stack,
+    }));
     res.status(500).json({ success: false, error: err.message });
   }
 }));
@@ -247,7 +302,11 @@ app.post("/api/waitlist", asyncHandler(async (req, res) => {
         </p>
       </div>
     `,
-  }).then(ok => ok && console.log(`[WAITLIST] Confirmation sent to ${email}`));
+  }).then((ok) => {
+    if (ok) {
+      logger.info("waitlist_confirmation_sent", requestMeta(req, { email }));
+    }
+  });
 
   sendEmail({
     from: `"BidSmith Waitlist" <${process.env.SMTP_USER}>`,
@@ -325,7 +384,10 @@ app.post("/api/analyze-link", apiLimiter, asyncHandler(async (req, res) => {
       solicitationText = text;
       meta = samMeta;
     } catch (samErr) {
-      console.error(`[LINK_AUDIT] SAM.gov fetch failed: ${samErr.message}`);
+      logger.warn("link_audit_sam_fetch_failed", requestMeta(req, {
+        url,
+        error: samErr.message,
+      }));
       return res.status(422).json({
         error: samErr.message.includes("SAM_RATE_LIMIT")
           ? "SAM.gov rate limit hit — wait 60 seconds and try again."
@@ -357,7 +419,10 @@ app.post("/api/analyze-link", apiLimiter, asyncHandler(async (req, res) => {
     return res.status(422).json({ error: "Could not extract usable text from the provided URL." });
   }
 
-  console.log(`[LINK_AUDIT] ${meta.id} — ${solicitationText.length} chars`);
+  logger.info("link_audit_received", requestMeta(req, {
+    audit_id: meta.id,
+    chars: solicitationText.length,
+  }));
   const result = await runAudit(solicitationText, meta);
   res.json(result);
 }));
@@ -465,9 +530,47 @@ app.post("/api/contact", asyncHandler(async (req, res) => {
   res.json({ ok: true });
 }));
 
+// ─── /api/audits — save + retrieve audit history ─────────────────────────────
+// uid comes from Supabase auth token header (X-User-Id) or falls back to anonymous
+app.post("/api/audits/save", asyncHandler(async (req, res) => {
+  const uid = req.headers["x-user-id"] || req.body.uid;
+  if (!uid) return res.status(400).json({ error: "x-user-id header required" });
+  const { result } = req.body;
+  if (!result) return res.status(400).json({ error: "result body required" });
+
+  const saved = await saveAudit(uid, result);
+  if (!saved) return res.status(503).json({ error: "Database unavailable" });
+  res.json({ ok: true, id: saved.id, created_at: saved.created_at });
+}));
+
+app.get("/api/audits/history", asyncHandler(async (req, res) => {
+  const uid = req.headers["x-user-id"];
+  if (!uid) return res.status(400).json({ error: "x-user-id header required" });
+  const limit = Math.min(parseInt(req.query.limit || "20", 10), 100);
+
+  const rows = await getAuditHistory(uid, limit);
+  res.json({ audits: rows });
+}));
+
+app.get("/api/audits/:id", asyncHandler(async (req, res) => {
+  const uid = req.headers["x-user-id"];
+  if (!uid) return res.status(400).json({ error: "x-user-id header required" });
+
+  const audit = await getAuditById(req.params.id, uid);
+  if (!audit) return res.status(404).json({ error: "Audit not found" });
+  res.json(audit);
+}));
+
 app.get("*", (req, res) => res.sendFile(join(__dirname, "../dist/index.html")));
 
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-app.listen(PORT, () => console.log(`✅ BidSmith API v2.3 -> http://localhost:${PORT}`));
+app.listen(PORT, () => {
+  logger.info("api_started", {
+    service: "bidsmith-api",
+    port: PORT,
+    node_env: process.env.NODE_ENV || "development",
+    trust_proxy: trustProxySetting,
+  });
+});

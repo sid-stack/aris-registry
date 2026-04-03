@@ -16,8 +16,8 @@ What we can deliver in 30 days:
 - Full report with ROI (target >=30% win-rate lift)
 
 Pricing options:
-- Standard Audit - $99/month
-- Enterprise Audit - $299/month
+- Pro - $299/month
+- Enterprise - $999/month
 
 If you are interested, just reply "Yes" and I will send over the short agreement and a Calendly link for a 15-minute kickoff call.
 
@@ -41,8 +41,8 @@ Bidsmith Ltd. (hereinafter "Provider")
 ## 2. Fees and Payment
 | Milestone | Amount (USD) | Due |
 |-----------|--------------|-----|
-| Standard Audit | $99/month | Self-serve |
-| Enterprise Audit | $299/month | Self-serve |
+| Pro | $299/month | Self-serve |
+| Enterprise | $999/month | Self-serve |
 
 Payments are to be made via Stripe or wire transfer to the account listed on the invoice.
 

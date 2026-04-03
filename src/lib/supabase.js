@@ -12,12 +12,15 @@ let client;
 if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.includes("placeholder")) {
 
   // Mock implementation to prevent "Failed to fetch" errors during fallback
+  const _authError = { message: "Auth not configured — contact support." };
   client = {
     auth: {
       getSession: async () => ({ data: { session: null }, error: null }),
       onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } }, error: null }),
       getUser: async () => ({ data: { user: null }, error: null }),
       signOut: async () => ({ error: null }),
+      signUp: async () => ({ data: null, error: _authError }),
+      signInWithPassword: async () => ({ data: null, error: _authError }),
     },
     from: () => ({
       select: () => ({

@@ -240,10 +240,12 @@ function AuditLoadingOverlay({ step }) {
 
 // ─── New Audit Modal ───────────────────────────────────────────────────────────
 
-function NewAuditModal({ onClose, onAuditComplete, userId }) {
-  const [mode, setMode] = useState('url'); // 'url' | 'text'
+function NewAuditModal({ onClose, onAuditComplete, userId, userEmail }) {
+  const [mode, setMode] = useState('url'); // 'url' | 'text' | 'pdf'
   const [url, setUrl] = useState('');
   const [rfpText, setRfpText] = useState('');
+  const [pdfFile, setPdfFile] = useState(null);
+  const [queued, setQueued] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadStep, setLoadStep] = useState(0);
   const [error, setError] = useState('');
@@ -324,7 +326,30 @@ function NewAuditModal({ onClose, onAuditComplete, userId }) {
     }
   };
 
-  const canSubmit = mode === 'url' ? url.trim().length > 10 : rfpText.trim().length >= 200;
+  const handlePdf = async (e) => {
+    e.preventDefault();
+    if (!pdfFile) return;
+    setLoading(true); setLoadStep(0); setError('');
+    const iv = startStepTimer();
+    try {
+      const formData = new FormData();
+      formData.append('file', pdfFile);
+      const headers = {};
+      if (userEmail) headers['x-user-email'] = userEmail;
+      const res = await fetch('/api/analyze-pdf', { method: 'POST', headers, body: formData });
+      const data = await res.json().catch(() => ({}));
+      if (data.queued || !res.ok) { setQueued(true); return; }
+      await saveAndReturn(data);
+    } catch {
+      setQueued(true);
+    } finally {
+      clearInterval(iv); setLoading(false);
+    }
+  };
+
+  const canSubmit = mode === 'url' ? url.trim().length > 10
+    : mode === 'pdf' ? !!pdfFile
+    : rfpText.trim().length >= 200;
 
   return (
     <div style={{
@@ -352,18 +377,50 @@ function NewAuditModal({ onClose, onAuditComplete, userId }) {
           </h2>
         </div>
 
-        {/* Mode toggle */}
+        {/* Queued success screen */}
+        {queued && (
+          <div style={{ textAlign: 'center', padding: '24px 0' }}>
+            <div style={{
+              width: '56px', height: '56px', borderRadius: '50%',
+              background: '#f0fdf4', border: '2px solid #bbf7d0',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 20px'
+            }}>
+              <svg width="24" height="24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            </div>
+            <h3 style={{ fontSize: '17px', fontWeight: 800, color: '#0f172a', margin: '0 0 10px' }}>
+              Processing Initiated
+            </h3>
+            <p style={{ fontSize: '14px', color: '#475569', lineHeight: 1.6, margin: '0 0 8px' }}>
+              Your RFP report will be emailed to you shortly.
+            </p>
+            <p style={{ fontSize: '12px', color: '#94a3b8', margin: '0 0 28px' }}>
+              Our team reviews every report before delivery. Typical turnaround: 1–2 hours.
+            </p>
+            <button onClick={onClose} style={{
+              padding: '11px 28px', background: '#002244', color: '#fff',
+              border: 'none', borderRadius: '10px', fontWeight: 700,
+              fontSize: '13px', cursor: 'pointer'
+            }}>Done</button>
+          </div>
+        )}
+
+        {/* Mode toggle + forms — hidden when queued */}
+        {!queued && <>
         <div style={{
           display: 'flex', gap: '4px', background: '#f1f5f9',
           borderRadius: '10px', padding: '4px', marginBottom: '20px'
         }}>
           {[
             { id: 'url', label: 'SAM.gov URL' },
-            { id: 'text', label: 'Paste RFP Text' },
+            { id: 'text', label: 'Paste Text' },
+            { id: 'pdf', label: 'Upload PDF' },
           ].map(m => (
             <button key={m.id} onClick={() => { setMode(m.id); setError(''); }}
               style={{
-                flex: 1, padding: '8px 12px', fontSize: '13px', fontWeight: 700,
+                flex: 1, padding: '8px 10px', fontSize: '12px', fontWeight: 700,
                 borderRadius: '7px', border: 'none', cursor: 'pointer',
                 background: mode === m.id ? '#fff' : 'transparent',
                 color: mode === m.id ? '#0f172a' : '#64748b',
@@ -398,7 +455,7 @@ function NewAuditModal({ onClose, onAuditComplete, userId }) {
             {error && <ErrorBox msg={error} hint={errorHint} />}
             <SubmitBtn loading={loading} disabled={!canSubmit} />
           </form>
-        ) : (
+        ) : mode === 'text' ? (
           <form onSubmit={handleText}>
             <label style={{ fontSize: '12px', fontWeight: 700, color: '#374151', display: 'block', marginBottom: '6px' }}>
               RFP / Solicitation Text
@@ -423,7 +480,46 @@ function NewAuditModal({ onClose, onAuditComplete, userId }) {
             {error && <ErrorBox msg={error} hint={errorHint} />}
             <SubmitBtn loading={loading} disabled={!canSubmit} />
           </form>
+        ) : (
+          <form onSubmit={handlePdf}>
+            <label style={{ fontSize: '12px', fontWeight: 700, color: '#374151', display: 'block', marginBottom: '6px' }}>
+              RFP Document (PDF)
+            </label>
+            <div
+              onClick={() => document.getElementById('pdf-upload-input').click()}
+              style={{
+                border: `2px dashed ${pdfFile ? '#002244' : '#e2e8f0'}`,
+                borderRadius: '10px', padding: '28px 20px', textAlign: 'center',
+                cursor: 'pointer', background: pdfFile ? '#f0f4ff' : '#f8fafc',
+                marginBottom: '8px', transition: 'all 0.15s'
+              }}
+            >
+              <input
+                id="pdf-upload-input" type="file" accept="application/pdf"
+                style={{ display: 'none' }}
+                onChange={e => { setPdfFile(e.target.files[0] || null); setError(''); }}
+              />
+              {pdfFile ? (
+                <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: '#002244' }}>
+                  ✓ {pdfFile.name}
+                </p>
+              ) : (
+                <>
+                  <p style={{ margin: '0 0 4px', fontSize: '13px', fontWeight: 600, color: '#475569' }}>
+                    Click to browse or drag & drop
+                  </p>
+                  <p style={{ margin: 0, fontSize: '11px', color: '#94a3b8' }}>PDF only · Max 20MB</p>
+                </>
+              )}
+            </div>
+            <p style={{ fontSize: '11px', color: '#94a3b8', margin: '0 0 20px 0' }}>
+              Our team will process your RFP and email the compliance report within 1–2 hours.
+            </p>
+            {error && <ErrorBox msg={error} hint={errorHint} />}
+            <SubmitBtn loading={loading} disabled={!canSubmit} />
+          </form>
         )}
+        </>}
 
         <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
       </div>
@@ -718,6 +814,7 @@ export default function GovConDashboardV2({ onBack, user }) {
           onClose={() => setShowNewAudit(false)}
           onAuditComplete={handleAuditComplete}
           userId={user?.id}
+          userEmail={user?.email}
         />
       )}
 

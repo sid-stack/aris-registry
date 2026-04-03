@@ -46,11 +46,25 @@ export async function ensureAnalyticsSchema() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
 
+    CREATE TABLE IF NOT EXISTS saved_audits (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      uid TEXT NOT NULL,
+      solicitation_number TEXT,
+      title TEXT,
+      agency TEXT,
+      verdict TEXT,
+      win_probability INT,
+      risk_score INT,
+      result JSONB NOT NULL DEFAULT '{}'::jsonb,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
     CREATE INDEX IF NOT EXISTS idx_logic_library_conflict ON logic_library (conflict_type);
     CREATE INDEX IF NOT EXISTS idx_analytics_events_created_at ON analytics_events (created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_beta_signups_email ON beta_signups (email);
+    CREATE INDEX IF NOT EXISTS idx_saved_audits_uid ON saved_audits (uid, created_at DESC);
   `);
-  
+
   analyticsSchemaReady = true;
 }
 
@@ -218,6 +232,68 @@ export async function getAdminStats() {
     };
   } catch (err) {
     return { error: err.message };
+  }
+}
+
+// ─── Saved Audits ─────────────────────────────────────────────────────────────
+
+export async function saveAudit(uid, auditResult) {
+  if (!analyticsDb) return null;
+  try {
+    await ensureAnalyticsSchema();
+    const res = await analyticsDb.query(
+      `INSERT INTO saved_audits (uid, solicitation_number, title, agency, verdict, win_probability, risk_score, result)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb)
+       RETURNING id, created_at`,
+      [
+        uid,
+        auditResult.solicitation_number || null,
+        auditResult.title || null,
+        auditResult.agency || null,
+        auditResult.verdict?.recommendation || null,
+        auditResult.verdict?.win_probability ?? null,
+        auditResult.riskAssessment?.score ?? null,
+        JSON.stringify(auditResult),
+      ]
+    );
+    return res.rows[0];
+  } catch (err) {
+    console.error("[SAVED_AUDITS] save_failed", err.message);
+    return null;
+  }
+}
+
+export async function getAuditHistory(uid, limit = 20) {
+  if (!analyticsDb) return [];
+  try {
+    await ensureAnalyticsSchema();
+    const res = await analyticsDb.query(
+      `SELECT id, solicitation_number, title, agency, verdict, win_probability, risk_score, created_at
+       FROM saved_audits
+       WHERE uid = $1
+       ORDER BY created_at DESC
+       LIMIT $2`,
+      [uid, limit]
+    );
+    return res.rows;
+  } catch (err) {
+    console.error("[SAVED_AUDITS] history_failed", err.message);
+    return [];
+  }
+}
+
+export async function getAuditById(id, uid) {
+  if (!analyticsDb) return null;
+  try {
+    await ensureAnalyticsSchema();
+    const res = await analyticsDb.query(
+      `SELECT * FROM saved_audits WHERE id = $1 AND uid = $2`,
+      [id, uid]
+    );
+    return res.rows[0] || null;
+  } catch (err) {
+    console.error("[SAVED_AUDITS] fetch_failed", err.message);
+    return null;
   }
 }
 

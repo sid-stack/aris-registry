@@ -9,6 +9,7 @@
  */
 
 import pdfParse from "pdf-parse/lib/pdf-parse.js";
+import { logger } from "../utils/logger.js";
 
 const SAM_API_KEY = process.env.SAM_API_KEY || process.env.SAM_GOV_API_KEY;
 const SAM_BASE    = "https://api.sam.gov/opportunities/v2";
@@ -64,7 +65,11 @@ async function fetchViaV3(uuid) {
     try {
       const text = await downloadAndParsePdf(downloadUrl);
       if (text && text.length > 200) {
-        console.log(`[SAM_GOV] ✓ v3 PDF: ${pdf.name} (${text.length} chars)`);
+        logger.info("sam_gov_pdf_selected", {
+          path: "v3",
+          filename: pdf.name,
+          chars: text.length,
+        });
         return {
           text,
           meta: {
@@ -76,7 +81,11 @@ async function fetchViaV3(uuid) {
         };
       }
     } catch (err) {
-      console.warn(`[SAM_GOV] ✗ v3 PDF ${pdf.name}: ${err.message}`);
+      logger.warn("sam_gov_pdf_parse_failed", {
+        path: "v3",
+        filename: pdf.name,
+        error: err.message,
+      });
     }
   }
 
@@ -170,11 +179,19 @@ export async function downloadBestSolicitation(links) {
         : url;
       const text = await downloadAndParsePdf(downloadUrl);
       if (text && text.length > 200) {
-        console.log(`[SAM_GOV] ✓ v2 PDF: ${name} (${text.length} chars)`);
+        logger.info("sam_gov_pdf_selected", {
+          path: "v2",
+          filename: name,
+          chars: text.length,
+        });
         return text;
       }
     } catch (err) {
-      console.warn(`[SAM_GOV] ✗ v2 PDF ${name}: ${err.message}`);
+      logger.warn("sam_gov_pdf_parse_failed", {
+        path: "v2",
+        filename: name,
+        error: err.message,
+      });
     }
   }
 
@@ -194,7 +211,10 @@ export async function fetchSolicitationText(url) {
     const result = await fetchViaV3(id);
     if (result.text) return result;
   } catch (v3Err) {
-    console.log(`[SAM_GOV] v3 path failed (${v3Err.message}), trying v2 search API`);
+    logger.info("sam_gov_v3_fallback", {
+      notice_id: id,
+      error: v3Err.message,
+    });
   }
 
   // Path 2: v2 search API (needs SAM_API_KEY)
@@ -219,7 +239,10 @@ export async function fetchSolicitationText(url) {
 
   if (!text && opp.description) {
     text = opp.description;
-    console.log(`[SAM_GOV] Using description fallback (${text.length} chars)`);
+    logger.info("sam_gov_description_fallback", {
+      notice_id: meta.id,
+      chars: text.length,
+    });
   }
 
   return { text, meta };

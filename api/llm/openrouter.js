@@ -5,6 +5,8 @@
  *   3. OpenRouter fallback chain         — backup when above fail
  */
 
+import { logger } from "../utils/logger.js";
+
 const MERCURY_BASE    = "https://api.inceptionlabs.ai/v1/chat/completions";
 const GEMINI_BASE     = "https://generativelanguage.googleapis.com/v1beta/models";
 const OPENROUTER_BASE = "https://openrouter.ai/api/v1/chat/completions";
@@ -39,16 +41,32 @@ async function tryMercury(system, user, opts = {}) {
       signal: AbortSignal.timeout(60_000),
     });
     if (!res.ok) {
-      console.warn(`[LLM] ✗ mercury-2 direct: ${res.status} ${(await res.text()).slice(0, 120)}`);
+      logger.debug("llm_provider_failed", {
+        provider: "mercury_direct",
+        status: res.status,
+        detail: (await res.text()).slice(0, 120),
+      });
       return null;
     }
     const data = await res.json();
     const text = data.choices?.[0]?.message?.content;
-    if (!text) { console.warn("[LLM] ✗ mercury-2 direct: empty content"); return null; }
-    console.log(`[LLM] ✓ mercury-2 direct (${text.length} chars)`);
+    if (!text) {
+      logger.debug("llm_provider_failed", {
+        provider: "mercury_direct",
+        detail: "empty content",
+      });
+      return null;
+    }
+    logger.debug("llm_provider_succeeded", {
+      provider: "mercury_direct",
+      chars: text.length,
+    });
     return text;
   } catch (err) {
-    console.warn(`[LLM] ✗ mercury-2 direct: ${err.message}`);
+    logger.debug("llm_provider_failed", {
+      provider: "mercury_direct",
+      error: err.message,
+    });
     return null;
   }
 }
@@ -75,16 +93,32 @@ async function tryGemini(system, user, opts = {}) {
       }
     );
     if (!res.ok) {
-      console.warn(`[LLM] ✗ gemini direct: ${res.status} ${(await res.text()).slice(0, 120)}`);
+      logger.debug("llm_provider_failed", {
+        provider: "gemini_direct",
+        status: res.status,
+        detail: (await res.text()).slice(0, 120),
+      });
       return null;
     }
     const data = await res.json();
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!text) { console.warn("[LLM] ✗ gemini direct: empty content"); return null; }
-    console.log(`[LLM] ✓ gemini direct (${text.length} chars)`);
+    if (!text) {
+      logger.debug("llm_provider_failed", {
+        provider: "gemini_direct",
+        detail: "empty content",
+      });
+      return null;
+    }
+    logger.debug("llm_provider_succeeded", {
+      provider: "gemini_direct",
+      chars: text.length,
+    });
     return text;
   } catch (err) {
-    console.warn(`[LLM] ✗ gemini direct: ${err.message}`);
+    logger.debug("llm_provider_failed", {
+      provider: "gemini_direct",
+      error: err.message,
+    });
     return null;
   }
 }
@@ -116,16 +150,35 @@ async function tryOpenRouter(system, user, opts = {}) {
         signal: AbortSignal.timeout(60_000),
       });
       if (!res.ok) {
-        console.warn(`[LLM] ✗ openrouter/${model}: ${res.status}`);
+        logger.debug("llm_provider_failed", {
+          provider: "openrouter",
+          model,
+          status: res.status,
+        });
         continue;
       }
       const data = await res.json();
       const text = data.choices?.[0]?.message?.content;
-      if (!text) { console.warn(`[LLM] ✗ openrouter/${model}: empty`); continue; }
-      console.log(`[LLM] ✓ openrouter/${model} (${text.length} chars)`);
+      if (!text) {
+        logger.debug("llm_provider_failed", {
+          provider: "openrouter",
+          model,
+          detail: "empty content",
+        });
+        continue;
+      }
+      logger.debug("llm_provider_succeeded", {
+        provider: "openrouter",
+        model,
+        chars: text.length,
+      });
       return text;
     } catch (err) {
-      console.warn(`[LLM] ✗ openrouter/${model}: ${err.message}`);
+      logger.debug("llm_provider_failed", {
+        provider: "openrouter",
+        model,
+        error: err.message,
+      });
     }
   }
   return null;
@@ -145,6 +198,12 @@ export async function callLLM(system, user, opts = {}) {
   // 3. OpenRouter (requires account credits)
   const openrouter = await tryOpenRouter(system, user, opts);
   if (openrouter) return openrouter;
+
+  logger.warn("llm_all_providers_failed", {
+    mercury_configured: Boolean(process.env.MERCURY_API_KEY),
+    gemini_configured: Boolean(process.env.GEMINI_API_KEY),
+    openrouter_configured: Boolean(process.env.OPENROUTER_API_KEY || process.env.OPEN_ROUTER_KEY),
+  });
 
   throw new Error("All LLM providers failed. Check MERCURY_API_KEY and GEMINI_API_KEY in Railway env vars.");
 }

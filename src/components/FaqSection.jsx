@@ -181,15 +181,15 @@ export default function FaqSection() {
     },
     {
       q: "How much does ARIS cost?",
-      a: "ARIS offers four tiers. Free: 3 audits per month, no credit card required. Starter: $49/month for 10 audits per month. Standard: $99/month for unlimited audits with full FAR/DFARS analysis, compliance matrix, risk score, and bid/no-bid recommendation. Enterprise: $299/month for deep-shred analysis including capture strategy, win themes, and competitive positioning. Annual billing saves 20% on paid plans.",
+      a: "ARIS offers four tiers. Free: 3 audits per month, no credit card required. Starter: $99/month for 1 full RFP audit with basic compliance matrix and PDF/SAM.gov support. Pro: $299/month for unlimited audits with full FAR/DFARS analysis, compliance matrix, risk score, bid/no-bid recommendation, and multi-format export. Enterprise: $999/month for deep-shred analysis including capture strategy, win themes, competitive positioning, and a dedicated GovCon consultant. Annual billing saves 20% on paid plans.",
     },
     {
       q: "Can ARIS help with bid/no-bid decisions?",
       a: "Yes. Every ARIS audit concludes with a structured bid/no-bid recommendation based on your compliance posture, risk score, and the solicitation's stated evaluation criteria. The recommendation includes specific reasons for each factor so your capture lead can make an informed go/no-go decision in minutes rather than days.",
     },
     {
-      q: "What is the difference between Standard and Enterprise plans?",
-      a: "Standard ($99/month) covers unlimited solicitation audits with the full compliance matrix, FAR/DFARS risk scoring, and bid/no-bid recommendation — ideal for capture managers tracking an active pipeline. Enterprise ($299/month) adds a deep-shred analysis layer: capture strategy, win theme development, competitive positioning, and executive-ready briefing outputs for high-value single opportunities.",
+      q: "What is the difference between Pro and Enterprise plans?",
+      a: "Pro ($299/month) covers unlimited solicitation audits with the full compliance matrix, FAR/DFARS risk scoring, and bid/no-bid recommendation — ideal for capture managers tracking an active pipeline. Enterprise ($999/month) adds a deep-shred analysis layer: capture strategy, win theme development, competitive positioning, executive-ready briefing outputs for high-value single opportunities, and a dedicated GovCon consultant.",
     },
     {
       q: "How fast does ARIS produce an audit?",

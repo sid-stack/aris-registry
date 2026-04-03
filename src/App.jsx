@@ -25,7 +25,7 @@ const BidSmithSearch = lazy(() => import("./pages/BidSmithSearch"));
 const CompliancePage = lazy(() => import("./pages/CompliancePage"));
 const SurveyAnalytics = lazy(() => import("./components/SurveyAnalytics"));
 const DemoAnalytics = lazy(() => import("./components/DemoAnalytics"));
-const GovConDashboard = lazy(() => import("./pages/GovConDashboard"));
+// GovConDashboard V1 retired — /dashboard now resolves to V2 (the real product)
 const GovConDashboardV2 = lazy(() => import("./pages/GovConDashboardV2"));
 const GovConGuide = lazy(() => import("./pages/GovConGuide"));
 const Demo = lazy(() => import("./pages/Demo"));
@@ -58,7 +58,7 @@ const PAGE_META = {
   cookies: { title: "Cookie Policy | BidSmith", description: "How BidSmith uses cookies and local storage. We minimize data collection and never sell your information.", path: "/cookies" },
   app: { title: "BidSmith Audit Workspace | Federal RFP Compliance Analysis", description: "Your BidSmith federal solicitation audit workspace. Paste a SAM.gov URL or upload a PDF to begin.", path: "/app" },
   "govcon-dashboard": { title: "BidSmith GovCon Dashboard | Capture Intelligence Workspace", description: "Manage your active federal bid pipeline. Track solicitations, compliance status, and win probability in one workspace.", path: "/dashboard" },
-  pricing: { title: "BidSmith Pricing | Federal RFP Audit Plans — Free to $299/mo", description: "Start free with 3 audits per month. Upgrade for unlimited audits, full FAR/DFARS analysis, and deep-shred strategy. No hidden fees.", path: "/pricing" },
+  pricing: { title: "BidSmith Pricing | Federal RFP Audit Plans — Free to $999/mo", description: "Start free with 3 audits per month. Upgrade for unlimited audits, full FAR/DFARS analysis, and deep-shred strategy. No hidden fees.", path: "/pricing" },
   "rfp-generator": { title: "Free RFP Compliance Matrix Generator | 90-Second FAR/DFARS Analysis — BidSmith", description: "Turn any government RFP into a structured compliance matrix in 90 seconds. Identify missing requirements and disqualification risks before you commit proposal resources.", path: "/rfp-compliance-matrix-generator" },
   outreach: { title: "Outreach Dashboard | BidSmith Internal", description: "Internal outreach tracking dashboard.", path: "/outreach" },
   admin: { title: "Admin Portal | BidSmith", description: "Internal analytics portal.", path: "/admin" },
@@ -146,7 +146,8 @@ export default function App() {
     if (p === "/beta" || p === "/sovereign-beta") return "beta";
     if (p === "/demo") return "demo";
     if (p === "/govcon-guide" || p === "/how-it-works") return "govcon-guide";
-    if (p === "/dashboard" || p === "/app/dashboard") return "govcon-dashboard";
+    // /dashboard redirects to /app (V2 is the live product)
+    if (p === "/dashboard" || p === "/app/dashboard") return "app";
     if (p.startsWith("/labs")) return "labs";
     if (p.startsWith("/compliance/")) return "compliance";
     if (aliasSection) return "landing";
@@ -176,8 +177,10 @@ export default function App() {
         setUser(session.user);
         localStorage.setItem("aris_authenticated", "true");
       } else {
+        // Signed out — clear everything
         setUser(null);
-        setAuthenticated(localStorage.getItem("aris_authenticated") === "true");
+        setAuthenticated(false);
+        localStorage.removeItem("aris_authenticated");
       }
     });
 
@@ -301,19 +304,18 @@ export default function App() {
   } else if (view === "survey-analytics") {
     content = authenticated
       ? <SurveyAnalytics />
-      : <Login onLogin={() => { setAuthenticated(true); localStorage.setItem("aris_authenticated", "true"); }} />;
+      : <Login onLogin={(u) => { setAuthenticated(true); setUser(u); localStorage.setItem("aris_authenticated", "true"); }} />;
   } else if (view === "demo-analytics") {
     content = authenticated
       ? <DemoAnalytics />
-      : <Login onLogin={() => { setAuthenticated(true); localStorage.setItem("aris_authenticated", "true"); }} />;
+      : <Login onLogin={(u) => { setAuthenticated(true); setUser(u); localStorage.setItem("aris_authenticated", "true"); }} />;
   } else if (view === "about") {
     content = <About onBack={() => setView("landing")} />;
   } else if (view === "labs") {
     content = <Labs onBack={() => setView("landing")} />;
   } else if (view === "govcon-dashboard") {
-    content = authenticated
-      ? <GovConDashboard onBack={() => setView("landing")} user={user} />
-      : <Login onLogin={() => { setAuthenticated(true); localStorage.setItem("aris_authenticated", "true"); }} />;
+    // Alias kept for safety — routes to V2 (same as /app)
+    content = <GovConDashboardV2 onBack={() => setView("landing")} user={user} />;
   } else if (view === "compliance") {
     const slug = window.location.pathname.replace("/compliance/", "");
     content = <CompliancePage slug={slug} onBack={() => setView("app")} />;
@@ -335,11 +337,11 @@ export default function App() {
   } else if (view === "outreach") {
     content = authenticated
       ? <Outreach onBack={() => setView("landing")} />
-      : <Login onLogin={() => { setAuthenticated(true); localStorage.setItem("aris_authenticated", "true"); }} />;
+      : <Login onLogin={(u) => { setAuthenticated(true); setUser(u); localStorage.setItem("aris_authenticated", "true"); }} />;
   } else if (view === "admin") {
     content = authenticated
       ? <AdminDashboard onBack={() => setView("landing")} />
-      : <Login onLogin={() => { setAuthenticated(true); localStorage.setItem("aris_authenticated", "true"); }} />;
+      : <Login onLogin={(u) => { setAuthenticated(true); setUser(u); localStorage.setItem("aris_authenticated", "true"); }} />;
   } else if (view === "contact") {
     content = <Contact onBack={() => setView("landing")} />;
   } else if (view === "earn") {
@@ -352,7 +354,7 @@ export default function App() {
     content = (
       <Landing
         onEnterApp={() => setView("app")}
-        onEnterDashboard={() => setView("govcon-dashboard")}
+        onEnterDashboard={() => setView("app")}
         onViewSample={() => setView("demo")}
         onBidSmithBeta={() => setView("beta")}
         onBidSmithSearch={handleBidSmithSearch}
@@ -362,11 +364,13 @@ export default function App() {
       />
     );
   } else if (view === "app") {
-    content = <GovConDashboardV2 onBack={() => setView("landing")} user={user} />;
+    content = authenticated && user
+      ? <GovConDashboardV2 onBack={() => setView("landing")} user={user} />
+      : <Login onLogin={(u) => { setAuthenticated(true); setUser(u); localStorage.setItem("aris_authenticated", "true"); }} />;
   } else if (view === "404") {
     content = <NotFound onBack={() => setView("landing")} />;
   } else if (!authenticated) {
-    content = <Login onLogin={() => { setAuthenticated(true); localStorage.setItem("aris_authenticated", "true"); }} />;
+    content = <Login onLogin={(u) => { setAuthenticated(true); setUser(u); localStorage.setItem("aris_authenticated", "true"); }} />;
   } else {
     content = <NotFound onBack={() => setView("landing")} />;
   }

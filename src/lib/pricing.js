@@ -3,7 +3,7 @@
  * 4-tier funnel: Free → Starter → Standard → Enterprise
  */
 export const STRIPE_PAYMENT_LINKS = {
-  starter:    null, // TODO: create $49/mo Stripe price — mailto CTA until set
+  starter:    null, // TODO: create $99/mo Stripe price — mailto CTA until set
   standard:   "https://buy.stripe.com/3cIaEX66197ad9H9na2Fa00",
   enterprise: "https://buy.stripe.com/cNibJ19id8369XvfLy2Fa01",
 };

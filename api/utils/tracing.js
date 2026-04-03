@@ -1,12 +1,13 @@
 import { Client } from "langsmith";
 import { traceable } from "langsmith/traceable";
+import { logger } from "./logger.js";
 
 /**
  * ARIS Observability & Traceability Layer
  * Powered by LangSmith. Turns the "Stateless Bridge" into a transparent audit trail.
  */
 
-const client = new Client({
+const LANGSMITH_CLIENT = new Client({
   apiKey: process.env.LANGSMITH_API_KEY,
   endpoint: process.env.LANGSMITH_ENDPOINT || "https://api.smith.langchain.com",
 });
@@ -33,5 +34,9 @@ export const traceLLM = process.env.LANGSMITH_API_KEY
  */
 export async function logStep(sessionId, stepName, metadata = {}) {
   // LangSmith manual event logging logic
-  console.log(`[TRACE] [${sessionId}] ${stepName}`, metadata);
+  logger.debug("trace_step", {
+    session_id: sessionId,
+    step: stepName,
+    metadata,
+  });
 }
