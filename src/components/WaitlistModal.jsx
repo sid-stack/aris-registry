@@ -21,6 +21,7 @@ export default function WaitlistModal({ onClose, source = 'app' }) {
   const [step, setStep] = useState('form'); // 'form' | 'success'
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [confirmationSent, setConfirmationSent] = useState(null);
   const [form, setForm] = useState({
     name: '', email: '', company: '', role: '', use_case: ''
   });
@@ -39,6 +40,7 @@ export default function WaitlistModal({ onClose, source = 'app' }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Something went wrong');
+      setConfirmationSent(Boolean(data.confirmationSent));
       setStep('success');
     } catch (err) {
       setError(err.message);
@@ -100,7 +102,9 @@ export default function WaitlistModal({ onClose, source = 'app' }) {
               You're on the list
             </h3>
             <p style={{ fontSize: '14px', color: '#64748b', lineHeight: 1.6, margin: '0 0 24px' }}>
-              Check your inbox — we sent a confirmation. You'll get a personal invite when we open access.
+              {confirmationSent
+                ? "Check your inbox — we sent a confirmation. You'll get a personal invite when we open access."
+                : "Your request was saved, but the confirmation email is delayed right now. Please try again shortly or contact sid@bidsmith.pro."}
             </p>
             <button onClick={onClose} style={{
               background: '#002244', color: '#fff', border: 'none',

@@ -45,7 +45,9 @@ export async function sendEmail(opts, { fatal = false } = {}) {
     return false;
   }
 
-  const defaultFrom = `"BidSmith" <${process.env.SMTP_USER}>`;
+  const fromAddress = process.env.MAIL_FROM || process.env.SMTP_USER;
+  const fromName = process.env.MAIL_FROM_NAME || "BidSmith";
+  const defaultFrom = `"${fromName}" <${fromAddress}>`;
   try {
     const nm = await getNodemailer();
     const transporter = buildTransport(nm);

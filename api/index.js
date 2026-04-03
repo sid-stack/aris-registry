@@ -267,13 +267,8 @@ app.post("/api/waitlist", asyncHandler(async (req, res) => {
 
   await addToWaitlist({ name: name.trim(), email: email.trim(), company, role, use_case, source });
 
-  // ── Respond immediately — don't block on email delivery ─────────────────
-  // Email is fire-and-forget. SMTP timeouts were causing the form to hang.
-  res.json({ success: true, message: "You're on the list. Check your inbox." });
-
-  // Send emails in background (non-blocking)
   const firstName = name.split(' ')[0];
-  sendEmail({
+  const confirmationSent = await sendEmail({
     to: email.trim(),
     subject: "You're on the BidSmith early access list",
     html: `
@@ -302,14 +297,24 @@ app.post("/api/waitlist", asyncHandler(async (req, res) => {
         </p>
       </div>
     `,
-  }).then((ok) => {
-    if (ok) {
-      logger.info("waitlist_confirmation_sent", requestMeta(req, { email }));
-    }
+  });
+
+  if (confirmationSent) {
+    logger.info("waitlist_confirmation_sent", requestMeta(req, { email }));
+  } else {
+    logger.warn("waitlist_confirmation_failed", requestMeta(req, { email }));
+  }
+
+  res.json({
+    success: true,
+    confirmationSent,
+    message: confirmationSent
+      ? "You're on the list. Check your inbox."
+      : "You're on the list. Confirmation email is delayed right now.",
   });
 
   sendEmail({
-    from: `"BidSmith Waitlist" <${process.env.SMTP_USER}>`,
+    from: `"BidSmith Waitlist" <${process.env.MAIL_FROM || process.env.SMTP_USER}>`,
     to: process.env.CONTACT_TO || "sid@bidsmith.pro",
     subject: `🎯 New signup — ${company || name}`,
     html: `<p><b>${name}</b> (${email}) from <b>${company || "—"}</b> just joined the waitlist.<br>Role: ${role || "—"}<br>Use case: ${use_case || "—"}</p>`,
