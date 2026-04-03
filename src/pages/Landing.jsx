@@ -1,4 +1,4 @@
-import { Shield, Search, Globe, CheckCircle, Loader2, ArrowRight, ChevronDown, Check, AlertTriangle, FileText, Zap, Lock } from "lucide-react";
+import { Shield, Globe, CheckCircle, Loader2, ArrowRight, ChevronDown, Check, AlertTriangle, FileText, Zap, Lock } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import FaqSection from "../components/FaqSection";
 import "./Landing.css";
@@ -11,7 +11,6 @@ export default function Landing({
   onEnterApp,
   onViewSample,
   onBidSmithBeta,
-  onBidSmithSearch,
   onAnalyze,
   onAnalyzeFile,
   onEnterDashboard,
@@ -81,7 +80,6 @@ export default function Landing({
           <nav style={{ display: "flex", gap: isMobile ? "12px" : "24px", alignItems: "center" }}>
             {!isMobile && (
               <>
-                <button style={styles.navLinkBtn} onClick={onBidSmithSearch}>Search Bids</button>
                 <button style={styles.navLinkBtn} onClick={onBidSmithBeta}>Gov Admin</button>
                 <a href="https://arislabs.mintlify.app/" target="_blank" rel="noopener noreferrer" style={styles.navLinkBtn}>Docs</a>
               </>
@@ -118,7 +116,6 @@ export default function Landing({
              </div>
              <div style={{ display: 'flex', gap: 12, marginTop: 12, flexWrap: 'wrap' }}>
                 <button onClick={() => fileInputRef.current.click()} style={styles.secBtnSmall}>Upload PDF</button>
-                <button onClick={onBidSmithSearch} style={styles.secBtnSmall}>Search Bids</button>
                 <button onClick={() => demoRef.current?.scrollIntoView({ behavior: 'smooth' })} style={styles.secBtnSmall}>Watch Demo</button>
                 <button
                   onClick={() => setShowWaitlist(true)}
@@ -252,7 +249,6 @@ export default function Landing({
             <p style={styles.footerText}>Federal RFP Compliance Audit Software.</p>
           </div>
           <div style={styles.footerLinks}>
-             <button style={styles.flBtn} onClick={onBidSmithSearch}>Search Bids</button>
              <a href="https://arislabs.mintlify.app/" target="_blank" rel="noopener noreferrer" style={styles.flBtn}>ARIS Labs Docs</a>
              <button style={styles.flBtn} onClick={() => window.location.href='/contact'}>Contact [sid@bidsmith.pro]</button>
           </div>
