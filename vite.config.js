@@ -19,6 +19,8 @@ export default defineConfig(({ mode }) => {
       },
     },
     build: {
+      // Don't empty dist — mounted filesystem prevents deletion of existing files
+      emptyOutDir: false,
       // Raise warning threshold — html2pdf is legitimately large and already lazy
       chunkSizeWarningLimit: 600,
       rollupOptions: {

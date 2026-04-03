@@ -262,19 +262,12 @@ function NewAuditModal({ onClose, onAuditComplete, userId }) {
 
   const saveAndReturn = async (auditData) => {
     if (userId) {
-      try {
-        await supabase.from('audits').insert({
-          user_id: userId,
-          title: auditData.title || 'Federal Solicitation',
-          agency: auditData.agency || 'Federal Agency',
-          verdict: auditData.verdict,
-          due_date: auditData.due_date || null,
-          audit_data: auditData,
-          created_at: new Date().toISOString()
-        });
-      } catch (dbErr) {
-        console.warn('[V2] Supabase save failed — showing in-memory:', dbErr.message);
-      }
+      // Fire-and-forget — don't block the UI on DB write
+      fetch('/api/audits/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
+        body: JSON.stringify({ result: auditData }),
+      }).catch(err => console.warn('[V2] Save failed (non-fatal):', err.message));
     }
     onAuditComplete(auditData);
     onClose();
@@ -484,9 +477,8 @@ const TABS = [
 
 export default function GovConDashboardV2({ onBack, user }) {
   const [activeTab, setActiveTab] = useState('intelligence');
-  const [pipeline, setPipeline] = useState([]); // list of past audits from Supabase
-  const [activeAudit, setActiveAudit] = useState(DEMO_AUDIT_DATA); // current audit data
-  const [session, setSession] = useState(null);
+  const [pipeline, setPipeline] = useState([]);
+  const [activeAudit, setActiveAudit] = useState(DEMO_AUDIT_DATA);
   const [showNewAudit, setShowNewAudit] = useState(false);
   const [showWaitlist, setShowWaitlist] = useState(false);
 
@@ -498,34 +490,34 @@ export default function GovConDashboardV2({ onBack, user }) {
     document.documentElement.style.setProperty('--text-secondary', '#475569');
     document.documentElement.style.setProperty('--accent', '#002244');
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session) loadPipeline(session.user.id);
-    });
-  }, []);
+    if (user?.id) loadPipeline(user.id);
+  }, [user?.id]);
 
   const loadPipeline = async (userId) => {
     try {
-      const { data, error } = await supabase
-        .from('audits')
-        .select('id, title, agency, verdict, due_date, created_at')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(20);
-      if (data) setPipeline(data);
+      const res = await fetch('/api/audits/history?limit=20', {
+        headers: { 'x-user-id': userId },
+      });
+      if (!res.ok) return;
+      const { audits } = await res.json();
+      // Normalize verdict field (API returns flat text, PipelineItem expects object)
+      setPipeline((audits || []).map(a => ({
+        ...a,
+        verdict: { recommendation: a.verdict, win_probability: a.win_probability || 0 },
+      })));
     } catch (err) {
-      // Table may not exist yet — fail silently, show empty state
+      // Network error — fail silently, show empty state
     }
   };
 
   const loadAuditDetail = async (id) => {
     try {
-      const { data } = await supabase
-        .from('audits')
-        .select('*')
-        .eq('id', id)
-        .single();
-      if (data?.audit_data) setActiveAudit(data.audit_data);
+      const res = await fetch(`/api/audits/${id}`, {
+        headers: { 'x-user-id': user?.id },
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data?.result) setActiveAudit(data.result);
     } catch (err) {
       console.warn('[V2] Could not load audit detail');
     }
@@ -533,13 +525,13 @@ export default function GovConDashboardV2({ onBack, user }) {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    localStorage.removeItem('aris_authenticated');
+    // App.jsx onAuthStateChange clears state — just redirect
     window.location.href = '/';
   };
 
   const handleAuditComplete = (auditData) => {
     setActiveAudit(auditData);
-    loadPipeline(session?.user?.id);
+    if (user?.id) loadPipeline(user.id);
   };
 
   return (
@@ -557,7 +549,7 @@ export default function GovConDashboardV2({ onBack, user }) {
         padding: '0 24px', gap: '24px', zIndex: 100,
         boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}
+        <div
           onClick={onBack}
           style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px' }}
         >
@@ -624,7 +616,7 @@ export default function GovConDashboardV2({ onBack, user }) {
             Request Early Access
           </button>
           <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>
-            {session?.user?.email?.split('@')[0].toUpperCase() || 'DEMO'}
+            {user?.email?.split('@')[0].toUpperCase() || 'DEMO'}
           </span>
           <button
             onClick={handleLogout}
@@ -725,7 +717,7 @@ export default function GovConDashboardV2({ onBack, user }) {
         <NewAuditModal
           onClose={() => setShowNewAudit(false)}
           onAuditComplete={handleAuditComplete}
-          userId={session?.user?.id}
+          userId={user?.id}
         />
       )}
 
