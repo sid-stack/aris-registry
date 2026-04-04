@@ -205,7 +205,7 @@ export async function callLLM(system, user, opts = {}) {
     openrouter_configured: Boolean(process.env.OPENROUTER_API_KEY || process.env.OPEN_ROUTER_KEY),
   });
 
-  throw new Error("All LLM providers failed. Check MERCURY_API_KEY and GEMINI_API_KEY in Railway env vars.");
+  throw new Error("All LLM providers failed. Check MERCURY_API_KEY, GEMINI_API_KEY, and OPENROUTER_API_KEY in Railway env vars.");
 }
 
 export async function callLLMJson(system, user, opts = {}) {

@@ -187,7 +187,13 @@ export async function runAudit(text, meta = {}) {
   ]);
 
   if (auditorResult.requirements.length === 0) {
-    throw new Error("Could not extract any requirements from this solicitation");
+    logger.warn("audit_no_requirements", { chars: text.length });
+    return {
+      error: "insufficient_text",
+      message: "Could not extract requirements from this solicitation. Paste more of the RFP text or upload the full document.",
+      requirements: [],
+      verdict: { recommendation: "INSUFFICIENT_DATA", win_probability: 0 },
+    };
   }
 
   // Phase 2 — Strategist synthesizes both

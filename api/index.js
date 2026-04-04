@@ -55,6 +55,18 @@ app.use(cors());
 app.use(requestId);
 app.use(requestLogger);
 
+app.get("/api/health", (_req, res) => {
+  res.json({
+    status: "ok",
+    ts: new Date().toISOString(),
+    providers: {
+      mercury: Boolean(process.env.MERCURY_API_KEY),
+      gemini: Boolean(process.env.GEMINI_API_KEY),
+      openrouter: Boolean(process.env.OPENROUTER_API_KEY || process.env.OPEN_ROUTER_KEY),
+    },
+  });
+});
+
 app.get("/app-config.js", (_req, res) => {
   const publicConfig = {
     VITE_CLERK_PUBLISHABLE_KEY: process.env.VITE_CLERK_PUBLISHABLE_KEY || "",
