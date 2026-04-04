@@ -1,15 +1,17 @@
 import React from 'react';
-import { 
-  Shield, 
-  CheckCircle, 
+import {
+  Shield,
+  CheckCircle,
   FileCheck,
   Zap,
   Lock,
-  ArrowRight
+  ArrowRight,
+  Play
 } from 'lucide-react';
 
 export default function DemoSection({ onTryDemo }) {
   const videoRef = React.useRef(null);
+  const [videoError, setVideoError] = React.useState(false);
 
   return (
     <section style={styles.section}>
@@ -27,20 +29,36 @@ export default function DemoSection({ onTryDemo }) {
                 <span>LIVE SESSION: GOVCON_INTELLIGENCE_v4.5</span>
               </div>
             </div>
-            
+
             <div style={styles.videoFrame}>
-              <video
-                ref={videoRef}
-                autoPlay
-                muted
-                loop
-                playsInline
-                style={styles.video}
-                onError={(e) => { e.target.style.display = 'none'; }}
-              >
-                <source src="/aris-demo.mp4" type="video/mp4" />
-                Browser does not support video playback.
-              </video>
+              {videoError ? (
+                <div style={styles.videoFallback}>
+                  <img
+                    src="/assets/demo/video-poster.png"
+                    alt="BidSmith audit workspace demo"
+                    style={styles.posterImg}
+                    onError={(e) => { e.target.style.display = 'none'; }}
+                  />
+                  <button style={styles.watchDemoBtn} onClick={onTryDemo}>
+                    <span style={styles.playCircle}><Play size={20} color="#fff" /></span>
+                    Launch Audit Engine
+                  </button>
+                </div>
+              ) : (
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  poster="/assets/demo/video-poster.png"
+                  style={styles.video}
+                  onError={() => setVideoError(true)}
+                >
+                  <source src="/assets/demo/aris-demo.mp4" type="video/mp4" />
+                  <source src="/aris-demo.mp4" type="video/mp4" />
+                </video>
+              )}
             </div>
           </div>
         </div>
@@ -177,6 +195,49 @@ const styles = {
     width: '100%',
     height: '100%',
     objectFit: 'cover',
+    display: 'block',
+  },
+  videoFallback: {
+    width: '100%',
+    height: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    background: '#0d1117',
+  },
+  posterImg: {
+    position: 'absolute',
+    inset: 0,
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+    opacity: 0.7,
+  },
+  watchDemoBtn: {
+    position: 'relative',
+    zIndex: 2,
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '12px',
+    background: '#002244',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '10px',
+    padding: '16px 28px',
+    fontSize: '15px',
+    fontWeight: 800,
+    cursor: 'pointer',
+    boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+  },
+  playCircle: {
+    width: '36px',
+    height: '36px',
+    background: '#2563eb',
+    borderRadius: '50%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   playOverlay: {
     position: 'absolute',

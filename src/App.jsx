@@ -6,7 +6,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { trackPageView } from "./utils/analytics";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
-import { supabase } from "./lib/supabase";
+import { clearAuthStorage, supabase, syncAuthStorage } from "./lib/supabase";
 
 const Upload = lazy(() => import("./pages/Upload"));
 const Proposal = lazy(() => import("./pages/Proposal"));
@@ -160,6 +160,12 @@ export default function App() {
 
   usePageMeta(view);
 
+  const handleLogin = (nextUser, session) => {
+    setAuthenticated(true);
+    setUser(nextUser);
+    syncAuthStorage(session || { user: nextUser });
+  };
+
   useEffect(() => {
     let mounted = true;
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -167,10 +173,10 @@ export default function App() {
       if (session) {
         setAuthenticated(true);
         setUser(session.user);
-        localStorage.setItem("aris_authenticated", "true");
+        syncAuthStorage(session);
       } else {
         setAuthenticated(false);
-        localStorage.removeItem("aris_authenticated");
+        clearAuthStorage();
       }
       setAuthLoading(false);
     }).catch(err => {
@@ -182,12 +188,12 @@ export default function App() {
       if (session) {
         setAuthenticated(true);
         setUser(session.user);
-        localStorage.setItem("aris_authenticated", "true");
+        syncAuthStorage(session);
       } else {
         // Signed out — clear everything
         setUser(null);
         setAuthenticated(false);
-        localStorage.removeItem("aris_authenticated");
+        clearAuthStorage();
       }
     });
 
@@ -311,11 +317,11 @@ export default function App() {
   } else if (view === "survey-analytics") {
     content = authenticated
       ? <SurveyAnalytics />
-      : <Login onLogin={(u) => { setAuthenticated(true); setUser(u); localStorage.setItem("aris_authenticated", "true"); }} />;
+      : <Login onLogin={handleLogin} />;
   } else if (view === "demo-analytics") {
     content = authenticated
       ? <DemoAnalytics />
-      : <Login onLogin={(u) => { setAuthenticated(true); setUser(u); localStorage.setItem("aris_authenticated", "true"); }} />;
+      : <Login onLogin={handleLogin} />;
   } else if (view === "about") {
     content = <About onBack={() => setView("landing")} />;
   } else if (view === "labs") {
@@ -326,7 +332,7 @@ export default function App() {
     } else {
       content = authenticated && user
         ? <GovConDashboardV2 onBack={() => setView("landing")} user={user} />
-        : <Login onLogin={(u) => { setAuthenticated(true); setUser(u); localStorage.setItem("aris_authenticated", "true"); }} />;
+        : <Login onLogin={handleLogin} />;
     }
   } else if (view === "compliance") {
     const slug = window.location.pathname.replace("/compliance/", "");
@@ -339,9 +345,10 @@ export default function App() {
     content = <GovConGuide onBack={() => setView("landing")} onEnterApp={() => setView("app")} />;
   } else if (view === "pricing") {
     content = (
-      <PricingGrid 
-        onTryFree={() => setView("app")} 
-        onGetPro={() => window.open("https://buy.stripe.com/3cIaEX66197ad9H9na2Fa00", "_blank")} 
+      <PricingGrid
+        onTryFree={() => setView("app")}
+        onGetPro={() => window.open("https://buy.stripe.com/3cIaEX66197ad9H9na2Fa00", "_blank")}
+        onGetEnterprise={() => window.open("https://buy.stripe.com/cNibJ19id8369XvfLy2Fa01", "_blank")}
       />
     );
   } else if (view === "rfp-generator") {
@@ -349,11 +356,11 @@ export default function App() {
   } else if (view === "outreach") {
     content = authenticated
       ? <Outreach onBack={() => setView("landing")} />
-      : <Login onLogin={(u) => { setAuthenticated(true); setUser(u); localStorage.setItem("aris_authenticated", "true"); }} />;
+      : <Login onLogin={handleLogin} />;
   } else if (view === "admin") {
     content = authenticated
       ? <AdminDashboard onBack={() => setView("landing")} />
-      : <Login onLogin={(u) => { setAuthenticated(true); setUser(u); localStorage.setItem("aris_authenticated", "true"); }} />;
+      : <Login onLogin={handleLogin} />;
   } else if (view === "contact") {
     content = <Contact onBack={() => setView("landing")} />;
   } else if (view === "earn") {
@@ -381,12 +388,12 @@ export default function App() {
     } else {
       content = authenticated && user
         ? <GovConDashboardV2 onBack={() => setView("landing")} user={user} />
-        : <Login onLogin={(u) => { setAuthenticated(true); setUser(u); localStorage.setItem("aris_authenticated", "true"); }} />;
+        : <Login onLogin={handleLogin} />;
     }
   } else if (view === "404") {
     content = <NotFound onBack={() => setView("landing")} />;
   } else if (!authenticated) {
-    content = <Login onLogin={(u) => { setAuthenticated(true); setUser(u); localStorage.setItem("aris_authenticated", "true"); }} />;
+    content = <Login onLogin={handleLogin} />;
   } else {
     content = <NotFound onBack={() => setView("landing")} />;
   }

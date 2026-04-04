@@ -1,7 +1,7 @@
 import React from 'react';
 import { Shield, CheckCircle, ArrowRight, Zap, Lock, MessageSquare } from 'lucide-react';
 
-export default function PricingGrid({ onTryFree, onGetPro }) {
+export default function PricingGrid({ onTryFree, onGetPro, onGetEnterprise }) {
   const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
 
   return (
@@ -63,8 +63,8 @@ export default function PricingGrid({ onTryFree, onGetPro }) {
               <li style={styles.featureItem}><CheckCircle size={16} color="#16a34a" /> Priority processing pipeline</li>
               <li style={styles.featureItem}><CheckCircle size={16} color="#16a34a" /> Dedicated GovCon consultant</li>
             </ul>
-            <button style={styles.freeBtn} onClick={() => window.location.href = 'mailto:sid@bidsmith.pro?subject=Enterprise Audit'}>
-              Contact Sales
+            <button style={styles.freeBtn} onClick={onGetEnterprise}>
+              Get Enterprise
             </button>
           </div>
         </div>

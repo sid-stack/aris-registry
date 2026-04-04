@@ -54,6 +54,17 @@ app.use(express.json());
 app.use(cors());
 app.use(requestId);
 app.use(requestLogger);
+
+app.get("/app-config.js", (_req, res) => {
+  const publicConfig = {
+    VITE_SUPABASE_URL: process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || "",
+    VITE_SUPABASE_ANON_KEY: process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || "",
+  };
+
+  res.type("application/javascript");
+  res.send(`window.__APP_CONFIG__ = Object.assign({}, window.__APP_CONFIG__ || {}, ${JSON.stringify(publicConfig)});`);
+});
+
 app.use(express.static(join(__dirname, "../dist")));
 
 // Multer for memory upload

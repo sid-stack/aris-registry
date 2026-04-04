@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Shield, Mail, Lock, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { getAuthRedirectUrl, hasSupabaseConfig, supabase } from '../lib/supabase';
 
 /**
  * Login — real Supabase email/password auth.
@@ -31,22 +31,27 @@ export default function Login({ onLogin }) {
     }
 
     try {
+      const normalizedEmail = email.trim().toLowerCase();
+
       if (mode === 'signup') {
         const { data, error: err } = await supabase.auth.signUp({
-          email: email.trim().toLowerCase(),
+          email: normalizedEmail,
           password,
+          options: {
+            emailRedirectTo: getAuthRedirectUrl('/app'),
+          },
         });
         if (err) {
           setError(err.message);
         } else if (data?.user && !data.session) {
-          setInfo('Check your email for a confirmation link, then sign in.');
+          setInfo('Check your email for a confirmation link. After confirming, you will return to the app and can sign in immediately.');
           setMode('login');
         } else if (data?.user) {
-          onLogin(data.user);
+          onLogin(data.user, data.session);
         }
       } else {
         const { data, error: err } = await supabase.auth.signInWithPassword({
-          email: email.trim().toLowerCase(),
+          email: normalizedEmail,
           password,
         });
         if (err) {
@@ -54,7 +59,7 @@ export default function Login({ onLogin }) {
             ? 'Wrong email or password.'
             : err.message);
         } else {
-          onLogin(data.user);
+          onLogin(data.user, data.session);
         }
       }
     } catch (err) {
@@ -100,6 +105,13 @@ export default function Login({ onLogin }) {
 
         {/* Form */}
         <form onSubmit={handleSubmit} style={s.form}>
+          {!hasSupabaseConfig && (
+            <div style={s.errorBox}>
+              <AlertCircle size={13} style={{ flexShrink: 0 }} />
+              <span>Authentication is not configured for this deployment yet. Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` on the server runtime.</span>
+            </div>
+          )}
+
           <div style={s.field}>
             <label style={s.label}>Email</label>
             <div style={s.inputRow}>
@@ -146,7 +158,7 @@ export default function Login({ onLogin }) {
             </div>
           )}
 
-          <button type="submit" disabled={loading} style={s.btn}>
+          <button type="submit" disabled={loading || !hasSupabaseConfig} style={s.btn}>
             {loading
               ? <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
               : <>

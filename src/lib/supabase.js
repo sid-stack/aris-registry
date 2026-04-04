@@ -1,15 +1,23 @@
 import { createClient } from "@supabase/supabase-js";
 
-// Initialize the Supabase client
-// If the environment variables are missing (e.g. initial setup), we provide safe fallbacks
-// to prevent the application from crashing while the user configures their project.
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const runtimeConfig = typeof window !== "undefined" ? window.__APP_CONFIG__ || {} : {};
+const supabaseUrl =
+  import.meta.env.VITE_SUPABASE_URL ||
+  runtimeConfig.VITE_SUPABASE_URL ||
+  runtimeConfig.SUPABASE_URL;
+const supabaseAnonKey =
+  import.meta.env.VITE_SUPABASE_ANON_KEY ||
+  runtimeConfig.VITE_SUPABASE_ANON_KEY ||
+  runtimeConfig.SUPABASE_ANON_KEY;
+const isSupabaseConfigured = Boolean(
+  supabaseUrl &&
+  supabaseAnonKey &&
+  !String(supabaseUrl).includes("placeholder")
+);
 
 let client;
 
-if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.includes("placeholder")) {
+if (!isSupabaseConfigured) {
 
   // Mock implementation to prevent "Failed to fetch" errors during fallback
   const _authError = { message: "Auth not configured — contact support." };
@@ -36,6 +44,39 @@ if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.includes("placeholder")) {
 }
 
 export const supabase = client;
+export const hasSupabaseConfig = isSupabaseConfigured;
+
+export function getAuthRedirectUrl(path = "/app") {
+  if (typeof window === "undefined") return path;
+  return new URL(path, window.location.origin).toString();
+}
+
+export function clearAuthStorage() {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem("aris_authenticated");
+  localStorage.removeItem("sb-token");
+  localStorage.removeItem("sb-user-id");
+  localStorage.removeItem("sb-user-email");
+}
+
+export function syncAuthStorage(session) {
+  if (typeof window === "undefined") return;
+
+  if (!session?.user) {
+    clearAuthStorage();
+    return;
+  }
+
+  localStorage.setItem("aris_authenticated", "true");
+  localStorage.setItem("sb-user-id", session.user.id || "");
+  localStorage.setItem("sb-user-email", session.user.email || "");
+
+  if (session.access_token) {
+    localStorage.setItem("sb-token", session.access_token);
+  } else {
+    localStorage.removeItem("sb-token");
+  }
+}
 
 /**
  * Premium Access Bridge

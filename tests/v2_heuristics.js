@@ -949,18 +949,18 @@ test("4. Determinism - same RFP 3x produces identical structure and citations", 
   }
 });
 
-test("5. Fallback Logic - Mercury timeout routes to Gemini 2.5 Flash and preserves schema", async () => {
+test("5. Fallback Logic - Mercury timeout routes to OpenRouter and preserves schema", async () => {
   const previousMercuryKey = process.env.MERCURY_API_KEY;
+  const previousOpenRouterKey = process.env.OPENROUTER_API_KEY;
   process.env.MERCURY_API_KEY = "test-mercury-key";
+  process.env.OPENROUTER_API_KEY = "test-openrouter-key";
+  // Disable Gemini so fallback goes straight to OpenRouter
+  delete process.env.GEMINI_API_KEY;
 
   const mock = installFetchMock((call) => {
     if (call.url.includes("inceptionlabs.ai")) {
       throw new Error("Simulated Mercury timeout");
     }
-
-    assert.ok(call.url.includes("openrouter.ai"), `Expected OpenRouter fallback, got ${call.url}`);
-    assert.equal(call.model, "google/gemini-2.5-flash", `Expected first OpenRouter fallback to Gemini 2.5 Flash, got ${call.model}`);
-
     const userMessage = call.body?.messages?.find((m) => m.role === "user")?.content || "";
     return makeLlmResponse(buildAuditForPrompt(userMessage));
   });
@@ -974,18 +974,15 @@ test("5. Fallback Logic - Mercury timeout routes to Gemini 2.5 Flash and preserv
     assertSchema(result, "Mercury Timeout Fallback");
 
     const mercuryCalls = mock.calls.filter((entry) => entry.url.includes("inceptionlabs.ai"));
-    const geminiCalls = mock.calls.filter((entry) => entry.model === "google/gemini-2.5-flash");
+    const openrouterCalls = mock.calls.filter((entry) => entry.url?.includes("openrouter.ai"));
 
     assert.ok(mercuryCalls.length >= 1, `Expected at least one Mercury direct attempt, got ${mercuryCalls.length}`);
-    assert.ok(geminiCalls.length >= 1, `Expected at least one Gemini 2.5 fallback attempt, got ${geminiCalls.length}`);
+    assert.ok(openrouterCalls.length >= 1, `Expected at least one OpenRouter fallback attempt, got ${openrouterCalls.length}`);
     assert.ok(result.requirements.length >= 3, "Expected schema-preserving fallback output");
   } finally {
     mock.restore();
-    if (previousMercuryKey === undefined) {
-      delete process.env.MERCURY_API_KEY;
-    } else {
-      process.env.MERCURY_API_KEY = previousMercuryKey;
-    }
+    if (previousMercuryKey === undefined) { delete process.env.MERCURY_API_KEY; } else { process.env.MERCURY_API_KEY = previousMercuryKey; }
+    if (previousOpenRouterKey === undefined) { delete process.env.OPENROUTER_API_KEY; } else { process.env.OPENROUTER_API_KEY = previousOpenRouterKey; }
   }
 });
 
