@@ -18,7 +18,7 @@ import {
   ChevronRight, Plus, TrendingUp, AlertOctagon,
   Clock, BarChart2, Eye, ArrowLeft, Star
 } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { useClerk } from '@clerk/clerk-react';
 import IntelligenceBrief from '../components/forge/IntelligenceBrief';
 import ProposalForge from '../components/forge/ProposalForge';
 import ComplianceMatrix from '../components/dashboard/ComplianceMatrix';
@@ -600,6 +600,7 @@ const TABS = [
 // ─── Main V2 Dashboard ─────────────────────────────────────────────────────────
 
 export default function GovConDashboardV2({ onBack, user }) {
+  const { signOut } = useClerk();
   const [activeTab, setActiveTab] = useState('intelligence');
   const [pipeline, setPipeline] = useState([]);
   const [activeAudit, setActiveAudit] = useState(DEMO_AUDIT_DATA);
@@ -648,10 +649,8 @@ export default function GovConDashboardV2({ onBack, user }) {
     }
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    // App.jsx onAuthStateChange clears state — just redirect
-    window.location.href = '/';
+  const handleLogout = () => {
+    signOut(() => { window.location.href = '/'; });
   };
 
   const handleAuditComplete = (auditData) => {

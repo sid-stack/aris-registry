@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from "react";
+import { useAuth, useUser } from "@clerk/clerk-react";
 import NotFound from "./pages/NotFound";
 import Landing from "./pages/Landing";
 import ConsentBanner from "./components/ConsentBanner";
@@ -6,11 +7,10 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { trackPageView } from "./utils/analytics";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
-import { clearAuthStorage, supabase, syncAuthStorage } from "./lib/supabase";
 
+import { SignIn } from "@clerk/clerk-react";
 const Upload = lazy(() => import("./pages/Upload"));
 const Proposal = lazy(() => import("./pages/Proposal"));
-const Login = lazy(() => import("./pages/Login"));
 const Audit = lazy(() => import("./pages/Audit"));
 const Templates = lazy(() => import("./pages/Templates"));
 const Legal = lazy(() => import("./pages/Legal"));
@@ -119,9 +119,11 @@ const LANDING_SECTION_ALIASES = {
 export default function App() {
   const path = window.location.pathname;
   const aliasSection = LANDING_SECTION_ALIASES[path] || null;
-  const [authenticated, setAuthenticated] = useState(() => localStorage.getItem("aris_authenticated") === "true");
-  const [user, setUser] = useState(null);
-  const [authLoading, setAuthLoading] = useState(() => localStorage.getItem("aris_authenticated") === "true");
+  const { isSignedIn, isLoaded, userId } = useAuth();
+  const { user: clerkUser } = useUser();
+  const authenticated = isSignedIn;
+  const authLoading = !isLoaded;
+  const user = clerkUser ? { id: userId, email: clerkUser.primaryEmailAddress?.emailAddress } : null;
   const [proposal, setProposal] = useState(null);
   const [view, setView] = useState(() => {
     const p = window.location.pathname;
@@ -160,48 +162,6 @@ export default function App() {
 
   usePageMeta(view);
 
-  const handleLogin = (nextUser, session) => {
-    setAuthenticated(true);
-    setUser(nextUser);
-    syncAuthStorage(session || { user: nextUser });
-  };
-
-  useEffect(() => {
-    let mounted = true;
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!mounted) return;
-      if (session) {
-        setAuthenticated(true);
-        setUser(session.user);
-        syncAuthStorage(session);
-      } else {
-        setAuthenticated(false);
-        clearAuthStorage();
-      }
-      setAuthLoading(false);
-    }).catch(err => {
-      console.warn("[ARIS_AUTH] Session fetch suppressed in Sovereign mode:", err.message);
-      setAuthLoading(false);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) {
-        setAuthenticated(true);
-        setUser(session.user);
-        syncAuthStorage(session);
-      } else {
-        // Signed out — clear everything
-        setUser(null);
-        setAuthenticated(false);
-        clearAuthStorage();
-      }
-    });
-
-    return () => {
-      mounted = false;
-      subscription?.unsubscribe();
-    };
-  }, []);
 
   useEffect(() => {
     if (!aliasSection || view !== "landing") return;
@@ -317,11 +277,11 @@ export default function App() {
   } else if (view === "survey-analytics") {
     content = authenticated
       ? <SurveyAnalytics />
-      : <Login onLogin={handleLogin} />;
+      : <div style={{ minHeight: "100vh", background: "#0a0d14", display: "flex", alignItems: "center", justifyContent: "center" }}><SignIn routing="hash" /></div>;
   } else if (view === "demo-analytics") {
     content = authenticated
       ? <DemoAnalytics />
-      : <Login onLogin={handleLogin} />;
+      : <div style={{ minHeight: "100vh", background: "#0a0d14", display: "flex", alignItems: "center", justifyContent: "center" }}><SignIn routing="hash" /></div>;
   } else if (view === "about") {
     content = <About onBack={() => setView("landing")} />;
   } else if (view === "labs") {
@@ -332,7 +292,7 @@ export default function App() {
     } else {
       content = authenticated && user
         ? <GovConDashboardV2 onBack={() => setView("landing")} user={user} />
-        : <Login onLogin={handleLogin} />;
+        : <div style={{ minHeight: "100vh", background: "#0a0d14", display: "flex", alignItems: "center", justifyContent: "center" }}><SignIn routing="hash" /></div>;
     }
   } else if (view === "compliance") {
     const slug = window.location.pathname.replace("/compliance/", "");
@@ -356,11 +316,11 @@ export default function App() {
   } else if (view === "outreach") {
     content = authenticated
       ? <Outreach onBack={() => setView("landing")} />
-      : <Login onLogin={handleLogin} />;
+      : <div style={{ minHeight: "100vh", background: "#0a0d14", display: "flex", alignItems: "center", justifyContent: "center" }}><SignIn routing="hash" /></div>;
   } else if (view === "admin") {
     content = authenticated
       ? <AdminDashboard onBack={() => setView("landing")} />
-      : <Login onLogin={handleLogin} />;
+      : <div style={{ minHeight: "100vh", background: "#0a0d14", display: "flex", alignItems: "center", justifyContent: "center" }}><SignIn routing="hash" /></div>;
   } else if (view === "contact") {
     content = <Contact onBack={() => setView("landing")} />;
   } else if (view === "earn") {
@@ -388,12 +348,12 @@ export default function App() {
     } else {
       content = authenticated && user
         ? <GovConDashboardV2 onBack={() => setView("landing")} user={user} />
-        : <Login onLogin={handleLogin} />;
+        : <div style={{ minHeight: "100vh", background: "#0a0d14", display: "flex", alignItems: "center", justifyContent: "center" }}><SignIn routing="hash" /></div>;
     }
   } else if (view === "404") {
     content = <NotFound onBack={() => setView("landing")} />;
   } else if (!authenticated) {
-    content = <Login onLogin={handleLogin} />;
+    content = <div style={{ minHeight: "100vh", background: "#0a0d14", display: "flex", alignItems: "center", justifyContent: "center" }}><SignIn routing="hash" /></div>;
   } else {
     content = <NotFound onBack={() => setView("landing")} />;
   }
