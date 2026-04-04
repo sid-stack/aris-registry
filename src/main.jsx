@@ -11,7 +11,8 @@ initAnalytics();
 registerConsentListener();
 initServiceWorkerAfterConsent();
 
-const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
+  || window.__APP_CONFIG__?.VITE_CLERK_PUBLISHABLE_KEY;
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

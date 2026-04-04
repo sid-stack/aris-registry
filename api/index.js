@@ -57,8 +57,7 @@ app.use(requestLogger);
 
 app.get("/app-config.js", (_req, res) => {
   const publicConfig = {
-    VITE_SUPABASE_URL: process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || "",
-    VITE_SUPABASE_ANON_KEY: process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || "",
+    VITE_CLERK_PUBLISHABLE_KEY: process.env.VITE_CLERK_PUBLISHABLE_KEY || "",
   };
 
   res.type("application/javascript");
