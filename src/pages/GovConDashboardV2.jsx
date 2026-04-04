@@ -627,10 +627,13 @@ export default function GovConDashboardV2({ onBack, user }) {
       if (!res.ok) return;
       const { audits } = await res.json();
       // Normalize verdict field (API returns flat text, PipelineItem expects object)
-      setPipeline((audits || []).map(a => ({
+      const normalized = (audits || []).map(a => ({
         ...a,
         verdict: { recommendation: a.verdict, win_probability: a.win_probability || 0 },
-      })));
+      }));
+      setPipeline(normalized);
+      // Auto-load most recent audit instead of showing demo data
+      if (normalized.length > 0) loadAuditDetail(normalized[0].id);
     } catch (err) {
       // Network error — fail silently, show empty state
     }
