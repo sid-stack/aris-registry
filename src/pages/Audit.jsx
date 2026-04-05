@@ -37,6 +37,7 @@ import {
 } from "../utils/analytics";
 import "../styles/Dashboard.css";
 import "./Audit.css";
+import ComplianceMatrix from "../components/dashboard/ComplianceMatrix";
 
 // ── UTILITIES ──
 
@@ -417,6 +418,75 @@ const ComplianceHeatmap = ({ intensity = [] }) => {
   );
 };
 
+// ── AUDIT HISTORY ──
+
+const AuditHistory = ({ onLoad }) => {
+  const [audits, setAudits] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const uid = (() => { try { return localStorage.getItem("aris_uid") || ""; } catch { return ""; } })();
+    if (!uid) { setLoading(false); return; }
+    fetch("/api/audits", { headers: { "x-user-id": uid } })
+      .then(r => r.ok ? r.json() : { audits: [] })
+      .then(d => setAudits(d.audits || []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading || audits.length === 0) return null;
+
+  return (
+    <div style={{ width: '100%', maxWidth: 680, marginTop: 40, textAlign: 'left' }}>
+      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', color: 'var(--text-secondary)', marginBottom: 12 }}>
+        RECENT AUDITS
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {audits.map(a => {
+          const teaser = a.teaser || {};
+          const rec = teaser.bidRecommendation || a.status;
+          const recColor = rec === 'BID' ? '#22c55e' : rec === 'NO-BID' ? '#ef4444' : '#f59e0b';
+          return (
+            <div
+              key={a.id}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, padding: '12px 16px', cursor: 'pointer' }}
+              onClick={() => {
+                const uid = (() => { try { return localStorage.getItem("aris_uid") || ""; } catch { return ""; } })();
+                fetch(`/api/audits/${a.id}/result`, { headers: uid ? { "x-user-id": uid } : {} })
+                  .then(r => r.ok ? r.json() : null)
+                  .then(d => {
+                    if (d?.result) {
+                      const raw = d.result;
+                      onLoad({ ...raw, id: raw.solicitation_number || raw.id || "N/A", compliance: raw.requirements || [], value: 45000000 });
+                    }
+                  })
+                  .catch(() => {});
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+                  {teaser.title || a.source_ref || "Untitled Audit"}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>
+                  {teaser.agency || ""}{teaser.headline ? ` · ${teaser.headline}` : ""}
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0, marginLeft: 16 }}>
+                {rec && (
+                  <span style={{ fontSize: 10, fontWeight: 700, color: recColor, background: `${recColor}18`, border: `1px solid ${recColor}40`, padding: '3px 8px', borderRadius: 4 }}>
+                    {rec}
+                  </span>
+                )}
+                <ChevronRight size={14} color="var(--text-secondary)" />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 export default function Audit({ onBack }) {
   const [samUrl, setSamUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -456,7 +526,7 @@ export default function Audit({ onBack }) {
   const handlePurchase = async () => {
     if (isCheckoutLoading) return;
     
-    const estimatedValue = result?.value || result?.pillars?.estimated_value?.value || "45000000";
+    const estimatedValue = result?.value || "45000000";
     const opportunityTitle = result?.title || "RFP Audit";
 
     setIsCheckoutLoading(true);
@@ -501,31 +571,32 @@ export default function Audit({ onBack }) {
   };
 
   const handleExportExcel = async () => {
-    if (!result || !result.compliance) {
+    const complianceData = result?.compliance;
+    if (!result || !Array.isArray(complianceData) || complianceData.length === 0) {
       addLog("NO_COMPLIANCE_DATA_TO_EXPORT", "error");
       return;
     }
 
     addLog("GENERATING_INDUSTRIAL_RTM_MATRIX...", "info");
-    
+
     try {
       const res = await fetch("/api/export-rtm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ complianceData: result.compliance }),
+        body: JSON.stringify({ complianceData }),
       });
-      
-      if (!res.ok) throw new Error("EXCEL_GEN_FAILURE");
+
+      if (!res.ok) throw new Error("RTM_GEN_FAILURE");
 
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `ARIS_Compliance_Matrix_${result.id || 'Audit'}.xlsx`;
+      a.download = `ARIS_Compliance_Matrix_${result.id || 'Audit'}.csv`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
-      
+
       addLog("RTM_EXPORT_SUCCESSFUL", "success");
       trackEvent('rtm_export_complete', { solicitation_id: result.id });
     } catch (e) {
@@ -543,71 +614,76 @@ export default function Audit({ onBack }) {
     setReport(null);
     addLog(`INITIATING_AUDIT_ON: ${finalUrl.split('/').pop()}`, "info");
     trackAuditStart();
-    
-    // Simulate streaming logs
+
+    // Simulate streaming log stages while pipeline runs
     const stages = PIPELINE_LOGS.slice(0, -1);
     stages.forEach((stage, i) => {
       setTimeout(() => addLog(stage, i === stages.length - 1 ? "success" : "info"), i * 1200);
     });
 
     try {
-      const res = await fetch("/api/analyze-link", {
+      // 1. Submit audit job
+      const submitRes = await fetch("/api/audits/run", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: finalUrl.trim() }),
       });
-      
-      let data;
-      try {
-        data = await res.json();
-      } catch (jsonErr) {
+
+      let submitData;
+      try { submitData = await submitRes.json(); } catch {
         throw new Error("SERVER_COMMUNICATION_FORMAT_ERROR: GATEWAY RETURNED NON-JSON RESPONSE.");
       }
+      if (!submitRes.ok) throw new Error(submitData.error || "FAILED_TO_SUBMIT_AUDIT");
+      const { auditId } = submitData;
+      if (!auditId) throw new Error("NO_AUDIT_ID_RETURNED");
 
-      if (!res.ok) {
-        const data = await res.json();
-        
-        // Handle payment required response
-        if (data.paymentRequired) {
-          setShowPaymentModal(true);
-          setPaymentInfo({
-            message: data.message,
-            paymentLink: data.paymentLink,
-            reportsUsed: data.reportsUsed,
-            reportsLimit: data.reportsLimit,
-            nextReset: data.nextReset
-          });
-          addLog("PAYMENT_REQUIRED: MONTHLY_LIMIT_REACHED", "warning");
-          setIsLoading(false);
-          return;
-        }
-        
-        throw new Error(data.error || "WE COULD NOT ACCESS GATEWAY. TRY DIRECT UPLOAD.");
+      addLog(`AUDIT_JOB_QUEUED: ${auditId.slice(0, 8)}…`, "info");
+
+      // 2. Poll teaser until ready (max ~90s)
+      let teaser = null;
+      for (let i = 0; i < 45; i++) {
+        await new Promise(r => setTimeout(r, 2000));
+        const tRes = await fetch(`/api/audits/${auditId}/teaser`);
+        if (!tRes.ok) continue;
+        const tData = await tRes.json();
+        if (tData.status === "teaser_ready") { teaser = tData.teaser; break; }
+        if (tData.status === "failed") throw new Error("AUDIT_PIPELINE_FAILED: Could not extract requirements.");
       }
-      
-      setResult(data);
-      const price = calculateDisplayPrice(data.value || data.pillars?.estimated_value?.value || "45000000");
-      setDynamicPrice(price);
-      streamReport(data);
-      
-      // ─── Mercury 2 Compliance Kill-Switch: Trigger Fatal Error for RED-FLAG ───────
-      if (data.fatalError && data.riskAssessment) {
-        addLog(`FATAL_ERROR: ${data.riskAssessment.verdict} - Score: ${data.riskAssessment.score}`, "error");
-        addLog(`DELTA_ANALYSIS: ${data.riskAssessment.delta_analysis}`, "warning");
-        setShowFatalError(true);
-        setFatalErrorData({
-          verdict: data.riskAssessment.verdict,
-          score: data.riskAssessment.score,
-          breakdown: data.riskAssessment.breakdown,
-          deltaAnalysis: data.riskAssessment.delta_analysis
-        });
+      if (!teaser) throw new Error("AUDIT_TIMED_OUT: Pipeline exceeded 90 seconds.");
+
+      // 3. Fetch full result
+      const uid = (() => { try { return localStorage.getItem("aris_uid") || ""; } catch { return ""; } })();
+      const resultRes = await fetch(`/api/audits/${auditId}/result`, {
+        headers: uid ? { "x-user-id": uid } : {},
+      });
+      let fullResult = null;
+      if (resultRes.ok) {
+        const rData = await resultRes.json();
+        if (rData.result) fullResult = rData.result;
       }
-      
+
+      // 4. Normalize: merge teaser + full result into a consistent shape the UI expects
+      const raw = { ...teaser, ...(fullResult || {}) };
+      const normalized = {
+        ...raw,
+        // UI accesses result.id for solicitation number
+        id: raw.solicitation_number || raw.id || teaser.title || "N/A",
+        // UI accesses result.compliance for requirements array
+        compliance: raw.requirements || [],
+        // fixed contract value default (not returned by pipeline)
+        value: 45000000,
+      };
+
+      setResult(normalized);
+      setDynamicPrice(calculateDisplayPrice("45000000"));
+      streamReport(normalized);
+
       addLog("INTELLIGENCE_SYNTHESIS_COMPLETE", "success");
       trackAuditComplete();
       setIsLoading(false);
 
     } catch (e) {
+      const errMsg = e.message || "UNKNOWN_ERROR";
       if (errMsg.toLowerCase().includes("capacity") || errMsg.toLowerCase().includes("blackout")) {
         setShowFatalError(true);
         setFatalErrorData({
@@ -632,9 +708,10 @@ export default function Audit({ onBack }) {
       const savedResult = localStorage.getItem('aris_pending_audit');
       if (savedResult) {
         try {
-          const data = JSON.parse(savedResult);
+          const raw = JSON.parse(savedResult);
+          const data = { ...raw, id: raw.solicitation_number || raw.id || "N/A", compliance: raw.requirements || raw.compliance || [], value: 45000000 };
           setResult(data);
-          const price = calculateDisplayPrice(data.value || data.pillars?.estimated_value?.value || "45000000");
+          const price = calculateDisplayPrice("45000000");
           setDynamicPrice(price);
           
           // Clear it so we don't re-trigger on refresh
@@ -731,6 +808,8 @@ export default function Audit({ onBack }) {
             <button className="cyber-btn" onClick={() => startAudit()}>
               DEPLOY MERCURY 2 INTELLIGENCE ENGINE
             </button>
+
+            <AuditHistory onLoad={(data) => { setResult(data); }} />
           </div>
         </div>
       ) : (
@@ -820,6 +899,13 @@ export default function Audit({ onBack }) {
                     </div>
                   </div>
                   
+                  {/* Compliance Matrix — real requirements from pipeline */}
+                  {result?.compliance?.length > 0 && (
+                    <div style={{ marginTop: '20px' }}>
+                      <ComplianceMatrix requirements={result.compliance} />
+                    </div>
+                  )}
+
                   {/* Report Section */}
                   {report?.proposal_draft && (
                     <div className="report-section">

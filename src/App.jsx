@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
+import { useAuth } from "@clerk/clerk-react";
 import Upload from "./pages/Upload";
 import Proposal from "./pages/Proposal";
 import Login from "./pages/Login";
 import Audit from "./pages/Audit";
+const AuditSession = lazy(() => import("./pages/AuditSession.jsx"));
 import Landing from "./pages/Landing";
 import Templates from "./pages/Templates";
 import Legal from "./pages/Legal";
@@ -21,6 +23,13 @@ import ConsentBanner from "./components/ConsentBanner";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { trackPageView } from "./utils/analytics";
 
+// Persist an anonymous user id across sessions so audits stay associated.
+try {
+  if (!localStorage.getItem("aris_uid")) {
+    localStorage.setItem("aris_uid", crypto.randomUUID());
+  }
+} catch { /* storage unavailable */ }
+
 const LANDING_SECTION_ALIASES = {
   "/solutions": "solutions",
   "/workflow": "workflow",
@@ -32,50 +41,33 @@ const LANDING_SECTION_ALIASES = {
 export default function App() {
   const path = window.location.pathname;
   const aliasSection = LANDING_SECTION_ALIASES[path] || null;
+  const { isSignedIn } = useAuth();
   const [authenticated, setAuthenticated] = useState(false);
   const [proposal, setProposal] = useState(null);
   const [route] = useState(() =>
     window.location.search.includes("phase2=true") ? "phase2" : "audit",
   );
-  const [view, setView] = useState(() =>
-    aliasSection
-      ? "landing"
-      : path === "/templates"
-      ? "templates"
-      : path === "/privacy"
-        ? "privacy"
-        : path === "/terms"
-          ? "terms"
-          : path === "/cookies"
-            ? "cookies"
-            : path === "/sam-rep"
-              ? "sam-rep"
-              : path === "/discovery"
-                ? "discovery"
-                : path === "/soc"
-                  ? "soc"
-                  : path === "/sam-scraper"
-                    ? "sam-scraper"
-                  : path === "/fed-search" || path === "/search"
-                    ? "fed-search"
-                  : path === "/survey-analytics"
-                    ? "survey-analytics"
-                  : path === "/demo-analytics"
-                    ? "demo-analytics"
-                  : path === "/app"
-                    ? "app"
-                  : window.location.search.includes("app=true")
-                    ? "app"
-                  : path === "/about"
-                    ? "about"
-                  : path === "/sovereign-beta"
-                    ? "sovereign-beta"
-                  : path.startsWith("/labs")
-                    ? "labs"
-                    : path !== "/"
-                      ? "404"
-                      : "landing",
-  );
+  const [view, setView] = useState(() => {
+    if (path.startsWith("/audit/")) return "audit-session";
+    if (aliasSection) return "landing";
+    if (path === "/templates") return "templates";
+    if (path === "/privacy") return "privacy";
+    if (path === "/terms") return "terms";
+    if (path === "/cookies") return "cookies";
+    if (path === "/sam-rep") return "sam-rep";
+    if (path === "/discovery") return "discovery";
+    if (path === "/soc") return "soc";
+    if (path === "/sam-scraper") return "sam-scraper";
+    if (path === "/fed-search" || path === "/search") return "fed-search";
+    if (path === "/survey-analytics") return "survey-analytics";
+    if (path === "/demo-analytics") return "demo-analytics";
+    if (path === "/app" || window.location.search.includes("app=true")) return "app";
+    if (path === "/about") return "about";
+    if (path === "/sovereign-beta") return "sovereign-beta";
+    if (path.startsWith("/labs")) return "labs";
+    if (path === "/") return "landing";
+    return "404";
+  });
 
   useEffect(() => {
     if (!aliasSection || view !== "landing") return;
@@ -178,15 +170,21 @@ export default function App() {
     content = <Labs onBack={() => setView("landing")} />;
   } else if (view === "sovereign-beta") {
     content = <SovereignBeta onBack={() => setView("landing")} />;
+  } else if (view === "audit-session") {
+    const auditId = window.location.pathname.replace("/audit/", "");
+    content = (
+      <Suspense fallback={<div style={{ minHeight: "100vh", background: "#0d0f14" }} />}>
+        <AuditSession auditId={auditId} onBack={() => { window.history.pushState({}, "", "/"); setView("landing"); }} />
+      </Suspense>
+    );
   } else if (view === "landing") {
-    content = <Landing 
-      onEnterApp={() => setView("app")} 
-      onViewSample={() => setView("sam-rep")} 
+    content = <Landing
+      onEnterApp={() => setView("app")}
+      onViewSample={() => setView("sam-rep")}
       onSovereignBeta={() => setView("sovereign-beta")}
       onSovereignSearch={() => setView("fed-search")}
     />;
   } else if (view === "app") {
-    // Audit is stateless and zero-knowledge, allow guest access for the first audit
     content = <Audit onBack={() => setView("landing")} />;
   } else if (!authenticated) {
     content = <Login onLogin={() => setAuthenticated(true)} />;

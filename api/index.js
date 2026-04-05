@@ -18,7 +18,9 @@ import { sanitizeMarkdown } from "./utils/markdown.js";
 // Services & MCP Client
 import { getSamClient, getAuditClient, callMcpTool } from "./services/mcpClient.js";
 import { createCheckoutSession } from "./services/stripe.js";
-import { recordAnalyticsEvent, renderAnalyticsDashboard, recordBetaSignup } from "./services/analytics.js";
+import { recordAnalyticsEvent, renderAnalyticsDashboard, recordBetaSignup, createAuditSession, updateAuditSession, getAuditSession, getUserAuditSessions } from "./services/analytics.js";
+import multer from "multer";
+import pdfParse from "pdf-parse/lib/pdf-parse.js";
 import { AUDIT_PROMPT, SYS_PROMPT } from "./src/prompts.js";
 import { sovereignSearch } from "./services/fedSearch.js";
 import { usaspending } from "./services/usaspending.js";
@@ -337,11 +339,242 @@ app.post("/api/audit", asyncHandler(async (req, res) => {
 
 app.post("/api/chat", asyncHandler(async (req, res) => {
   const { message, history } = req.body;
-  const aiResponse = await traceLLM(openai, {
-    model: "anthropic/claude-3.5-sonnet",
+  const aiResponse = await traceLLM(null, {
+    model: "google/gemini-2.0-flash-001",
     messages: [{ role: "system", content: SYS_PROMPT }, ...(history || []), { role: "user", content: message }]
   }, "sovereign_chat");
   res.json({ success: true, response: aiResponse });
+}));
+
+// ─── Health ──────────────────────────────────────────────────────────────────
+app.get("/api/health", (_req, res) => {
+  res.json({ status: "ok", ts: new Date().toISOString() });
+});
+
+// ─── User Audit History ──────────────────────────────────────────────────────
+
+app.get("/api/audits", asyncHandler(async (req, res) => {
+  const uid = req.headers["x-user-id"] || null;
+  if (!uid) return res.json({ audits: [] });
+  const sessions = await getUserAuditSessions(uid);
+  res.json({ audits: sessions });
+}));
+
+// ─── Dynamic Checkout (per-audit purchase) ───────────────────────────────────
+
+app.post("/api/create-dynamic-checkout-session", apiLimiter, asyncHandler(async (req, res) => {
+  const { estimatedValue, packType, opportunityTitle } = req.body || {};
+  // map packType → existing plan keys
+  const planKey = packType === "enterprise" ? "growth" : "starter";
+  const session = await createCheckoutSession({
+    plan: planKey,
+    context: {
+      opportunityTitle: opportunityTitle || "",
+      estimated_value: String(estimatedValue || ""),
+    },
+    origin: `${req.protocol}://${req.get("host")}`,
+  });
+  res.json({ url: session.url });
+}));
+
+// ─── RTM / Compliance Matrix CSV Export ──────────────────────────────────────
+
+app.post("/api/export-rtm", asyncHandler(async (req, res) => {
+  const { complianceData } = req.body || {};
+  if (!Array.isArray(complianceData) || complianceData.length === 0) {
+    return res.status(400).json({ error: "no compliance data provided" });
+  }
+
+  const escape = (v) => `"${String(v || "").replace(/"/g, '""')}"`;
+
+  const headers = ["ID", "Requirement Text", "Section", "Category", "Type", "Risk Level", "Disqualifying If Missing", "Source Excerpt"];
+  const rows = complianceData.map((r) => [
+    escape(r.requirement_id || ""),
+    escape(r.text || ""),
+    escape(r.section || ""),
+    escape(r.category || ""),
+    escape(r.type || ""),
+    escape(r.risk_level || ""),
+    escape(r.is_disqualifying_if_missing ? "YES" : "NO"),
+    escape(r.source_excerpt || ""),
+  ]);
+
+  const csv = [headers.map(escape).join(","), ...rows.map((r) => r.join(","))].join("\n");
+  res.setHeader("Content-Type", "text/csv; charset=utf-8");
+  res.setHeader("Content-Disposition", 'attachment; filename="ARIS_Compliance_Matrix.csv"');
+  res.send(csv);
+}));
+
+// ─── Audit Session Pipeline ───────────────────────────────────────────────────
+
+const uploadSingle = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
+
+const SAM_API_KEY_VAL = process.env.SAM_API_KEY || process.env.SAM_GOV_API_KEY;
+
+function extractNoticeId(url) {
+  const m = String(url || "").match(/sam\.gov\/opp\/([a-f0-9]{32})/i);
+  return m ? m[1] : null;
+}
+
+async function fetchSamText(url) {
+  const noticeId = extractNoticeId(url);
+  if (noticeId && SAM_API_KEY_VAL) {
+    try {
+      const r = await fetch(`https://api.sam.gov/opportunities/v2/search?noticeid=${noticeId}&api_key=${SAM_API_KEY_VAL}&limit=1`);
+      if (r.ok) {
+        const d = await r.json();
+        const opp = d.opportunitiesData?.[0];
+        if (opp) {
+          return {
+            text: [opp.title, opp.description, opp.additionalInfoLink].filter(Boolean).join("\n\n"),
+            title: opp.title || "",
+            agency: opp.fullParentPathName || opp.organizationName || "",
+          };
+        }
+      }
+    } catch { /* fall through */ }
+  }
+  // Try plain fetch as fallback (works for some pages)
+  try {
+    const r = await fetch(url, { headers: { "User-Agent": "BidSmith/1.0" }, signal: AbortSignal.timeout(8000) });
+    if (r.ok) {
+      const html = await r.text();
+      const text = html.replace(/<[^>]+>/g, " ").replace(/\s{3,}/g, " ").slice(0, 30000);
+      return { text, title: "", agency: "" };
+    }
+  } catch { /* fall through */ }
+  return null;
+}
+
+async function runAuditPipeline(sessionId, url, fileBuffer) {
+  try {
+    let text = "", title = "", agency = "";
+
+    if (fileBuffer) {
+      const parsed = await pdfParse(fileBuffer);
+      text = parsed.text || "";
+    } else if (url) {
+      const fetched = await fetchSamText(url);
+      if (fetched) { text = fetched.text; title = fetched.title; agency = fetched.agency; }
+    }
+
+    if (!text || text.trim().length < 50) {
+      await updateAuditSession(sessionId, { status: "failed" });
+      return;
+    }
+
+    const extractPromptTemplate = await import("fs").then(fs =>
+      fs.promises.readFile(new URL("./llm/extract_prompt.txt", import.meta.url), "utf-8")
+    );
+    const promptText = extractPromptTemplate.replace("{{RFP_TEXT}}", text.slice(0, 18000));
+
+    const raw = await traceLLM(null, {
+      model: "google/gemini-2.0-flash-001",
+      messages: [
+        { role: "system", content: "You are a federal procurement compliance analyst. Extract requirements from RFP text. Return only valid JSON matching the schema exactly. No markdown code fences." },
+        { role: "user", content: promptText }
+      ],
+      temperature: 0.1
+    }, "audit_extract");
+
+    let extracted;
+    try {
+      extracted = JSON.parse(raw.replace(/```json\n?|```/g, "").trim());
+    } catch {
+      await updateAuditSession(sessionId, { status: "failed" });
+      return;
+    }
+
+    const requirements = extracted.requirements || [];
+    const highRisk = requirements.filter(r => r.risk_level === "High" || r.is_disqualifying_if_missing);
+    const disqualifiers = requirements.filter(r => r.is_disqualifying_if_missing);
+    const riskScore = Math.min(100, highRisk.length * 10 + disqualifiers.length * 15);
+
+    let recommendation = "BID";
+    let winProbability = 72;
+    if (disqualifiers.length >= 3 || riskScore >= 65) { recommendation = "NO-BID"; winProbability = 18; }
+    else if (disqualifiers.length >= 1 || riskScore >= 35) { recommendation = "CONDITIONAL"; winProbability = 44; }
+
+    const resolvedTitle = title || extracted.document_metadata?.solicitation_number || "Federal Solicitation";
+    const resolvedAgency = agency || extracted.document_metadata?.agency || "Federal Agency";
+    const primaryFinding = highRisk[0]
+      ? highRisk[0].text.slice(0, 150) + (highRisk[0].text.length > 150 ? "…" : "")
+      : `${requirements.length} requirements extracted across ${extracted.document_metadata?.detected_sections?.length || 0} sections.`;
+
+    const teaser = {
+      title: resolvedTitle,
+      agency: resolvedAgency,
+      bidRecommendation: recommendation,
+      winProbability,
+      riskCount: highRisk.length,
+      disqualifierCount: disqualifiers.length,
+      primaryFinding,
+      headline: `${requirements.length} requirements · ${disqualifiers.length} disqualifiers`,
+    };
+
+    const result = {
+      solicitation_number: extracted.document_metadata?.solicitation_number || "",
+      title: resolvedTitle,
+      agency: resolvedAgency,
+      naics_code: extracted.document_metadata?.naics_code || "",
+      contract_type: extracted.document_metadata?.contract_type || "",
+      set_aside_type: extracted.document_metadata?.set_aside_type || "",
+      requirements,
+      far_clauses: extracted.far_clauses_detected || [],
+      submission_details: extracted.submission_details || {},
+      evaluation_summary: extracted.evaluation_summary || {},
+      verdict: { recommendation, win_probability: winProbability, risk_score: riskScore },
+      risk_flags: highRisk.slice(0, 12),
+    };
+
+    await updateAuditSession(sessionId, { status: "teaser_ready", teaser, result });
+  } catch (err) {
+    console.error("[AUDIT_PIPELINE] error:", err.message);
+    await updateAuditSession(sessionId, { status: "failed" });
+  }
+}
+
+app.post("/api/audits/run", uploadSingle.single("file"), asyncHandler(async (req, res) => {
+  const url = req.body?.url || "";
+  const fileBuffer = req.file?.buffer || null;
+  if (!url && !fileBuffer) return res.status(400).json({ error: "url or file required" });
+
+  const session = await createAuditSession(fileBuffer ? "file" : "url", url || req.file?.originalname || "upload");
+  if (!session?.id) return res.status(500).json({ error: "could not create session" });
+
+  // Fire-and-forget — don't await
+  runAuditPipeline(session.id, url, fileBuffer).catch(err => console.error("[AUDIT] unhandled:", err.message));
+
+  res.json({ auditId: session.id });
+}));
+
+app.get("/api/audits/:id/teaser", asyncHandler(async (req, res) => {
+  const session = await getAuditSession(req.params.id);
+  if (!session) return res.status(404).json({ error: "session not found" });
+
+  if (session.status === "teaser_ready" || session.status === "result_ready") {
+    return res.json({ status: "teaser_ready", teaser: session.teaser });
+  }
+  if (session.status === "failed") {
+    return res.json({ status: "failed" });
+  }
+  res.json({ status: "processing" });
+}));
+
+app.get("/api/audits/:id/result", asyncHandler(async (req, res) => {
+  const session = await getAuditSession(req.params.id);
+  if (!session) return res.status(404).json({ error: "session not found" });
+
+  const uid = req.headers["x-user-id"] || null;
+  if (uid && session.status === "teaser_ready") {
+    // Claim session for this user
+    await updateAuditSession(req.params.id, { uid, status: "result_ready" });
+  }
+
+  if (session.result) {
+    return res.json({ status: "ready", result: session.result });
+  }
+  res.json({ status: session.status });
 }));
 
 app.get("*", (req, res) => res.sendFile(join(__dirname, "../dist/index.html")));

@@ -46,12 +46,89 @@ export async function ensureAnalyticsSchema() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
 
+    CREATE TABLE IF NOT EXISTS audit_sessions (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      uid TEXT,
+      status TEXT NOT NULL DEFAULT 'processing',
+      source_type TEXT,
+      source_ref TEXT,
+      teaser JSONB,
+      result JSONB,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
     CREATE INDEX IF NOT EXISTS idx_logic_library_conflict ON logic_library (conflict_type);
     CREATE INDEX IF NOT EXISTS idx_analytics_events_created_at ON analytics_events (created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_beta_signups_email ON beta_signups (email);
+    CREATE INDEX IF NOT EXISTS idx_audit_sessions_uid ON audit_sessions (uid, created_at DESC);
   `);
-  
+
   analyticsSchemaReady = true;
+}
+
+// ─── Audit Sessions ───────────────────────────────────────────────────────────
+
+// In-memory fallback when DB is not configured
+const _sessions = new Map();
+
+export async function createAuditSession(sourceType, sourceRef) {
+  if (analyticsDb) {
+    try {
+      await ensureAnalyticsSchema();
+      const res = await analyticsDb.query(
+        `INSERT INTO audit_sessions (source_type, source_ref) VALUES ($1, $2) RETURNING id`,
+        [sourceType || null, sourceRef || null]
+      );
+      return res.rows[0];
+    } catch (err) {
+      console.error("[AUDIT_SESSIONS] create_failed", err.message);
+    }
+  }
+  // Fallback: in-memory UUID
+  const id = crypto.randomUUID();
+  _sessions.set(id, { id, status: "processing", source_type: sourceType, source_ref: sourceRef, teaser: null, result: null });
+  return { id };
+}
+
+export async function updateAuditSession(id, { status, teaser, result, uid } = {}) {
+  if (analyticsDb) {
+    try {
+      await analyticsDb.query(
+        `UPDATE audit_sessions SET
+          status = COALESCE($2, status),
+          teaser = COALESCE($3::jsonb, teaser),
+          result = COALESCE($4::jsonb, result),
+          uid = COALESCE($5, uid),
+          updated_at = NOW()
+         WHERE id = $1`,
+        [id, status || null, teaser ? JSON.stringify(teaser) : null, result ? JSON.stringify(result) : null, uid || null]
+      );
+      return;
+    } catch (err) {
+      console.error("[AUDIT_SESSIONS] update_failed", err.message);
+    }
+  }
+  const session = _sessions.get(id);
+  if (session) {
+    if (status) session.status = status;
+    if (teaser) session.teaser = teaser;
+    if (result) session.result = result;
+    if (uid) session.uid = uid;
+  }
+}
+
+export async function getAuditSession(id) {
+  if (analyticsDb) {
+    try {
+      await ensureAnalyticsSchema();
+      const res = await analyticsDb.query(`SELECT * FROM audit_sessions WHERE id = $1`, [id]);
+      return res.rows[0] || null;
+    } catch (err) {
+      console.error("[AUDIT_SESSIONS] fetch_failed", err.message);
+    }
+  }
+  return _sessions.get(id) || null;
 }
 
 export async function recordAnalyticsEvent(event) {
@@ -116,6 +193,31 @@ export async function recordBetaSignup(email, metadata = {}) {
     console.error("[BETA_SIGNUP] record_failed", err.message);
     return false;
   }
+}
+
+export async function getUserAuditSessions(uid) {
+  if (!uid) return [];
+  if (analyticsDb) {
+    try {
+      await ensureAnalyticsSchema();
+      const res = await analyticsDb.query(
+        `SELECT id, status, source_type, source_ref, teaser, created_at, updated_at
+         FROM audit_sessions WHERE uid = $1 ORDER BY created_at DESC LIMIT 20`,
+        [uid]
+      );
+      return res.rows;
+    } catch (err) {
+      console.error("[AUDIT_SESSIONS] list_failed", err.message);
+    }
+  }
+  // In-memory fallback
+  const sessions = [];
+  for (const [, s] of _sessions) {
+    if (s.uid === uid) sessions.push(s);
+  }
+  return sessions
+    .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+    .slice(0, 20);
 }
 
 export async function getBetaSignupCount() {

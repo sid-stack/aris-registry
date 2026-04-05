@@ -7,7 +7,7 @@ import {
   Zap,
   AlertTriangle,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import FaqSection from "../components/FaqSection";
 import GovernmentBanner from "../components/GovernmentBanner";
 import "./Landing.css";
@@ -232,6 +232,9 @@ function IconCard({ title, description, icon }) {
 
 export default function Landing({ onEnterApp, onViewSample, onSovereignBeta, onSovereignSearch }) {
   const [isProcessing, setIsProcessing] = useState(false);
+  const [auditUrl, setAuditUrl] = useState("");
+  const [auditError, setAuditError] = useState("");
+  const fileInputRef = useRef(null);
   const [isMobile, setIsMobile] = useState(
     typeof window !== "undefined" && window.innerWidth < 768
   );
@@ -301,6 +304,44 @@ export default function Landing({ onEnterApp, onViewSample, onSovereignBeta, onS
     onViewSample();
   };
 
+  const handleAuditStart = async () => {
+    if (!auditUrl.trim()) { setAuditError("Paste a SAM.gov URL to begin."); return; }
+    if (isProcessing) return;
+    setAuditError("");
+    setIsProcessing(true);
+    try {
+      const res = await fetch("/api/audits/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: auditUrl.trim() }),
+      });
+      if (!res.ok) { setAuditError("Server error — try again."); setIsProcessing(false); return; }
+      const { auditId } = await res.json();
+      window.location.href = `/audit/${auditId}`;
+    } catch {
+      setAuditError("Could not connect to audit server.");
+      setIsProcessing(false);
+    }
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file || isProcessing) return;
+    setAuditError("");
+    setIsProcessing(true);
+    try {
+      const body = new FormData();
+      body.append("file", file);
+      const res = await fetch("/api/audits/run", { method: "POST", body });
+      if (!res.ok) { setAuditError("Upload failed — try again."); setIsProcessing(false); return; }
+      const { auditId } = await res.json();
+      window.location.href = `/audit/${auditId}`;
+    } catch {
+      setAuditError("Could not connect to audit server.");
+      setIsProcessing(false);
+    }
+  };
+
   const handleFooterRedirect = (event, href) => {
     event.preventDefault();
     window.location.assign(href);
@@ -350,7 +391,7 @@ export default function Landing({ onEnterApp, onViewSample, onSovereignBeta, onS
             type="button"
             aria-label="Join Sovereign Beta"
             style={styles.navCta}
-            onClick={onSovereignSearch}
+            onClick={onSovereignBeta}
             disabled={isProcessing}
           >
             Sovereign Beta
@@ -386,13 +427,38 @@ export default function Landing({ onEnterApp, onViewSample, onSovereignBeta, onS
                 <span key={chip} className="landing-hero-chip">{chip}</span>
               ))}
             </div>
+            {/* Audit intake */}
+            <div style={{ marginBottom: 16 }}>
+              <input type="file" ref={fileInputRef} style={{ display: "none" }} accept=".pdf" onChange={handleFileUpload} />
+              <div style={{ display: "flex", gap: 8, alignItems: "stretch", flexDirection: isMobile ? "column" : "row" }}>
+                <input
+                  type="url"
+                  placeholder="https://sam.gov/opp/…  or upload a PDF →"
+                  value={auditUrl}
+                  onChange={e => setAuditUrl(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && handleAuditStart()}
+                  style={{ flex: 1, padding: "13px 16px", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10, color: "#f8fafc", fontSize: 14, outline: "none", fontFamily: "inherit" }}
+                />
+                <button
+                  onClick={handleAuditStart}
+                  disabled={isProcessing}
+                  style={{ padding: "13px 22px", background: "linear-gradient(135deg, #0B3D91, #1d4ed8)", color: "#fff", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: isProcessing ? "wait" : "pointer", whiteSpace: "nowrap" }}
+                >
+                  {isProcessing ? "Launching…" : "Audit This RFP →"}
+                </button>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isProcessing}
+                  style={{ padding: "13px 16px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: "#94a3b8", borderRadius: 10, fontWeight: 600, fontSize: 13, cursor: "pointer" }}
+                  title="Upload PDF"
+                >
+                  PDF
+                </button>
+              </div>
+              {auditError && <p style={{ color: "#ef4444", fontSize: 12, margin: "6px 0 0" }}>{auditError}</p>}
+            </div>
+
             <div style={{ ...styles.heroActions, flexDirection: isMobile ? "column" : "row", justifyContent: "flex-start" }}>
-              <button 
-                onClick={onSovereignSearch} 
-                style={{ ...styles.primaryCta, width: isMobile ? "100%" : "auto", background: "var(--accent)", color: "#000" }}
-              >
-                Launch Sovereign Session
-              </button>
               <button onClick={handleSampleView} style={{ ...styles.secondaryCta, width: isMobile ? "100%" : "auto" }}>Open Full Sample</button>
             </div>
             <div style={styles.heroStatsGrid}>
@@ -450,6 +516,42 @@ export default function Landing({ onEnterApp, onViewSample, onSovereignBeta, onS
               </div>
             </div>
           </aside>
+        </div>
+      </section>
+
+      <section id="demo" className="landing-demo-section" data-reveal>
+        <div style={{ maxWidth: 1120, margin: "0 auto", padding: isMobile ? "48px 20px" : "72px 20px", textAlign: "center" }}>
+          <p style={styles.sectionEyebrow}>Interactive Audit Engine</p>
+          <h2 style={{ ...styles.sectionTitle, marginBottom: 12 }}>Live Demo</h2>
+          <p style={{ color: "#a1a1aa", marginBottom: 32, fontSize: "16px", maxWidth: 560, margin: "0 auto 32px" }}>
+            The full audit engine — live, in your browser. Paste any SAM.gov solicitation link and watch ARIS shred it in real time.
+          </p>
+          <div className="landing-demo-frame-wrap">
+            <div className="landing-demo-frame-chrome">
+              <div className="landing-demo-chrome-bar">
+                <span className="landing-demo-chrome-dot" style={{ background: "#ff5f57" }}></span>
+                <span className="landing-demo-chrome-dot" style={{ background: "#febc2e" }}></span>
+                <span className="landing-demo-chrome-dot" style={{ background: "#28c840" }}></span>
+                <span className="landing-demo-chrome-url">bidsmith.pro/app</span>
+              </div>
+              <iframe
+                src="/app"
+                title="ARIS Live Audit Engine Demo"
+                className="landing-demo-iframe"
+                loading="lazy"
+                sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
+              />
+            </div>
+          </div>
+          <div style={{ marginTop: 24 }}>
+            <button
+              type="button"
+              onClick={() => { trackEvent("live_demo_open_click", { source: "landing_demo" }); onEnterApp(); }}
+              style={{ ...styles.primaryCta, background: "var(--accent)", color: "#000", display: "inline-flex", alignItems: "center", gap: 8 }}
+            >
+              <Rocket size={16} /> Open Full Workspace
+            </button>
+          </div>
         </div>
       </section>
 

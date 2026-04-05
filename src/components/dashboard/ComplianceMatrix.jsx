@@ -117,7 +117,34 @@ const MobileComplianceCard = ({ req }) => {
   );
 };
 
-const ComplianceMatrix = () => {
+// Map a raw requirements array (from the audit pipeline) to the matrix row shape.
+function mapRequirementsToMatrix(requirements) {
+  return requirements.map((r, i) => {
+    const riskLevel = (r.risk_level || "").toLowerCase();
+    const isDq = !!r.is_disqualifying_if_missing;
+    const status = isDq ? "noncompliant"
+      : riskLevel === "high" ? "conditional"
+      : riskLevel === "medium" ? "review"
+      : "compliant";
+    const risk = riskLevel === "high" ? "HIGH"
+      : riskLevel === "medium" ? "MEDIUM"
+      : "LOW";
+    return {
+      id: r.requirement_id || `REQ-${String(i + 1).padStart(4, "0")}`,
+      requirement: r.text || "—",
+      section: r.section || "—",
+      category: r.category || "—",
+      farRef: "—",
+      status,
+      risk,
+      action: r.source_excerpt
+        ? r.source_excerpt.slice(0, 130) + (r.source_excerpt.length > 130 ? "…" : "")
+        : isDq ? "Required — failure to comply may disqualify." : "Review for compliance.",
+    };
+  });
+}
+
+const ComplianceMatrix = ({ requirements } = {}) => {
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' && window.innerWidth < 768);
 
   useEffect(() => {
@@ -126,19 +153,24 @@ const ComplianceMatrix = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Use live requirements when provided, fall back to static demo data
+  const displayMatrix = Array.isArray(requirements) && requirements.length > 0
+    ? mapRequirementsToMatrix(requirements)
+    : matrix;
+
   return (
     <div className="dashboard-card animate-in" style={{ animationDelay: '0.1s' }}>
     <div className="card-header">
       <TableProperties size={14} color="var(--accent)" />
       <span className="card-label">Compliance Matrix</span>
       <span style={{ marginLeft: 'auto', fontSize: '10px', color: 'var(--text-secondary)' }}>
-        {matrix.length} Requirements · FAR-Referenced
+        {displayMatrix.length} Requirements · FAR-Referenced
       </span>
     </div>
 
     {isMobile ? (
       <div className="compliance-mobile-stack" style={{ marginTop: '16px' }}>
-        {matrix.map((req, i) => (
+        {displayMatrix.map((req) => (
           <MobileComplianceCard key={req.id} req={req} />
         ))}
       </div>
@@ -157,7 +189,7 @@ const ComplianceMatrix = () => {
             </tr>
           </thead>
           <tbody>
-            {matrix.map(({ id, requirement, section, category, farRef, status, risk, action }, i) => {
+            {displayMatrix.map(({ id, requirement, section, category, farRef, status, risk, action }, i) => {
               const s = statusConfig[status];
               return (
                 <tr key={id} style={{
