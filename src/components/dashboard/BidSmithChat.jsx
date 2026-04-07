@@ -8,11 +8,61 @@ import {
   Loader2
 } from 'lucide-react';
 
+const MVP_STRICT_MODE = (import.meta.env.VITE_MVP_STRICT_MODE ?? "true") !== "false";
+
+function buildLocalGuidance(query, reportData) {
+  const q = (query || "").toLowerCase();
+  const verdict = reportData?.verdict?.recommendation || "CONDITIONAL";
+  const winProb = reportData?.verdict?.win_probability ?? "n/a";
+  const topRisks = Array.isArray(reportData?.intelligence?.top_risks) ? reportData.intelligence.top_risks : [];
+  const requirements = Array.isArray(reportData?.requirements) ? reportData.requirements : [];
+  const highRiskReqs = requirements.filter((r) => r.risk === "HIGH").slice(0, 3);
+
+  if (q.includes("win") || q.includes("bid") || q.includes("go/no-go")) {
+    return [
+      `Based on this audit payload, current recommendation is **${verdict}**.`,
+      `Estimated win probability: **${winProb}%**.`,
+      topRisks.length
+        ? `Top blockers to resolve first:\n${topRisks.slice(0, 3).map((r) => `- ${r.risk}`).join("\n")}`
+        : "- No explicit risk list found; validate Section L/M must-have requirements.",
+    ].join("\n\n");
+  }
+
+  if (q.includes("risk") || q.includes("compliance")) {
+    return [
+      `Compliance-first view for this audit:`,
+      highRiskReqs.length
+        ? highRiskReqs.map((r) => `- **${r.id}** ${r.requirement} (${r.section})`).join("\n")
+        : "- No high-risk requirement rows available in this payload.",
+      "Next step: run through these items before proposal drafting.",
+    ].join("\n\n");
+  }
+
+  if (q.includes("draft") || q.includes("proposal")) {
+    const roadmap = Array.isArray(reportData?.proposal_roadmap) ? reportData.proposal_roadmap : [];
+    return [
+      `Proposal starter from current audit context:`,
+      roadmap.length
+        ? roadmap.slice(0, 3).map((s) => `- **${s.section}**: ${s.discriminator || "Use strongest discriminator from audit."}`).join("\n")
+        : "- Start with Technical, Management, and Past Performance sections tied to high-risk requirements.",
+      "Keep traceability from each claim to a captured requirement.",
+    ].join("\n\n");
+  }
+
+  return [
+    `Audit Copilot is running in local MVP mode.`,
+    `Current recommendation: **${verdict}** (${winProb}% if available).`,
+    topRisks.length
+      ? `Priority checks:\n${topRisks.slice(0, 3).map((r) => `- ${r.risk}`).join("\n")}`
+      : "- Review disqualifiers and mandatory requirements first.",
+  ].join("\n\n");
+}
+
 const BidSmithChat = ({ selectedContext, onLog, onCommand, reportData }) => {
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      content: `🎯 **BIDSMITH_SESSION_INITIALIZED**\n\nI've deployed our **Stateless Intelligence Bridge** to analyze the solicitation payload.\n\n**Current Mission Context:**\n• Agency: Defense Health Agency\n• Risk Score: HIGH (87% confidence)\n• 142 technical requirements detected\n• RMF/ATO compliance traps identified\n\n**Agentic Pipeline Tools:**\n• Win probability modeling\n• Competitive positioning\n• Risk mitigation strategies\n• Pricing optimization\n• Technical compliance mapping\n\nStanding by for command.`,
+      content: `🎯 **AUDIT_COPILOT_READY**\n\nScoped to the active audit payload only.\n\nAsk about:\n• Go / no-go rationale\n• Top compliance risks\n• Requirement-level gaps\n• Proposal starter priorities`,
       isPredictive: true
     },
   ]);
@@ -20,7 +70,7 @@ const BidSmithChat = ({ selectedContext, onLog, onCommand, reportData }) => {
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
-  const quickPrompts = ['Win probability', 'Risk analysis', 'Draft response'];
+  const quickPrompts = ['Win probability', 'Top compliance risks', 'Proposal starter'];
 
   useEffect(() => {
     if (selectedContext) {
@@ -47,36 +97,16 @@ const BidSmithChat = ({ selectedContext, onLog, onCommand, reportData }) => {
     setInput('');
     setLoading(true);
 
-    try {
-      const response = await fetch('/api/govcon/chat', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('sb-token') || localStorage.getItem('aris_authenticated')}`
-        },
-        body: JSON.stringify({
-          message: userText,
-          history: messages.slice(-10).map(m => ({ role: m.role, content: m.content })),
-          context: selectedContext
-        })
-      });
-
-      const data = await response.json();
-      
-      if (!response.ok) throw new Error(data.error || 'NETWORK_ERROR');
-
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: data.response 
-      }]);
-    } catch (err) {
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: `⚠️ **ERROR**: ${err.message}. Please check your connection or access key.` 
-      }]);
-    } finally {
+    if (MVP_STRICT_MODE) {
+      const localReply = buildLocalGuidance(userText, reportData);
+      setMessages(prev => [...prev, { role: 'assistant', content: localReply }]);
       setLoading(false);
+      return;
     }
+
+    const localReply = buildLocalGuidance(userText, reportData);
+    setMessages(prev => [...prev, { role: 'assistant', content: localReply }]);
+    setLoading(false);
   };
 
   return (
@@ -88,12 +118,12 @@ const BidSmithChat = ({ selectedContext, onLog, onCommand, reportData }) => {
               <Brain size={18} className="ai-icon" />
               <div className="ai-pulse" />
             </div>
-            <span className="title-text">BIDSMITH INTELLIGENCE</span>
+            <span className="title-text">AUDIT COPILOT</span>
           </div>
           <div className="status-indicators hide-mobile">
             <div className="status-item glass">
               <Activity size={10} className="status-active" />
-              <span>LIVE</span>
+              <span>{MVP_STRICT_MODE ? 'LOCAL' : 'LIVE'}</span>
             </div>
           </div>
         </div>
@@ -144,7 +174,7 @@ const BidSmithChat = ({ selectedContext, onLog, onCommand, reportData }) => {
                 sendMessage();
               }
             }}
-            placeholder="Analyze win probability or compliance risk..."
+            placeholder="Ask from current audit context..."
             style={{
               width: '100%',
               background: 'rgba(255,255,255,0.03)',

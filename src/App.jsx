@@ -4,7 +4,7 @@ import NotFound from "./pages/NotFound";
 import Landing from "./pages/Landing";
 import ConsentBanner from "./components/ConsentBanner";
 import ErrorBoundary from "./components/ErrorBoundary";
-import { trackPageView } from "./utils/analytics";
+import { trackEvent, trackPageView } from "./utils/analytics";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 
@@ -239,14 +239,21 @@ export default function App() {
   const [initialFile, setInitialFile] = useState(null);
 
   const handleAnalyze = (url) => {
+    trackEvent("landing_quick_audit_started", { entry: "url_bar" });
     setInitialFile(null);
     setInitialUrl(url);
     setView("app");
   };
 
   const handleAnalyzeFile = (file) => {
+    trackEvent("landing_quick_audit_started", { entry: "pdf_upload" });
     setInitialUrl("");
     setInitialFile(file);
+    setView("app");
+  };
+
+  const handleEnterApp = (entry = "generic") => {
+    trackEvent("landing_cta_clicked", { entry, authenticated: Boolean(authenticated && user) });
     setView("app");
   };
 
@@ -322,13 +329,15 @@ export default function App() {
   } else if (view === "landing") {
     content = (
       <Landing
-        onEnterApp={() => setView("app")}
+        onEnterApp={handleEnterApp}
         onEnterDashboard={() => setView("app")}
         onViewSample={() => setView("demo")}
         onBidSmithBeta={() => setView("beta")}
         onAnalyze={handleAnalyze}
         onAnalyzeFile={handleAnalyzeFile}
         onGoHome={() => setView("landing")}
+        isAuthenticated={Boolean(authenticated && user)}
+        userEmail={user?.email || ""}
       />
     );
   } else if (view === "app") {

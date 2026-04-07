@@ -19,9 +19,11 @@ import {
   Clock, BarChart2, Eye, ArrowLeft
 } from 'lucide-react';
 import { useClerk } from '@clerk/clerk-react';
+import { trackEvent } from '../utils/analytics';
 import IntelligenceBrief from '../components/forge/IntelligenceBrief';
 import ProposalForge from '../components/forge/ProposalForge';
 import ComplianceMatrix from '../components/dashboard/ComplianceMatrix';
+import BidSmithChat from '../components/dashboard/BidSmithChat';
 import HighLoadNotice from './HighLoadNotice';
 
 // ─── Demo audit data (shown when no audit is loaded) ──────────────────────────
@@ -280,6 +282,10 @@ function NewAuditModal({ onClose, onAuditComplete, onServerError, userId, userEm
         body: JSON.stringify({ result: auditData }),
       }).catch(err => console.warn('[V2] Save failed (non-fatal):', err.message));
     }
+    trackEvent('first_audit_saved', {
+      has_user: Boolean(userId),
+      recommendation: auditData?.verdict?.recommendation || 'UNKNOWN',
+    });
     onAuditComplete(auditData);
     onClose();
   };
@@ -287,6 +293,7 @@ function NewAuditModal({ onClose, onAuditComplete, onServerError, userId, userEm
   const handleUrl = async (e) => {
     e.preventDefault();
     if (!url.trim()) return;
+    trackEvent('audit_run_started', { input_mode: 'url' });
     setLoading(true); setLoadStep(0); setError(''); setErrorHint('');
     const iv = startStepTimer();
     try {
@@ -321,6 +328,7 @@ function NewAuditModal({ onClose, onAuditComplete, onServerError, userId, userEm
       setError('Paste at least 200 characters of RFP text.');
       return;
     }
+    trackEvent('audit_run_started', { input_mode: 'text' });
     setLoading(true); setLoadStep(0); setError('');
     const iv = startStepTimer();
     try {
@@ -350,6 +358,7 @@ function NewAuditModal({ onClose, onAuditComplete, onServerError, userId, userEm
   const handlePdf = async (e) => {
     e.preventDefault();
     if (!pdfFile) return;
+    trackEvent('audit_run_started', { input_mode: 'pdf' });
     setLoading(true); setLoadStep(0); setError('');
     const iv = startStepTimer();
     try {
@@ -591,6 +600,7 @@ function SubmitBtn({ loading, disabled }) {
 // ─── Tab definitions ───────────────────────────────────────────────────────────
 
 const TABS = [
+  { id: 'chat', label: 'Audit Copilot', icon: BarChart2 },
   { id: 'intelligence', label: 'Intelligence Brief', icon: Eye },
   { id: 'compliance', label: 'Compliance Matrix', icon: Layers },
   { id: 'forge', label: 'Proposal Forge', icon: Zap },
@@ -630,6 +640,7 @@ export default function GovConDashboardV2({ onBack, user }) {
         verdict: { recommendation: a.verdict, win_probability: a.win_probability || 0 },
       }));
       setPipeline(normalized);
+      trackEvent('audit_history_loaded', { count: normalized.length });
       // Auto-load most recent audit instead of showing demo data
       if (normalized.length > 0) loadAuditDetail(normalized[0].id);
     } catch (err) {
@@ -644,7 +655,10 @@ export default function GovConDashboardV2({ onBack, user }) {
       });
       if (!res.ok) return;
       const data = await res.json();
-      if (data?.result) setActiveAudit(data.result);
+      if (data?.result) {
+        setActiveAudit(data.result);
+        trackEvent('audit_history_opened', { audit_id: id });
+      }
     } catch (err) {
       console.warn('[V2] Could not load audit detail');
     }
@@ -656,6 +670,10 @@ export default function GovConDashboardV2({ onBack, user }) {
 
   const handleAuditComplete = (auditData) => {
     setActiveAudit(auditData);
+    trackEvent('audit_completed_saved', {
+      recommendation: auditData?.verdict?.recommendation || 'UNKNOWN',
+      has_requirements: Array.isArray(auditData?.requirements),
+    });
     if (user?.id) loadPipeline(user.id);
   };
 
@@ -770,7 +788,7 @@ export default function GovConDashboardV2({ onBack, user }) {
             fontSize: '10px', fontWeight: 800, color: '#94a3b8',
             letterSpacing: '0.1em', textTransform: 'uppercase'
           }}>
-            My Pipeline
+            Audit History
           </div>
 
           <div style={{ flex: 1, overflowY: 'auto', padding: '0 8px' }}>
@@ -802,6 +820,9 @@ export default function GovConDashboardV2({ onBack, user }) {
         }}>
           {activeTab !== 'forge' && (
             <div style={{ padding: '28px 32px', maxWidth: '1100px', width: '100%', margin: '0 auto' }}>
+              {activeTab === 'chat' && (
+                <BidSmithChat reportData={activeAudit} />
+              )}
               {activeTab === 'intelligence' && (
                 <IntelligenceBrief
                   auditData={activeAudit}
