@@ -67,6 +67,11 @@ app.get("/api/health", (_req, res) => {
   });
 });
 
+// ─── Block sensitive file probes ────────────────────────────────────────────
+app.get(/\.env(\..*)?$|\.(git|htaccess|DS_Store)|wp-admin|phpinfo/i, (_req, res) => {
+  res.status(404).json({ error: "Not found" });
+});
+
 app.get("/app-config.js", (_req, res) => {
   const publicConfig = {
     VITE_CLERK_PUBLISHABLE_KEY: process.env.VITE_CLERK_PUBLISHABLE_KEY || "",
