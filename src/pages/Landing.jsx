@@ -8,6 +8,7 @@ const PRIMARY = "#f8f9ff";
 const PRIMARY_TEXT = "#10182a";
 const TEXT = "#f5f7ff";
 const MUTED = "#a1acc2";
+const MUTED_SOFT = "#c0c9dc";
 
 const features = [
   {
@@ -108,7 +109,7 @@ export default function Landing({ onEnterApp, onAnalyze, onAnalyzeFile, onGoHome
       <nav style={{ position: "sticky", top: 0, zIndex: 20, borderBottom: `1px solid ${BORDER}`, background: "rgba(6,11,24,0.88)", backdropFilter: "blur(8px)" }}>
         <div style={S.wrap}>
           <button onClick={onGoHome} style={S.brandButton}>
-            <span style={S.brandBadge}>B</span>
+            <img src="/logo.jpg" alt="BidSmith logo" style={S.logo} />
             <span style={S.brandText}>BidSmith</span>
           </button>
           {!isMobile && <div style={S.desktopLinks}>
@@ -136,7 +137,7 @@ export default function Landing({ onEnterApp, onAnalyze, onAnalyzeFile, onGoHome
         <h1 style={S.h1}>
           Win more federal contracts.
           <br />
-          <span style={{ color: MUTED }}>Spend less time on manual review.</span>
+          <span style={{ color: MUTED_SOFT }}>Spend less time on manual review.</span>
         </h1>
         <p style={S.sub}>
           BidSmith audits federal opportunities end-to-end: decision, rationale,
@@ -146,6 +147,20 @@ export default function Landing({ onEnterApp, onAnalyze, onAnalyzeFile, onGoHome
           Start Free Trial <ArrowRight size={15} />
         </button>
         <p style={{ color: MUTED, fontSize: 13, marginTop: 10 }}>No credit card required. 14-day free trial.</p>
+
+        <div style={S.statsRow}>
+          {[
+            ["90s", "Decision Turnaround"],
+            ["3x", "Faster Proposal Kickoff"],
+            ["24/7", "SAM Opportunity Intake"],
+            ["MVP", "Focused Audit Workflow"],
+          ].map(([value, label]) => (
+            <div key={label} style={S.statCard}>
+              <div style={S.statValue}>{value}</div>
+              <div style={S.statLabel}>{label}</div>
+            </div>
+          ))}
+        </div>
 
         <div style={S.quickAudit}>
           <input
@@ -227,7 +242,7 @@ export default function Landing({ onEnterApp, onAnalyze, onAnalyzeFile, onGoHome
 const S = {
   wrap: { maxWidth: 1120, margin: "0 auto", paddingLeft: 20, paddingRight: 20 },
   brandButton: { display: "flex", alignItems: "center", gap: 10, background: "none", border: "none", color: TEXT, cursor: "pointer", padding: "14px 0" },
-  brandBadge: { width: 28, height: 28, borderRadius: 8, display: "inline-flex", alignItems: "center", justifyContent: "center", background: PRIMARY, color: "#0b1221", fontWeight: 800 },
+  logo: { width: 30, height: 30, borderRadius: 8, objectFit: "cover", border: `1px solid ${BORDER}` },
   brandText: { fontSize: 18, fontWeight: 700 },
   desktopLinks: { display: "flex", alignItems: "center", gap: 14 },
   navLink: { color: MUTED, textDecoration: "none", fontSize: 14 },
@@ -238,6 +253,10 @@ const S = {
   h1: { fontSize: "clamp(2.1rem, 5vw, 4rem)", lineHeight: 1.1, margin: "0 0 18px", fontWeight: 800, letterSpacing: "-0.03em" },
   sub: { maxWidth: 760, margin: "0 auto", color: MUTED, fontSize: 18, lineHeight: 1.6 },
   heroPrimary: { marginTop: 26, background: PRIMARY, color: PRIMARY_TEXT, border: "none", borderRadius: 12, padding: "13px 22px", fontWeight: 700, fontSize: 15, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 },
+  statsRow: { marginTop: 28, display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 10 },
+  statCard: { border: `1px solid ${BORDER}`, background: PANEL, borderRadius: 12, padding: "12px 10px" },
+  statValue: { color: TEXT, fontWeight: 800, fontSize: 18 },
+  statLabel: { color: MUTED, fontSize: 12, marginTop: 2 },
   quickAudit: { marginTop: 34, display: "grid", gridTemplateColumns: "1fr auto auto", gap: 10, maxWidth: 920, marginInline: "auto" },
   input: { background: PANEL, border: `1px solid ${BORDER}`, color: TEXT, borderRadius: 10, padding: "12px 14px", fontSize: 14, outline: "none" },
   secondaryAction: { background: "transparent", color: PRIMARY, border: `1px solid ${BORDER}`, borderRadius: 10, padding: "12px 14px", fontWeight: 600, cursor: "pointer" },
