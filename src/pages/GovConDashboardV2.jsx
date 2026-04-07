@@ -192,6 +192,79 @@ function PipelineStats({ pipeline }) {
   );
 }
 
+function PersonalWorkspaceCard({ user, pipeline, activeAudit, onStartAudit, onViewCompliance, onOpenCopilot }) {
+  const firstName = user?.email?.split('@')?.[0] || 'Operator';
+  const auditCount = pipeline.length;
+  const activeTitle = activeAudit?.title || 'No active audit selected';
+
+  return (
+    <section
+      style={{
+        marginBottom: '20px',
+        border: '1px solid #e2e8f0',
+        borderRadius: '14px',
+        background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
+        padding: '16px 18px',
+        boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
+        <div>
+          <p style={{ margin: 0, fontSize: '12px', color: '#64748b', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+            Personal Workspace
+          </p>
+          <h2 style={{ margin: '6px 0 6px', fontSize: '20px', color: '#0f172a' }}>
+            Welcome back, {firstName}
+          </h2>
+          <p style={{ margin: 0, fontSize: '13px', color: '#475569' }}>
+            Signed in as {user?.email || 'unknown user'}
+          </p>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', minWidth: '220px' }}>
+          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px' }}>
+            <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>My Audits</div>
+            <div style={{ fontSize: '20px', color: '#0f172a', fontWeight: 800 }}>{auditCount}</div>
+          </div>
+          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px' }}>
+            <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>Workspace Mode</div>
+            <div style={{ fontSize: '13px', color: '#0B3D91', fontWeight: 800 }}>POST-AUTH</div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ marginTop: '12px', padding: '10px 12px', borderRadius: '10px', border: '1px dashed #cbd5e1', background: '#fff' }}>
+        <p style={{ margin: 0, fontSize: '12px', color: '#475569' }}>
+          Active context: <strong>{activeTitle}</strong>
+        </p>
+      </div>
+
+      <div style={{ marginTop: '12px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <button onClick={onStartAudit} style={PERSONAL_ACTION_BTN_PRIMARY}>Start New Audit</button>
+        <button onClick={onViewCompliance} style={PERSONAL_ACTION_BTN}>Open Compliance</button>
+        <button onClick={onOpenCopilot} style={PERSONAL_ACTION_BTN}>Ask Copilot</button>
+      </div>
+    </section>
+  );
+}
+
+const PERSONAL_ACTION_BTN = {
+  border: '1px solid #cbd5e1',
+  background: '#fff',
+  color: '#0f172a',
+  borderRadius: '8px',
+  padding: '8px 12px',
+  fontSize: '12px',
+  fontWeight: 700,
+  cursor: 'pointer',
+};
+
+const PERSONAL_ACTION_BTN_PRIMARY = {
+  ...PERSONAL_ACTION_BTN,
+  background: '#002244',
+  border: '1px solid #002244',
+  color: '#fff',
+};
+
 // ─── Loading overlay shown during audit ────────────────────────────────────────
 
 const AUDIT_STEPS = [
@@ -820,6 +893,14 @@ export default function GovConDashboardV2({ onBack, user }) {
         }}>
           {activeTab !== 'forge' && (
             <div style={{ padding: '28px 32px', maxWidth: '1100px', width: '100%', margin: '0 auto' }}>
+              <PersonalWorkspaceCard
+                user={user}
+                pipeline={pipeline}
+                activeAudit={activeAudit}
+                onStartAudit={() => setShowNewAudit(true)}
+                onViewCompliance={() => setActiveTab('compliance')}
+                onOpenCopilot={() => setActiveTab('chat')}
+              />
               {activeTab === 'chat' && (
                 <BidSmithChat reportData={activeAudit} />
               )}

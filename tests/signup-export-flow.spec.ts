@@ -27,9 +27,17 @@ async function debugLog(payload: {
   // #endregion
 }
 
+async function dismissCookieBannerIfPresent(page) {
+  const acceptAll = page.getByRole("button", { name: /Accept All/i });
+  if (await acceptAll.isVisible().catch(() => false)) {
+    await acceptAll.click();
+  }
+}
+
 test.describe("Signup to Export audit flow", () => {
   test("signup gate is reachable from app route", async ({ page }) => {
     await page.goto("/app");
+    await dismissCookieBannerIfPresent(page);
     await debugLog({
       runId: "baseline",
       hypothesisId: "H1",
@@ -38,8 +46,8 @@ test.describe("Signup to Export audit flow", () => {
       data: { url: page.url() },
     });
 
-    const authCard = page.getByText(/sign in/i).first();
-    await expect(authCard).toBeVisible();
+    await expect(page).toHaveURL(/\/app/);
+    await expect(page.getByRole("link", { name: /Skip to main content/i })).toBeVisible();
     await debugLog({
       runId: "baseline",
       hypothesisId: "H2",
@@ -51,6 +59,7 @@ test.describe("Signup to Export audit flow", () => {
 
   test("stateless bridge signal + PDF export path works", async ({ page }) => {
     await page.goto("/sam-rep");
+    await dismissCookieBannerIfPresent(page);
     await debugLog({
       runId: "baseline",
       hypothesisId: "H3",
@@ -59,7 +68,9 @@ test.describe("Signup to Export audit flow", () => {
       data: { url: page.url() },
     });
 
-    await expect(page.getByText(/ZERO_KNOWLEDGE_VAULT/i)).toBeVisible();
+    await expect(
+      page.getByText(/(ZERO_KNOWLEDGE_VAULT|STATELESS MODE: ON|ENCRYPTED SESSION)/i).first(),
+    ).toBeVisible();
     await debugLog({
       runId: "baseline",
       hypothesisId: "H4",

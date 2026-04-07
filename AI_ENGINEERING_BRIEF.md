@@ -288,3 +288,17 @@ The `ComplianceMatrix.jsx` component expects this shape:
 4. **Section L/M cross-reference** — The prompt asks for `section_lm_conflicts` but the UI doesn't render this yet. High-value feature: flag when Section M evaluates something Section L doesn't require.
 
 5. **Bid/No-Bid confidence scoring** — Currently binary + CONDITIONAL. A probability score (0-100) with top 3 rationale bullets would be more actionable.
+
+---
+
+## 11. MVP MoSCoW + Landing Reference
+
+**Landing Page (current reference):**  
+[https://v0-saa-s-landing-page-k43axrpb3-ariss-projects-b23fe4e6.vercel.app/](https://v0-saa-s-landing-page-k43axrpb3-ariss-projects-b23fe4e6.vercel.app/)
+
+| Priority | Scope |
+|----------|-------|
+| Must Have | `VITE_MVP_STRICT_MODE` enforced, landing copy aligned to RFP -> Analyze -> Proposal Starter flow, all core CTAs route to `/app` or Analyze flow, non-MVP surfaces physically pruned, global import cleanup, MVP scope gate green, backend `nonMvpGuard` blocks non-core endpoints |
+| Should Have | Dependency cleanup in `package.json`, conversion-focused landing polish, deployment verification on Vercel/Railway after push to `main`, Stripe sanity checks + core test coverage |
+| Could Have | Statelessness improvements, incremental UX polish beyond strict MVP, secondary analytics/report enhancements |
+| Won't Have (for now) | Discovery/Federal Search, expanded analytics dashboards, legacy demos/archives, any route/endpoint outside strict MVP audit path |
