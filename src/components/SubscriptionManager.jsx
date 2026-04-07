@@ -67,7 +67,7 @@ const SubscriptionManager = ({ currentTier, onUpgrade, onManageBilling }) => {
 
   const handleUpgrade = (tierId) => {
     if (tierId === 'free') {
-      window.location.href = '/sam-scraper';
+      window.location.href = '/app';
     } else {
       onUpgrade(tierId);
     }
