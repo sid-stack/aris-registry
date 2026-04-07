@@ -10,10 +10,25 @@
 
 import pdfParse from "pdf-parse/lib/pdf-parse.js";
 import { logger } from "../utils/logger.js";
+import { Redis } from "@upstash/redis";
 
 const SAM_API_KEY = process.env.SAM_API_KEY || process.env.SAM_GOV_API_KEY;
 const SAM_BASE    = "https://api.sam.gov/opportunities/v2";
 const SAM_V3_BASE = "https://sam.gov/api/prod/opps/v3";
+const CACHE_TTL_SECONDS = 4 * 60 * 60; // 4 hours
+
+// Redis cache — fails silently if not configured
+let redis = null;
+try {
+  if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+    redis = new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN,
+    });
+  }
+} catch (e) {
+  logger.warn("sam_gov_redis_init_failed", { error: e.message });
+}
 
 // ─── URL parsing ──────────────────────────────────────────────────────────────
 
@@ -205,11 +220,28 @@ export async function fetchSolicitationText(url) {
   if (!parsed) throw new Error("Could not parse a notice ID from the URL");
 
   const { id } = parsed;
+  const cacheKey = `sam:${id}`;
 
-  // Path 1: v3 internal API — works with URL UUID, no auth needed for public PDFs
+  // ── Check Redis cache first ───────────────────────────────────────────────
+  if (redis) {
+    try {
+      const cached = await redis.get(cacheKey);
+      if (cached) {
+        logger.info("sam_gov_cache_hit", { notice_id: id });
+        return cached;
+      }
+    } catch (cacheErr) {
+      logger.warn("sam_gov_cache_read_failed", { error: cacheErr.message });
+    }
+  }
+
+  // ── Path 1: v3 internal API — works with URL UUID, no auth needed ─────────
   try {
     const result = await fetchViaV3(id);
-    if (result.text) return result;
+    if (result.text) {
+      if (redis) redis.set(cacheKey, result, { ex: CACHE_TTL_SECONDS }).catch(() => {});
+      return result;
+    }
   } catch (v3Err) {
     logger.info("sam_gov_v3_fallback", {
       notice_id: id,
@@ -217,7 +249,7 @@ export async function fetchSolicitationText(url) {
     });
   }
 
-  // Path 2: v2 search API (needs SAM_API_KEY)
+  // ── Path 2: v2 search API (needs SAM_API_KEY) ─────────────────────────────
   if (!SAM_API_KEY) {
     throw new Error("SAM.gov v3 path failed and no SAM_API_KEY configured");
   }
@@ -245,5 +277,7 @@ export async function fetchSolicitationText(url) {
     });
   }
 
-  return { text, meta };
+  const result = { text, meta };
+  if (redis) redis.set(cacheKey, result, { ex: CACHE_TTL_SECONDS }).catch(() => {});
+  return result;
 }

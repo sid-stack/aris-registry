@@ -17,7 +17,9 @@ const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <ClerkProvider publishableKey={clerkPubKey} appearance={{
+    <ClerkProvider publishableKey={clerkPubKey}
+    fallbackRedirectUrl="/app"
+    appearance={{
       variables: {
         colorBackground: '#0d0f14',
         colorInputBackground: 'rgba(255,255,255,0.04)',
