@@ -1,12 +1,13 @@
-import { useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Menu, X, ArrowRight, Search, Brain, FileText, Bell, BarChart3, Users } from "lucide-react";
 
-const BG = "#060b18";
-const PANEL = "#0c1324";
-const BORDER = "#1f2b47";
-const PRIMARY = "#90b7ff";
-const TEXT = "#f7f8fc";
-const MUTED = "#99a7c2";
+const BG = "#10182a";
+const PANEL = "#141d31";
+const BORDER = "#28324a";
+const PRIMARY = "#f8f9ff";
+const PRIMARY_TEXT = "#10182a";
+const TEXT = "#f5f7ff";
+const MUTED = "#a1acc2";
 
 const features = [
   {
@@ -78,7 +79,14 @@ const testimonials = [
 ];
 
 export default function Landing({ onEnterApp, onAnalyze, onAnalyzeFile, onGoHome }) {
+  const [isMobile, setIsMobile] = useState(typeof window !== "undefined" && window.innerWidth < 768);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
   const [inputUrl, setInputUrl] = useState("");
   const fileInputRef = useRef();
 
@@ -103,17 +111,17 @@ export default function Landing({ onEnterApp, onAnalyze, onAnalyzeFile, onGoHome
             <span style={S.brandBadge}>B</span>
             <span style={S.brandText}>BidSmith</span>
           </button>
-          <div style={S.desktopLinks}>
+          {!isMobile && <div style={S.desktopLinks}>
             <a href="#features" style={S.navLink}>Features</a>
             <a href="#how-it-works" style={S.navLink}>How It Works</a>
             <button onClick={onEnterApp} style={S.navGhost}>Log in</button>
             <button onClick={onEnterApp} style={S.navCta}>Get Started</button>
-          </div>
-          <button style={S.mobileToggle} onClick={() => setMobileMenuOpen((v) => !v)}>
+          </div>}
+          {isMobile && <button style={S.mobileToggle} onClick={() => setMobileMenuOpen((v) => !v)}>
             {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
-          </button>
+          </button>}
         </div>
-        {mobileMenuOpen && (
+        {isMobile && mobileMenuOpen && (
           <div style={{ ...S.wrap, paddingTop: 12, paddingBottom: 12, display: "grid", gap: 10 }}>
             <a href="#features" style={S.navLink}>Features</a>
             <a href="#how-it-works" style={S.navLink}>How It Works</a>
@@ -123,7 +131,7 @@ export default function Landing({ onEnterApp, onAnalyze, onAnalyzeFile, onGoHome
         )}
       </nav>
 
-      <section style={{ ...S.wrap, paddingTop: 86, paddingBottom: 72, textAlign: "center" }}>
+      <section style={{ ...S.wrap, paddingTop: 96, paddingBottom: 72, textAlign: "center" }}>
         <div style={S.badge}>AI-Powered Federal RFP Intelligence</div>
         <h1 style={S.h1}>
           Win more federal contracts.
@@ -131,13 +139,13 @@ export default function Landing({ onEnterApp, onAnalyze, onAnalyzeFile, onGoHome
           <span style={{ color: MUTED }}>Spend less time on manual review.</span>
         </h1>
         <p style={S.sub}>
-          BidSmith converts SAM.gov opportunities into a go/no-go decision, rationale, compliance matrix,
-          and proposal starter draft in one focused workflow.
+          BidSmith audits federal opportunities end-to-end: decision, rationale,
+          compliance matrix, and proposal starter in one workflow.
         </p>
         <button onClick={onEnterApp} style={S.heroPrimary}>
-          Start Free Audit <ArrowRight size={15} />
+          Start Free Trial <ArrowRight size={15} />
         </button>
-        <p style={{ color: MUTED, fontSize: 13, marginTop: 10 }}>No credit card required</p>
+        <p style={{ color: MUTED, fontSize: 13, marginTop: 10 }}>No credit card required. 14-day free trial.</p>
 
         <div style={S.quickAudit}>
           <input
@@ -152,8 +160,8 @@ export default function Landing({ onEnterApp, onAnalyze, onAnalyzeFile, onGoHome
         </div>
       </section>
 
-      <section id="features" style={{ ...S.wrap, paddingTop: 20, paddingBottom: 60 }}>
-        <h2 style={S.h2}>Everything you need for the MVP chain</h2>
+      <section id="features" style={{ ...S.wrap, paddingTop: 24, paddingBottom: 64 }}>
+        <h2 style={S.h2}>Everything you need to win federal contracts</h2>
         <div style={S.grid3}>
           {features.map((item) => (
             <article key={item.title} style={S.card}>
@@ -165,7 +173,7 @@ export default function Landing({ onEnterApp, onAnalyze, onAnalyzeFile, onGoHome
         </div>
       </section>
 
-      <section id="how-it-works" style={{ ...S.wrap, paddingTop: 24, paddingBottom: 60 }}>
+      <section id="how-it-works" style={{ ...S.wrap, paddingTop: 24, paddingBottom: 64 }}>
         <h2 style={S.h2}>How BidSmith works</h2>
         <div style={S.grid3}>
           {steps.map((item) => (
@@ -178,7 +186,7 @@ export default function Landing({ onEnterApp, onAnalyze, onAnalyzeFile, onGoHome
         </div>
       </section>
 
-      <section style={{ ...S.wrap, paddingTop: 24, paddingBottom: 70 }}>
+      <section style={{ ...S.wrap, paddingTop: 24, paddingBottom: 74 }}>
         <h2 style={S.h2}>Trusted by government contractors</h2>
         <div style={S.grid3}>
           {testimonials.map((t) => (
@@ -193,10 +201,10 @@ export default function Landing({ onEnterApp, onAnalyze, onAnalyzeFile, onGoHome
       </section>
 
       <section style={{ ...S.wrap, paddingTop: 10, paddingBottom: 90, textAlign: "center" }}>
-        <h2 style={S.h2}>Ready to run your first audit?</h2>
-        <p style={S.sub}>Move from RFP to proposal starter in minutes.</p>
+        <h2 style={S.h2}>Ready to win more contracts?</h2>
+        <p style={S.sub}>Join contractors using AI to move from discovery to proposal starter in minutes.</p>
         <button onClick={onEnterApp} style={S.heroPrimary}>
-          Open BidSmith <ArrowRight size={15} />
+          Start Free Trial <ArrowRight size={15} />
         </button>
       </section>
 
@@ -224,12 +232,12 @@ const S = {
   desktopLinks: { display: "flex", alignItems: "center", gap: 14 },
   navLink: { color: MUTED, textDecoration: "none", fontSize: 14 },
   navGhost: { border: "none", background: "none", color: MUTED, cursor: "pointer", fontSize: 14 },
-  navCta: { background: PRIMARY, color: "#0b1221", border: "none", borderRadius: 10, padding: "9px 14px", fontWeight: 700, cursor: "pointer" },
-  mobileToggle: { display: "none", background: "none", border: "none", color: TEXT, cursor: "pointer" },
+  navCta: { background: PRIMARY, color: PRIMARY_TEXT, border: "none", borderRadius: 10, padding: "9px 14px", fontWeight: 700, cursor: "pointer" },
+  mobileToggle: { background: "none", border: "none", color: TEXT, cursor: "pointer" },
   badge: { display: "inline-block", padding: "7px 12px", borderRadius: 999, border: `1px solid ${BORDER}`, background: PANEL, color: MUTED, fontSize: 12, fontWeight: 600, marginBottom: 20 },
   h1: { fontSize: "clamp(2.1rem, 5vw, 4rem)", lineHeight: 1.1, margin: "0 0 18px", fontWeight: 800, letterSpacing: "-0.03em" },
   sub: { maxWidth: 760, margin: "0 auto", color: MUTED, fontSize: 18, lineHeight: 1.6 },
-  heroPrimary: { marginTop: 26, background: PRIMARY, color: "#0b1221", border: "none", borderRadius: 12, padding: "13px 22px", fontWeight: 700, fontSize: 15, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 },
+  heroPrimary: { marginTop: 26, background: PRIMARY, color: PRIMARY_TEXT, border: "none", borderRadius: 12, padding: "13px 22px", fontWeight: 700, fontSize: 15, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 },
   quickAudit: { marginTop: 34, display: "grid", gridTemplateColumns: "1fr auto auto", gap: 10, maxWidth: 920, marginInline: "auto" },
   input: { background: PANEL, border: `1px solid ${BORDER}`, color: TEXT, borderRadius: 10, padding: "12px 14px", fontSize: 14, outline: "none" },
   secondaryAction: { background: "transparent", color: PRIMARY, border: `1px solid ${BORDER}`, borderRadius: 10, padding: "12px 14px", fontWeight: 600, cursor: "pointer" },
