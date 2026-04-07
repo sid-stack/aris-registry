@@ -21,7 +21,6 @@ import { createDynamicCheckoutSession } from "./services/stripe.js";
 import { recordAnalyticsEvent, getAdminStats, saveAudit, getAuditHistory, getAuditById, savePendingReport, getPendingReports, getPendingReportById, markReportSent, updateReportNotes } from "./services/analytics.js";
 import { fetchSolicitationText } from "./services/samGov.js";
 import { runAudit } from "./agents/auditPipeline.js";
-import { sovereignSearch } from "./services/fedSearch.js";
 import { addToWaitlist, getWaitlist, getWaitlistStats, markInvited } from "./services/waitlist.js";
 
 import multer from "multer";
@@ -30,6 +29,7 @@ import pdfParse from "pdf-parse";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 8080;
 const app = express();
+const ENABLE_NON_MVP_FEATURES = process.env.ENABLE_NON_MVP_FEATURES === "true";
 
 // Railway sits behind a proxy; trust 1 hop so rate limiting uses client IP.
 const trustProxyEnv = process.env.TRUST_PROXY;
@@ -55,6 +55,60 @@ app.use(cors());
 app.use(requestId);
 app.use(requestLogger);
 
+const nonMvpGuard = (req, res, next) => {
+  if (ENABLE_NON_MVP_FEATURES) return next();
+  return res.status(410).json({
+    error: "Endpoint disabled in MVP mode",
+    message: "This route is out of scope for the current MVP workflow.",
+  });
+};
+
+function toMvpAuditResult(raw = {}) {
+  const verdict = raw.verdict || {};
+  const requirements = Array.isArray(raw.requirements) ? raw.requirements : [];
+  const roadmap = Array.isArray(raw.proposal_roadmap) ? raw.proposal_roadmap : [];
+  const intelligence = raw.intelligence || {};
+  return {
+    id: raw.id || null,
+    solicitation_number: raw.solicitation_number || null,
+    title: raw.title || "Federal Solicitation",
+    agency: raw.agency || "Federal Agency",
+    contract_type: raw.contract_type || null,
+    set_aside_type: raw.set_aside_type || null,
+    due_date: raw.due_date || null,
+    executiveSummary: raw.executiveSummary || "",
+    verdict: {
+      recommendation: verdict.recommendation || "CONDITIONAL",
+      win_probability: typeof verdict.win_probability === "number" ? verdict.win_probability : 50,
+      confidence: verdict.confidence || "MEDIUM",
+      rationale: verdict.rationale || "",
+      summary: verdict.summary || "",
+    },
+    intelligence: {
+      top_risks: Array.isArray(intelligence.top_risks) ? intelligence.top_risks : [],
+      timeline_pressure: intelligence.timeline_pressure || { detected: false, days_to_respond: null, explanation: "" },
+      hidden_requirements: Array.isArray(intelligence.hidden_requirements) ? intelligence.hidden_requirements : [],
+    },
+    requirements: requirements.map((item, idx) => ({
+      id: item.id || `REQ-${idx + 1}`,
+      requirement: item.requirement || item.text || "Requirement",
+      section: item.section || null,
+      category: item.category || "Other",
+      risk: item.risk || "MED",
+      is_disqualifier: Boolean(item.is_disqualifier),
+      action_required: item.action_required || "",
+      source_excerpt: item.source_excerpt || "",
+    })),
+    proposal_roadmap: roadmap.map((step) => ({
+      section: step.section || "Proposal Section",
+      recommended_pages: step.recommended_pages || "",
+      focus_areas: Array.isArray(step.focus_areas) ? step.focus_areas : [],
+      discriminator: step.discriminator || "",
+    })),
+    generated_at: raw.generated_at || new Date().toISOString(),
+  };
+}
+
 app.get("/api/health", (_req, res) => {
   res.json({
     status: "ok",
@@ -66,6 +120,20 @@ app.get("/api/health", (_req, res) => {
     },
   });
 });
+
+app.use(
+  [
+    "/api/fed-search",
+    "/api/track",
+    "/api/govcon",
+    "/api/admin",
+    "/api/waitlist",
+    "/api/create-dynamic-checkout-session",
+    "/api/generate-report-stream",
+    "/api/contact",
+  ],
+  nonMvpGuard
+);
 
 // ─── Block sensitive file probes ────────────────────────────────────────────
 app.get(/\.env(\..*)?$|\.(git|htaccess|DS_Store)|wp-admin|phpinfo/i, (_req, res) => {
@@ -129,12 +197,13 @@ app.post("/api/analyze-pdf", upload.single("file"), asyncHandler(async (req, res
   // ── Try automated audit; fall back to queued if it fails ─────────────────
   const userId = req.headers["x-user-id"] || "anonymous";
   try {
-    const result = await runAudit(rfpText, {
+    const rawResult = await runAudit(rfpText, {
       id: filename.replace(/\.pdf$/i, ""),
       title: filename,
       agency: "Extracted from PDF",
       value: "0",
     });
+    const result = toMvpAuditResult(rawResult);
     savePendingReport({
       uid: userId,
       user_email: userEmail,
@@ -168,7 +237,8 @@ app.post("/api/analyze-text", apiLimiter, asyncHandler(async (req, res) => {
     chars: text.length,
     user_email: userEmail,
   }));
-  const result = await runAudit(text.trim(), { id: "TEXT_AUDIT", title: "Pasted Solicitation", agency: "Unknown", value: "0" });
+  const rawResult = await runAudit(text.trim(), { id: "TEXT_AUDIT", title: "Pasted Solicitation", agency: "Unknown", value: "0" });
+  const result = toMvpAuditResult(rawResult);
   savePendingReport({
     uid: userId,
     user_email: userEmail,
@@ -196,69 +266,6 @@ app.post("/api/privacy/consent", asyncHandler(async (req, res) => {
     marketing,
   }));
   res.json({ success: true, updated: new Date().toISOString() });
-}));
-
-// ─── Sovereign Discovery Harvester ───────────────────────────────────────────
-
-const DISCOVERY_SEEDS = [
-  "Artificial Intelligence", "Generative AI", "Cybersecurity", "Zero Trust",
-  "Petroleum", "Oil & Gas", "Energy Security", "Land Acquisition",
-  "Defense Procurement", "Weapon Systems", "Military Logistics",
-];
-
-let lastHarvestTime = 0;
-const HARVEST_INTERVAL = 12 * 60 * 60 * 1000;
-const SAM_API_KEY = process.env.SAM_API_KEY || process.env.SAM_GOV_API_KEY;
-
-async function startHarvester() {
-  if (!SAM_API_KEY) return;
-  const pulse = async () => {
-    try {
-      const now = Date.now();
-      if (now - lastHarvestTime < 10 * 60 * 1000) return;
-      for (const seed of DISCOVERY_SEEDS) {
-        try {
-          const res = await fetch(
-            `https://api.sam.gov/opportunities/v2/search?q=${encodeURIComponent(seed)}&limit=30&api_key=${SAM_API_KEY}`,
-            { signal: AbortSignal.timeout(15_000) }
-          );
-          if (res.ok) {
-            const data = await res.json();
-            const opportunities = data?.opportunitiesData || [];
-            if (opportunities.length > 0) await sovereignSearch.syncSovereignTable(opportunities, "US");
-          }
-        } catch (err) {
-          logger.warn("harvester_seed_failed", {
-            seed,
-            error: err.message,
-          });
-        }
-        await new Promise(r => setTimeout(r, 15000));
-      }
-      lastHarvestTime = Date.now();
-    } catch (err) {
-      logger.error("harvester_failed", {
-        error: err.message,
-      });
-    }
-  };
-  setInterval(pulse, HARVEST_INTERVAL);
-}
-startHarvester();
-
-// ─── /api/fed-search ─────────────────────────────────────────────────────────
-app.post("/api/fed-search", apiLimiter, asyncHandler(async (req, res) => {
-  const { query, limit = 20, expand = true } = req.body;
-  try {
-    const { results, correction } = await sovereignSearch.search(query, expand);
-    res.json({ success: true, query, results: results.slice(0, limit), correction, version: "v4.1" });
-  } catch (err) {
-    logger.error("fed_search_failed", requestMeta(req, {
-      error: err.message,
-      stack: err.stack,
-    }));
-    res.status(500).json({ success: false, error: err.message });
-  }
 }));
 
 // ─── /api/track ──────────────────────────────────────────────────────────────
@@ -565,7 +572,8 @@ app.post("/api/analyze-link", apiLimiter, asyncHandler(async (req, res) => {
     audit_id: meta.id,
     chars: solicitationText.length,
   }));
-  const result = await runAudit(solicitationText, meta);
+  const rawResult = await runAudit(solicitationText, meta);
+  const result = toMvpAuditResult(rawResult);
   savePendingReport({
     uid: userId,
     user_email: userEmail,

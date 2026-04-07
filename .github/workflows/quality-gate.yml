@@ -24,6 +24,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Enforce MVP scope gate
+        run: npm run mvp:gate
+
       - name: Check for console statements
         run: |
           echo "🔍 Checking for console statements in production code..."

@@ -246,7 +246,7 @@ const SamRep = ({ onBack }) => {
              <span style={{ fontSize: '9px', color: '#71717a', letterSpacing: '0.05em' }}>ENCRYPTED SESSION</span>
           </div>
           <button 
-            onClick={() => window.location.href = '/discovery'}
+            onClick={() => window.location.href = '/app'}
             style={{ 
               background: 'var(--card)', 
               border: '1px solid var(--border)', 

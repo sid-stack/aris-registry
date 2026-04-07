@@ -368,6 +368,50 @@ export default function ProposalForge({ auditData, onBack }) {
 
   const wordCount = editor?.storage.characterCount.words() || 0;
   const recPages = activeSectionData?.recommended_pages || '—';
+  const handleExport = useCallback(() => {
+    if (!auditData) return;
+    const now = new Date().toISOString();
+    const recommendation = auditData.verdict?.recommendation || "CONDITIONAL";
+    const winProbability = auditData.verdict?.win_probability ?? 0;
+    const requirements = Array.isArray(auditData.requirements) ? auditData.requirements : [];
+    const summary = [
+      "# BidSmith Proposal Starter Export",
+      `Generated: ${now}`,
+      "",
+      "## Opportunity Summary",
+      `- Title: ${auditData.title || "Federal Solicitation"}`,
+      `- Agency: ${auditData.agency || "Federal Agency"}`,
+      `- Solicitation Number: ${auditData.solicitation_number || "N/A"}`,
+      `- Due Date: ${auditData.due_date || "N/A"}`,
+      `- Contract Type: ${auditData.contract_type || "N/A"}`,
+      `- Set-Aside: ${auditData.set_aside_type || "N/A"}`,
+      "",
+      "## Bid / No-Bid",
+      `- Recommendation: ${recommendation}`,
+      `- Win Probability: ${winProbability}%`,
+      `- Rationale: ${auditData.verdict?.rationale || "No rationale provided."}`,
+      "",
+      "## Compliance Matrix",
+      ...requirements.map((req) => `- [${req.id || "REQ"}] ${req.requirement || "Requirement"} (${req.risk || "MED"})`),
+      "",
+      "## Draft Starter",
+      editor?.getText() || "",
+      "",
+    ].join("\n");
+
+    const blob = new Blob([summary], { type: "text/markdown;charset=utf-8" });
+    const link = document.createElement("a");
+    const slug = (auditData.solicitation_number || auditData.title || "bidsmith-audit")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
+    link.href = URL.createObjectURL(blob);
+    link.download = `${slug || "bidsmith-audit"}-starter.md`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(link.href);
+  }, [auditData, editor]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#f8fafc' }}>
@@ -419,10 +463,15 @@ export default function ProposalForge({ auditData, onBack }) {
           <span style={{ fontSize: '12px', color: '#94a3b8' }}>
             {wordCount} words · Rec: {recPages} pages
           </span>
-          <button style={{
+          <button
+            onClick={handleExport}
+            disabled={!auditData}
+            style={{
             padding: '7px 14px', background: '#002244', color: 'white',
             border: 'none', borderRadius: '7px', fontSize: '12px', fontWeight: 700,
-            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px'
+            cursor: auditData ? 'pointer' : 'not-allowed',
+            opacity: auditData ? 1 : 0.6,
+            display: 'flex', alignItems: 'center', gap: '6px'
           }}>
             <Download size={13} /> Export
           </button>

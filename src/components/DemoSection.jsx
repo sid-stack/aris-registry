@@ -55,8 +55,8 @@ export default function DemoSection({ onTryDemo }) {
                   style={styles.video}
                   onError={() => setVideoError(true)}
                 >
-                  <source src="/assets/demo/aris-demo.mp4" type="video/mp4" />
                   <source src="/aris-demo.mp4" type="video/mp4" />
+                  <source src="/assets/demo/aris-demo.mp4" type="video/mp4" />
                 </video>
               )}
             </div>

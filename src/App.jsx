@@ -15,13 +15,10 @@ const Audit = lazy(() => import("./pages/Audit"));
 const Templates = lazy(() => import("./pages/Templates"));
 const Legal = lazy(() => import("./pages/Legal"));
 const SamRep = lazy(() => import("./pages/SamRep"));
-const Discovery = lazy(() => import("./pages/Discovery"));
 const Security = lazy(() => import("./pages/Security"));
 const About = lazy(() => import("./pages/About"));
 const SamScraper = lazy(() => import("./pages/SamScraper"));
-const Labs = lazy(() => import("./pages/Labs"));
 const BidSmithBeta = lazy(() => import("./pages/BidSmithBeta"));
-const BidSmithSearch = lazy(() => import("./pages/BidSmithSearch"));
 const CompliancePage = lazy(() => import("./pages/CompliancePage"));
 const SurveyAnalytics = lazy(() => import("./components/SurveyAnalytics"));
 const DemoAnalytics = lazy(() => import("./components/DemoAnalytics"));
@@ -40,6 +37,17 @@ const Newsletter = lazy(() => import("./pages/Newsletter"));
 const HighLoadNotice = lazy(() => import("./pages/HighLoadNotice"));
 
 const BASE_URL = "https://www.bidsmith.pro";
+const MVP_STRICT_MODE = (import.meta.env.VITE_MVP_STRICT_MODE ?? "true") !== "false";
+const MVP_DISABLED_VIEWS = new Set([
+  "discovery",
+  "sam-scraper",
+  "bid-search",
+  "survey-analytics",
+  "demo-analytics",
+  "labs",
+  "outreach",
+  "admin",
+]);
 
 const PAGE_META = {
   landing: { title: "BidSmith | Federal RFP Compliance Audit Software for Government Contractors", description: "BidSmith audits SAM.gov solicitations in 90 seconds. Instant compliance matrix, FAR/DFARS risk flags, and bid/no-bid recommendation. Built for federal prime contractors and capture teams.", path: "/" },
@@ -47,13 +55,10 @@ const PAGE_META = {
   about: { title: "About BidSmith | AI-Powered Federal RFP Audit Software by ARIS Labs", description: "BidSmith is built by ARIS Labs to give government contractors instant compliance intelligence. Zero-knowledge architecture, direct SAM.gov integration, and AI-driven audit output.", path: "/about" },
   soc: { title: "BidSmith Security | Zero-Knowledge RFP Data Architecture", description: "BidSmith processes solicitation data in transient memory only. No data stored, indexed, or shared. Learn how our zero-knowledge architecture keeps your proposal strategy private.", path: "/soc" },
   "sam-rep": { title: "Sample Federal RFP Audit Report | BidSmith Compliance Matrix Demo", description: "See a real BidSmith audit output for a Defense Health Agency solicitation — compliance matrix, FAR/DFARS flags, risk score, and bid/no-bid verdict included.", path: "/sam-rep" },
-  discovery: { title: "Federal Opportunity Discovery | Search SAM.gov Solicitations — BidSmith", description: "Find federal contracting opportunities matched to your NAICS codes, agency targets, and capability profile. Real-time search across SAM.gov and award history.", path: "/discovery" },
   "sam-scraper": { title: "SAM.gov Bulk Opportunity Export & Scraper | BidSmith", description: "Export and filter SAM.gov opportunities in bulk. Filter by NAICS code, agency, set-aside type, and dollar threshold. Build your bid pipeline in minutes.", path: "/sam-scraper" },
-  "bid-search": { title: "Federal Bid Search | Live SAM.gov Solicitation Search — BidSmith", description: "Search live federal solicitations, contract awards, and agency spend patterns using natural language. Find the right bids faster with BidSmith's intelligent search.", path: "/bid-search" },
   beta: { title: "BidSmith Gov Admin Registry | Early Access for Federal Contractors", description: "Apply for early access to BidSmith's Gov Admin Registry — institutional RFP intelligence and compliance tooling for federal practice teams.", path: "/beta" },
   demo: { title: "BidSmith Live Demo | Watch a Federal RFP Audit in 90 Seconds", description: "Watch BidSmith audit a real $24.5M Army solicitation live — compliance matrix, FAR/DFARS disqualifier flags, risk score, and bid/no-bid verdict. No signup required.", path: "/demo" },
   "govcon-guide": { title: "Federal Contracting Process Guide | How to Win Government Contracts — BidSmith", description: "The complete government contracting workflow for new and experienced contractors — SAM.gov registration, opportunity discovery, compliance review, and proposal development.", path: "/govcon-guide" },
-  labs: { title: "BidSmith Labs | Experimental Federal Intelligence Tools", description: "Experimental capture management and GovCon intelligence tools from BidSmith. Early-access features for federal contractors.", path: "/labs" },
   privacy: { title: "Privacy Policy | BidSmith", description: "How BidSmith collects, uses, and protects your data. Read our full privacy policy for bidsmith.pro.", path: "/privacy" },
   terms: { title: "Terms of Service | BidSmith", description: "Terms and conditions governing your use of the BidSmith federal RFP audit platform.", path: "/terms" },
   cookies: { title: "Cookie Policy | BidSmith", description: "How BidSmith uses cookies and local storage. We minimize data collection and never sell your information.", path: "/cookies" },
@@ -140,10 +145,8 @@ export default function App() {
     if (p === "/newsletter") return "newsletter";
     if (p === "/privacy" || p === "/terms" || p === "/cookies") return p.slice(1);
     if (p === "/sam-rep") return "sam-rep";
-    if (p === "/discovery") return "discovery";
     if (p === "/soc") return "soc";
     if (p === "/sam-scraper") return "sam-scraper";
-    if (p === "/bid-search" || p === "/fed-search" || p === "/search") return "bid-search";
     if (p === "/survey-analytics") return "survey-analytics";
     if (p === "/demo-analytics") return "demo-analytics";
     if (p === "/about") return "about";
@@ -152,7 +155,6 @@ export default function App() {
     if (p === "/govcon-guide" || p === "/how-it-works") return "govcon-guide";
     // /dashboard redirects to /app (V2 is the live product)
     if (p === "/dashboard" || p === "/app/dashboard") return "app";
-    if (p.startsWith("/labs")) return "labs";
     if (p.startsWith("/compliance/")) return "compliance";
     if (aliasSection) return "landing";
     if (p === "/aris") return "aris";
@@ -186,14 +188,10 @@ export default function App() {
       logicalPath = "/404";
     } else if (view === "sam-rep") {
       logicalPath = "/sam-rep";
-    } else if (view === "discovery") {
-      logicalPath = "/discovery";
     } else if (view === "soc") {
       logicalPath = "/soc";
     } else if (view === "sam-scraper") {
       logicalPath = "/sam-scraper";
-    } else if (view === "bid-search") {
-      logicalPath = "/bid-search";
     } else if (view === "about") {
       logicalPath = "/about";
     } else if (view === "demo") {
@@ -240,11 +238,6 @@ export default function App() {
   const [initialUrl, setInitialUrl] = useState("");
   const [initialFile, setInitialFile] = useState(null);
 
-  const handleBidSmithSearch = () => {
-    setView("bid-search");
-    window.history.pushState({ view: "bid-search" }, "", "/search");
-  };
-
   const handleAnalyze = (url) => {
     setInitialFile(null);
     setInitialUrl(url);
@@ -258,6 +251,9 @@ export default function App() {
   };
 
   let content = null;
+  if (MVP_STRICT_MODE && MVP_DISABLED_VIEWS.has(view)) {
+    content = <NotFound onBack={() => setView("landing")} />;
+  } else
   if (view === "templates") {
     content = <Templates />;
   } else if (view === "privacy" || view === "terms" || view === "cookies") {
@@ -266,14 +262,10 @@ export default function App() {
     content = <NotFound />;
   } else if (view === "sam-rep") {
     content = <SamRep onBack={() => setView("landing")} />;
-  } else if (view === "discovery") {
-    content = <Discovery onBack={() => setView("landing")} />;
   } else if (view === "soc") {
     content = <Security onBack={() => setView("landing")} />;
   } else if (view === "sam-scraper") {
     content = <SamScraper onBack={() => setView("landing")} />;
-  } else if (view === "bid-search") {
-    content = <BidSmithSearch onBack={() => setView("landing")} />;
   } else if (view === "survey-analytics") {
     content = authenticated
       ? <SurveyAnalytics />
@@ -284,8 +276,6 @@ export default function App() {
       : <div style={{ minHeight: "100vh", background: "#0a0d14", display: "flex", alignItems: "center", justifyContent: "center" }}><SignIn routing="hash" /></div>;
   } else if (view === "about") {
     content = <About onBack={() => setView("landing")} />;
-  } else if (view === "labs") {
-    content = <Labs onBack={() => setView("landing")} />;
   } else if (view === "govcon-dashboard") {
     if (authLoading) {
       content = <div style={{ minHeight: "100vh", background: "#0d0f14" }} />;
@@ -336,7 +326,6 @@ export default function App() {
         onEnterDashboard={() => setView("app")}
         onViewSample={() => setView("demo")}
         onBidSmithBeta={() => setView("beta")}
-        onBidSmithSearch={handleBidSmithSearch}
         onAnalyze={handleAnalyze}
         onAnalyzeFile={handleAnalyzeFile}
         onGoHome={() => setView("landing")}

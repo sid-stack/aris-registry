@@ -81,7 +81,19 @@ export async function ensureAnalyticsSchema() {
     CREATE INDEX IF NOT EXISTS idx_beta_signups_email ON beta_signups (email);
     CREATE INDEX IF NOT EXISTS idx_saved_audits_uid ON saved_audits (uid, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_pending_reports_status ON pending_reports (status, created_at DESC);
+
+    CREATE TABLE IF NOT EXISTS user_profiles (
+      uid TEXT PRIMARY KEY,
+      email TEXT,
+      company_name TEXT,
+      naics_codes JSONB DEFAULT '[]'::jsonb,
+      capabilities TEXT,
+      past_performance TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
   `);
+
 
   analyticsSchemaReady = true;
 }
@@ -161,7 +173,6 @@ export async function getBetaSignupCount() {
 }
 
 import { getRevenueStats, getStripeLogs } from "./stripe.js";
-import { sovereignSearch } from "./fedSearch.js";
 
 export async function getAdminStats() {
   if (!analyticsDb) return { error: "Database not configured" };
@@ -177,8 +188,7 @@ export async function getAdminStats() {
       featureUsage, 
       logicLibrary,
       stripeStats,
-      stripeLogs,
-      meshStats
+      stripeLogs
     ] = await Promise.all([
       analyticsDb.query("SELECT COUNT(*) FROM beta_signups"),
       analyticsDb.query("SELECT * FROM beta_signups ORDER BY created_at DESC LIMIT 50"),
@@ -222,12 +232,8 @@ export async function getAdminStats() {
       `),
       analyticsDb.query("SELECT * FROM logic_library ORDER BY updated_at DESC LIMIT 100"),
       getRevenueStats(),
-      getStripeLogs(),
-      sovereignSearch.getStats()
+      getStripeLogs()
     ]);
-
-    // Fetch Mesh Documents if requested (limiting for safety)
-    const meshDocs = await sovereignSearch.getTableData(process.env.VITE_ACCESS_KEY).catch(() => []);
 
     return {
       beta_signups: {
@@ -239,10 +245,6 @@ export async function getAdminStats() {
         rows: recentEvents.rows,
       },
       logic_library: logicLibrary.rows,
-      mesh: {
-        stats: meshStats,
-        rows: meshDocs.slice(0, 100)
-      },
       daily_traffic: dailyTraffic.rows,
       feature_usage: featureUsage.rows,
       stripe: { ...stripeStats, logs: stripeLogs },
@@ -311,6 +313,57 @@ export async function getAuditById(id, uid) {
     return res.rows[0] || null;
   } catch (err) {
     console.error("[SAVED_AUDITS] fetch_failed", err.message);
+    return null;
+  }
+}
+
+// ─── User Profiles (Sovereign Intelligence) ───────────────────────────────────
+
+export async function getUserProfile(uid) {
+  if (!analyticsDb) return null;
+  try {
+    await ensureAnalyticsSchema();
+    const res = await analyticsDb.query(
+      `SELECT * FROM user_profiles WHERE uid = $1`,
+      [uid]
+    );
+    return res.rows[0] || null;
+  } catch (err) {
+    console.error("[USER_PROFILES] fetch_failed", err.message);
+    return null;
+  }
+}
+
+export async function saveUserProfile(uid, payload) {
+  if (!analyticsDb) return null;
+  try {
+    await ensureAnalyticsSchema();
+    const { email, company_name, naics_codes, capabilities, past_performance } = payload;
+    
+    // Upsert the profile
+    const res = await analyticsDb.query(
+      `INSERT INTO user_profiles (uid, email, company_name, naics_codes, capabilities, past_performance)
+       VALUES ($1, $2, $3, $4::jsonb, $5, $6)
+       ON CONFLICT (uid) DO UPDATE SET
+         email = COALESCE(EXCLUDED.email, user_profiles.email),
+         company_name = EXCLUDED.company_name,
+         naics_codes = EXCLUDED.naics_codes,
+         capabilities = EXCLUDED.capabilities,
+         past_performance = EXCLUDED.past_performance,
+         updated_at = NOW()
+       RETURNING *`,
+      [
+        uid, 
+        email || null, 
+        company_name || null, 
+        JSON.stringify(naics_codes || []), 
+        capabilities || null, 
+        past_performance || null
+      ]
+    );
+    return res.rows[0];
+  } catch (err) {
+    console.error("[USER_PROFILES] save_failed", err.message);
     return null;
   }
 }
