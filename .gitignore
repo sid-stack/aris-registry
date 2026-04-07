@@ -140,6 +140,8 @@ sample_audit_*.md
 draft_*.md
 send_batch_*.md
 bidsmith_*.md
+AI_ENGINEERING_BRIEF.md
+tests/signup-export-flow.spec.ts
 
 # =========================
 # GTM (private ops)
