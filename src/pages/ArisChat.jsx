@@ -248,14 +248,21 @@ function WelcomeState({ onPrompt, isMobile }) {
       <p style={{ ...st.welcomeSub, fontSize: isMobile ? 14 : 15 }}>
         Ask about SAM.gov opportunities, FAR/DFARS clauses, bid strategy, or compliance.
       </p>
-      <div style={{ ...st.promptGrid, maxWidth: isMobile ? '100%' : 480 }}>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+        gap: 10,
+        width: '100%',
+        maxWidth: isMobile ? '100%' : 560,
+      }}>
         {IDLE_PROMPTS.map(({ icon: Icon, label, msg }, i) => (
           <button key={i} style={st.promptCard} onClick={() => onPrompt(msg)}
             onMouseEnter={e => { e.currentTarget.style.borderColor = M.accent; e.currentTarget.style.background = '#f0fdf9'; }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = M.border; e.currentTarget.style.background = M.bg; }}>
-            <Icon size={15} color={M.accent} style={{ flexShrink: 0 }} />
-            <span style={{ flex: 1, fontSize: 14, color: M.text, fontWeight: 500, textAlign: 'left' }}>{label}</span>
-            <ChevronRight size={13} color={M.textDim} style={{ flexShrink: 0 }} />
+            <div style={{ width: 30, height: 30, borderRadius: 8, background: 'rgba(16,163,127,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Icon size={14} color={M.accent} />
+            </div>
+            <span style={{ flex: 1, fontSize: 13, color: M.text, fontWeight: 500, textAlign: 'left', lineHeight: 1.4 }}>{label}</span>
           </button>
         ))}
       </div>
@@ -666,20 +673,33 @@ export default function ArisChat({ initialPrompt: propPrompt = null }) {
                 <PanelLeftOpen size={17} color={M.textSub} />
               </button>
             )}
-            {(collapsed || isMobile) && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ width: 22, height: 22, borderRadius: 6, background: 'rgba(16,163,127,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Shield size={11} color={M.accent} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {(collapsed || isMobile) && (
+                <div style={{ width: 24, height: 24, borderRadius: 7, background: 'rgba(16,163,127,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Shield size={12} color={M.accent} />
                 </div>
-                <span style={{ fontSize: 14, fontWeight: 700, color: M.text, letterSpacing: '-0.01em' }}>ARIS</span>
-              </div>
-            )}
+              )}
+              <span style={{ fontSize: 14, fontWeight: 600, color: M.text, letterSpacing: '-0.01em', maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {hasMessages ? sessionTitle : 'ARIS · BidSmith'}
+              </span>
+            </div>
           </div>
-          <button style={st.iconBtnLight} title="Options"
-            onMouseEnter={e => e.currentTarget.style.background = M.surface}
-            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-            <MoreHorizontal size={17} color={M.textSub} />
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {hasMessages && (
+              <button style={{ ...st.iconBtnLight, fontSize: 12, color: M.textDim, padding: '6px 10px', width: 'auto', borderRadius: 8, gap: 5, display: 'flex', alignItems: 'center' }}
+                onClick={resetChat}
+                onMouseEnter={e => e.currentTarget.style.background = M.surface}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                <Plus size={13} color={M.textDim} />
+                {!isMobile && <span style={{ fontSize: 12, color: M.textDim, fontWeight: 500 }}>New chat</span>}
+              </button>
+            )}
+            <button style={st.iconBtnLight} title="Options"
+              onMouseEnter={e => e.currentTarget.style.background = M.surface}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+              <MoreHorizontal size={17} color={M.textSub} />
+            </button>
+          </div>
         </div>
 
         {/* Thread */}
@@ -881,9 +901,11 @@ const st = {
   promptGrid: { width: '100%', display: 'flex', flexDirection: 'column', gap: 8 },
   promptCard: {
     display: 'flex', alignItems: 'center', gap: 12,
-    padding: '13px 16px', background: M.bg,
-    border: `1px solid ${M.border}`, borderRadius: 12,
+    padding: '14px 16px', background: M.bg,
+    border: `1px solid ${M.border}`, borderRadius: 14,
     cursor: 'pointer', width: '100%', transition: 'border-color 0.15s, background 0.15s',
+    textAlign: 'left',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
   },
 
   // ── Messages ─────────────────────────────────────────────────────────────

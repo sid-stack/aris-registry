@@ -78,16 +78,34 @@ const STORIES = [
     tag: "DEFENSE CONTRACTOR",
     headline: "Cut RFP Review Time by 95% While Improving Compliance Accuracy",
     body: "A mid-size defense contractor replaced manual compliance reviews with BidSmith and reduced their review cycle from days to minutes.",
+    story: {
+      challenge: "The capture team was spending 3–4 days per solicitation manually reading through hundreds of pages of FAR/DFARS clauses, Section L, and Section M requirements. With a growing pipeline of 15–20 active pursuits, this was becoming unsustainable.",
+      solution: "They integrated BidSmith into their capture workflow. Every new SAM.gov opportunity gets pasted into BidSmith on day one. Within 90 seconds, they have a full compliance matrix, risk flags, and a bid/no-bid recommendation with rationale.",
+      result: "RFP review time dropped from ~40 hours to under 2 hours per opportunity. The team now handles 3x more pursuits with the same headcount — and they haven't missed a compliance requirement since.",
+      stats: [{ label: "Review time", value: "↓ 95%" }, { label: "Win rate", value: "↑ 40%" }, { label: "Pursuits managed", value: "3×" }],
+    },
   },
   {
     tag: "IT SERVICES",
     headline: "Increased Federal Win Rate by Focusing on the Right Opportunities",
     body: "An IT services firm used BidSmith's bid/no-bid engine to stop chasing low-probability contracts and doubled their win rate.",
+    story: {
+      challenge: "The BD team was responding to every RFP that seemed like a fit — spending weeks on proposals only to lose to incumbents or miss set-aside requirements they hadn't caught early enough.",
+      solution: "BidSmith's bid/no-bid engine now scores every opportunity before any proposal work begins. Incumbency signals, set-aside alignment, and evaluation criteria are all surfaced automatically.",
+      result: "They went from a 12% win rate to 26% in two quarters. Proposal volume dropped by 35% — but revenue from wins went up because they were only chasing contracts they could actually win.",
+      stats: [{ label: "Win rate", value: "12% → 26%" }, { label: "Proposal volume", value: "↓ 35%" }, { label: "Revenue from wins", value: "↑ 2×" }],
+    },
   },
   {
     tag: "CONSTRUCTION",
     headline: "Found $12M in Federal Opportunities They Were Missing",
     body: "A construction firm used BidSmith's opportunity search to uncover federal contracts matching their NAICS codes that hadn't appeared in their existing pipeline.",
+    story: {
+      challenge: "The firm relied on a single GSA schedule and word-of-mouth referrals for federal work. They had no systematic way to search for contracts matching their NAICS codes across all agencies.",
+      solution: "BidSmith's federal opportunity search let them filter by NAICS code, agency, set-aside type, and contract value range — surfacing active solicitations they had no idea existed.",
+      result: "In the first 30 days, they identified $12M in relevant active opportunities. They bid on 4, won 2 — generating more federal revenue in one quarter than in the previous two years combined.",
+      stats: [{ label: "Opportunities found", value: "$12M" }, { label: "Win rate (new)", value: "50%" }, { label: "Time to first win", value: "< 90 days" }],
+    },
   },
 ];
 
@@ -107,6 +125,7 @@ export default function Landing({
   const [isProcessing, setIsProcessing] = useState(false);
   const [logs, setLogs] = useState([]);
   const [activeTab, setActiveTab] = useState("matrix");
+  const [expandedStory, setExpandedStory] = useState(null);
   const fileInputRef = useRef();
   const userHandle = userEmail ? userEmail.split("@")[0] : "";
 
@@ -573,21 +592,56 @@ export default function Landing({
           <p style={S.eyebrow}>CUSTOMER STORIES</p>
           <h2 style={S.h2}>How Contractors Win with BidSmith</h2>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 24, marginTop: 52 }}>
-            {STORIES.map(s => (
-              <article key={s.tag} style={{ background: C.white, border: `1px solid ${C.paleSky}`, borderRadius: 16, padding: 32, display: "flex", flexDirection: "column", gap: 16 }}>
-                <span style={{ fontSize: 10, fontWeight: 800, color: C.navyMid, letterSpacing: "0.12em", textTransform: "uppercase", background: C.mintCream, padding: "4px 10px", borderRadius: 6, width: "fit-content", border: `1px solid ${C.paleSky}` }}>
-                  {s.tag}
-                </span>
-                <h3 style={{ fontSize: 17, fontWeight: 800, color: C.navy, lineHeight: 1.35, margin: 0 }}>{s.headline}</h3>
-                <p style={{ fontSize: 14, color: C.dimGrey, lineHeight: 1.65, margin: 0 }}>{s.body}</p>
-                <button
-                  onClick={() => onEnterApp?.("story_cta")}
-                  style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, color: C.navyMid, background: "none", border: "none", cursor: "pointer", padding: 0, marginTop: "auto" }}
-                >
-                  Read the story <ArrowRight size={14} />
-                </button>
-              </article>
-            ))}
+            {STORIES.map(s => {
+              const isOpen = expandedStory === s.tag;
+              return (
+                <div key={s.tag} style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+                  <article style={{ background: C.white, border: `1px solid ${C.paleSky}`, borderRadius: isOpen ? "16px 16px 0 0" : 16, padding: 32, display: "flex", flexDirection: "column", gap: 16, transition: "border-radius 0.2s" }}>
+                    <span style={{ fontSize: 10, fontWeight: 800, color: C.navyMid, letterSpacing: "0.12em", textTransform: "uppercase", background: C.mintCream, padding: "4px 10px", borderRadius: 6, width: "fit-content", border: `1px solid ${C.paleSky}` }}>
+                      {s.tag}
+                    </span>
+                    <h3 style={{ fontSize: 17, fontWeight: 800, color: C.navy, lineHeight: 1.35, margin: 0 }}>{s.headline}</h3>
+                    <p style={{ fontSize: 14, color: C.dimGrey, lineHeight: 1.65, margin: 0 }}>{s.body}</p>
+                    <button
+                      onClick={() => setExpandedStory(isOpen ? null : s.tag)}
+                      style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, color: C.navyMid, background: "none", border: "none", cursor: "pointer", padding: 0, marginTop: "auto" }}
+                    >
+                      {isOpen ? "Close story" : "Read the story"}
+                      <ArrowRight size={14} style={{ transform: isOpen ? "rotate(90deg)" : "none", transition: "transform 0.2s" }} />
+                    </button>
+                  </article>
+
+                  {/* Collapsible story card */}
+                  {isOpen && (
+                    <div style={{ background: C.navy, borderRadius: "0 0 16px 16px", padding: 28, display: "flex", flexDirection: "column", gap: 20, animation: "storySlide 0.22s ease" }}>
+                      <style>{`@keyframes storySlide { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }`}</style>
+
+                      {/* Stats row */}
+                      <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+                        {s.story.stats.map(stat => (
+                          <div key={stat.label} style={{ flex: 1, minWidth: 80, background: "rgba(255,255,255,0.07)", borderRadius: 10, padding: "12px 16px", textAlign: "center" }}>
+                            <div style={{ fontSize: 18, fontWeight: 900, color: "#afdedc" }}>{stat.value}</div>
+                            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", marginTop: 3 }}>{stat.label}</div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Story sections */}
+                      {[
+                        { label: "The Challenge", text: s.story.challenge },
+                        { label: "The Solution", text: s.story.solution },
+                        { label: "The Result", text: s.story.result },
+                      ].map(({ label, text }) => (
+                        <div key={label}>
+                          <p style={{ fontSize: 10, fontWeight: 800, color: "#afdedc", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 6 }}>{label}</p>
+                          <p style={{ fontSize: 14, color: "rgba(255,255,255,0.78)", lineHeight: 1.7, margin: 0 }}>{text}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
