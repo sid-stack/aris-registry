@@ -27,22 +27,29 @@ import {
 } from 'lucide-react';
 import { trackEvent } from '../utils/analytics';
 
-// ─── Colors ──────────────────────────────────────────────────────────────────
+// ─── Colors — dark sidebar + light main (ChatGPT style) ──────────────────────
 const C = {
-  bg:        '#0f172a',
-  surface:   '#1e293b',
-  surfaceHi: '#263348',
-  border:    '#334155',
-  borderHi:  '#475569',
-  text:      '#f1f5f9',
-  textMuted: '#94a3b8',
-  textDim:   '#64748b',
-  accent:    '#3b82f6',
-  accentHi:  '#60a5fa',
-  green:     '#22c55e',
-  red:       '#ef4444',
-  yellow:    '#f59e0b',
+  // main area (light)
+  bg:        '#ffffff',
+  surface:   '#f9f9f9',
+  surfaceHi: '#f3f4f6',
+  border:    '#e5e7eb',
+  borderHi:  '#d1d5db',
+  text:      '#0d0d0d',
+  textMuted: '#374151',
+  textDim:   '#9ca3af',
+  accent:    '#10a37f',
+  accentHi:  '#0d8f6f',
+  green:     '#16a34a',
+  red:       '#dc2626',
+  yellow:    '#d97706',
   navy:      '#002244',
+  // sidebar (dark)
+  sbBg:      '#171717',
+  sbSurface: '#212121',
+  sbBorder:  '#2a2a2a',
+  sbText:    '#ececec',
+  sbTextDim: '#8e8ea0',
 };
 
 // ─── Agent thinking steps ─────────────────────────────────────────────────────
@@ -90,13 +97,15 @@ function LeftSidebar({ activeAudit, history, onNewAudit, onSelectAudit, onBack, 
   return (
     <aside style={{
       width: 260, flexShrink: 0, display: 'flex', flexDirection: 'column',
-      background: C.surface, borderRight: `1px solid ${C.border}`,
+      background: C.sbBg, borderRight: `1px solid ${C.sbBorder}`,
       overflow: 'hidden',
     }}>
       {/* Logo */}
-      <div style={{ padding: '16px 16px 12px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }} onClick={onBack}>
-        <Shield size={18} color={C.accent} />
-        <span style={{ fontSize: 16, fontWeight: 900, color: C.text, letterSpacing: '0.04em', fontFamily: "'Playfair Display', serif" }}>
+      <div style={{ padding: '16px 16px 12px', borderBottom: `1px solid ${C.sbBorder}`, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }} onClick={onBack}>
+        <div style={{ width: 26, height: 26, borderRadius: 7, background: 'rgba(16,163,127,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Shield size={14} color={C.accent} />
+        </div>
+        <span style={{ fontSize: 16, fontWeight: 900, color: C.sbText, letterSpacing: '0.04em', fontFamily: "'Playfair Display', serif" }}>
           BidSmith
         </span>
       </div>
@@ -106,12 +115,12 @@ function LeftSidebar({ activeAudit, history, onNewAudit, onSelectAudit, onBack, 
         <button onClick={onNewAudit} style={{
           width: '100%', padding: '9px 12px',
           background: 'transparent',
-          color: C.text, border: `1px solid ${C.border}`, borderRadius: 8, fontWeight: 700,
+          color: C.sbText, border: `1px solid ${C.sbBorder}`, borderRadius: 8, fontWeight: 600,
           fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center',
           gap: 7, cursor: 'pointer', transition: 'all 0.15s',
         }}
-        onMouseEnter={e => { e.currentTarget.style.borderColor = C.accent; e.currentTarget.style.color = C.accent; }}
-        onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.text; }}
+        onMouseEnter={e => { e.currentTarget.style.background = C.sbSurface; }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
         >
           <Plus size={14} /> New Evaluation
         </button>
@@ -120,22 +129,21 @@ function LeftSidebar({ activeAudit, history, onNewAudit, onSelectAudit, onBack, 
       {/* Documents */}
       {docs.length > 0 && (
         <div style={{ padding: '0 12px 8px' }}>
-          <div style={{ fontSize: 10, fontWeight: 800, color: C.textDim, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6, padding: '0 4px' }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: C.sbTextDim, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6, padding: '0 4px' }}>
             Documents
           </div>
           {docs.map((d, i) => (
             <div key={i} style={{
               display: 'flex', alignItems: 'center', gap: 8, padding: '7px 8px',
               borderRadius: 6, marginBottom: 2,
-              background: i === 0 ? C.surfaceHi : 'transparent',
-              border: `1px solid ${i === 0 ? C.borderHi : 'transparent'}`,
+              background: i === 0 ? 'rgba(255,255,255,0.07)' : 'transparent',
             }}>
-              <d.icon size={13} color={i === 0 ? C.accent : C.textDim} />
-              <span style={{ fontSize: 12, color: i === 0 ? C.text : C.textMuted, fontWeight: i === 0 ? 600 : 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+              <d.icon size={13} color={i === 0 ? C.accent : C.sbTextDim} />
+              <span style={{ fontSize: 12, color: i === 0 ? C.sbText : C.sbTextDim, fontWeight: i === 0 ? 600 : 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
                 {d.name}
               </span>
               {d.type === 'solicitation' && (
-                <span style={{ fontSize: 9, fontWeight: 800, color: C.accent, background: 'rgba(59,130,246,0.15)', padding: '2px 5px', borderRadius: 4 }}>
+                <span style={{ fontSize: 9, fontWeight: 800, color: C.accent, background: 'rgba(16,163,127,0.15)', padding: '2px 5px', borderRadius: 4 }}>
                   ACTIVE
                 </span>
               )}
@@ -146,43 +154,43 @@ function LeftSidebar({ activeAudit, history, onNewAudit, onSelectAudit, onBack, 
 
       {/* History */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '0 12px 12px' }}>
-        <div style={{ fontSize: 10, fontWeight: 800, color: C.textDim, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6, padding: '8px 4px 4px' }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: C.sbTextDim, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6, padding: '8px 4px 4px' }}>
           Audit History
         </div>
         {history.length === 0 ? (
-          <div style={{ padding: '12px 4px', fontSize: 12, color: C.textDim, lineHeight: 1.6 }}>
-            No prior audits. Run your first audit to build your pipeline.
+          <div style={{ padding: '12px 4px', fontSize: 12, color: C.sbTextDim, lineHeight: 1.6 }}>
+            No prior audits. Run your first audit.
           </div>
         ) : history.map(item => (
           <button key={item.id} onClick={() => onSelectAudit(item.id)} style={{
             width: '100%', textAlign: 'left', padding: '9px 8px', borderRadius: 6,
             marginBottom: 2, cursor: 'pointer', border: 'none',
-            background: activeAudit?.id === item.id ? C.surfaceHi : 'transparent',
+            background: activeAudit?.id === item.id ? 'rgba(255,255,255,0.08)' : 'transparent',
             transition: 'background 0.1s',
           }}
-          onMouseEnter={e => { if (activeAudit?.id !== item.id) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+          onMouseEnter={e => { if (activeAudit?.id !== item.id) e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
           onMouseLeave={e => { if (activeAudit?.id !== item.id) e.currentTarget.style.background = 'transparent'; }}
           >
-            <div style={{ fontSize: 12, fontWeight: 600, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 3 }}>
+            <div style={{ fontSize: 12, fontWeight: 500, color: C.sbText, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 3 }}>
               {item.title || item.solicitation_number || 'Untitled'}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{ fontSize: 10, fontWeight: 800, color: verdictColor(item.verdict?.recommendation || item.verdict) }}>
                 {(item.verdict?.recommendation || item.verdict || 'PENDING').toUpperCase()}
               </span>
-              <span style={{ fontSize: 10, color: C.textDim }}>·</span>
-              <span style={{ fontSize: 10, color: C.textDim }}>{timeAgo(item.created_at)}</span>
+              <span style={{ fontSize: 10, color: C.sbTextDim }}>·</span>
+              <span style={{ fontSize: 10, color: C.sbTextDim }}>{timeAgo(item.created_at)}</span>
             </div>
           </button>
         ))}
       </div>
 
       {/* User footer */}
-      <div style={{ padding: '12px', borderTop: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontSize: 12, color: C.textMuted, fontWeight: 600 }}>
+      <div style={{ padding: '12px', borderTop: `1px solid ${C.sbBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: 12, color: C.sbTextDim, fontWeight: 600 }}>
           {user?.email?.split('@')[0] || 'User'}
         </span>
-        <button onClick={onLogout} style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center' }}>
+        <button onClick={onLogout} style={{ background: 'none', border: 'none', color: C.sbTextDim, cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center' }}>
           <LogOut size={14} />
         </button>
       </div>
@@ -194,13 +202,13 @@ function LeftSidebar({ activeAudit, history, onNewAudit, onSelectAudit, onBack, 
 function AgentThinkingPanel({ steps, isRunning }) {
   return (
     <aside style={{
-      width: 300, flexShrink: 0, display: 'flex', flexDirection: 'column',
+      width: 280, flexShrink: 0, display: 'flex', flexDirection: 'column',
       background: C.surface, borderLeft: `1px solid ${C.border}`,
       overflow: 'hidden',
     }}>
-      <div style={{ padding: '16px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 8 }}>
-        <Brain size={15} color={C.accent} />
-        <span style={{ fontSize: 12, fontWeight: 800, color: C.text, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+      <div style={{ padding: '14px 16px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <Brain size={14} color={C.accent} />
+        <span style={{ fontSize: 11, fontWeight: 800, color: C.textMuted, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
           Agent Thinking
         </span>
         {isRunning && (
@@ -210,34 +218,32 @@ function AgentThinkingPanel({ steps, isRunning }) {
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
         {steps.length === 0 ? (
-          <div style={{ padding: '24px 4px' }}>
-            {/* Idle AI presence */}
-            <div style={{ textAlign: 'center', marginBottom: 28 }}>
-              <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'radial-gradient(circle at 35% 35%, rgba(99,130,255,0.2), rgba(59,130,246,0.05))', border: `1px solid rgba(99,130,255,0.25)`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', boxShadow: '0 0 20px rgba(59,130,246,0.1)' }}>
-                <Brain size={20} color={C.accent} />
+          <div style={{ padding: '16px 0' }}>
+            <div style={{ textAlign: 'center', marginBottom: 24 }}>
+              <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(16,163,127,0.08)', border: `1px solid rgba(16,163,127,0.2)`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 10px' }}>
+                <Brain size={18} color={C.accent} />
               </div>
-              <div style={{ fontSize: 11, fontWeight: 800, color: C.textDim, letterSpacing: '0.1em', marginBottom: 4 }}>BIDSMITH ENGINE READY</div>
-              <div style={{ fontSize: 11, color: C.textDim, lineHeight: 1.6 }}>Awaiting solicitation input</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: C.textDim, letterSpacing: '0.08em', marginBottom: 4 }}>ENGINE READY</div>
+              <div style={{ fontSize: 11, color: C.textDim, lineHeight: 1.6 }}>Awaiting solicitation</div>
             </div>
-            {/* What the AI does */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {[
-                { n: '01', title: 'Reads every clause', desc: 'Parses FAR/DFARS, Section L/M/H, attachments, amendments' },
-                { n: '02', title: 'Maps requirements', desc: 'Extracts explicit + implied compliance requirements with source citations' },
-                { n: '03', title: 'Scores risks', desc: 'Flags disqualifiers, hidden requirements, and timeline pressure' },
-                { n: '04', title: 'Returns a verdict', desc: 'Bid/No-Bid with win probability, rationale, and confidence level' },
+                { n: '01', title: 'Reads every clause', desc: 'FAR/DFARS, Section L/M/H, attachments' },
+                { n: '02', title: 'Maps requirements', desc: 'Explicit + implied compliance with source citations' },
+                { n: '03', title: 'Scores risks', desc: 'Disqualifiers, hidden requirements, deadlines' },
+                { n: '04', title: 'Returns verdict', desc: 'Bid/No-Bid with win probability & rationale' },
               ].map(({ n, title, desc }) => (
                 <div key={n} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                  <span style={{ fontFamily: 'monospace', fontSize: 9, fontWeight: 800, color: C.accent, opacity: 0.6, marginTop: 2, flexShrink: 0 }}>{n}</span>
+                  <span style={{ fontFamily: 'monospace', fontSize: 9, fontWeight: 800, color: C.accent, opacity: 0.7, marginTop: 2, flexShrink: 0 }}>{n}</span>
                   <div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: C.textMuted, marginBottom: 2 }}>{title}</div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, marginBottom: 2 }}>{title}</div>
                     <div style={{ fontSize: 11, color: C.textDim, lineHeight: 1.5 }}>{desc}</div>
                   </div>
                 </div>
               ))}
             </div>
-            <div style={{ marginTop: 24, padding: '10px 12px', background: 'rgba(59,130,246,0.05)', border: `1px solid rgba(59,130,246,0.15)`, borderRadius: 8, fontSize: 10, color: C.textDim, lineHeight: 1.6 }}>
-              <span style={{ fontWeight: 700, color: C.accent }}>90 seconds</span> from URL to full compliance matrix. No manual reading.
+            <div style={{ marginTop: 20, padding: '10px 12px', background: 'rgba(16,163,127,0.05)', border: `1px solid rgba(16,163,127,0.15)`, borderRadius: 8, fontSize: 11, color: C.textDim, lineHeight: 1.6 }}>
+              <span style={{ fontWeight: 700, color: C.accent }}>90 seconds</span> from URL to full compliance matrix.
             </div>
           </div>
         ) : (
@@ -249,7 +255,7 @@ function AgentThinkingPanel({ steps, isRunning }) {
                 transition: 'opacity 0.3s',
               }}>
                 <div style={{ width: 20, height: 20, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 1,
-                  background: step.status === 'done' ? 'rgba(34,197,94,0.2)' : step.status === 'active' ? 'rgba(59,130,246,0.2)' : C.surfaceHi,
+                  background: step.status === 'done' ? 'rgba(22,163,74,0.1)' : step.status === 'active' ? 'rgba(16,163,127,0.1)' : C.surfaceHi,
                   border: `1px solid ${step.status === 'done' ? C.green : step.status === 'active' ? C.accent : C.border}`,
                 }}>
                   {step.status === 'done' && <Check size={11} color={C.green} />}
@@ -257,14 +263,11 @@ function AgentThinkingPanel({ steps, isRunning }) {
                   {step.status === 'pending' && <div style={{ width: 5, height: 5, borderRadius: '50%', background: C.textDim }} />}
                 </div>
                 <div>
-                  <div style={{ fontSize: 12, color: step.status === 'done' ? C.text : step.status === 'active' ? C.accentHi : C.textMuted, fontWeight: step.status === 'active' ? 600 : 400, lineHeight: 1.4 }}>
+                  <div style={{ fontSize: 12, color: step.status === 'done' ? C.textMuted : step.status === 'active' ? C.accent : C.textDim, fontWeight: step.status === 'active' ? 600 : 400, lineHeight: 1.4 }}>
                     {step.label}
                   </div>
                   {step.status === 'active' && (
                     <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>Processing...</div>
-                  )}
-                  {step.status === 'done' && step.detail && (
-                    <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>{step.detail}</div>
                   )}
                 </div>
               </div>
@@ -273,10 +276,9 @@ function AgentThinkingPanel({ steps, isRunning }) {
         )}
       </div>
 
-      {/* Model tag */}
       <div style={{ padding: '10px 16px', borderTop: `1px solid ${C.border}` }}>
         <div style={{ fontSize: 10, color: C.textDim, fontFamily: 'monospace' }}>
-          MODEL: BIDSMITH AUDIT ENGINE v2
+          BIDSMITH AUDIT ENGINE v2
         </div>
       </div>
     </aside>
@@ -468,8 +470,8 @@ function MessageBubble({ msg, auditMode }) {
   return (
     <div style={{ display: 'flex', gap: 12, justifyContent: isUser ? 'flex-end' : 'flex-start', marginBottom: 20, alignItems: 'flex-start' }}>
       {!isUser && (
-        <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(59,130,246,0.2)', border: `1px solid ${C.accent}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <Shield size={14} color={C.accent} />
+        <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(16,163,127,0.08)', border: `1.5px solid rgba(16,163,127,0.2)`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
+          <Shield size={13} color={C.accent} />
         </div>
       )}
       <div style={{ maxWidth: '75%', display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -502,14 +504,15 @@ function MessageBubble({ msg, auditMode }) {
           </div>
         ) : (
           <div style={{
-            background: isUser ? C.accent : C.surfaceHi,
-            color: isUser ? '#fff' : C.text,
-            padding: '12px 16px', borderRadius: isUser ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-            fontSize: 14, lineHeight: 1.65,
-            border: isUser ? 'none' : `1px solid ${C.border}`,
+            background: isUser ? C.surfaceHi : C.bg,
+            color: C.text,
+            padding: '11px 16px', borderRadius: isUser ? '18px 18px 4px 18px' : '4px 18px 18px 18px',
+            fontSize: 14, lineHeight: 1.7,
+            border: isUser ? 'none' : 'none',
+            maxWidth: isUser ? '72%' : '100%',
           }}>
             {msg.role === 'assistant'
-              ? <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ p: ({children}) => <p style={{margin: '0 0 8px'}}>{children}</p>, ul: ({children}) => <ul style={{margin: '0 0 8px', paddingLeft: 20}}>{children}</ul>, li: ({children}) => <li style={{marginBottom: 4}}>{children}</li> }}>{msg.content}</ReactMarkdown>
+              ? <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ p: ({children}) => <p style={{margin: '0 0 10px', color: C.text}}>{children}</p>, ul: ({children}) => <ul style={{margin: '0 0 10px', paddingLeft: 20}}>{children}</ul>, li: ({children}) => <li style={{marginBottom: 5, color: C.text}}>{children}</li>, strong: ({children}) => <strong style={{fontWeight: 700, color: C.text}}>{children}</strong> }}>{msg.content}</ReactMarkdown>
               : <span style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</span>
             }
           </div>
@@ -521,7 +524,7 @@ function MessageBubble({ msg, auditMode }) {
         )}
       </div>
       {isUser && (
-        <div style={{ width: 30, height: 30, borderRadius: '50%', background: C.surfaceHi, border: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 12, fontWeight: 700, color: C.textMuted, flexShrink: 0 }}>
+        <div style={{ width: 30, height: 30, borderRadius: '50%', background: C.surfaceHi, border: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 12, fontWeight: 700, color: C.textMuted, marginTop: 2 }}>
           {String.fromCodePoint(0x1F464)}
         </div>
       )}
@@ -653,7 +656,7 @@ function ChatInput({ onSend, onAuditUrl, onAuditFile, fileRef, loading, hasAudit
     : 'Ask a FAR/DFARS question, or paste a SAM.gov URL to audit…';
 
   return (
-    <div style={{ padding: '8px 20px 20px', background: C.bg }}>
+    <div style={{ padding: '8px 20px 20px', background: C.bg, borderTop: `1px solid ${C.border}` }}>
 
       {/* Quick action chips — only when audit is active */}
       {QUICK.length > 0 && (
@@ -675,11 +678,12 @@ function ChatInput({ onSend, onAuditUrl, onAuditFile, fileRef, loading, hasAudit
 
       {/* Unified input box */}
       <div style={{
-        background: C.surfaceHi,
-        border: `1px solid ${focused ? 'rgba(99,130,255,0.5)' : C.border}`,
+        background: C.bg,
+        border: `1px solid ${focused ? C.accent : C.borderHi}`,
         borderRadius: 14, padding: '14px 14px 10px',
-        boxShadow: focused ? '0 0 0 3px rgba(59,130,246,0.1)' : 'none',
+        boxShadow: focused ? `0 0 0 3px rgba(16,163,127,0.1), 0 1px 6px rgba(0,0,0,0.06)` : '0 1px 6px rgba(0,0,0,0.06)',
         transition: 'all 0.2s ease',
+        maxWidth: 720, margin: '0 auto',
       }}>
         <textarea
           ref={textareaRef}
@@ -737,7 +741,6 @@ function ChatInput({ onSend, onAuditUrl, onAuditFile, fileRef, loading, hasAudit
             {loading
               ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />
               : <Send size={13} />}
-            Send
           </button>
         </div>
       </div>
@@ -759,7 +762,6 @@ export default function GovConDashboardV2({ onBack, user }) {
   const fileRef = useRef(null);
   const thinkingTimers = useRef([]);
 
-  // Dark body background
   useEffect(() => {
     document.body.style.background = C.bg;
     return () => { document.body.style.background = ''; };
@@ -1057,12 +1059,12 @@ export default function GovConDashboardV2({ onBack, user }) {
                 {messages.map(msg => <MessageBubble key={msg.id} msg={msg} auditMode={auditMode} />)}
                 {isChatLoading && (
                   <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 20 }}>
-                    <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(59,130,246,0.2)', border: `1px solid ${C.accent}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Shield size={14} color={C.accent} />
+                    <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(16,163,127,0.08)', border: `1.5px solid rgba(16,163,127,0.2)`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Shield size={13} color={C.accent} />
                     </div>
-                    <div style={{ display: 'flex', gap: 5, padding: '14px 16px', background: C.surfaceHi, borderRadius: '16px 16px 16px 4px', border: `1px solid ${C.border}` }}>
+                    <div style={{ display: 'flex', gap: 5, padding: '12px 16px', background: C.surface, borderRadius: '4px 16px 16px 16px', border: `1px solid ${C.border}` }}>
                       {[0, 1, 2].map(i => (
-                        <div key={i} style={{ width: 7, height: 7, borderRadius: '50%', background: C.textDim, animation: `bounce 1.2s ${i * 0.2}s infinite` }} />
+                        <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: C.textDim, animation: `bounce 1.2s ${i * 0.2}s infinite` }} />
                       ))}
                     </div>
                   </div>
@@ -1090,9 +1092,11 @@ export default function GovConDashboardV2({ onBack, user }) {
       <style dangerouslySetInnerHTML={{ __html: `
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
         body { margin: 0; background: ${C.bg}; }
-        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: ${C.border}; border-radius: 10px; }
+        textarea { resize: none; }
+        textarea::placeholder { color: ${C.textDim}; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes bounce { 0%, 80%, 100% { transform: translateY(0); } 40% { transform: translateY(-6px); } }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
