@@ -76,22 +76,8 @@ const AUDIT_STEPS = [
   'Generating bid/no-bid verdict',
 ];
 
-// ─── Typewriter ───────────────────────────────────────────────────────────────
-function useTypewriter(text, active) {
-  const [out, setOut] = useState('');
-  const idx = useRef(0);
-  useEffect(() => {
-    if (!active || !text) { setOut(text || ''); return; }
-    idx.current = 0; setOut('');
-    const iv = setInterval(() => {
-      idx.current += 4;
-      setOut(text.slice(0, idx.current));
-      if (idx.current >= text.length) clearInterval(iv);
-    }, 14);
-    return () => clearInterval(iv);
-  }, [text, active]);
-  return out;
-}
+// ─── localStorage session key ─────────────────────────────────────────────────
+const LS_KEY = 'aris_session_v1';
 
 // ─── Thinking steps ───────────────────────────────────────────────────────────
 function ThinkingSteps({ stepIndex }) {
@@ -187,10 +173,9 @@ function AuditCard({ audit }) {
 }
 
 // ─── Message bubble ───────────────────────────────────────────────────────────
-function Bubble({ msg, isLatestAI, isMobile }) {
+function Bubble({ msg, isMobile, streaming }) {
   const isUser = msg.role === 'user';
   const [copied, setCopied] = useState(false);
-  const displayed = useTypewriter(msg.content, isLatestAI && !isUser && msg.type === 'text');
 
   const copy = async () => {
     await navigator.clipboard.writeText(msg.content).catch(() => {});
@@ -232,11 +217,17 @@ function Bubble({ msg, isLatestAI, isMobile }) {
                 code:   ({children}) => <code style={{ background: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: 4, padding: '2px 6px', fontSize: 13, fontFamily: 'monospace', color: '#0d5f8a' }}>{children}</code>,
               }}
             >
-              {isLatestAI ? displayed : msg.content}
+              {msg.content || (streaming ? ' ' : '')}
             </ReactMarkdown>
-            <button style={st.copyBtn} onClick={copy}>
-              {copied ? <><Check size={11} />Copied</> : <><Copy size={11} />Copy</>}
-            </button>
+            {/* Blinking cursor while streaming */}
+            {streaming && (
+              <span style={{ display: 'inline-block', width: 2, height: 16, background: M.accent, borderRadius: 1, verticalAlign: 'middle', animation: 'arisPulse 0.8s ease-in-out infinite', marginLeft: 1 }} />
+            )}
+            {!streaming && msg.content && (
+              <button style={st.copyBtn} onClick={copy}>
+                {copied ? <><Check size={11} />Copied</> : <><Copy size={11} />Copy</>}
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -376,20 +367,33 @@ export default function ArisChat({ initialPrompt: propPrompt = null }) {
   const winW         = useWindowWidth();
   const isMobile     = winW < 768;
 
-  const [messages,        setMessages]        = useState([]);
+  // ── Restore session from localStorage ──────────────────────────────────────
+  const savedSession = (() => {
+    try { return JSON.parse(localStorage.getItem(LS_KEY) || 'null'); } catch { return null; }
+  })();
+
+  const [messages,        setMessages]        = useState(savedSession?.messages        || []);
   const [input,           setInput]           = useState('');
   const [loading,         setLoading]         = useState(false);
-  const [auditContext,    setAuditContext]     = useState(null);
-  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [streamingId,     setStreamingId]     = useState(null); // id of msg currently streaming
+  const [auditContext,    setAuditContext]     = useState(savedSession?.auditContext    || null);
+  const [showSuggestions, setShowSuggestions] = useState(savedSession?.auditContext != null);
   const [dragging,        setDragging]        = useState(false);
   const [collapsed,       setCollapsed]       = useState(false);
   const [sidebarWidth,    setSidebarWidth]    = useState(SBW_DEFAULT);
-  const [sessionTitle,    setSessionTitle]    = useState('New conversation');
+  const [sessionTitle,    setSessionTitle]    = useState(savedSession?.sessionTitle    || 'New conversation');
   const [isResizing,      setIsResizing]      = useState(false);
   const [inputFocused,    setInputFocused]    = useState(false);
 
   // Auto-collapse on mobile
   useEffect(() => { if (isMobile) setCollapsed(true); }, [isMobile]);
+
+  // ── Persist session to localStorage on every change ─────────────────────────
+  useEffect(() => {
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify({ messages, auditContext, sessionTitle }));
+    } catch {/* quota exceeded — ignore */}
+  }, [messages, auditContext, sessionTitle]);
 
   const bottomRef   = useRef(null);
   const inputRef    = useRef(null);
@@ -428,7 +432,9 @@ export default function ArisChat({ initialPrompt: propPrompt = null }) {
 
   const resetChat = useCallback(() => {
     setMessages([]); setAuditContext(null); setShowSuggestions(false);
-    setSessionTitle('New conversation'); inputRef.current?.focus();
+    setSessionTitle('New conversation'); setStreamingId(null);
+    try { localStorage.removeItem(LS_KEY); } catch {/* ignore */}
+    inputRef.current?.focus();
     if (isMobile) setCollapsed(true);
   }, [isMobile]);
 
@@ -480,26 +486,67 @@ export default function ArisChat({ initialPrompt: propPrompt = null }) {
     } finally { setLoading(false); }
   }, [addMsg, updateLastMsg]);
 
-  // ── ARIS chat ──────────────────────────────────────────────────────────────
+  // ── ARIS chat — real SSE streaming ────────────────────────────────────────
   const callAris = useCallback(async (userContent, failedUrl = null) => {
     setLoading(true);
+
     const thread = messages
       .filter(m => m.type === 'text' || m.type === 'error')
       .map(m => ({ role: m.role, content: m.content }));
     thread.push({ role: 'user', content: userContent });
-    addMsg({ role: 'assistant', type: 'text', content: '…' });
+
+    const msgId = Date.now() + Math.random();
+    setMessages(prev => [...prev, { id: msgId, role: 'assistant', type: 'text', content: '', timestamp: new Date().toISOString() }]);
+    setStreamingId(msgId);
+
+    const appendChunk = (chunk) => {
+      setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: m.content + chunk } : m));
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    };
+
     try {
-      const res  = await fetch('/api/chat', {
+      const res = await fetch('/api/chat/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: thread, auditContext, failedUrl }),
       });
-      const data = await res.json().catch(() => null);
-      updateLastMsg({ content: data?.text || data?.response || 'Something went wrong. Please try again.' });
+
+      if (!res.ok || !res.body) {
+        // Fallback to non-streaming endpoint
+        const data = await res.json().catch(() => null);
+        appendChunk(data?.text || data?.response || 'Something went wrong. Please try again.');
+      } else {
+        const reader  = res.body.getReader();
+        const decoder = new TextDecoder();
+        let   buf     = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+
+          const lines = buf.split('\n');
+          buf = lines.pop() ?? '';
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed.startsWith('data:')) continue;
+            const payload = trimmed.slice(5).trim();
+            if (payload === '[DONE]') break;
+            try {
+              const { chunk } = JSON.parse(payload);
+              if (chunk) appendChunk(chunk);
+            } catch {/* skip malformed line */}
+          }
+        }
+      }
     } catch {
-      updateLastMsg({ content: 'Network error — please check your connection.' });
-    } finally { setLoading(false); }
-  }, [messages, auditContext, addMsg, updateLastMsg]);
+      appendChunk('Network error — please check your connection.');
+    } finally {
+      setStreamingId(null);
+      setLoading(false);
+    }
+  }, [messages, auditContext, bottomRef]);
 
   // ── Submit ─────────────────────────────────────────────────────────────────
   const handleSubmit = useCallback(async override => {
@@ -546,8 +593,6 @@ export default function ArisChat({ initialPrompt: propPrompt = null }) {
   }, []);
 
   const hasMessages = messages.length > 0;
-  const lastAIIdx   = [...messages].reverse().findIndex(m => m.role === 'assistant' && m.type === 'text');
-  const lastAIId    = lastAIIdx >= 0 ? messages[messages.length - 1 - lastAIIdx]?.id : null;
 
   // ── Sidebar visibility ────────────────────────────────────────────────────
   const sidebarVisible = !collapsed;
@@ -644,7 +689,7 @@ export default function ArisChat({ initialPrompt: propPrompt = null }) {
           ) : (
             <div style={{ ...st.threadInner, padding: isMobile ? '24px 16px 16px' : '32px 24px 20px' }}>
               {messages.map(msg => (
-                <Bubble key={msg.id} msg={msg} isLatestAI={msg.id === lastAIId} isMobile={isMobile} />
+                <Bubble key={msg.id} msg={msg} isMobile={isMobile} streaming={msg.id === streamingId} />
               ))}
               {showSuggestions && auditContext && !loading && (
                 <SuggestionStrip audit={auditContext} onPrompt={msg => handleSubmit(msg)} />

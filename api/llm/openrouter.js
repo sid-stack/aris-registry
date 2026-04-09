@@ -184,6 +184,96 @@ async function tryOpenRouter(system, user, opts = {}) {
   return null;
 }
 
+// ─── Streaming: Mercury SSE → forward chunks, fallback to chunked text ────────
+
+/**
+ * callLLMStream — calls Mercury with stream:true and forwards SSE chunks via
+ * onChunk(text). Falls back to full-text providers (Gemini, OpenRouter) and
+ * simulates streaming by splitting words into 4-word bursts.
+ */
+export async function callLLMStream(system, user, opts = {}, onChunk, onDone) {
+  const key = process.env.MERCURY_API_KEY;
+  const { temperature = 0.1, max_tokens = 4096 } = opts;
+
+  // ── Attempt Mercury native streaming ──────────────────────────────────────
+  if (key) {
+    try {
+      const res = await fetch(MERCURY_BASE, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+        body: JSON.stringify({
+          model: "mercury-2",
+          temperature,
+          max_tokens,
+          stream: true,
+          messages: [
+            { role: "system", content: system },
+            { role: "user",   content: user   },
+          ],
+        }),
+        signal: AbortSignal.timeout(60_000),
+      });
+
+      if (res.ok && res.body) {
+        const reader  = res.body.getReader();
+        const decoder = new TextDecoder();
+        let   buf     = "";
+        let   got     = false;
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+
+          // SSE lines are separated by "\n\n" or "\n"
+          const lines = buf.split("\n");
+          buf = lines.pop() ?? "";
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed.startsWith("data:")) continue;
+            const payload = trimmed.slice(5).trim();
+            if (payload === "[DONE]") { got = true; break; }
+            try {
+              const chunk = JSON.parse(payload);
+              const text  = chunk.choices?.[0]?.delta?.content;
+              if (text) { got = true; onChunk(text); }
+            } catch {/* skip malformed line */}
+          }
+        }
+
+        if (got) { onDone(); return; }
+      } else {
+        logger.debug("llm_stream_mercury_failed", { status: res.status });
+      }
+    } catch (err) {
+      logger.debug("llm_stream_mercury_error", { error: err.message });
+    }
+  }
+
+  // ── Fallback: get full text, simulate streaming in word bursts ────────────
+  let fullText = null;
+  try { fullText = await tryGemini(system, user, opts); }    catch {/* continue */}
+  if (!fullText) {
+    try { fullText = await tryOpenRouter(system, user, opts); } catch {/* continue */}
+  }
+  if (!fullText) {
+    onChunk("I'm having trouble reaching my knowledge base right now. Please try again in a moment.");
+    onDone();
+    return;
+  }
+
+  // Emit in ~4-word bursts to simulate streaming
+  const words = fullText.split(" ");
+  const BURST = 4;
+  for (let i = 0; i < words.length; i += BURST) {
+    const slice = words.slice(i, i + BURST).join(" ") + (i + BURST < words.length ? " " : "");
+    onChunk(slice);
+    await new Promise(r => setTimeout(r, 28)); // ~28ms between bursts ≈ realistic speed
+  }
+  onDone();
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 export async function callLLM(system, user, opts = {}) {

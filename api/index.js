@@ -14,7 +14,7 @@ import { logger, requestMeta } from "./utils/logger.js";
 
 // Stateless Utils & Infrastructure
 import { traceLLM } from "./utils/tracing.js";
-import { callLLM } from "./llm/openrouter.js";
+import { callLLM, callLLMStream } from "./llm/openrouter.js";
 
 // Services
 import { createDynamicCheckoutSession } from "./services/stripe.js";
@@ -438,6 +438,76 @@ app.post("/api/chat", asyncHandler(async (req, res) => {
   const text = await callLLM(systemPrompt, conversationText);
   res.json({ text, response: text });
 }));
+
+// ─── /api/chat/stream — SSE streaming GovCon advisor ─────────────────────────
+app.post("/api/chat/stream", (req, res) => {
+  const { messages = [], auditContext = null, failedUrl = null } = req.body;
+
+  if (!messages.length) {
+    res.status(400).json({ error: "messages array is required" });
+    return;
+  }
+
+  // SSE headers
+  res.setHeader("Content-Type",  "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection",    "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no"); // disable nginx buffering
+  res.flushHeaders();
+
+  // Build audit context block (same as /api/chat)
+  let auditBlock = "No audit loaded yet.";
+  if (auditContext) {
+    const v     = auditContext.verdict || {};
+    const reqs  = Array.isArray(auditContext.requirements)             ? auditContext.requirements             : [];
+    const risks = Array.isArray(auditContext.intelligence?.top_risks)  ? auditContext.intelligence.top_risks   : [];
+    auditBlock = [
+      `Solicitation: ${auditContext.solicitation_number || "Unknown"} — ${auditContext.title || ""}`,
+      `Agency: ${auditContext.agency || "Unknown"}`,
+      `Verdict: ${v.recommendation || "PENDING"} | Win probability: ${v.win_probability ?? "?"}%`,
+      `Requirements extracted: ${reqs.length}`,
+      risks.length ? `Top risks: ${risks.slice(0, 3).join("; ")}` : "",
+      v.rationale ? `Rationale: ${v.rationale.slice(0, 300)}` : "",
+      auditContext.executiveSummary ? `Summary: ${auditContext.executiveSummary.slice(0, 400)}` : "",
+    ].filter(Boolean).join("\n");
+  }
+
+  let threadMessages = [...messages];
+  if (failedUrl && threadMessages.length) {
+    const last = threadMessages[threadMessages.length - 1];
+    if (last.role === "user") {
+      threadMessages[threadMessages.length - 1] = {
+        ...last,
+        content: `[System note: SAM.gov URL could not be fetched automatically: ${failedUrl}]\n\n${last.content}`,
+      };
+    }
+  }
+
+  const systemPrompt     = ARIS_SYSTEM_PROMPT.replace("{AUDIT_CONTEXT}", auditBlock);
+  const conversationText = threadMessages
+    .map(m => `${m.role === "user" ? "User" : "ARIS"}: ${m.content}`)
+    .join("\n\n");
+
+  const send = (chunk) => {
+    if (res.writableEnded) return;
+    res.write(`data: ${JSON.stringify({ chunk })}\n\n`);
+  };
+
+  const done = () => {
+    if (!res.writableEnded) {
+      res.write("data: [DONE]\n\n");
+      res.end();
+    }
+  };
+
+  // Handle client disconnect
+  req.on("close", () => { if (!res.writableEnded) res.end(); });
+
+  callLLMStream(systemPrompt, conversationText, {}, send, done).catch(err => {
+    logger.error("chat_stream_error", { error: err.message });
+    done();
+  });
+});
 
 // ─── /api/chat/intent — detect if user input should trigger an audit ──────────
 app.post("/api/chat/intent", asyncHandler(async (req, res) => {
