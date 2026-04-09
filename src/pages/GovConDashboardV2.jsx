@@ -465,7 +465,7 @@ function ComplianceCard({ audit, auditMode }) {
 }
 
 // ─── Message bubble ───────────────────────────────────────────────────────────
-function MessageBubble({ msg, auditMode }) {
+function MessageBubble({ msg, auditMode, isStreaming }) {
   const isUser = msg.role === 'user';
   return (
     <div style={{ display: 'flex', gap: 12, justifyContent: isUser ? 'flex-end' : 'flex-start', marginBottom: 20, alignItems: 'flex-start' }}>
@@ -515,6 +515,9 @@ function MessageBubble({ msg, auditMode }) {
               ? <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ p: ({children}) => <p style={{margin: '0 0 10px', color: C.text}}>{children}</p>, ul: ({children}) => <ul style={{margin: '0 0 10px', paddingLeft: 20}}>{children}</ul>, li: ({children}) => <li style={{marginBottom: 5, color: C.text}}>{children}</li>, strong: ({children}) => <strong style={{fontWeight: 700, color: C.text}}>{children}</strong> }}>{msg.content}</ReactMarkdown>
               : <span style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</span>
             }
+            {isStreaming && (
+              <span style={{ display: 'inline-block', width: 2, height: 16, background: C.accent, borderRadius: 1, verticalAlign: 'middle', animation: 'pulse 0.8s ease-in-out infinite', marginLeft: 2 }} />
+            )}
           </div>
         )}
         {msg.timestamp && (
@@ -757,6 +760,7 @@ export default function GovConDashboardV2({ onBack, user }) {
   const [thinkingSteps, setThinkingSteps] = useState([]);
   const [isAuditing, setIsAuditing] = useState(false);
   const [isChatLoading, setIsChatLoading] = useState(false);
+  const [streamingId, setStreamingId] = useState(null);
   const [auditMode, setAuditMode] = useState(false);
   const bottomRef = useRef(null);
   const fileRef = useRef(null);
@@ -924,11 +928,10 @@ export default function GovConDashboardV2({ onBack, user }) {
     } catch { /* silent */ }
   };
 
-  // ── Send chat message ────────────────────────────────────────────────────
+  // ── Send chat message — real SSE streaming ──────────────────────────────
   const sendChat = async (text) => {
     if (isChatLoading || !text.trim()) return;
 
-    // If no active audit and it looks like a URL, run audit instead
     if (!activeAudit && (text.startsWith('http') || text.includes('sam.gov'))) {
       runAuditUrl(text);
       return;
@@ -937,30 +940,64 @@ export default function GovConDashboardV2({ onBack, user }) {
     addMessage({ role: 'user', content: text });
     setIsChatLoading(true);
 
-    // Build context from active audit
-    const context = activeAudit
-      ? `Solicitation: ${activeAudit.title || ''}. Agency: ${activeAudit.agency || ''}. Verdict: ${activeAudit.verdict?.recommendation || ''}. Win probability: ${activeAudit.verdict?.win_probability || 'N/A'}%. Summary: ${activeAudit.verdict?.summary || ''}. Requirements: ${(activeAudit.requirements || []).slice(0, 10).map(r => r.requirement).join('; ')}`
-      : 'No active solicitation loaded.';
-
     const chatHistory = messages
       .filter(m => m.role === 'user' || (m.role === 'assistant' && m.content && m.type !== 'audit_result'))
       .slice(-10)
       .map(m => ({ role: m.role, content: m.content }));
 
+    // Insert empty assistant message that we'll stream into
+    const msgId = Date.now() + Math.random();
+    setMessages(prev => [...prev, {
+      id: msgId, role: 'assistant', type: 'text',
+      content: '', timestamp: new Date().toISOString(),
+    }]);
+    setStreamingId(msgId);
+
+    const appendChunk = (chunk) => {
+      setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: m.content + chunk } : m));
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    };
+
     try {
-      const res = await fetch('/api/chat', {
+      const res = await fetch('/api/chat/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-user-id': user?.id || '' },
         body: JSON.stringify({
           messages: [...chatHistory, { role: 'user', content: text }],
-          context,
+          auditContext: activeAudit,
         }),
       });
-      const data = await res.json();
-      addMessage({ role: 'assistant', content: data.text || data.response || 'No response received.' });
+
+      if (!res.ok || !res.body) {
+        const data = await res.json().catch(() => null);
+        appendChunk(data?.text || data?.response || 'Something went wrong. Please try again.');
+      } else {
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          const lines = buf.split('\n');
+          buf = lines.pop() ?? '';
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed.startsWith('data:')) continue;
+            const payload = trimmed.slice(5).trim();
+            if (payload === '[DONE]') break;
+            try {
+              const { chunk } = JSON.parse(payload);
+              if (chunk) appendChunk(chunk);
+            } catch { /* skip malformed line */ }
+          }
+        }
+      }
     } catch {
-      addMessage({ role: 'assistant', content: 'Connection error. Please try again.' });
+      appendChunk('Network error — please check your connection.');
     } finally {
+      setStreamingId(null);
       setIsChatLoading(false);
     }
   };
@@ -1056,19 +1093,7 @@ export default function GovConDashboardV2({ onBack, user }) {
               />
             ) : (
               <>
-                {messages.map(msg => <MessageBubble key={msg.id} msg={msg} auditMode={auditMode} />)}
-                {isChatLoading && (
-                  <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 20 }}>
-                    <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(16,163,127,0.08)', border: `1.5px solid rgba(16,163,127,0.2)`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <Shield size={13} color={C.accent} />
-                    </div>
-                    <div style={{ display: 'flex', gap: 5, padding: '12px 16px', background: C.surface, borderRadius: '4px 16px 16px 16px', border: `1px solid ${C.border}` }}>
-                      {[0, 1, 2].map(i => (
-                        <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: C.textDim, animation: `bounce 1.2s ${i * 0.2}s infinite` }} />
-                      ))}
-                    </div>
-                  </div>
-                )}
+                {messages.map(msg => <MessageBubble key={msg.id} msg={msg} auditMode={auditMode} isStreaming={msg.id === streamingId} />)}
                 <div ref={bottomRef} />
               </>
             )}
