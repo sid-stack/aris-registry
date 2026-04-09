@@ -492,6 +492,7 @@
   100% { transform: translateX(70%); opacity: 0.2; }
 }
 
+/* ── Tablet + ──────────────────────────────────────────────────────────────── */
 @media (min-width: 768px) {
   .landing-nav-links {
     display: flex;
@@ -506,7 +507,7 @@
   }
 
   .landing-hero {
-    padding: 4.5rem 1.25rem 3.5rem;
+    padding: 5rem 1.5rem 4rem;
   }
 
   .landing-hero-layout {
@@ -528,5 +529,42 @@
   .landing-pricing-preview-grid {
     grid-template-columns: minmax(0, 1.3fr) minmax(230px, 0.7fr);
     align-items: start;
+  }
+}
+
+/* ── Small mobile ──────────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .landing-hero {
+    padding: 3rem 1rem 2.5rem;
+  }
+
+  .landing-activity-grid {
+    padding: 1.5rem 1rem;
+  }
+
+  .showcase-frame {
+    border-radius: 10px;
+    padding: 8px;
+  }
+
+  .showcase-tab-bar {
+    gap: 2px;
+    padding: 3px;
+  }
+
+  .showcase-tab-btn {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+}
+
+/* ── Large desktop ─────────────────────────────────────────────────────────── */
+@media (min-width: 1280px) {
+  .landing-hero {
+    padding: 6rem 2rem 5rem;
+  }
+
+  .landing-hero-layout {
+    max-width: 1040px;
   }
 }
