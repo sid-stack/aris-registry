@@ -21,7 +21,6 @@ const PricingGrid      = lazy(() => import("./pages/PricingGrid"));
 const RfpMatrixGenerator = lazy(() => import("./pages/seo/RfpMatrixGenerator"));
 const AdminDashboard   = lazy(() => import("./pages/AdminDashboard"));
 const BentoDashboard   = lazy(() => import("./pages/BentoDashboard"));
-const ArisChat         = lazy(() => import("./pages/ArisChat"));
 const Contact          = lazy(() => import("./pages/Contact"));
 
 const BASE_URL = "https://www.bidsmith.pro";
@@ -42,7 +41,6 @@ const PAGE_META = {
   "rfp-generator": { title: "Free RFP Compliance Matrix Generator | 90-Second FAR/DFARS Analysis — BidSmith", description: "Turn any government RFP into a structured compliance matrix in 90 seconds. Identify missing requirements and disqualification risks before you commit proposal resources.", path: "/rfp-compliance-matrix-generator" },
   admin:        { title: "Admin Portal | BidSmith", description: "Internal analytics portal.", path: "/admin" },
   bento:        { title: "Intelligence Dashboard | BidSmith", description: "RFP upload, live AI analysis with confidence scores, and inference regression eval status.", path: "/bento" },
-  chat:         { title: "ARIS — AI GovCon Advisor | BidSmith", description: "Ask ARIS anything about federal contracting. Audit RFPs, decode FAR/DFARS clauses, and get instant bid/no-bid strategy.", path: "/chat" },
   contact:      { title: "Contact BidSmith | Talk to a Federal Capture Specialist", description: "Get in touch with the BidSmith team. Request a demo, ask about pricing, or connect with a federal capture specialist for your next solicitation.", path: "/contact" },
 };
 
@@ -73,7 +71,7 @@ function usePageMeta(view) {
     const ogUrl = document.querySelector('meta[property="og:url"]');
     if (ogUrl) ogUrl.setAttribute("content", canonicalUrl);
 
-    const NOINDEX_VIEWS = new Set(["app", "admin", "bento", "chat"]);
+    const NOINDEX_VIEWS = new Set(["app", "admin", "bento"]);
     let robotsMeta = document.querySelector('meta[name="robots"]');
     if (!robotsMeta) {
       robotsMeta = document.createElement("meta");
@@ -98,7 +96,7 @@ function resolveView(path) {
   if (path === "/rfp-compliance-matrix-generator") return "rfp-generator";
   if (path === "/admin") return "admin";
   if (path === "/bento" || path === "/bento-dashboard") return "bento";
-  if (path === "/chat" || path === "/aris") return "chat";
+  if (path === "/chat" || path === "/aris") return "app";
   if (path === "/contact") return "contact";
   if (path === "/privacy" || path === "/terms" || path === "/cookies") return path.slice(1);
   if (path === "/sam-rep") return "sam-rep";
@@ -139,7 +137,7 @@ export default function App() {
   useEffect(() => {
     const pathMap = {
       app: "/app", templates: "/templates", pricing: "/pricing",
-      admin: "/admin", bento: "/bento", chat: "/chat", contact: "/contact", "sam-rep": "/sam-rep",
+      admin: "/admin", bento: "/bento", contact: "/contact", "sam-rep": "/sam-rep",
       soc: "/soc", about: "/about", demo: "/demo",
       "govcon-guide": "/govcon-guide", "rfp-generator": "/rfp-compliance-matrix-generator",
       "404": "/404",
@@ -248,9 +246,6 @@ export default function App() {
       break;
     case "bento":
       content = <BentoDashboard />;
-      break;
-    case "chat":
-      content = <ArisChat />;
       break;
     case "app":
       content = authLoading ? loadingScreen : authenticated && user
