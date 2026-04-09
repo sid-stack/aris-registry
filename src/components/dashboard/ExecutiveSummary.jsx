@@ -8,7 +8,7 @@ const ExecutiveSummary = () => {
     const generateDraft = async () => {
         setLoading(true);
         try {
-            const res = await fetch('/api/govcon/draft-proposal', {
+            const res = await fetch('/api/draft', {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',

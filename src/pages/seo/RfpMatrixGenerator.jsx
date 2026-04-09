@@ -43,6 +43,7 @@ export default function RfpMatrixGenerator({ onUpload }) {
             style={styles.video}
             poster="/assets/demo/video-poster.png"
           >
+            <source src="/aris-demo.mp4" type="video/mp4" />
             <source src="/assets/demo/aris-demo.mp4" type="video/mp4" />
           </video>
           <div style={styles.videoCaption}>

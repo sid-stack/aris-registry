@@ -2,7 +2,6 @@ import { useState } from "react";
 import { trackEvent } from "../utils/analytics";
 import { GTM_PRICING_PLANS } from "../lib/pricing";
 import CodeAuditTester from "../components/CodeAuditTester";
-import DiscoverAgent from "../components/DiscoverAgent";
 
 const quickWinTemplate = `Quick win for [Client Name] - Bidsmith Lite Pilot
 
@@ -112,7 +111,6 @@ export default function Templates() {
       <TemplateBlock title="Pilot Agreement Template" content={pilotAgreementTemplate} />
       <TemplateBlock title="Pricing Ladder Reference" content={pricingLadder} />
       <CodeAuditTester />
-      <DiscoverAgent />
     </main>
   );
 }

@@ -110,7 +110,7 @@ export default function Demo({ onBack, onEnterApp }) {
         <div style={s.navInner}>
           <div style={s.navLeft}>
             <button onClick={onBack} style={s.backLink}>
-              <ArrowLeft size={16} /> Dashboard
+              <ArrowLeft size={16} /> Home
             </button>
             <div style={s.divider} />
             <div style={s.logo}>BidSmith <span style={{fontWeight: 400, opacity: 0.6}}>PRO</span></div>
@@ -245,7 +245,16 @@ export default function Demo({ onBack, onEnterApp }) {
           </div>
         </section>
 
-        {/* Final CTA - Removed Broken Button as requested by user */}
+        {/* Final CTA */}
+        <section style={s.footerCta}>
+          <h2 style={s.footerH2}>Ready to audit your next solicitation?</h2>
+          <p style={{ color: '#475569', marginBottom: 32, fontSize: 15 }}>
+            Start free — no credit card required. 3 audits/month on the free plan.
+          </p>
+          <button style={s.finalBtn} onClick={onEnterApp}>
+            <Zap size={20} fill="white" /> Launch Audit Engine
+          </button>
+        </section>
       </main>
     </div>
   );

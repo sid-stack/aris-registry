@@ -72,7 +72,18 @@ async function fetchViaV3(uuid) {
     .map(a => ({ ...a, score: scoreFilename(a.name) }))
     .sort((a, b) => b.score - a.score);
 
-  if (pdfs.length === 0) throw new Error("No public PDF attachments found");
+  if (pdfs.length === 0) {
+    // Check if documents are hosted externally (link-type attachments)
+    const externalLinks = attachments
+      .filter(a => a.type === "link" && a.uri && a.deletedFlag === "0")
+      .map(a => a.uri);
+    if (externalLinks.length > 0) {
+      const err = new Error("EXTERNAL_DOCUMENTS");
+      err.externalLinks = externalLinks;
+      throw err;
+    }
+    throw new Error("No public PDF attachments found");
+  }
 
   // Try top 3 PDFs
   for (const pdf of pdfs.slice(0, 3)) {
@@ -243,6 +254,19 @@ export async function fetchSolicitationText(url) {
       return result;
     }
   } catch (v3Err) {
+    // Surface external-documents error immediately — no point trying v2
+    if (v3Err.message === "EXTERNAL_DOCUMENTS" && v3Err.externalLinks?.length) {
+      const links = v3Err.externalLinks;
+      const displayUrl = links[0];
+      const err = new Error(
+        `This solicitation's documents are hosted externally at ${displayUrl}. ` +
+        `Download the PDF from there and upload it directly using the PDF button.`
+      );
+      err.code = "EXTERNAL_DOCUMENTS";
+      err.externalLinks = links;
+      err.hint = `Visit ${displayUrl} to download the solicitation PDF, then use the PDF upload option.`;
+      throw err;
+    }
     logger.info("sam_gov_v3_fallback", {
       notice_id: id,
       error: v3Err.message,

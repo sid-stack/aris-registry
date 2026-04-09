@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from "react";
-import { useAuth, useUser } from "@clerk/clerk-react";
+import { useAuth, useUser, SignIn } from "@clerk/clerk-react";
 import NotFound from "./pages/NotFound";
 import Landing from "./pages/Landing";
 import ConsentBanner from "./components/ConsentBanner";
@@ -8,70 +8,42 @@ import { trackEvent, trackPageView } from "./utils/analytics";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 
-import { SignIn } from "@clerk/clerk-react";
-const Upload = lazy(() => import("./pages/Upload"));
-const Proposal = lazy(() => import("./pages/Proposal"));
-const Audit = lazy(() => import("./pages/Audit"));
-const Templates = lazy(() => import("./pages/Templates"));
-const Legal = lazy(() => import("./pages/Legal"));
-const SamRep = lazy(() => import("./pages/SamRep"));
-const Security = lazy(() => import("./pages/Security"));
-const About = lazy(() => import("./pages/About"));
-const SamScraper = lazy(() => import("./pages/SamScraper"));
-const BidSmithBeta = lazy(() => import("./pages/BidSmithBeta"));
-const CompliancePage = lazy(() => import("./pages/CompliancePage"));
-const SurveyAnalytics = lazy(() => import("./components/SurveyAnalytics"));
-const DemoAnalytics = lazy(() => import("./components/DemoAnalytics"));
-// GovConDashboard V1 retired — /dashboard now resolves to V2 (the real product)
+const Templates        = lazy(() => import("./pages/Templates"));
+const Legal            = lazy(() => import("./pages/Legal"));
+const SamRep           = lazy(() => import("./pages/SamRep"));
+const Security         = lazy(() => import("./pages/Security"));
+const About            = lazy(() => import("./pages/About"));
+const CompliancePage   = lazy(() => import("./pages/CompliancePage"));
 const GovConDashboardV2 = lazy(() => import("./pages/GovConDashboardV2"));
-const GovConGuide = lazy(() => import("./pages/GovConGuide"));
-const Demo = lazy(() => import("./pages/Demo"));
-const PricingGrid = lazy(() => import("./pages/PricingGrid"));
+const GovConGuide      = lazy(() => import("./pages/GovConGuide"));
+const Demo             = lazy(() => import("./pages/Demo"));
+const PricingGrid      = lazy(() => import("./pages/PricingGrid"));
 const RfpMatrixGenerator = lazy(() => import("./pages/seo/RfpMatrixGenerator"));
-const Outreach = lazy(() => import("./pages/Outreach"));
-const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
-const Contact = lazy(() => import("./pages/Contact"));
-const ArisConsulting = lazy(() => import("./pages/ArisConsulting"));
-const Earn = lazy(() => import("./pages/Earn"));
-const Newsletter = lazy(() => import("./pages/Newsletter"));
-const HighLoadNotice = lazy(() => import("./pages/HighLoadNotice"));
+const AdminDashboard   = lazy(() => import("./pages/AdminDashboard"));
+const BentoDashboard   = lazy(() => import("./pages/BentoDashboard"));
+const ArisChat         = lazy(() => import("./pages/ArisChat"));
+const Contact          = lazy(() => import("./pages/Contact"));
 
 const BASE_URL = "https://www.bidsmith.pro";
-const MVP_STRICT_MODE = (import.meta.env.VITE_MVP_STRICT_MODE ?? "true") !== "false";
-const MVP_DISABLED_VIEWS = new Set([
-  "discovery",
-  "sam-scraper",
-  "bid-search",
-  "survey-analytics",
-  "demo-analytics",
-  "labs",
-  "outreach",
-  "admin",
-]);
 
 const PAGE_META = {
-  landing: { title: "BidSmith | Federal RFP Compliance Audit Software for Government Contractors", description: "BidSmith audits SAM.gov solicitations in 90 seconds. Instant compliance matrix, FAR/DFARS risk flags, and bid/no-bid recommendation. Built for federal prime contractors and capture teams.", path: "/" },
-  templates: { title: "Free Federal Proposal Templates | Compliance Matrix & RFP Worksheets — BidSmith", description: "Download free compliance matrix templates, proposal outlines, and RFP shred worksheets built for government contractors. Ready to use with any FAR/DFARS solicitation.", path: "/templates" },
-  about: { title: "About BidSmith | AI-Powered Federal RFP Audit Software by ARIS Labs", description: "BidSmith is built by ARIS Labs to give government contractors instant compliance intelligence. Zero-knowledge architecture, direct SAM.gov integration, and AI-driven audit output.", path: "/about" },
-  soc: { title: "BidSmith Security | Zero-Knowledge RFP Data Architecture", description: "BidSmith processes solicitation data in transient memory only. No data stored, indexed, or shared. Learn how our zero-knowledge architecture keeps your proposal strategy private.", path: "/soc" },
-  "sam-rep": { title: "Sample Federal RFP Audit Report | BidSmith Compliance Matrix Demo", description: "See a real BidSmith audit output for a Defense Health Agency solicitation — compliance matrix, FAR/DFARS flags, risk score, and bid/no-bid verdict included.", path: "/sam-rep" },
-  "sam-scraper": { title: "SAM.gov Bulk Opportunity Export & Scraper | BidSmith", description: "Export and filter SAM.gov opportunities in bulk. Filter by NAICS code, agency, set-aside type, and dollar threshold. Build your bid pipeline in minutes.", path: "/sam-scraper" },
-  beta: { title: "BidSmith Gov Admin Registry | Early Access for Federal Contractors", description: "Apply for early access to BidSmith's Gov Admin Registry — institutional RFP intelligence and compliance tooling for federal practice teams.", path: "/beta" },
-  demo: { title: "BidSmith Live Demo | Watch a Federal RFP Audit in 90 Seconds", description: "Watch BidSmith audit a real $24.5M Army solicitation live — compliance matrix, FAR/DFARS disqualifier flags, risk score, and bid/no-bid verdict. No signup required.", path: "/demo" },
+  landing:      { title: "BidSmith | Federal RFP Compliance Audit Software for Government Contractors", description: "BidSmith audits SAM.gov solicitations in 90 seconds. Instant compliance matrix, FAR/DFARS risk flags, and bid/no-bid recommendation. Built for federal prime contractors and capture teams.", path: "/" },
+  templates:    { title: "Free Federal Proposal Templates | Compliance Matrix & RFP Worksheets — BidSmith", description: "Download free compliance matrix templates, proposal outlines, and RFP shred worksheets built for government contractors. Ready to use with any FAR/DFARS solicitation.", path: "/templates" },
+  about:        { title: "About BidSmith | AI-Powered Federal RFP Audit Software by ARIS Labs", description: "BidSmith is built by ARIS Labs to give government contractors instant compliance intelligence. Zero-knowledge architecture, direct SAM.gov integration, and AI-driven audit output.", path: "/about" },
+  soc:          { title: "BidSmith Security | Zero-Knowledge RFP Data Architecture", description: "BidSmith processes solicitation data in transient memory only. No data stored, indexed, or shared. Learn how our zero-knowledge architecture keeps your proposal strategy private.", path: "/soc" },
+  "sam-rep":    { title: "Sample Federal RFP Audit Report | BidSmith Compliance Matrix Demo", description: "See a real BidSmith audit output for a Defense Health Agency solicitation — compliance matrix, FAR/DFARS flags, risk score, and bid/no-bid verdict included.", path: "/sam-rep" },
+  demo:         { title: "BidSmith Live Demo | Watch a Federal RFP Audit in 90 Seconds", description: "Watch BidSmith audit a real $24.5M Army solicitation live — compliance matrix, FAR/DFARS disqualifier flags, risk score, and bid/no-bid verdict. No signup required.", path: "/demo" },
   "govcon-guide": { title: "Federal Contracting Process Guide | How to Win Government Contracts — BidSmith", description: "The complete government contracting workflow for new and experienced contractors — SAM.gov registration, opportunity discovery, compliance review, and proposal development.", path: "/govcon-guide" },
-  privacy: { title: "Privacy Policy | BidSmith", description: "How BidSmith collects, uses, and protects your data. Read our full privacy policy for bidsmith.pro.", path: "/privacy" },
-  terms: { title: "Terms of Service | BidSmith", description: "Terms and conditions governing your use of the BidSmith federal RFP audit platform.", path: "/terms" },
-  cookies: { title: "Cookie Policy | BidSmith", description: "How BidSmith uses cookies and local storage. We minimize data collection and never sell your information.", path: "/cookies" },
-  app: { title: "BidSmith Audit Workspace | Federal RFP Compliance Analysis", description: "Your BidSmith federal solicitation audit workspace. Paste a SAM.gov URL or upload a PDF to begin.", path: "/app" },
-  "govcon-dashboard": { title: "BidSmith GovCon Dashboard | Capture Intelligence Workspace", description: "Manage your active federal bid pipeline. Track solicitations, compliance status, and win probability in one workspace.", path: "/dashboard" },
-  pricing: { title: "BidSmith Pricing | Federal RFP Audit Plans — Free to $999/mo", description: "Start free with 3 audits per month. Upgrade for unlimited audits, full FAR/DFARS analysis, and deep-shred strategy. No hidden fees.", path: "/pricing" },
+  privacy:      { title: "Privacy Policy | BidSmith", description: "How BidSmith collects, uses, and protects your data.", path: "/privacy" },
+  terms:        { title: "Terms of Service | BidSmith", description: "Terms and conditions governing your use of the BidSmith federal RFP audit platform.", path: "/terms" },
+  cookies:      { title: "Cookie Policy | BidSmith", description: "How BidSmith uses cookies and local storage.", path: "/cookies" },
+  app:          { title: "BidSmith Audit Workspace | Federal RFP Compliance Analysis", description: "Your BidSmith federal solicitation audit workspace. Paste a SAM.gov URL or upload a PDF to begin.", path: "/app" },
+  pricing:      { title: "BidSmith Pricing | Federal RFP Audit Plans — Free to $999/mo", description: "Start free with 3 audits per month. Upgrade for unlimited audits, full FAR/DFARS analysis, and deep-shred strategy. No hidden fees.", path: "/pricing" },
   "rfp-generator": { title: "Free RFP Compliance Matrix Generator | 90-Second FAR/DFARS Analysis — BidSmith", description: "Turn any government RFP into a structured compliance matrix in 90 seconds. Identify missing requirements and disqualification risks before you commit proposal resources.", path: "/rfp-compliance-matrix-generator" },
-  outreach: { title: "Outreach Dashboard | BidSmith Internal", description: "Internal outreach tracking dashboard.", path: "/outreach" },
-  admin: { title: "Admin Portal | BidSmith", description: "Internal analytics portal.", path: "/admin" },
-  contact: { title: "Contact BidSmith | Talk to a Federal Capture Specialist", description: "Get in touch with the BidSmith team. Request a demo, ask about pricing, or connect with a federal capture specialist for your next solicitation.", path: "/contact" },
-  aris: { title: "ARIS Strategic Consulting | 7-Day Institutional AI Audit — BidSmith", description: "Secure your next federal prime contract with elite AI-driven compliance. Our 7-Day AI Audit protocol transforms your capture strategy using sovereign intelligence.", path: "/aris" },
-  earn: { title: "Earn with BidSmith | 20% Recurring Partner Program for GovCon Professionals", description: "Refer federal contractors to BidSmith and earn 20% recurring commission on every paid conversion. No cap, 90-day attribution, monthly payouts. Built for GovCon consultants and proposal professionals.", path: "/earn" },
-  newsletter: { title: "The Bid Brief | Weekly Federal Contracting Intelligence Newsletter", description: "Weekly federal contracting intelligence for government contractors and BD teams. One opportunity segment, one compliance insight, one process tip — every Wednesday.", path: "/newsletter" },
+  admin:        { title: "Admin Portal | BidSmith", description: "Internal analytics portal.", path: "/admin" },
+  bento:        { title: "Intelligence Dashboard | BidSmith", description: "RFP upload, live AI analysis with confidence scores, and inference regression eval status.", path: "/bento" },
+  chat:         { title: "ARIS — AI GovCon Advisor | BidSmith", description: "Ask ARIS anything about federal contracting. Audit RFPs, decode FAR/DFARS clauses, and get instant bid/no-bid strategy.", path: "/chat" },
+  contact:      { title: "Contact BidSmith | Talk to a Federal Capture Specialist", description: "Get in touch with the BidSmith team. Request a demo, ask about pricing, or connect with a federal capture specialist for your next solicitation.", path: "/contact" },
 };
 
 function usePageMeta(view) {
@@ -88,9 +60,7 @@ function usePageMeta(view) {
     const od = document.querySelector('meta[property="og:description"]');
     if (od) od.setAttribute("content", meta.description);
 
-    const canonicalPath = isCompliance
-      ? window.location.pathname
-      : meta.path || "/";
+    const canonicalPath = isCompliance ? window.location.pathname : meta.path || "/";
     const canonicalUrl = `${BASE_URL}${canonicalPath}`;
     let canonical = document.querySelector('link[rel="canonical"]');
     if (!canonical) {
@@ -103,7 +73,7 @@ function usePageMeta(view) {
     const ogUrl = document.querySelector('meta[property="og:url"]');
     if (ogUrl) ogUrl.setAttribute("content", canonicalUrl);
 
-    const NOINDEX_VIEWS = new Set(["app", "sam-scraper", "phase2", "audit", "survey-analytics", "demo-analytics", "govcon-dashboard"]);
+    const NOINDEX_VIEWS = new Set(["app", "admin", "bento", "chat"]);
     let robotsMeta = document.querySelector('meta[name="robots"]');
     if (!robotsMeta) {
       robotsMeta = document.createElement("meta");
@@ -116,10 +86,31 @@ function usePageMeta(view) {
 
 const LANDING_SECTION_ALIASES = {
   "/solutions": "solutions",
-  "/workflow": "workflow",
-  "/markets": "markets",
-  "/contact": "contact",
+  "/workflow":  "workflow",
+  "/markets":   "markets",
 };
+
+function resolveView(path) {
+  if (path.startsWith("/app") || window.location.search.includes("app=true")) return "app";
+  if (path === "/dashboard" || path === "/app/dashboard" || path === "/dashboard-v2") return "app";
+  if (path === "/templates") return "templates";
+  if (path === "/pricing") return "pricing";
+  if (path === "/rfp-compliance-matrix-generator") return "rfp-generator";
+  if (path === "/admin") return "admin";
+  if (path === "/bento" || path === "/bento-dashboard") return "bento";
+  if (path === "/chat" || path === "/aris") return "chat";
+  if (path === "/contact") return "contact";
+  if (path === "/privacy" || path === "/terms" || path === "/cookies") return path.slice(1);
+  if (path === "/sam-rep") return "sam-rep";
+  if (path === "/soc") return "soc";
+  if (path === "/about") return "about";
+  if (path === "/demo") return "demo";
+  if (path === "/govcon-guide" || path === "/how-it-works") return "govcon-guide";
+  if (path.startsWith("/compliance/")) return "compliance";
+  if (LANDING_SECTION_ALIASES[path]) return "landing";
+  if (path === "/" || path === "") return "landing";
+  return "404";
+}
 
 export default function App() {
   const path = window.location.pathname;
@@ -129,91 +120,37 @@ export default function App() {
   const authenticated = isSignedIn;
   const authLoading = !isLoaded;
   const user = clerkUser ? { id: userId, email: clerkUser.primaryEmailAddress?.emailAddress } : null;
-  const [proposal, setProposal] = useState(null);
-  const [view, setView] = useState(() => {
-    const p = window.location.pathname;
-    const isApp = p.startsWith("/app") || window.location.search.includes("app=true");
-    if (isApp) return "app";
-    if (p === "/dashboard-v2") return "app";
-    if (p === "/templates") return "templates";
-    if (p === "/pricing") return "pricing";
-    if (p === "/rfp-compliance-matrix-generator") return "rfp-generator";
-    if (p === "/outreach") return "outreach";
-    if (p === "/admin") return "admin";
-    if (p === "/contact") return "contact";
-    if (p === "/earn") return "earn";
-    if (p === "/newsletter") return "newsletter";
-    if (p === "/privacy" || p === "/terms" || p === "/cookies") return p.slice(1);
-    if (p === "/sam-rep") return "sam-rep";
-    if (p === "/soc") return "soc";
-    if (p === "/sam-scraper") return "sam-scraper";
-    if (p === "/survey-analytics") return "survey-analytics";
-    if (p === "/demo-analytics") return "demo-analytics";
-    if (p === "/about") return "about";
-    if (p === "/beta" || p === "/sovereign-beta") return "beta";
-    if (p === "/demo") return "demo";
-    if (p === "/govcon-guide" || p === "/how-it-works") return "govcon-guide";
-    // /dashboard redirects to /app (V2 is the live product)
-    if (p === "/dashboard" || p === "/app/dashboard") return "app";
-    if (p.startsWith("/compliance/")) return "compliance";
-    if (aliasSection) return "landing";
-    if (p === "/aris") return "aris";
-    if (p === "/" || p === "") return "landing";
-    return "404";
-  });
+
+  const [view, setView] = useState(() => resolveView(path));
+  const [initialUrl, setInitialUrl] = useState("");
+  const [initialFile, setInitialFile] = useState(null);
 
   usePageMeta(view);
 
-
   useEffect(() => {
     if (!aliasSection || view !== "landing") return;
-
     window.history.replaceState({ view: "landing" }, "", `/#${aliasSection}`);
     const timer = setTimeout(() => {
       document.getElementById(aliasSection)?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 120);
-
     return () => clearTimeout(timer);
   }, [aliasSection, view]);
 
   useEffect(() => {
-    let logicalPath = "/";
-    if (view === "app") {
-      logicalPath = "/app";
-    } else if (view === "templates") {
-      logicalPath = "/templates";
-    } else if (view === "privacy" || view === "terms" || view === "cookies") {
-      logicalPath = `/${view}`;
-    } else if (view === "404") {
-      logicalPath = "/404";
-    } else if (view === "sam-rep") {
-      logicalPath = "/sam-rep";
-    } else if (view === "soc") {
-      logicalPath = "/soc";
-    } else if (view === "sam-scraper") {
-      logicalPath = "/sam-scraper";
-    } else if (view === "about") {
-      logicalPath = "/about";
-    } else if (view === "demo") {
-      logicalPath = "/demo";
-    } else if (view === "govcon-guide") {
-      logicalPath = "/govcon-guide";
-    } else if (view === "govcon-dashboard") {
-      logicalPath = window.location.pathname;
-    } else if (view === "compliance") {
-      logicalPath = window.location.pathname;
-    } else if (view === "aris") {
-      logicalPath = "/aris";
-    } else if (view === "earn") {
-      logicalPath = "/earn";
-    } else if (view === "newsletter") {
-      logicalPath = "/newsletter";
-    } else if (view === "landing") {
-      logicalPath = aliasSection ? `/#${aliasSection}` : "/";
-    }
-
+    const pathMap = {
+      app: "/app", templates: "/templates", pricing: "/pricing",
+      admin: "/admin", bento: "/bento", chat: "/chat", contact: "/contact", "sam-rep": "/sam-rep",
+      soc: "/soc", about: "/about", demo: "/demo",
+      "govcon-guide": "/govcon-guide", "rfp-generator": "/rfp-compliance-matrix-generator",
+      "404": "/404",
+    };
+    const logicalPath =
+      view === "privacy" || view === "terms" || view === "cookies" ? `/${view}` :
+      view === "compliance" ? window.location.pathname :
+      view === "landing" ? (aliasSection ? `/#${aliasSection}` : "/") :
+      pathMap[view] || "/";
     trackPageView(logicalPath);
-  }, [view, authenticated, proposal, aliasSection]);
+  }, [view, authenticated, aliasSection]);
 
   useEffect(() => {
     if (window.history.state === null || window.history.state?.view === undefined) {
@@ -225,8 +162,7 @@ export default function App() {
     const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
     window.history.replaceState({ view }, "", currentUrl);
 
-    const handlePopState = (e) => {
-      e.preventDefault?.();
+    const handlePopState = () => {
       setView("landing");
       window.history.pushState({ view: "landing" }, "", "/");
     };
@@ -234,9 +170,6 @@ export default function App() {
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, [view]);
-
-  const [initialUrl, setInitialUrl] = useState("");
-  const [initialFile, setInitialFile] = useState(null);
 
   const handleAnalyze = (url) => {
     trackEvent("landing_quick_audit_started", { entry: "url_bar" });
@@ -257,111 +190,96 @@ export default function App() {
     setView("app");
   };
 
-  let content = null;
-  if (MVP_STRICT_MODE && MVP_DISABLED_VIEWS.has(view)) {
-    content = <NotFound onBack={() => setView("landing")} />;
-  } else
-  if (view === "templates") {
-    content = <Templates />;
-  } else if (view === "privacy" || view === "terms" || view === "cookies") {
-    content = <Legal type={view} />;
-  } else if (view === "404") {
-    content = <NotFound />;
-  } else if (view === "sam-rep") {
-    content = <SamRep onBack={() => setView("landing")} />;
-  } else if (view === "soc") {
-    content = <Security onBack={() => setView("landing")} />;
-  } else if (view === "sam-scraper") {
-    content = <SamScraper onBack={() => setView("landing")} />;
-  } else if (view === "survey-analytics") {
-    content = authenticated
-      ? <SurveyAnalytics />
-      : <div style={{ minHeight: "100vh", background: "#0a0d14", display: "flex", alignItems: "center", justifyContent: "center" }}><SignIn routing="hash" /></div>;
-  } else if (view === "demo-analytics") {
-    content = authenticated
-      ? <DemoAnalytics />
-      : <div style={{ minHeight: "100vh", background: "#0a0d14", display: "flex", alignItems: "center", justifyContent: "center" }}><SignIn routing="hash" /></div>;
-  } else if (view === "about") {
-    content = <About onBack={() => setView("landing")} />;
-  } else if (view === "govcon-dashboard") {
-    if (authLoading) {
-      content = <div style={{ minHeight: "100vh", background: "#0d0f14" }} />;
-    } else {
-      content = authenticated && user
-        ? <GovConDashboardV2 onBack={() => setView("landing")} user={user} />
-        : <div style={{ minHeight: "100vh", background: "#0a0d14", display: "flex", alignItems: "center", justifyContent: "center" }}><SignIn routing="hash" /></div>;
+  const authWall = (
+    <div style={{ minHeight: "100vh", background: "#0a0d14", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <SignIn routing="hash" />
+    </div>
+  );
+
+  const loadingScreen = <div style={{ minHeight: "100vh", background: "#0d0f14" }} />;
+
+  let content;
+  switch (view) {
+    case "templates":
+      content = <Templates />;
+      break;
+    case "privacy":
+    case "terms":
+    case "cookies":
+      content = <Legal type={view} />;
+      break;
+    case "sam-rep":
+      content = <SamRep onBack={() => setView("landing")} />;
+      break;
+    case "soc":
+      content = <Security onBack={() => setView("landing")} />;
+      break;
+    case "about":
+      content = <About onBack={() => setView("landing")} />;
+      break;
+    case "compliance": {
+      const slug = window.location.pathname.replace("/compliance/", "");
+      content = <CompliancePage slug={slug} onBack={() => setView("app")} />;
+      break;
     }
-  } else if (view === "compliance") {
-    const slug = window.location.pathname.replace("/compliance/", "");
-    content = <CompliancePage slug={slug} onBack={() => setView("app")} />;
-  } else if (view === "beta") {
-    content = <BidSmithBeta onBack={() => setView("landing")} />;
-  } else if (view === "demo") {
-    content = <Demo onBack={() => setView("landing")} onEnterApp={() => setView("app")} />;
-  } else if (view === "govcon-guide") {
-    content = <GovConGuide onBack={() => setView("landing")} onEnterApp={() => setView("app")} />;
-  } else if (view === "pricing") {
-    content = (
-      <PricingGrid
-        onTryFree={() => setView("app")}
-        onGetPro={() => window.open("https://buy.stripe.com/3cIaEX66197ad9H9na2Fa00", "_blank")}
-        onGetEnterprise={() => window.open("https://buy.stripe.com/cNibJ19id8369XvfLy2Fa01", "_blank")}
-      />
-    );
-  } else if (view === "rfp-generator") {
-    content = <RfpMatrixGenerator onUpload={() => setView("app")} />;
-  } else if (view === "outreach") {
-    content = authenticated
-      ? <Outreach onBack={() => setView("landing")} />
-      : <div style={{ minHeight: "100vh", background: "#0a0d14", display: "flex", alignItems: "center", justifyContent: "center" }}><SignIn routing="hash" /></div>;
-  } else if (view === "admin") {
-    content = authenticated
-      ? <AdminDashboard onBack={() => setView("landing")} />
-      : <div style={{ minHeight: "100vh", background: "#0a0d14", display: "flex", alignItems: "center", justifyContent: "center" }}><SignIn routing="hash" /></div>;
-  } else if (view === "contact") {
-    content = <Contact onBack={() => setView("landing")} />;
-  } else if (view === "earn") {
-    content = <Earn onBack={() => setView("landing")} />;
-  } else if (view === "newsletter") {
-    content = <Newsletter onBack={() => setView("landing")} />;
-  } else if (view === "aris") {
-    content = <ArisConsulting onGetStarted={() => setView("app")} />;
-  } else if (view === "landing") {
-    content = (
-      <Landing
-        onEnterApp={handleEnterApp}
-        onEnterDashboard={() => setView("app")}
-        onViewSample={() => setView("demo")}
-        onBidSmithBeta={() => setView("beta")}
-        onAnalyze={handleAnalyze}
-        onAnalyzeFile={handleAnalyzeFile}
-        onGoHome={() => setView("landing")}
-        isAuthenticated={Boolean(authenticated && user)}
-        userEmail={user?.email || ""}
-      />
-    );
-  } else if (view === "app") {
-    if (authLoading) {
-      content = <div style={{ minHeight: "100vh", background: "#0d0f14" }} />;
-    } else {
-      content = authenticated && user
-        ? <GovConDashboardV2 onBack={() => setView("landing")} user={user} />
-        : <div style={{ minHeight: "100vh", background: "#0a0d14", display: "flex", alignItems: "center", justifyContent: "center" }}><SignIn routing="hash" /></div>;
-    }
-  } else if (view === "404") {
-    content = <NotFound onBack={() => setView("landing")} />;
-  } else if (!authenticated) {
-    content = <div style={{ minHeight: "100vh", background: "#0a0d14", display: "flex", alignItems: "center", justifyContent: "center" }}><SignIn routing="hash" /></div>;
-  } else {
-    content = <NotFound onBack={() => setView("landing")} />;
+    case "demo":
+      content = <Demo onBack={() => setView("landing")} onEnterApp={() => setView("app")} />;
+      break;
+    case "govcon-guide":
+      content = <GovConGuide onBack={() => setView("landing")} onEnterApp={() => setView("app")} />;
+      break;
+    case "pricing":
+      content = (
+        <PricingGrid
+          onTryFree={() => setView("app")}
+          onGetPro={() => window.open("https://buy.stripe.com/3cIaEX66197ad9H9na2Fa00", "_blank")}
+          onGetEnterprise={() => window.open("https://buy.stripe.com/cNibJ19id8369XvfLy2Fa01", "_blank")}
+        />
+      );
+      break;
+    case "rfp-generator":
+      content = <RfpMatrixGenerator onUpload={() => setView("app")} />;
+      break;
+    case "admin":
+      content = authLoading ? loadingScreen : authenticated ? <AdminDashboard onBack={() => setView("landing")} /> : authWall;
+      break;
+    case "contact":
+      content = <Contact onBack={() => setView("landing")} />;
+      break;
+    case "bento":
+      content = <BentoDashboard />;
+      break;
+    case "chat":
+      content = <ArisChat />;
+      break;
+    case "app":
+      content = authLoading ? loadingScreen : authenticated && user
+        ? <GovConDashboardV2 onBack={() => setView("landing")} user={user} initialUrl={initialUrl} initialFile={initialFile} />
+        : authWall;
+      break;
+    case "landing":
+      content = (
+        <Landing
+          onEnterApp={handleEnterApp}
+          onEnterDashboard={() => setView("app")}
+          onViewSample={() => setView("demo")}
+          onAnalyze={handleAnalyze}
+          onAnalyzeFile={handleAnalyzeFile}
+          onGoHome={() => setView("landing")}
+          isAuthenticated={Boolean(authenticated && user)}
+          userEmail={user?.email || ""}
+        />
+      );
+      break;
+    default:
+      content = <NotFound onBack={() => setView("landing")} />;
   }
 
   return (
     <ErrorBoundary reloadOnRetry={true} fallbackMode="wanderer">
-      <Suspense fallback={<div style={{ minHeight: "100vh", background: "#0d0f14" }} />}>
+      <Suspense fallback={loadingScreen}>
         {content}
       </Suspense>
-      {/* Legacy Demo Section handled above */}
       <ConsentBanner />
       <Analytics />
       <SpeedInsights />

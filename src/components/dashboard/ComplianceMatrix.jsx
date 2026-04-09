@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { TableProperties, Loader2, Sparkles, AlertCircle } from 'lucide-react';
+import { TableProperties, Loader2, Sparkles, AlertCircle, BookOpen, ChevronDown, AlertTriangle, Eye, EyeOff } from 'lucide-react';
 import '../../pages/SamRep.css';
 
 const sampleMatrix = [
@@ -26,15 +26,39 @@ const statusConfig = {
 
 const riskColor = { HIGH: 'var(--risk-high)', MEDIUM: 'var(--risk-medium)', LOW: 'var(--success)' };
 
-const MobileComplianceCard = ({ req, onDraft, draftingId }) => {
+// Source citation tag — shows § reference and expands to show the excerpt
+const MatrixSourceTag = ({ section, excerpt }) => {
+  const [open, setOpen] = useState(false);
+  if (!section || section === 'N/A') return null;
+  return (
+    <span style={{ display: 'inline-flex', flexDirection: 'column' }}>
+      <button
+        onClick={(e) => { e.stopPropagation(); if (excerpt) setOpen(v => !v); }}
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: '9px', fontWeight: 700, color: 'var(--accent)', background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.25)', borderRadius: 3, padding: '2px 6px', cursor: excerpt ? 'pointer' : 'default', fontFamily: 'monospace' }}
+      >
+        <BookOpen size={8} /> § {section}
+        {excerpt && <ChevronDown size={8} style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />}
+      </button>
+      {open && excerpt && (
+        <span style={{ display: 'block', marginTop: 4, padding: '6px 8px', background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.15)', borderLeft: '2px solid var(--accent)', borderRadius: 4, fontSize: 10, color: 'var(--text-secondary)', fontStyle: 'italic', lineHeight: 1.5, maxWidth: 280 }}>
+          "{excerpt}"
+        </span>
+      )}
+    </span>
+  );
+};
+
+const MobileComplianceCard = ({ req, onDraft, draftingId, auditMode }) => {
   const [expanded, setExpanded] = useState(false);
   const s = statusConfig[req.status] || statusConfig.review;
   const isDrafting = draftingId === req.id;
+  const flagged = auditMode && (req.risk === 'HIGH' || !req.source_excerpt);
 
   return (
     <div style={{
-      background: "var(--card)",
-      border: "1px solid var(--border)",
+      background: flagged ? 'rgba(245,158,11,0.05)' : 'var(--card)',
+      border: `1px solid ${flagged ? 'rgba(245,158,11,0.3)' : 'var(--border)'}`,
+      borderLeft: `3px solid ${flagged ? '#f59e0b' : riskColor[req.risk] || riskColor.MEDIUM}`,
       borderRadius: "8px",
       padding: "16px",
       marginBottom: "12px",
@@ -49,24 +73,18 @@ const MobileComplianceCard = ({ req, onDraft, draftingId }) => {
           AGENTIC DRAFTING...
         </div>
       )}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: 'wrap' }}>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <span style={{ fontFamily: "monospace", fontSize: "14px", color: "var(--text-secondary)", fontWeight: 600 }}>
             {req.id}
           </span>
+          {flagged && (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: '9px', fontWeight: 800, color: '#f59e0b', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 4, padding: '2px 6px', letterSpacing: '0.06em' }}>
+              <AlertTriangle size={8} /> VERIFY
+            </span>
+          )}
         </div>
-
-        <div style={{
-          fontSize: "10px",
-          fontWeight: 700,
-          color: s.color,
-          border: `1px solid ${s.color}`,
-          background: s.bg,
-          padding: "4px 8px",
-          borderRadius: "4px",
-          textTransform: "uppercase",
-          letterSpacing: "0.5px"
-        }}>
+        <div style={{ fontSize: "10px", fontWeight: 700, color: s.color, border: `1px solid ${s.color}`, background: s.bg, padding: "4px 8px", borderRadius: "4px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
           {s.label}
         </div>
       </div>
@@ -84,8 +102,8 @@ const MobileComplianceCard = ({ req, onDraft, draftingId }) => {
         {req.requirement}
       </div>
 
-      <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", fontSize: "12px", color: "var(--text-secondary)" }}>
-        <span><strong>Sec:</strong> {req.section}</span>
+      <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", fontSize: "12px", color: "var(--text-secondary)", alignItems: 'center' }}>
+        <MatrixSourceTag section={req.section} excerpt={req.source_excerpt} />
         <span>•</span>
         <span><strong>Cat:</strong> {req.category}</span>
         <span>•</span>
@@ -97,6 +115,11 @@ const MobileComplianceCard = ({ req, onDraft, draftingId }) => {
       {expanded && (
         <div style={{ marginTop: "8px", paddingTop: "8px", borderTop: "1px solid var(--border)", fontSize: "13px", color: "var(--text-secondary)" }}>
           <strong>Action: </strong>{req.action}
+          {flagged && !req.source_excerpt && (
+            <div style={{ marginTop: 6, fontSize: 11, color: '#f59e0b', fontStyle: 'italic' }}>
+              No source excerpt available — AI inferred this requirement. Cross-check against original RFP before submission.
+            </div>
+          )}
         </div>
       )}
 
@@ -147,6 +170,7 @@ const ComplianceMatrix = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [rawText, setRawText] = useState('');
+  const [auditMode, setAuditMode] = useState(false);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -167,7 +191,7 @@ const ComplianceMatrix = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/govcon/generate-matrix', {
+      const res = await fetch('/api/matrix', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -205,8 +229,25 @@ const ComplianceMatrix = () => {
       <div className="card-header" style={{ marginBottom: '16px' }}>
         <TableProperties size={14} color="var(--accent)" />
         <span className="card-label">Compliance Matrix</span>
-        <span style={{ marginLeft: 'auto', fontSize: '10px', color: 'var(--text-secondary)' }}>
-          {requirementsCount} Requirements · FAR-Referenced
+        <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
+            {requirementsCount} Requirements · FAR-Referenced
+          </span>
+          <button
+            onClick={() => setAuditMode(v => !v)}
+            title={auditMode ? 'Exit Audit Mode' : 'Audit Mode — highlight items AI is uncertain about'}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              fontSize: '9px', fontWeight: 800, letterSpacing: '0.07em',
+              color: auditMode ? '#f59e0b' : 'var(--text-secondary)',
+              background: auditMode ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.04)',
+              border: `1px solid ${auditMode ? 'rgba(245,158,11,0.35)' : 'var(--border)'}`,
+              borderRadius: 5, padding: '4px 9px', cursor: 'pointer', transition: 'all 0.2s'
+            }}
+          >
+            {auditMode ? <Eye size={9} /> : <EyeOff size={9} />}
+            AUDIT MODE {auditMode ? 'ON' : 'OFF'}
+          </button>
         </span>
       </div>
 
@@ -279,7 +320,7 @@ const ComplianceMatrix = () => {
         isMobile ? (
           <div className="compliance-mobile-stack" style={{ marginTop: '12px' }}>
             {displayItems.map((req) => (
-              <MobileComplianceCard key={req.id} req={req} onDraft={handleDraft} draftingId={draftingId} />
+              <MobileComplianceCard key={req.id} req={req} onDraft={handleDraft} draftingId={draftingId} auditMode={auditMode} />
             ))}
           </div>
         ) : (
@@ -298,20 +339,39 @@ const ComplianceMatrix = () => {
                 </tr>
               </thead>
               <tbody>
-                {displayItems.map(({ id, requirement, section, category, farRef, status, risk, action }) => {
+                {displayItems.map((row) => {
+                  const { id, requirement, section, category, farRef, status, risk, action, source_excerpt } = row;
                   const s = statusConfig[status] || statusConfig.review;
                   const isDrafting = draftingId === id;
+                  const flagged = auditMode && (risk === 'HIGH' || !source_excerpt);
+                  const rowBg = isDrafting
+                    ? 'var(--accent-soft)'
+                    : flagged
+                      ? 'rgba(245,158,11,0.05)'
+                      : 'transparent';
                   return (
                     <tr key={id} style={{
                       borderBottom: '1px solid var(--border)',
-                      background: isDrafting ? 'var(--accent-soft)' : 'transparent',
+                      background: rowBg,
+                      borderLeft: flagged ? '3px solid #f59e0b' : '3px solid transparent',
                     }}
-                      onMouseEnter={e => !isDrafting && (e.currentTarget.style.background = 'var(--card-hover)')}
-                      onMouseLeave={e => !isDrafting && (e.currentTarget.style.background = 'transparent')}
+                      onMouseEnter={e => !isDrafting && !flagged && (e.currentTarget.style.background = 'var(--card-hover)')}
+                      onMouseLeave={e => !isDrafting && (e.currentTarget.style.background = rowBg)}
                     >
-                      <td style={{ padding: '10px', color: 'var(--text-secondary)', fontFamily: 'monospace', fontSize: '10px', whiteSpace: 'nowrap' }}>{id}</td>
+                      <td style={{ padding: '10px', color: 'var(--text-secondary)', fontFamily: 'monospace', fontSize: '10px', whiteSpace: 'nowrap' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                          {id}
+                          {flagged && (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, fontSize: '8px', fontWeight: 800, color: '#f59e0b', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 3, padding: '1px 4px' }}>
+                              <AlertTriangle size={7} /> VERIFY
+                            </span>
+                          )}
+                        </div>
+                      </td>
                       <td style={{ padding: '10px', color: 'var(--text-primary)', fontWeight: 500, minWidth: '160px' }}>{requirement}</td>
-                      <td style={{ padding: '10px', color: 'var(--text-secondary)', whiteSpace: 'nowrap', fontFamily: 'monospace', fontSize: '10px' }}>{section}</td>
+                      <td style={{ padding: '10px', whiteSpace: 'nowrap' }}>
+                        <MatrixSourceTag section={section} excerpt={source_excerpt} />
+                      </td>
                       <td style={{ padding: '10px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{category}</td>
                       <td style={{ padding: '10px', color: 'var(--accent)', whiteSpace: 'nowrap', fontFamily: 'monospace', fontSize: '10px' }}>{farRef}</td>
                       <td style={{ padding: '10px', whiteSpace: 'nowrap' }}>

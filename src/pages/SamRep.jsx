@@ -26,13 +26,9 @@ import ExecutiveSummary from '../components/dashboard/ExecutiveSummary';
 import BidRecommendation from '../components/dashboard/BidRecommendation';
 import ExportToolbar from '../components/dashboard/ExportToolbar';
 import SolicitationHeader from '../components/dashboard/SolicitationHeader';
-import AgenticPipeline from '../components/dashboard/AgenticPipeline';
-import IntelligenceIndex from '../components/dashboard/IntelligenceIndex';
 import VerificationGrid from '../components/dashboard/VerificationGrid';
 import ComplianceMatrix from '../components/dashboard/ComplianceMatrix';
 import BidSmithChat from '../components/dashboard/BidSmithChat';
-import RequirementsLinter from '../components/dashboard/RequirementsLinter';
-import SecurityToggle from '../components/dashboard/SecurityToggle';
 
 // Load static source of truth
 import requirementsData from '../../data/requirements_matrix.json';
@@ -238,7 +234,10 @@ const SamRep = ({ onBack }) => {
                   </div>
                </div>
             </div>
-            <SecurityToggle />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--card)', padding: '4px 10px', borderRadius: '4px', border: '1px solid var(--border)' }}>
+              <Shield size={10} color="#22c55e" />
+              <span style={{ fontSize: '9px', color: '#71717a', letterSpacing: '0.05em' }}>ZERO-KNOWLEDGE</span>
+            </div>
         </div>
         <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
           <div className="hide-mobile" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--card)', padding: '4px 10px', borderRadius: '4px', border: '1px solid var(--border)' }}>
@@ -271,18 +270,6 @@ const SamRep = ({ onBack }) => {
       <div className="bidsmith-studio-workspace" style={{ flex: 1, position: 'relative', overflow: isMobile ? 'auto' : 'hidden' }}>
         <PanelGroup direction={isMobile ? "vertical" : "horizontal"}>
           {/* Pane 1: Requirements Linter (Left) - Hidden or minimized on mobile if needed, but let's keep it for now as a top section */}
-          <Panel defaultSize={isMobile ? 40 : 20} minSize={isMobile ? 30 : 15} collapsible={true}>
-            <aside className="bidsmith-pane bidsmith-linter-pane">
-              <RequirementsLinter 
-                requirements={requirementsData.requirements} 
-                onSelect={handleRequirementSelect}
-                selectedId={selectedReq?.id}
-              />
-            </aside>
-          </Panel>
-
-          {!isMobile && <PanelResizeHandle className="resize-handle" />}
-
           {/* Pane 2: Audit Canvas (Center) */}
           <Panel defaultSize={isMobile ? 60 : 55} minSize={isMobile ? 40 : 30}>
             <main className="bidsmith-pane bidsmith-canvas">
@@ -307,12 +294,6 @@ const SamRep = ({ onBack }) => {
                 <SectionHeader title="Compliance & Constraints" />
                 <div style={{ marginBottom: '32px' }}>
                   <ComplianceMatrix complianceData={complianceData} isLoading={loading} />
-                </div>
-
-                <SectionHeader title="Intelligence Pipeline" />
-                <div className="sam-rep-grid grid-intelligence" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '16px' }}>
-                  <AgenticPipeline />
-                  <IntelligenceIndex />
                 </div>
 
                 <div style={{ marginTop: '48px', opacity: 0.6 }}>

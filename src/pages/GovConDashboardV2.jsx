@@ -1,947 +1,1101 @@
 /**
- * GovConDashboardV2.jsx — BidSmith v2
+ * GovConDashboardV2 — BidSmith Chat UI
  *
- * The full capture intelligence platform.
- * Tabs: Intelligence Brief | Compliance Matrix | Proposal Forge | Agency Intel
+ * Three-column layout:
+ *   Left  (260px) — Documents + Audit history
+ *   Center (flex) — Chat thread + input
+ *   Right  (300px) — Agent thinking steps
  *
- * Wires together:
- *   - IntelligenceBrief (verdict + incumbent signal + hidden reqs + roadmap)
- *   - ComplianceMatrix (existing, enhanced)
- *   - ProposalForge (TipTap + ComplianceGutter)
- *
- * Data source: auditPipeline.js runAudit() output, stored in Supabase per session.
+ * API wiring:
+ *   POST /api/analyze-link     — new audit from SAM.gov URL
+ *   POST /api/analyze-pdf      — new audit from PDF upload
+ *   POST /api/govcon/chat      — follow-up chat with audit context
+ *   GET  /api/audits/history   — load prior audits
+ *   GET  /api/audits/:id       — load specific audit
  */
 
-import { useState, useEffect } from 'react';
-import {
-  Shield, Zap, Layers, FileText, LogOut,
-  ChevronRight, Plus, TrendingUp, AlertOctagon,
-  Clock, BarChart2, Eye, ArrowLeft
-} from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { useClerk } from '@clerk/clerk-react';
+import {
+  Send, Plus, LogOut, Shield, FileText, Clock,
+  ChevronRight, AlertTriangle, Check, Zap, Brain,
+  Loader2, Upload, Link2, X, TrendingUp, BarChart2,
+  ChevronDown, Paperclip, RefreshCw, BookOpen, Eye,
+  EyeOff, Info, ExternalLink
+} from 'lucide-react';
 import { trackEvent } from '../utils/analytics';
-import IntelligenceBrief from '../components/forge/IntelligenceBrief';
-import ProposalForge from '../components/forge/ProposalForge';
-import ComplianceMatrix from '../components/dashboard/ComplianceMatrix';
-import BidSmithChat from '../components/dashboard/BidSmithChat';
-import HighLoadNotice from './HighLoadNotice';
 
-// ─── Demo audit data (shown when no audit is loaded) ──────────────────────────
-
-const DEMO_AUDIT_DATA = {
-  id: 'demo',
-  title: 'IT Infrastructure Support Services',
-  agency: 'Army Corps of Engineers',
-  naics: '541512',
-  value: 12400000,
-  due_date: '2026-04-14',
-  solicitation_number: 'W912EE-26-R-0042',
-  verdict: {
-    recommendation: 'BID',
-    win_probability: 73,
-    confidence: 'HIGH',
-    summary: 'Strong alignment between your capability profile and this solicitation\'s technical requirements. Incumbent signal is low and evaluation rewards demonstrated Army IT experience.',
-    rationale: 'Technical requirements match your demonstrated capabilities. Evaluation is Best Value, Technical-Led — which favors quality over price. CMMC Level 2 requirement creates a barrier most challengers can\'t meet quickly.'
-  },
-  intelligence: {
-    incumbent_signal: {
-      score: 4,
-      label: 'LOW',
-      signals_detected: [
-        { signal: 'Short response window for complexity', found: true, evidence: '11 business days for a 5-year IT modernization solicitation — manageable but tight.' },
-        { signal: 'Past performance value threshold', found: true, evidence: 'Requires 3 references at $5M+ — standard for this NAICS/size category.' },
-        { signal: 'Transition minimization language', found: false, evidence: 'No "seamless transition" or "zero downtime" requirements found.' },
-        { signal: 'Knowledge of existing infrastructure', found: false, evidence: 'No requirement to demonstrate familiarity with current systems.' },
-        { signal: 'Named incumbent in SOW', found: false, evidence: 'No incumbent-specific tool names or acronyms detected.' },
-      ],
-      explanation: 'No strong incumbent language detected. The solicitation appears competitively written with requirements accessible to qualified challengers. Two moderate signals do not indicate a wired procurement.'
-    },
-    evaluation_type: 'Best Value — Technical-Led',
-    evaluation_reality: 'Technical approach language occupies 12 pages vs. 2 pages for price. Agency evaluation factors weight technical 60%, past performance 25%, price 15%. Solution quality and past Army experience will dominate the award decision.',
-    team_signal: 'OPEN-COMPETITION',
-    price_to_win: {
-      low: 9800000,
-      high: 13100000,
-      currency: 'USD',
-      rationale: 'Based on 4 comparable Army IT awards at this district (FPDS). Avg award: 83% of ceiling. Recommended target: $10.3M–$11.8M.'
-    },
-    top_risks: [
-      { risk: 'SPRS score posting required', severity: 'HIGH', action: 'Confirm current NIST SP 800-171 self-assessment is posted to SPRS before submission.' },
-      { risk: 'Key personnel TS/SCI clearances must be active Day 1', severity: 'HIGH', action: 'Verify all proposed key personnel have active clearances — no interim clearances accepted.' },
-      { risk: '11-day response window is aggressive', severity: 'MED', action: 'Reserve proposal team bandwidth now. Pull reusable past performance writeups from prior Army bids.' },
-      { risk: 'CMMC Level 2 documentation required', severity: 'MED', action: 'Have CMMC Level 2 assessment documentation ready to reference in Technical Volume.' },
-    ],
-    key_discriminators: [
-      'CMMC Level 2 certification — most challengers are 6–18 months behind on this requirement',
-      'Army IT past performance — 3 direct references available with Army CoE clients',
-      'On-site personnel already cleared at required level — no mobilization delay risk',
-      'Cloud migration methodology demonstrated in prior awards',
-    ],
-    hidden_requirements: [
-      { text: 'ITAR compliance disclosure required for any foreign national employees', found_in: 'Exhibit A — Security Addendum', risk: 'HIGH', implication: 'Must disclose ITAR-registered facilities or certify no ITAR-controlled data handling.' },
-      { text: 'CMMC Level 2 certification in Technical Volume', found_in: 'PWS §3.4', risk: 'HIGH', implication: 'Not explicitly in Section L but evaluators confirmed to check via DIBCAC assessment records.' },
-      { text: 'Monthly CDRL deliverable: IT Infrastructure Status Report', found_in: 'Attachment 2 — CDRL List', risk: 'MED', implication: 'Requires dedicated reporting capability. Must be staffed in Management Volume.' },
-    ],
-    timeline_pressure: {
-      detected: true,
-      days_to_respond: 11,
-      explanation: 'Short for a 5-year IDIQ. Begin proposal development immediately.'
-    }
-  },
-  requirements: [
-    { id: 'REQ-01', requirement: 'SAM.gov registration active at time of submission', section: 'L.1', risk: 'LOW', is_disqualifier: true, action_required: 'Confirm active registration 48 hours before submission.' },
-    { id: 'REQ-02', requirement: 'CMMC Level 2 certification or active assessment', section: 'M.3', risk: 'HIGH', is_disqualifier: true, action_required: 'Document certification in Technical Volume Section 2.' },
-    { id: 'REQ-03', requirement: '3 past performance references, contract value $5M+, within 5 years', section: 'L.2.1', risk: 'HIGH', is_disqualifier: false, action_required: 'Identify 3 qualifying references with accessible POC contacts.' },
-    { id: 'REQ-04', requirement: 'Key personnel TS/SCI clearances — active, no interim', section: 'M.5', risk: 'HIGH', is_disqualifier: true, action_required: 'Verify clearance status for all proposed key personnel.' },
-    { id: 'REQ-05', requirement: 'NIST SP 800-171 self-assessment posted to SPRS', section: 'M.3', risk: 'HIGH', is_disqualifier: true, action_required: 'Post SPRS score before submission — evaluators verify electronically.' },
-    { id: 'REQ-06', requirement: 'Small business set-aside compliance or subcontracting plan', section: 'H.8', risk: 'MED', is_disqualifier: false, action_required: 'Determine if subcontracting plan is required based on award value.' },
-    { id: 'REQ-07', requirement: 'PIEE portal registration and submission', section: 'L.6', risk: 'MED', is_disqualifier: false, action_required: 'Register on PIEE portal. Confirm submission window timing.' },
-    { id: 'REQ-08', requirement: 'Cloud migration experience demonstrated', section: 'M.2.1', risk: 'MED', is_disqualifier: false, action_required: 'Lead Technical Volume with cloud migration methodology and relevant case studies.' },
-  ],
-  proposal_roadmap: [
-    { section: 'Technical Approach', recommended_pages: '10–12 pages', focus_areas: ['Cloud migration methodology', 'Zero-downtime cutover plan', 'CMMC Level 2 documentation pathway'], discriminator: 'CMMC Level 2 certification' },
-    { section: 'Management Approach', recommended_pages: '4–5 pages', focus_areas: ['Named key personnel with clearances', 'Org chart and quals', 'Subcontractor management plan'], discriminator: 'Named PMs with active TS/SCI' },
-    { section: 'Past Performance', recommended_pages: '3–4 pages', focus_areas: ['Army-specific IT references', 'Contract values and outcomes', 'Accessible POC contacts'], discriminator: '3 direct Army IT references' },
-    { section: 'Executive Summary', recommended_pages: '1–2 pages', focus_areas: ['Agency mission alignment', 'Win theme statement', 'Discriminator summary'], discriminator: 'Lead with Army experience + CMMC' },
-  ]
+// ─── Colors ──────────────────────────────────────────────────────────────────
+const C = {
+  bg:        '#0f172a',
+  surface:   '#1e293b',
+  surfaceHi: '#263348',
+  border:    '#334155',
+  borderHi:  '#475569',
+  text:      '#f1f5f9',
+  textMuted: '#94a3b8',
+  textDim:   '#64748b',
+  accent:    '#3b82f6',
+  accentHi:  '#60a5fa',
+  green:     '#22c55e',
+  red:       '#ef4444',
+  yellow:    '#f59e0b',
+  navy:      '#002244',
 };
 
-// ─── Sidebar pipeline item ─────────────────────────────────────────────────────
+// ─── Agent thinking steps ─────────────────────────────────────────────────────
+const THINKING_STEPS = [
+  { id: 'fetch',   label: 'Fetching solicitation from SAM.gov',   ms: 0    },
+  { id: 'parse',   label: 'Parsing document structure',            ms: 1800 },
+  { id: 'extract', label: 'Extracting FAR/DFARS clauses',          ms: 3600 },
+  { id: 'risk',    label: 'Analyzing disqualifier risk signals',   ms: 5400 },
+  { id: 'incumb',  label: 'Scoring incumbency indicators',         ms: 7200 },
+  { id: 'matrix',  label: 'Building compliance matrix',            ms: 9000 },
+  { id: 'verdict', label: 'Generating bid/no-bid recommendation',  ms: 10800 },
+  { id: 'done',    label: 'Analysis complete',                      ms: 12600 },
+];
 
-function PipelineItem({ item, active, onClick }) {
-  const prob = item?.verdict?.win_probability ?? 0;
-  const rec = item?.verdict?.recommendation || 'CONDITIONAL';
-  const color = prob >= 65 ? '#16a34a' : prob >= 40 ? '#d97706' : '#dc2626';
+// ─── Small helpers ────────────────────────────────────────────────────────────
+function verdictColor(rec) {
+  if (!rec) return C.textMuted;
+  const r = rec.toUpperCase();
+  if (r === 'BID' || r === 'GO') return C.green;
+  if (r === 'NO-BID' || r === 'NO_BID' || r === 'NO BID') return C.red;
+  return C.yellow;
+}
 
-  const daysLeft = item?.due_date
-    ? Math.ceil((new Date(item.due_date) - new Date()) / 86400000)
-    : null;
+function timeAgo(iso) {
+  if (!iso) return '';
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
+
+function extractSolicitationName(audit) {
+  return audit?.title || audit?.solicitation_number || 'Untitled Solicitation';
+}
+
+// ─── Left Sidebar ─────────────────────────────────────────────────────────────
+function LeftSidebar({ activeAudit, history, onNewAudit, onSelectAudit, onBack, user, onLogout }) {
+  const docs = activeAudit && activeAudit.id !== 'demo' ? [
+    { name: extractSolicitationName(activeAudit), type: 'solicitation', icon: FileText },
+    ...(activeAudit.attachments || []).map((a, i) => ({ name: a.name || `Attachment ${i + 1}`, type: 'attachment', icon: Paperclip })),
+  ] : [];
 
   return (
-    <button
-      onClick={onClick}
-      style={{
-        width: '100%', textAlign: 'left', background: active ? '#f1f5f9' : 'transparent',
-        border: 'none', borderRadius: '8px', padding: '12px 14px',
-        cursor: 'pointer', position: 'relative',
-        transition: 'background 0.15s'
-      }}
-      onMouseEnter={e => { if (!active) e.currentTarget.style.background = '#f8fafc'; }}
-      onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent'; }}
-    >
-      {active && (
-        <div style={{
-          position: 'absolute', left: 0, top: '20%', bottom: '20%',
-          width: '3px', background: '#002244', borderRadius: '0 3px 3px 0'
-        }} />
-      )}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
-        <p style={{ fontSize: '12px', fontWeight: 600, color: '#0f172a', margin: 0, lineHeight: 1.4 }}>
-          {item.title || 'Federal Solicitation'}
-        </p>
-        <span style={{
-          fontSize: '11px', fontWeight: 800, color,
-          background: `${color}15`, padding: '2px 8px',
-          borderRadius: '20px', whiteSpace: 'nowrap', flexShrink: 0
-        }}>
-          {prob}%
+    <aside style={{
+      width: 260, flexShrink: 0, display: 'flex', flexDirection: 'column',
+      background: C.surface, borderRight: `1px solid ${C.border}`,
+      overflow: 'hidden',
+    }}>
+      {/* Logo */}
+      <div style={{ padding: '16px 16px 12px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }} onClick={onBack}>
+        <Shield size={18} color={C.accent} />
+        <span style={{ fontSize: 16, fontWeight: 900, color: C.text, letterSpacing: '0.04em', fontFamily: "'Playfair Display', serif" }}>
+          BidSmith
         </span>
       </div>
-      <p style={{ fontSize: '11px', color: '#64748b', margin: '4px 0 0', lineHeight: 1.3 }}>
-        {item.agency || 'Agency TBD'}
-      </p>
-      {daysLeft !== null && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '6px' }}>
-          <Clock size={11} color={daysLeft < 7 ? '#dc2626' : '#94a3b8'} />
-          <span style={{ fontSize: '10px', color: daysLeft < 7 ? '#dc2626' : '#94a3b8', fontWeight: 600 }}>
-            {daysLeft > 0 ? `${daysLeft}d left` : 'Due today'}
-          </span>
-        </div>
-      )}
-    </button>
-  );
-}
 
-// ─── Pipeline stats ────────────────────────────────────────────────────────────
+      {/* New conversation */}
+      <div style={{ padding: '12px' }}>
+        <button onClick={onNewAudit} style={{
+          width: '100%', padding: '9px 12px',
+          background: 'transparent',
+          color: C.text, border: `1px solid ${C.border}`, borderRadius: 8, fontWeight: 700,
+          fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          gap: 7, cursor: 'pointer', transition: 'all 0.15s',
+        }}
+        onMouseEnter={e => { e.currentTarget.style.borderColor = C.accent; e.currentTarget.style.color = C.accent; }}
+        onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.text; }}
+        >
+          <Plus size={14} /> New Evaluation
+        </button>
+      </div>
 
-function PipelineStats({ pipeline }) {
-  const total = pipeline.length;
-  const avgProb = total > 0
-    ? Math.round(pipeline.reduce((sum, p) => sum + (p.verdict?.win_probability || 0), 0) / total)
-    : 0;
-  const dueSoon = pipeline.filter(p => {
-    if (!p.due_date) return false;
-    return Math.ceil((new Date(p.due_date) - new Date()) / 86400000) <= 7;
-  }).length;
-
-  return (
-    <div style={{ padding: '12px 16px', borderTop: '1px solid #e2e8f0', background: '#f8fafc' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', textAlign: 'center' }}>
-        {[
-          { label: 'Active', value: total, color: '#0f172a' },
-          { label: 'Avg Prob', value: `${avgProb}%`, color: avgProb >= 60 ? '#16a34a' : '#d97706' },
-          { label: 'Due < 7d', value: dueSoon, color: dueSoon > 0 ? '#dc2626' : '#64748b' },
-        ].map(stat => (
-          <div key={stat.label}>
-            <div style={{ fontSize: '16px', fontWeight: 800, color: stat.color }}>{stat.value}</div>
-            <div style={{ fontSize: '9px', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{stat.label}</div>
+      {/* Documents */}
+      {docs.length > 0 && (
+        <div style={{ padding: '0 12px 8px' }}>
+          <div style={{ fontSize: 10, fontWeight: 800, color: C.textDim, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6, padding: '0 4px' }}>
+            Documents
           </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function PersonalWorkspaceCard({ user, pipeline, activeAudit, onStartAudit, onViewCompliance, onOpenCopilot }) {
-  const firstName = user?.email?.split('@')?.[0] || 'Operator';
-  const auditCount = pipeline.length;
-  const activeTitle = activeAudit?.title || 'No active audit selected';
-
-  return (
-    <section
-      style={{
-        marginBottom: '20px',
-        border: '1px solid #e2e8f0',
-        borderRadius: '14px',
-        background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
-        padding: '16px 18px',
-        boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
-      }}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
-        <div>
-          <p style={{ margin: 0, fontSize: '12px', color: '#64748b', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-            Personal Workspace
-          </p>
-          <h2 style={{ margin: '6px 0 6px', fontSize: '20px', color: '#0f172a' }}>
-            Welcome back, {firstName}
-          </h2>
-          <p style={{ margin: 0, fontSize: '13px', color: '#475569' }}>
-            Signed in as {user?.email || 'unknown user'}
-          </p>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', minWidth: '220px' }}>
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px' }}>
-            <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>My Audits</div>
-            <div style={{ fontSize: '20px', color: '#0f172a', fontWeight: 800 }}>{auditCount}</div>
-          </div>
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px' }}>
-            <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>Workspace Mode</div>
-            <div style={{ fontSize: '13px', color: '#0B3D91', fontWeight: 800 }}>POST-AUTH</div>
-          </div>
-        </div>
-      </div>
-
-      <div style={{ marginTop: '12px', padding: '10px 12px', borderRadius: '10px', border: '1px dashed #cbd5e1', background: '#fff' }}>
-        <p style={{ margin: 0, fontSize: '12px', color: '#475569' }}>
-          Active context: <strong>{activeTitle}</strong>
-        </p>
-      </div>
-
-      <div style={{ marginTop: '12px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-        <button onClick={onStartAudit} style={PERSONAL_ACTION_BTN_PRIMARY}>Start New Audit</button>
-        <button onClick={onViewCompliance} style={PERSONAL_ACTION_BTN}>Open Compliance</button>
-        <button onClick={onOpenCopilot} style={PERSONAL_ACTION_BTN}>Ask Copilot</button>
-      </div>
-    </section>
-  );
-}
-
-const PERSONAL_ACTION_BTN = {
-  border: '1px solid #cbd5e1',
-  background: '#fff',
-  color: '#0f172a',
-  borderRadius: '8px',
-  padding: '8px 12px',
-  fontSize: '12px',
-  fontWeight: 700,
-  cursor: 'pointer',
-};
-
-const PERSONAL_ACTION_BTN_PRIMARY = {
-  ...PERSONAL_ACTION_BTN,
-  background: '#002244',
-  border: '1px solid #002244',
-  color: '#fff',
-};
-
-// ─── Loading overlay shown during audit ────────────────────────────────────────
-
-const AUDIT_STEPS = [
-  'Fetching solicitation text…',
-  'Shredding Section L/M requirements…',
-  'Running compliance extraction…',
-  'Scoring incumbent signals…',
-  'Generating intelligence brief…',
-  'Building proposal roadmap…',
-];
-
-function AuditLoadingOverlay({ step }) {
-  return (
-    <div style={{
-      position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.96)',
-      borderRadius: '16px', display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'center', gap: '20px', zIndex: 10
-    }}>
-      <div style={{ position: 'relative', width: '64px', height: '64px' }}>
-        <svg width="64" height="64" style={{ animation: 'spin 1.4s linear infinite' }}>
-          <circle cx="32" cy="32" r="28" fill="none" stroke="#e2e8f0" strokeWidth="5" />
-          <circle cx="32" cy="32" r="28" fill="none" stroke="#002244" strokeWidth="5"
-            strokeDasharray="44 132" strokeLinecap="round" />
-        </svg>
-        <Shield size={22} color="#002244" style={{ position: 'absolute', top: '21px', left: '21px' }} />
-      </div>
-      <div style={{ textAlign: 'center' }}>
-        <p style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', margin: '0 0 8px 0' }}>
-          Running Intelligence Audit
-        </p>
-        <p style={{ fontSize: '13px', color: '#64748b', margin: 0, minHeight: '20px', transition: 'all 0.3s' }}>
-          {AUDIT_STEPS[step % AUDIT_STEPS.length]}
-        </p>
-      </div>
-      <div style={{ display: 'flex', gap: '6px' }}>
-        {AUDIT_STEPS.map((_, i) => (
-          <div key={i} style={{
-            width: i <= step ? '20px' : '6px', height: '6px', borderRadius: '3px',
-            background: i <= step ? '#002244' : '#e2e8f0',
-            transition: 'all 0.4s ease'
-          }} />
-        ))}
-      </div>
-      <p style={{ fontSize: '11px', color: '#94a3b8', margin: 0 }}>~60–90 seconds</p>
-    </div>
-  );
-}
-
-// ─── New Audit Modal ───────────────────────────────────────────────────────────
-
-function NewAuditModal({ onClose, onAuditComplete, onServerError, userId, userEmail }) {
-  const [mode, setMode] = useState('url'); // 'url' | 'text' | 'pdf'
-  const [url, setUrl] = useState('');
-  const [rfpText, setRfpText] = useState('');
-  const [pdfFile, setPdfFile] = useState(null);
-  const [queued, setQueued] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [loadStep, setLoadStep] = useState(0);
-  const [error, setError] = useState('');
-  const [errorHint, setErrorHint] = useState('');
-
-  // 5xx or network failure → show HighLoadNotice instead of inline error
-  const handleServerError = (status) => {
-    if (status >= 500 || status === 0) {
-      onServerError?.();
-      return true;
-    }
-    return false;
-  };
-
-  // Advance step counter while loading
-  const startStepTimer = () => {
-    let s = 0;
-    const iv = setInterval(() => {
-      s++;
-      setLoadStep(s);
-      if (s >= AUDIT_STEPS.length - 1) clearInterval(iv);
-    }, 9000);
-    return iv;
-  };
-
-  const saveAndReturn = async (auditData) => {
-    if (userId) {
-      // Fire-and-forget — don't block the UI on DB write
-      fetch('/api/audits/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
-        body: JSON.stringify({ result: auditData }),
-      }).catch(err => console.warn('[V2] Save failed (non-fatal):', err.message));
-    }
-    trackEvent('first_audit_saved', {
-      has_user: Boolean(userId),
-      recommendation: auditData?.verdict?.recommendation || 'UNKNOWN',
-    });
-    onAuditComplete(auditData);
-    onClose();
-  };
-
-  const handleUrl = async (e) => {
-    e.preventDefault();
-    if (!url.trim()) return;
-    trackEvent('audit_run_started', { input_mode: 'url' });
-    setLoading(true); setLoadStep(0); setError(''); setErrorHint('');
-    const iv = startStepTimer();
-    try {
-      const res = await fetch('/api/analyze-link', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(userId && { 'x-user-id': userId }),
-          ...(userEmail && { 'x-user-email': userEmail }),
-        },
-        body: JSON.stringify({ url: url.trim() })
-      });
-      if (!res.ok) {
-        if (handleServerError(res.status)) return;
-        const body = await res.json().catch(() => ({}));
-        if (body.hint) setErrorHint(body.hint);
-        if (body.canRetryWithText) setMode('text');
-        throw new Error(body.error || `Error ${res.status}`);
-      }
-      await saveAndReturn(await res.json());
-    } catch (err) {
-      if (err.name === 'TypeError') { handleServerError(0); return; } // network failure
-      setError(err.message || 'Audit failed. Check the URL and try again.');
-    } finally {
-      clearInterval(iv); setLoading(false);
-    }
-  };
-
-  const handleText = async (e) => {
-    e.preventDefault();
-    if (rfpText.trim().length < 200) {
-      setError('Paste at least 200 characters of RFP text.');
-      return;
-    }
-    trackEvent('audit_run_started', { input_mode: 'text' });
-    setLoading(true); setLoadStep(0); setError('');
-    const iv = startStepTimer();
-    try {
-      const res = await fetch('/api/analyze-text', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(userId && { 'x-user-id': userId }),
-          ...(userEmail && { 'x-user-email': userEmail }),
-        },
-        body: JSON.stringify({ text: rfpText.trim() })
-      });
-      if (!res.ok) {
-        if (handleServerError(res.status)) return;
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || `Error ${res.status}`);
-      }
-      await saveAndReturn(await res.json());
-    } catch (err) {
-      if (err.name === 'TypeError') { handleServerError(0); return; }
-      setError(err.message || 'Audit failed. Try again or check the pasted text.');
-    } finally {
-      clearInterval(iv); setLoading(false);
-    }
-  };
-
-  const handlePdf = async (e) => {
-    e.preventDefault();
-    if (!pdfFile) return;
-    trackEvent('audit_run_started', { input_mode: 'pdf' });
-    setLoading(true); setLoadStep(0); setError('');
-    const iv = startStepTimer();
-    try {
-      const formData = new FormData();
-      formData.append('file', pdfFile);
-      const headers = {};
-      if (userEmail) headers['x-user-email'] = userEmail;
-      if (userId) headers['x-user-id'] = userId;
-      const res = await fetch('/api/analyze-pdf', { method: 'POST', headers, body: formData });
-      if (res.ok) {
-        const data = await res.json().catch(() => ({}));
-        if (data.queued) { setQueued(true); return; }
-        await saveAndReturn(data);
-      } else {
-        if (handleServerError(res.status)) return;
-        setQueued(true);
-      }
-    } catch {
-      handleServerError(0); // network failure
-    } finally {
-      clearInterval(iv); setLoading(false);
-    }
-  };
-
-  const canSubmit = mode === 'url' ? url.trim().length > 10
-    : mode === 'pdf' ? !!pdfFile
-    : rfpText.trim().length >= 200;
-
-  return (
-    <div style={{
-      position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.65)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      zIndex: 1000, backdropFilter: 'blur(4px)'
-    }}>
-      <div style={{
-        background: '#fff', borderRadius: '16px', padding: '32px',
-        width: '100%', maxWidth: '560px', boxShadow: '0 24px 64px rgba(0,0,0,0.22)',
-        position: 'relative', overflow: 'hidden'
-      }}>
-        {loading && <AuditLoadingOverlay step={loadStep} />}
-
-        <button onClick={onClose} disabled={loading} style={{
-          position: 'absolute', top: '16px', right: '16px',
-          background: 'none', border: 'none', cursor: 'pointer',
-          color: '#94a3b8', fontSize: '22px', lineHeight: 1
-        }}>×</button>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-          <Shield size={20} color="#002244" />
-          <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-            New Intelligence Audit
-          </h2>
-        </div>
-
-        {/* Queued success screen */}
-        {queued && (
-          <div style={{ textAlign: 'center', padding: '24px 0' }}>
-            <div style={{
-              width: '56px', height: '56px', borderRadius: '50%',
-              background: '#f0fdf4', border: '2px solid #bbf7d0',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              margin: '0 auto 20px'
+          {docs.map((d, i) => (
+            <div key={i} style={{
+              display: 'flex', alignItems: 'center', gap: 8, padding: '7px 8px',
+              borderRadius: 6, marginBottom: 2,
+              background: i === 0 ? C.surfaceHi : 'transparent',
+              border: `1px solid ${i === 0 ? C.borderHi : 'transparent'}`,
             }}>
-              <svg width="24" height="24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-            </div>
-            <h3 style={{ fontSize: '17px', fontWeight: 800, color: '#0f172a', margin: '0 0 10px' }}>
-              Processing Initiated
-            </h3>
-            <p style={{ fontSize: '14px', color: '#475569', lineHeight: 1.6, margin: '0 0 8px' }}>
-              Your RFP report will be emailed to you shortly.
-            </p>
-            <p style={{ fontSize: '12px', color: '#94a3b8', margin: '0 0 28px' }}>
-              Our team reviews every report before delivery. Typical turnaround: 1–2 hours.
-            </p>
-            <button onClick={onClose} style={{
-              padding: '11px 28px', background: '#002244', color: '#fff',
-              border: 'none', borderRadius: '10px', fontWeight: 700,
-              fontSize: '13px', cursor: 'pointer'
-            }}>Done</button>
-          </div>
-        )}
-
-        {/* Mode toggle + forms — hidden when queued */}
-        {!queued && <>
-        <div style={{
-          display: 'flex', gap: '4px', background: '#f1f5f9',
-          borderRadius: '10px', padding: '4px', marginBottom: '20px'
-        }}>
-          {[
-            { id: 'url', label: 'SAM.gov URL' },
-            { id: 'text', label: 'Paste Text' },
-            { id: 'pdf', label: 'Upload PDF' },
-          ].map(m => (
-            <button key={m.id} onClick={() => { setMode(m.id); setError(''); }}
-              style={{
-                flex: 1, padding: '8px 10px', fontSize: '12px', fontWeight: 700,
-                borderRadius: '7px', border: 'none', cursor: 'pointer',
-                background: mode === m.id ? '#fff' : 'transparent',
-                color: mode === m.id ? '#0f172a' : '#64748b',
-                boxShadow: mode === m.id ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
-                transition: 'all 0.15s'
-              }}
-            >{m.label}</button>
-          ))}
-        </div>
-
-        {mode === 'url' ? (
-          <form onSubmit={handleUrl}>
-            <label style={{ fontSize: '12px', fontWeight: 700, color: '#374151', display: 'block', marginBottom: '6px' }}>
-              SAM.gov Opportunity URL
-            </label>
-            <input
-              type="text" value={url} onChange={e => setUrl(e.target.value)}
-              placeholder="https://sam.gov/opp/..."
-              disabled={loading}
-              style={{
-                width: '100%', padding: '11px 14px', fontSize: '13px',
-                border: '1px solid #e2e8f0', borderRadius: '8px',
-                outline: 'none', color: '#0f172a', background: '#f8fafc',
-                boxSizing: 'border-box', marginBottom: '8px'
-              }}
-              onFocus={e => e.target.style.borderColor = '#002244'}
-              onBlur={e => e.target.style.borderColor = '#e2e8f0'}
-            />
-            <p style={{ fontSize: '11px', color: '#94a3b8', margin: '0 0 20px 0' }}>
-              Paste any SAM.gov opportunity URL — BidSmith extracts the full solicitation automatically.
-            </p>
-            {error && <ErrorBox msg={error} hint={errorHint} />}
-            <SubmitBtn loading={loading} disabled={!canSubmit} />
-          </form>
-        ) : mode === 'text' ? (
-          <form onSubmit={handleText}>
-            <label style={{ fontSize: '12px', fontWeight: 700, color: '#374151', display: 'block', marginBottom: '6px' }}>
-              RFP / Solicitation Text
-            </label>
-            <textarea
-              value={rfpText} onChange={e => setRfpText(e.target.value)}
-              placeholder="Paste the full solicitation text here — Section L, Section M, PWS, or the full document..."
-              disabled={loading} rows={8}
-              style={{
-                width: '100%', padding: '11px 14px', fontSize: '12px',
-                border: '1px solid #e2e8f0', borderRadius: '8px',
-                outline: 'none', color: '#0f172a', background: '#f8fafc',
-                boxSizing: 'border-box', resize: 'vertical', lineHeight: 1.5,
-                marginBottom: '8px', fontFamily: 'inherit'
-              }}
-              onFocus={e => e.target.style.borderColor = '#002244'}
-              onBlur={e => e.target.style.borderColor = '#e2e8f0'}
-            />
-            <p style={{ fontSize: '11px', color: '#94a3b8', margin: '0 0 20px 0' }}>
-              {rfpText.length} chars — {rfpText.length < 200 ? `need at least ${200 - rfpText.length} more` : 'ready to audit'}
-            </p>
-            {error && <ErrorBox msg={error} hint={errorHint} />}
-            <SubmitBtn loading={loading} disabled={!canSubmit} />
-          </form>
-        ) : (
-          <form onSubmit={handlePdf}>
-            <label style={{ fontSize: '12px', fontWeight: 700, color: '#374151', display: 'block', marginBottom: '6px' }}>
-              RFP Document (PDF)
-            </label>
-            <div
-              onClick={() => document.getElementById('pdf-upload-input').click()}
-              style={{
-                border: `2px dashed ${pdfFile ? '#002244' : '#e2e8f0'}`,
-                borderRadius: '10px', padding: '28px 20px', textAlign: 'center',
-                cursor: 'pointer', background: pdfFile ? '#f0f4ff' : '#f8fafc',
-                marginBottom: '8px', transition: 'all 0.15s'
-              }}
-            >
-              <input
-                id="pdf-upload-input" type="file" accept="application/pdf"
-                style={{ display: 'none' }}
-                onChange={e => { setPdfFile(e.target.files[0] || null); setError(''); }}
-              />
-              {pdfFile ? (
-                <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: '#002244' }}>
-                  ✓ {pdfFile.name}
-                </p>
-              ) : (
-                <>
-                  <p style={{ margin: '0 0 4px', fontSize: '13px', fontWeight: 600, color: '#475569' }}>
-                    Click to browse or drag & drop
-                  </p>
-                  <p style={{ margin: 0, fontSize: '11px', color: '#94a3b8' }}>PDF only · Max 20MB</p>
-                </>
+              <d.icon size={13} color={i === 0 ? C.accent : C.textDim} />
+              <span style={{ fontSize: 12, color: i === 0 ? C.text : C.textMuted, fontWeight: i === 0 ? 600 : 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                {d.name}
+              </span>
+              {d.type === 'solicitation' && (
+                <span style={{ fontSize: 9, fontWeight: 800, color: C.accent, background: 'rgba(59,130,246,0.15)', padding: '2px 5px', borderRadius: 4 }}>
+                  ACTIVE
+                </span>
               )}
             </div>
-            <p style={{ fontSize: '11px', color: '#94a3b8', margin: '0 0 20px 0' }}>
-              Our team will process your RFP and email the compliance report within 1–2 hours.
-            </p>
-            {error && <ErrorBox msg={error} hint={errorHint} />}
-            <SubmitBtn loading={loading} disabled={!canSubmit} />
-          </form>
-        )}
-        </>}
+          ))}
+        </div>
+      )}
 
-        <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+      {/* History */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '0 12px 12px' }}>
+        <div style={{ fontSize: 10, fontWeight: 800, color: C.textDim, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6, padding: '8px 4px 4px' }}>
+          Audit History
+        </div>
+        {history.length === 0 ? (
+          <div style={{ padding: '12px 4px', fontSize: 12, color: C.textDim, lineHeight: 1.6 }}>
+            No prior audits. Run your first audit to build your pipeline.
+          </div>
+        ) : history.map(item => (
+          <button key={item.id} onClick={() => onSelectAudit(item.id)} style={{
+            width: '100%', textAlign: 'left', padding: '9px 8px', borderRadius: 6,
+            marginBottom: 2, cursor: 'pointer', border: 'none',
+            background: activeAudit?.id === item.id ? C.surfaceHi : 'transparent',
+            transition: 'background 0.1s',
+          }}
+          onMouseEnter={e => { if (activeAudit?.id !== item.id) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+          onMouseLeave={e => { if (activeAudit?.id !== item.id) e.currentTarget.style.background = 'transparent'; }}
+          >
+            <div style={{ fontSize: 12, fontWeight: 600, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 3 }}>
+              {item.title || item.solicitation_number || 'Untitled'}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 10, fontWeight: 800, color: verdictColor(item.verdict?.recommendation || item.verdict) }}>
+                {(item.verdict?.recommendation || item.verdict || 'PENDING').toUpperCase()}
+              </span>
+              <span style={{ fontSize: 10, color: C.textDim }}>·</span>
+              <span style={{ fontSize: 10, color: C.textDim }}>{timeAgo(item.created_at)}</span>
+            </div>
+          </button>
+        ))}
       </div>
-    </div>
+
+      {/* User footer */}
+      <div style={{ padding: '12px', borderTop: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: 12, color: C.textMuted, fontWeight: 600 }}>
+          {user?.email?.split('@')[0] || 'User'}
+        </span>
+        <button onClick={onLogout} style={{ background: 'none', border: 'none', color: C.textDim, cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center' }}>
+          <LogOut size={14} />
+        </button>
+      </div>
+    </aside>
   );
 }
 
-function ErrorBox({ msg, hint }) {
+// ─── Right Sidebar — Agent Thinking ──────────────────────────────────────────
+function AgentThinkingPanel({ steps, isRunning }) {
   return (
-    <div style={{
-      background: '#fff5f5', border: '1px solid #fca5a5',
-      borderRadius: '8px', padding: '12px 14px',
-      fontSize: '12px', color: '#dc2626', marginBottom: '16px', lineHeight: 1.6
+    <aside style={{
+      width: 300, flexShrink: 0, display: 'flex', flexDirection: 'column',
+      background: C.surface, borderLeft: `1px solid ${C.border}`,
+      overflow: 'hidden',
     }}>
-      <div style={{ fontWeight: 700, marginBottom: hint ? '6px' : 0 }}>{msg}</div>
-      {hint && (
-        <div style={{ color: '#7c3aed', fontWeight: 600, background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: '6px', padding: '6px 10px', marginTop: '6px' }}>
-          {hint}
+      <div style={{ padding: '16px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <Brain size={15} color={C.accent} />
+        <span style={{ fontSize: 12, fontWeight: 800, color: C.text, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+          Agent Thinking
+        </span>
+        {isRunning && (
+          <div style={{ marginLeft: 'auto', width: 7, height: 7, borderRadius: '50%', background: C.green, animation: 'pulse 1.2s infinite' }} />
+        )}
+      </div>
+
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
+        {steps.length === 0 ? (
+          <div style={{ padding: '24px 4px' }}>
+            {/* Idle AI presence */}
+            <div style={{ textAlign: 'center', marginBottom: 28 }}>
+              <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'radial-gradient(circle at 35% 35%, rgba(99,130,255,0.2), rgba(59,130,246,0.05))', border: `1px solid rgba(99,130,255,0.25)`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', boxShadow: '0 0 20px rgba(59,130,246,0.1)' }}>
+                <Brain size={20} color={C.accent} />
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 800, color: C.textDim, letterSpacing: '0.1em', marginBottom: 4 }}>BIDSMITH ENGINE READY</div>
+              <div style={{ fontSize: 11, color: C.textDim, lineHeight: 1.6 }}>Awaiting solicitation input</div>
+            </div>
+            {/* What the AI does */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {[
+                { n: '01', title: 'Reads every clause', desc: 'Parses FAR/DFARS, Section L/M/H, attachments, amendments' },
+                { n: '02', title: 'Maps requirements', desc: 'Extracts explicit + implied compliance requirements with source citations' },
+                { n: '03', title: 'Scores risks', desc: 'Flags disqualifiers, hidden requirements, and timeline pressure' },
+                { n: '04', title: 'Returns a verdict', desc: 'Bid/No-Bid with win probability, rationale, and confidence level' },
+              ].map(({ n, title, desc }) => (
+                <div key={n} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                  <span style={{ fontFamily: 'monospace', fontSize: 9, fontWeight: 800, color: C.accent, opacity: 0.6, marginTop: 2, flexShrink: 0 }}>{n}</span>
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: C.textMuted, marginBottom: 2 }}>{title}</div>
+                    <div style={{ fontSize: 11, color: C.textDim, lineHeight: 1.5 }}>{desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ marginTop: 24, padding: '10px 12px', background: 'rgba(59,130,246,0.05)', border: `1px solid rgba(59,130,246,0.15)`, borderRadius: 8, fontSize: 10, color: C.textDim, lineHeight: 1.6 }}>
+              <span style={{ fontWeight: 700, color: C.accent }}>90 seconds</span> from URL to full compliance matrix. No manual reading.
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {steps.map((step) => (
+              <div key={step.id} style={{
+                display: 'flex', gap: 10, alignItems: 'flex-start',
+                opacity: step.status === 'pending' ? 0.35 : 1,
+                transition: 'opacity 0.3s',
+              }}>
+                <div style={{ width: 20, height: 20, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 1,
+                  background: step.status === 'done' ? 'rgba(34,197,94,0.2)' : step.status === 'active' ? 'rgba(59,130,246,0.2)' : C.surfaceHi,
+                  border: `1px solid ${step.status === 'done' ? C.green : step.status === 'active' ? C.accent : C.border}`,
+                }}>
+                  {step.status === 'done' && <Check size={11} color={C.green} />}
+                  {step.status === 'active' && <Loader2 size={11} color={C.accent} style={{ animation: 'spin 1s linear infinite' }} />}
+                  {step.status === 'pending' && <div style={{ width: 5, height: 5, borderRadius: '50%', background: C.textDim }} />}
+                </div>
+                <div>
+                  <div style={{ fontSize: 12, color: step.status === 'done' ? C.text : step.status === 'active' ? C.accentHi : C.textMuted, fontWeight: step.status === 'active' ? 600 : 400, lineHeight: 1.4 }}>
+                    {step.label}
+                  </div>
+                  {step.status === 'active' && (
+                    <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>Processing...</div>
+                  )}
+                  {step.status === 'done' && step.detail && (
+                    <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>{step.detail}</div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Model tag */}
+      <div style={{ padding: '10px 16px', borderTop: `1px solid ${C.border}` }}>
+        <div style={{ fontSize: 10, color: C.textDim, fontFamily: 'monospace' }}>
+          MODEL: BIDSMITH AUDIT ENGINE v2
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+// ─── Confidence badge ─────────────────────────────────────────────────────────
+function ConfidenceBadge({ level }) {
+  if (!level) return null;
+  const map = {
+    HIGH:   { color: '#22c55e', bg: 'rgba(34,197,94,0.12)',  label: 'HIGH CONFIDENCE' },
+    MEDIUM: { color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', label: 'MED CONFIDENCE'  },
+    LOW:    { color: '#ef4444', bg: 'rgba(239,68,68,0.12)',  label: 'LOW CONFIDENCE'  },
+  };
+  const s = map[level.toUpperCase()] || map.MEDIUM;
+  return (
+    <span style={{ fontSize: 9, fontWeight: 800, color: s.color, background: s.bg, padding: '2px 7px', borderRadius: 4, letterSpacing: '0.08em', border: `1px solid ${s.color}33` }}>
+      {s.label}
+    </span>
+  );
+}
+
+// ─── Source citation tag ──────────────────────────────────────────────────────
+function SourceTag({ section, excerpt, auditMode }) {
+  const [open, setOpen] = useState(false);
+  if (!section) return null;
+  return (
+    <div style={{ marginTop: 4 }}>
+      <button
+        onClick={() => setOpen(v => !v)}
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 9, fontWeight: 700, color: C.accent, background: 'rgba(59,130,246,0.1)', border: `1px solid rgba(59,130,246,0.25)`, borderRadius: 4, padding: '2px 7px', cursor: 'pointer', fontFamily: 'monospace', letterSpacing: '0.04em' }}
+      >
+        <BookOpen size={9} /> § {section}
+        {excerpt && <ChevronDown size={9} style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />}
+      </button>
+      {open && excerpt && (
+        <div style={{ marginTop: 6, padding: '8px 10px', background: 'rgba(59,130,246,0.06)', border: `1px solid rgba(59,130,246,0.15)`, borderRadius: 6, borderLeft: `2px solid ${C.accent}` }}>
+          <div style={{ fontSize: 9, fontWeight: 800, color: C.textDim, letterSpacing: '0.08em', marginBottom: 4 }}>SOURCE EXCERPT</div>
+          <p style={{ fontSize: 11, color: C.textMuted, lineHeight: 1.6, margin: 0, fontStyle: 'italic' }}>"{excerpt}"</p>
         </div>
       )}
     </div>
   );
 }
 
-function SubmitBtn({ loading, disabled }) {
+// ─── Needs-review badge (Audit Mode) ─────────────────────────────────────────
+function NeedsReviewBadge() {
   return (
-    <button type="submit" disabled={disabled || loading} style={{
-      width: '100%', padding: '13px',
-      background: disabled || loading ? '#94a3b8' : '#002244',
-      color: 'white', border: 'none', borderRadius: '10px',
-      fontWeight: 800, fontSize: '14px',
-      cursor: disabled || loading ? 'not-allowed' : 'pointer',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-      transition: 'background 0.15s', letterSpacing: '0.01em'
-    }}>
-      <Zap size={15} />
-      Run Intelligence Audit
-    </button>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 9, fontWeight: 800, color: '#f59e0b', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 4, padding: '2px 7px', letterSpacing: '0.06em' }}>
+      <AlertTriangle size={8} /> VERIFY
+    </span>
   );
 }
 
-// ─── Tab definitions ───────────────────────────────────────────────────────────
-
-const TABS = [
-  { id: 'chat', label: 'Audit Copilot', icon: BarChart2 },
-  { id: 'intelligence', label: 'Intelligence Brief', icon: Eye },
-  { id: 'compliance', label: 'Compliance Matrix', icon: Layers },
-  { id: 'forge', label: 'Proposal Forge', icon: Zap },
-];
-
-// ─── Main V2 Dashboard ─────────────────────────────────────────────────────────
-
-export default function GovConDashboardV2({ onBack, user }) {
-  const { signOut } = useClerk();
-  const [activeTab, setActiveTab] = useState('intelligence');
-  const [pipeline, setPipeline] = useState([]);
-  const [activeAudit, setActiveAudit] = useState(DEMO_AUDIT_DATA);
-  const [showNewAudit, setShowNewAudit] = useState(false);
-  const [serverError, setServerError] = useState(false);
-
-  useEffect(() => {
-    document.documentElement.style.setProperty('--background', '#f1f5f9');
-    document.documentElement.style.setProperty('--card', '#ffffff');
-    document.documentElement.style.setProperty('--border', '#e2e8f0');
-    document.documentElement.style.setProperty('--text-primary', '#0f172a');
-    document.documentElement.style.setProperty('--text-secondary', '#475569');
-    document.documentElement.style.setProperty('--accent', '#002244');
-
-    if (user?.id) loadPipeline(user.id);
-  }, [user?.id]);
-
-  const loadPipeline = async (userId) => {
-    try {
-      const res = await fetch('/api/audits/history?limit=20', {
-        headers: { 'x-user-id': userId },
-      });
-      if (!res.ok) return;
-      const { audits } = await res.json();
-      // Normalize verdict field (API returns flat text, PipelineItem expects object)
-      const normalized = (audits || []).map(a => ({
-        ...a,
-        verdict: { recommendation: a.verdict, win_probability: a.win_probability || 0 },
-      }));
-      setPipeline(normalized);
-      trackEvent('audit_history_loaded', { count: normalized.length });
-      // Auto-load most recent audit instead of showing demo data
-      if (normalized.length > 0) loadAuditDetail(normalized[0].id);
-    } catch (err) {
-      // Network error — fail silently, show empty state
-    }
-  };
-
-  const loadAuditDetail = async (id) => {
-    try {
-      const res = await fetch(`/api/audits/${id}`, {
-        headers: { 'x-user-id': user?.id },
-      });
-      if (!res.ok) return;
-      const data = await res.json();
-      if (data?.result) {
-        setActiveAudit(data.result);
-        trackEvent('audit_history_opened', { audit_id: id });
-      }
-    } catch (err) {
-      console.warn('[V2] Could not load audit detail');
-    }
-  };
-
-  const handleLogout = () => {
-    signOut(() => { window.location.href = '/'; });
-  };
-
-  const handleAuditComplete = (auditData) => {
-    setActiveAudit(auditData);
-    trackEvent('audit_completed_saved', {
-      recommendation: auditData?.verdict?.recommendation || 'UNKNOWN',
-      has_requirements: Array.isArray(auditData?.requirements),
-    });
-    if (user?.id) loadPipeline(user.id);
-  };
-
-  if (serverError) return <HighLoadNotice />;
+// ─── Inline result cards ──────────────────────────────────────────────────────
+function VerdictCard({ audit, auditMode }) {
+  const rec = audit?.verdict?.recommendation || 'REVIEW';
+  const prob = audit?.verdict?.win_probability;
+  const conf = audit?.verdict?.confidence;
+  const color = verdictColor(rec);
+  const isLowConf = conf === 'LOW' || conf === 'MEDIUM';
 
   return (
     <div style={{
-      display: 'flex', flexDirection: 'column', height: '100vh',
-      background: '#f1f5f9', color: '#0f172a',
-      fontFamily: "'Inter', system-ui, sans-serif"
+      background: C.surfaceHi,
+      border: `1px solid ${auditMode && isLowConf ? 'rgba(245,158,11,0.4)' : C.border}`,
+      borderLeft: `3px solid ${auditMode && isLowConf ? '#f59e0b' : color}`,
+      borderRadius: 10, padding: '16px 18px', maxWidth: 480,
+      background: auditMode && isLowConf ? 'rgba(245,158,11,0.05)' : C.surfaceHi,
     }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+        <span style={{ fontSize: 10, fontWeight: 800, color: C.textDim, letterSpacing: '0.1em' }}>BID / NO-BID VERDICT</span>
+        <ConfidenceBadge level={conf} />
+        {auditMode && isLowConf && <NeedsReviewBadge />}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 10 }}>
+        <span style={{ fontSize: 28, fontWeight: 900, color }}>{rec.toUpperCase()}</span>
+        {prob != null && (
+          <div>
+            <div style={{ fontSize: 10, color: C.textDim, fontWeight: 600 }}>WIN PROBABILITY</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color }}>{prob}%</div>
+          </div>
+        )}
+      </div>
+      {audit?.verdict?.summary && (
+        <p style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.6, margin: 0 }}>{audit.verdict.summary}</p>
+      )}
+      {auditMode && isLowConf && (
+        <div style={{ marginTop: 10, padding: '8px 10px', background: 'rgba(245,158,11,0.08)', borderRadius: 6, border: '1px solid rgba(245,158,11,0.2)', fontSize: 11, color: '#f59e0b', lineHeight: 1.5 }}>
+          AI confidence is {(conf || 'MEDIUM').toLowerCase()} on this verdict. Review the rationale and validate against Section M evaluation criteria before committing.
+        </div>
+      )}
+    </div>
+  );
+}
 
-      {/* Top bar */}
-      <header style={{
-        height: '60px', background: '#fff',
-        borderBottom: '2px solid #e2e8f0',
-        display: 'flex', alignItems: 'center',
-        padding: '0 24px', gap: '24px', zIndex: 100,
-        boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-      }}>
-        <div
-          onClick={onBack}
-          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px' }}
-        >
-          <Shield size={22} color="#002244" />
-          <span style={{
-            fontSize: '20px', fontWeight: 900, color: '#0B3D91',
-            letterSpacing: '0.05em', fontFamily: "'Playfair Display', serif",
-            textTransform: 'uppercase'
-          }}>
-            BIDSMITH
-          </span>
-          <span style={{
-            fontSize: '10px', fontWeight: 700, color: '#7c3aed',
-            background: '#f3e8ff', padding: '2px 8px', borderRadius: '20px',
-            border: '1px solid #e9d5ff'
-          }}>
-            v2
+function RiskCard({ audit, auditMode }) {
+  const risks = (audit?.intelligence?.top_risks || []).slice(0, 4);
+  const highReqs = (audit?.requirements || []).filter(r => r.risk === 'HIGH' || r.is_disqualifier).slice(0, 4);
+  const items = risks.length > 0 ? risks : highReqs;
+  if (items.length === 0) return null;
+  return (
+    <div style={{ background: C.surfaceHi, border: `1px solid ${C.border}`, borderRadius: 10, padding: '16px 18px', maxWidth: 480 }}>
+      <div style={{ fontSize: 10, fontWeight: 800, color: C.textDim, letterSpacing: '0.1em', marginBottom: 10 }}>TOP RISK FLAGS</div>
+      {items.map((r, i) => (
+        <div key={i} style={{ display: 'flex', gap: 9, alignItems: 'flex-start', marginBottom: 8 }}>
+          <AlertTriangle size={13} color={C.red} style={{ marginTop: 2, flexShrink: 0 }} />
+          <span style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.5 }}>
+            {r.risk || r.requirement || r.description || JSON.stringify(r)}
           </span>
         </div>
+      ))}
+    </div>
+  );
+}
 
-        <div style={{ width: '1px', height: '24px', background: '#e2e8f0' }} />
+function ComplianceCard({ audit, auditMode }) {
+  const reqs = (audit?.requirements || []).slice(0, 5);
+  if (reqs.length === 0) return null;
 
-        {/* Tab nav */}
-        <div style={{ display: 'flex', gap: '4px' }}>
-          {TABS.map(tab => {
-            const Icon = tab.icon;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '7px',
-                  padding: '7px 14px',
-                  background: activeTab === tab.id ? '#f1f5f9' : 'transparent',
-                  border: '1px solid ' + (activeTab === tab.id ? '#e2e8f0' : 'transparent'),
-                  borderRadius: '8px',
-                  color: activeTab === tab.id ? '#002244' : '#64748b',
-                  fontWeight: activeTab === tab.id ? 700 : 500,
-                  fontSize: '13px', cursor: 'pointer', transition: 'all 0.15s'
-                }}
+  const needsReview = (r) => auditMode && (r.risk === 'HIGH' || r.is_disqualifier || !r.source_excerpt);
+
+  return (
+    <div style={{ background: C.surfaceHi, border: `1px solid ${C.border}`, borderRadius: 10, padding: '16px 18px', maxWidth: 540 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+        <span style={{ fontSize: 10, fontWeight: 800, color: C.textDim, letterSpacing: '0.1em' }}>COMPLIANCE MATRIX (PREVIEW)</span>
+        {auditMode && (
+          <span style={{ fontSize: 9, fontWeight: 800, color: '#f59e0b', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 4, padding: '2px 6px', letterSpacing: '0.06em' }}>
+            AUDIT MODE
+          </span>
+        )}
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {reqs.map((r, i) => {
+          const flagged = needsReview(r);
+          return (
+            <div key={r.id || i} style={{
+              padding: '10px 12px', borderRadius: 7,
+              background: flagged ? 'rgba(245,158,11,0.06)' : C.surface,
+              border: `1px solid ${flagged ? 'rgba(245,158,11,0.3)' : C.border}`,
+              borderLeft: `3px solid ${flagged ? '#f59e0b' : (r.risk === 'HIGH' || r.is_disqualifier) ? C.red : C.green}`,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                <div style={{ flexShrink: 0, marginTop: 2 }}>
+                  {r.is_disqualifier
+                    ? <AlertTriangle size={12} color={flagged ? '#f59e0b' : C.red} />
+                    : r.risk === 'HIGH'
+                      ? <AlertTriangle size={12} color={flagged ? '#f59e0b' : C.red} />
+                      : <Check size={12} color={C.green} />}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 3 }}>
+                    <span style={{ fontSize: 12, color: C.text, lineHeight: 1.45 }}>{r.requirement}</span>
+                    {flagged && <NeedsReviewBadge />}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 10, color: r.risk === 'HIGH' ? C.red : r.risk === 'MED' ? C.yellow : C.green, fontWeight: 700 }}>{r.risk}</span>
+                    {r.is_disqualifier && <span style={{ fontSize: 9, color: C.red, fontWeight: 800, background: 'rgba(239,68,68,0.1)', padding: '1px 5px', borderRadius: 3 }}>DISQUALIFIER</span>}
+                    <SourceTag section={r.section} excerpt={r.source_excerpt} auditMode={auditMode} />
+                  </div>
+                  {r.action_required && (
+                    <div style={{ fontSize: 11, color: C.textDim, marginTop: 4, lineHeight: 1.5 }}>
+                      → {r.action_required}
+                    </div>
+                  )}
+                  {flagged && !r.source_excerpt && (
+                    <div style={{ fontSize: 10, color: '#f59e0b', marginTop: 4, fontStyle: 'italic' }}>
+                      No source excerpt — AI inferred this requirement. Verify manually against original RFP.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {(audit?.requirements || []).length > 5 && (
+        <div style={{ fontSize: 11, color: C.textDim, marginTop: 8, textAlign: 'center' }}>
+          +{audit.requirements.length - 5} more requirements in full audit
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Message bubble ───────────────────────────────────────────────────────────
+function MessageBubble({ msg, auditMode }) {
+  const isUser = msg.role === 'user';
+  return (
+    <div style={{ display: 'flex', gap: 12, justifyContent: isUser ? 'flex-end' : 'flex-start', marginBottom: 20, alignItems: 'flex-start' }}>
+      {!isUser && (
+        <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(59,130,246,0.2)', border: `1px solid ${C.accent}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Shield size={14} color={C.accent} />
+        </div>
+      )}
+      <div style={{ maxWidth: '75%', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {msg.type === 'audit_result' ? (
+          <>
+            <VerdictCard audit={msg.audit} auditMode={auditMode} />
+            <RiskCard audit={msg.audit} auditMode={auditMode} />
+            <ComplianceCard audit={msg.audit} auditMode={auditMode} />
+          </>
+        ) : msg.type === 'external_docs' ? (
+          <div style={{ background: C.surfaceHi, border: `1px solid rgba(245,158,11,0.35)`, borderLeft: `3px solid #f59e0b`, borderRadius: 10, padding: '16px 18px', maxWidth: 480 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <ExternalLink size={14} color="#f59e0b" />
+              <span style={{ fontSize: 11, fontWeight: 800, color: '#f59e0b', letterSpacing: '0.08em' }}>DOCUMENTS HOSTED EXTERNALLY</span>
+            </div>
+            <p style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.65, margin: '0 0 14px' }}>
+              This solicitation's documents aren't stored on SAM.gov — they're on an external portal. Download the PDF from the link below and upload it here.
+            </p>
+            {(msg.externalLinks || []).map((link, i) => (
+              <a key={i} href={link} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 12px', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 7, color: '#f59e0b', fontSize: 12, fontWeight: 600, textDecoration: 'none', marginBottom: 6 }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(245,158,11,0.15)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(245,158,11,0.08)'}
               >
-                <Icon size={15} />
-                {tab.label}
-              </button>
-            );
-          })}
+                <ExternalLink size={12} /> {link}
+              </a>
+            ))}
+            <div style={{ marginTop: 10, fontSize: 11, color: C.textDim }}>
+              After downloading, use the <strong style={{ color: C.text }}>PDF</strong> button in the chat input to upload and audit it.
+            </div>
+          </div>
+        ) : (
+          <div style={{
+            background: isUser ? C.accent : C.surfaceHi,
+            color: isUser ? '#fff' : C.text,
+            padding: '12px 16px', borderRadius: isUser ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+            fontSize: 14, lineHeight: 1.65,
+            border: isUser ? 'none' : `1px solid ${C.border}`,
+          }}>
+            {msg.role === 'assistant'
+              ? <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ p: ({children}) => <p style={{margin: '0 0 8px'}}>{children}</p>, ul: ({children}) => <ul style={{margin: '0 0 8px', paddingLeft: 20}}>{children}</ul>, li: ({children}) => <li style={{marginBottom: 4}}>{children}</li> }}>{msg.content}</ReactMarkdown>
+              : <span style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</span>
+            }
+          </div>
+        )}
+        {msg.timestamp && (
+          <div style={{ fontSize: 10, color: C.textDim, paddingLeft: isUser ? 0 : 4, textAlign: isUser ? 'right' : 'left' }}>
+            {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </div>
+        )}
+      </div>
+      {isUser && (
+        <div style={{ width: 30, height: 30, borderRadius: '50%', background: C.surfaceHi, border: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 12, fontWeight: 700, color: C.textMuted, flexShrink: 0 }}>
+          {String.fromCodePoint(0x1F464)}
         </div>
+      )}
+    </div>
+  );
+}
 
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>
-            {user?.email?.split('@')[0].toUpperCase() || 'DEMO'}
-          </span>
+// ─── Empty state / New audit input ───────────────────────────────────────────
+const CAPABILITY_CARDS = [
+  { icon: Link2,    label: 'Audit a SAM.gov URL',        sub: 'Paste any opportunity link',          action: 'url'      },
+  { icon: Upload,   label: 'Review a PDF solicitation',   sub: 'Upload Section L/M/H documents',      action: 'file'     },
+  { icon: Brain,    label: 'Ask a FAR/DFARS question',    sub: 'Compliance, clauses, strategy',       action: 'question' },
+];
+
+const STARTER_PROMPTS = [
+  'What is CMMC Level 2 and do I need it?',
+  'Explain FAR 52.204-21 cybersecurity requirements',
+  'What makes a strong past performance reference?',
+  'How do I win a small business set-aside?',
+];
+
+function EmptyState({ onAuditUrl, onAuditFile, fileRef, onStartChat, userName }) {
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const name = userName ? `, ${userName}` : '';
+
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 24px', textAlign: 'center', minHeight: '100%' }}>
+
+      {/* AI avatar */}
+      <div style={{ position: 'relative', marginBottom: 28 }}>
+        <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'radial-gradient(circle at 35% 35%, rgba(99,130,255,0.25), rgba(59,130,246,0.08))', border: `1px solid rgba(99,130,255,0.35)`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 40px rgba(59,130,246,0.15)' }}>
+          <Shield size={30} color={C.accent} />
+        </div>
+        <div style={{ position: 'absolute', bottom: 2, right: 2, width: 14, height: 14, borderRadius: '50%', background: C.green, border: `2px solid ${C.bg}`, boxShadow: '0 0 8px rgba(34,197,94,0.6)' }} />
+      </div>
+
+      {/* Greeting */}
+      <h2 style={{ fontSize: 24, fontWeight: 800, color: C.text, margin: '0 0 8px', letterSpacing: '-0.02em' }}>
+        {greeting}{name}.
+      </h2>
+      <p style={{ fontSize: 15, color: C.textMuted, lineHeight: 1.7, maxWidth: 420, margin: '0 0 36px' }}>
+        I analyze federal solicitations — every FAR/DFARS clause — and return a bid/no-bid verdict with evidence in 90 seconds.
+      </p>
+
+      {/* Capability cards */}
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 36, maxWidth: 560 }}>
+        {CAPABILITY_CARDS.map(({ icon: Icon, label, sub, action }) => (
           <button
-            onClick={handleLogout}
-            style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }}
+            key={action}
+            onClick={() => {
+              if (action === 'file') fileRef.current?.click();
+              else if (action === 'question') onStartChat?.();
+              else onStartChat?.('url');
+            }}
+            style={{
+              flex: '1 1 150px', maxWidth: 170,
+              padding: '16px 14px', textAlign: 'left',
+              background: C.surfaceHi, border: `1px solid ${C.border}`,
+              borderRadius: 12, cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = C.accent; e.currentTarget.style.background = 'rgba(59,130,246,0.07)'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.background = C.surfaceHi; }}
           >
-            <LogOut size={17} />
+            <Icon size={18} color={C.accent} style={{ marginBottom: 10 }} />
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 4 }}>{label}</div>
+            <div style={{ fontSize: 11, color: C.textDim, lineHeight: 1.5 }}>{sub}</div>
+          </button>
+        ))}
+      </div>
+
+      {/* Starter prompts */}
+      <div style={{ width: '100%', maxWidth: 520 }}>
+        <div style={{ fontSize: 10, fontWeight: 800, color: C.textDim, letterSpacing: '0.1em', marginBottom: 10 }}>TRY ASKING</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {STARTER_PROMPTS.map(q => (
+            <button
+              key={q}
+              onClick={() => onAuditUrl(null, q)}
+              style={{
+                textAlign: 'left', padding: '10px 14px',
+                background: 'transparent', border: `1px solid ${C.border}`,
+                borderRadius: 8, cursor: 'pointer', color: C.textMuted,
+                fontSize: 13, display: 'flex', alignItems: 'center', gap: 10,
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = C.surfaceHi; e.currentTarget.style.color = C.text; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = C.textMuted; }}
+            >
+              <ChevronRight size={13} color={C.textDim} style={{ flexShrink: 0 }} />
+              {q}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Chat Input ───────────────────────────────────────────────────────────────
+function ChatInput({ onSend, onAuditUrl, onAuditFile, fileRef, loading, hasAudit }) {
+  const [text, setText] = useState('');
+  const [focused, setFocused] = useState(false);
+  const textareaRef = useRef(null);
+
+  const isUrl = (s) => s.startsWith('http') || s.includes('sam.gov');
+
+  const handleSend = () => {
+    if (loading || !text.trim()) return;
+    if (isUrl(text.trim())) { onAuditUrl(text.trim()); setText(''); return; }
+    onSend(text.trim());
+    setText('');
+  };
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 160) + 'px';
+    }
+  }, [text]);
+
+  const QUICK = hasAudit
+    ? ['Top disqualifiers?', 'Summarize Section L', 'Draft executive summary', 'Evaluation criteria?']
+    : [];
+
+  const placeholder = hasAudit
+    ? 'Ask anything about this solicitation, or paste a new SAM.gov URL…'
+    : 'Ask a FAR/DFARS question, or paste a SAM.gov URL to audit…';
+
+  return (
+    <div style={{ padding: '8px 20px 20px', background: C.bg }}>
+
+      {/* Quick action chips — only when audit is active */}
+      {QUICK.length > 0 && (
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10, paddingTop: 8 }}>
+          {QUICK.map(q => (
+            <button
+              key={q}
+              onClick={() => onSend(q)}
+              disabled={loading}
+              style={{ fontSize: 11, color: C.textMuted, background: 'rgba(255,255,255,0.04)', border: `1px solid ${C.border}`, borderRadius: 99, padding: '5px 12px', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.15s' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = C.accent; e.currentTarget.style.color = C.accent; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.textMuted; }}
+            >
+              {q}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Unified input box */}
+      <div style={{
+        background: C.surfaceHi,
+        border: `1px solid ${focused ? 'rgba(99,130,255,0.5)' : C.border}`,
+        borderRadius: 14, padding: '14px 14px 10px',
+        boxShadow: focused ? '0 0 0 3px rgba(59,130,246,0.1)' : 'none',
+        transition: 'all 0.2s ease',
+      }}>
+        <textarea
+          ref={textareaRef}
+          value={text}
+          onChange={e => setText(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          placeholder={placeholder}
+          rows={1}
+          style={{
+            width: '100%', background: 'transparent', border: 'none',
+            color: C.text, fontSize: 14, outline: 'none', resize: 'none',
+            fontFamily: 'inherit', lineHeight: 1.6, padding: 0,
+            maxHeight: 160, overflowY: 'auto', boxSizing: 'border-box',
+          }}
+        />
+
+        {/* Bottom row — actions + send */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10, paddingTop: 8, borderTop: `1px solid ${C.border}` }}>
+          <button
+            onClick={() => fileRef.current?.click()}
+            title="Upload PDF solicitation"
+            style={{ background: 'transparent', border: `1px solid ${C.border}`, borderRadius: 7, padding: '5px 8px', cursor: 'pointer', color: C.textDim, display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, transition: 'all 0.15s' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = C.accent; e.currentTarget.style.color = C.accent; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.textDim; }}
+          >
+            <Paperclip size={13} /> PDF
+          </button>
+          <button
+            onClick={() => { const url = window.prompt('Paste SAM.gov URL:'); if (url?.trim()) onAuditUrl(url.trim()); }}
+            title="Audit a SAM.gov URL"
+            style={{ background: 'transparent', border: `1px solid ${C.border}`, borderRadius: 7, padding: '5px 8px', cursor: 'pointer', color: C.textDim, display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, transition: 'all 0.15s' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = C.accent; e.currentTarget.style.color = C.accent; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.textDim; }}
+          >
+            <Link2 size={13} /> SAM.gov
+          </button>
+          <span style={{ flex: 1 }} />
+          <span style={{ fontSize: 10, color: C.textDim, opacity: 0.6 }}>↵ to send</span>
+          <button
+            onClick={handleSend}
+            disabled={loading || !text.trim()}
+            style={{
+              background: loading || !text.trim() ? C.surfaceHi : C.accent,
+              border: `1px solid ${loading || !text.trim() ? C.border : 'transparent'}`,
+              borderRadius: 8, padding: '7px 14px',
+              color: loading || !text.trim() ? C.textDim : '#fff',
+              cursor: loading || !text.trim() ? 'not-allowed' : 'pointer',
+              display: 'flex', alignItems: 'center', gap: 6,
+              fontSize: 12, fontWeight: 700, flexShrink: 0,
+              transition: 'all 0.15s ease',
+            }}
+          >
+            {loading
+              ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />
+              : <Send size={13} />}
+            Send
           </button>
         </div>
-      </header>
+      </div>
+    </div>
+  );
+}
 
-      {/* Main layout */}
+// ─── Main dashboard ───────────────────────────────────────────────────────────
+export default function GovConDashboardV2({ onBack, user }) {
+  const { signOut } = useClerk();
+  const [messages, setMessages] = useState([]);
+  const [history, setHistory] = useState([]);
+  const [activeAudit, setActiveAudit] = useState(null);
+  const [thinkingSteps, setThinkingSteps] = useState([]);
+  const [isAuditing, setIsAuditing] = useState(false);
+  const [isChatLoading, setIsChatLoading] = useState(false);
+  const [auditMode, setAuditMode] = useState(false);
+  const bottomRef = useRef(null);
+  const fileRef = useRef(null);
+  const thinkingTimers = useRef([]);
+
+  // Dark body background
+  useEffect(() => {
+    document.body.style.background = C.bg;
+    return () => { document.body.style.background = ''; };
+  }, []);
+
+  // Load history on mount
+  useEffect(() => {
+    if (user?.id) loadHistory();
+  }, [user?.id]);
+
+  // Scroll to bottom on new messages
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, isChatLoading]);
+
+  const loadHistory = async () => {
+    try {
+      const res = await fetch('/api/audits?limit=30', { headers: { 'x-user-id': user.id } });
+      if (!res.ok) return;
+      const { audits } = await res.json();
+      const normalized = (audits || []).map(a => ({
+        ...a,
+        verdict: typeof a.verdict === 'string'
+          ? { recommendation: a.verdict, win_probability: a.win_probability || 0 }
+          : (a.verdict || {}),
+      }));
+      setHistory(normalized);
+    } catch { /* silent */ }
+  };
+
+  const addMessage = (msg) => {
+    setMessages(prev => [...prev, { ...msg, id: Date.now() + Math.random(), timestamp: new Date().toISOString() }]);
+  };
+
+  // ── Start thinking animation ─────────────────────────────────────────────
+  const startThinking = () => {
+    thinkingTimers.current.forEach(clearTimeout);
+    thinkingTimers.current = [];
+    const initial = THINKING_STEPS.map(s => ({ ...s, status: 'pending' }));
+    setThinkingSteps(initial);
+
+    THINKING_STEPS.forEach((step, idx) => {
+      const activateTimer = setTimeout(() => {
+        setThinkingSteps(prev => prev.map(s => s.id === step.id ? { ...s, status: 'active' } : s));
+      }, step.ms);
+
+      const doneTimer = setTimeout(() => {
+        setThinkingSteps(prev => prev.map(s => s.id === step.id ? { ...s, status: 'done' } : s));
+      }, step.ms + 1600);
+
+      thinkingTimers.current.push(activateTimer, doneTimer);
+    });
+  };
+
+  const finishThinking = () => {
+    thinkingTimers.current.forEach(clearTimeout);
+    setThinkingSteps(THINKING_STEPS.map(s => ({ ...s, status: 'done' })));
+  };
+
+  // ── Run audit from URL ───────────────────────────────────────────────────
+  const runAuditUrl = async (url) => {
+    if (isAuditing) return;
+    setIsAuditing(true);
+    addMessage({ role: 'user', content: `Audit this solicitation:\n${url}` });
+    addMessage({ role: 'assistant', content: '**Audit started.** Fetching solicitation from SAM.gov and running compliance analysis...' });
+    startThinking();
+    trackEvent('audit_started', { method: 'url' });
+
+    try {
+      const res = await fetch('/api/audit/link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-user-id': user?.id || '' },
+        body: JSON.stringify({ url, userId: user?.id, userEmail: user?.email }),
+      });
+      const data = await res.json();
+      finishThinking();
+
+      if (!res.ok || data.error) {
+        if (data.code === 'EXTERNAL_DOCUMENTS' && data.externalLinks?.length) {
+          addMessage({
+            role: 'assistant',
+            type: 'external_docs',
+            externalLinks: data.externalLinks,
+            hint: data.hint,
+            content: data.error,
+          });
+        } else {
+          const hint = data.hint ? `\n\n*${data.hint}*` : '';
+          addMessage({ role: 'assistant', content: `**Could not fetch solicitation.**\n\n${data.error || 'Please check the URL and try again.'}${hint}` });
+        }
+      } else {
+        setActiveAudit(data);
+        addMessage({ role: 'assistant', type: 'audit_result', audit: data, content: '' });
+        addMessage({ role: 'assistant', content: `Audit complete. I've analyzed **${data.title || 'this solicitation'}** and generated your compliance matrix.\n\nWhat would you like to know? I can explain the risk flags, dig into specific requirements, or help you start the proposal.` });
+        trackEvent('audit_completed', { recommendation: data?.verdict?.recommendation });
+        loadHistory();
+      }
+    } catch (err) {
+      finishThinking();
+      addMessage({ role: 'assistant', content: '**Connection error.** Could not reach the BidSmith API. Please check your connection and try again.' });
+    } finally {
+      setIsAuditing(false);
+    }
+  };
+
+  // ── Run audit from PDF ───────────────────────────────────────────────────
+  const runAuditFile = async (file) => {
+    if (isAuditing || !file) return;
+    setIsAuditing(true);
+    addMessage({ role: 'user', content: `Upload and audit: **${file.name}**` });
+    addMessage({ role: 'assistant', content: '**PDF received.** Extracting text and running compliance analysis...' });
+    startThinking();
+    trackEvent('audit_started', { method: 'pdf' });
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      if (user?.id) formData.append('userId', user.id);
+      if (user?.email) formData.append('userEmail', user.email);
+
+      const res = await fetch('/api/audit/pdf', { method: 'POST', body: formData, headers: { 'x-user-id': user?.id || '' } });
+      const data = await res.json();
+      finishThinking();
+
+      if (!res.ok || data.error) {
+        addMessage({ role: 'assistant', content: `**Error:** ${data.error || 'PDF analysis failed. Please try again.'}` });
+      } else {
+        setActiveAudit(data);
+        addMessage({ role: 'assistant', type: 'audit_result', audit: data, content: '' });
+        addMessage({ role: 'assistant', content: `Audit complete for **${file.name}**.\n\nAsk me about the compliance requirements, risk flags, or how to approach the proposal.` });
+        trackEvent('audit_completed', { recommendation: data?.verdict?.recommendation });
+        loadHistory();
+      }
+    } catch {
+      finishThinking();
+      addMessage({ role: 'assistant', content: '**Upload error.** Could not process the PDF. Please try again.' });
+    } finally {
+      setIsAuditing(false);
+    }
+  };
+
+  // ── Load prior audit ─────────────────────────────────────────────────────
+  const loadAudit = async (id) => {
+    try {
+      const res = await fetch(`/api/audits/${id}`, { headers: { 'x-user-id': user?.id || '' } });
+      if (!res.ok) return;
+      const data = await res.json();
+      const audit = data?.result || data;
+      if (!audit) return;
+
+      setActiveAudit(audit);
+      setMessages([]);
+      setTimeout(() => {
+        addMessage({ role: 'assistant', content: `Loaded audit: **${extractSolicitationName(audit)}**` });
+        addMessage({ role: 'assistant', type: 'audit_result', audit, content: '' });
+        addMessage({ role: 'assistant', content: 'What would you like to know about this solicitation?' });
+        setThinkingSteps(THINKING_STEPS.map(s => ({ ...s, status: 'done' })));
+      }, 50);
+      trackEvent('audit_history_opened', { audit_id: id });
+    } catch { /* silent */ }
+  };
+
+  // ── Send chat message ────────────────────────────────────────────────────
+  const sendChat = async (text) => {
+    if (isChatLoading || !text.trim()) return;
+
+    // If no active audit and it looks like a URL, run audit instead
+    if (!activeAudit && (text.startsWith('http') || text.includes('sam.gov'))) {
+      runAuditUrl(text);
+      return;
+    }
+
+    addMessage({ role: 'user', content: text });
+    setIsChatLoading(true);
+
+    // Build context from active audit
+    const context = activeAudit
+      ? `Solicitation: ${activeAudit.title || ''}. Agency: ${activeAudit.agency || ''}. Verdict: ${activeAudit.verdict?.recommendation || ''}. Win probability: ${activeAudit.verdict?.win_probability || 'N/A'}%. Summary: ${activeAudit.verdict?.summary || ''}. Requirements: ${(activeAudit.requirements || []).slice(0, 10).map(r => r.requirement).join('; ')}`
+      : 'No active solicitation loaded.';
+
+    const chatHistory = messages
+      .filter(m => m.role === 'user' || (m.role === 'assistant' && m.content && m.type !== 'audit_result'))
+      .slice(-10)
+      .map(m => ({ role: m.role, content: m.content }));
+
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-user-id': user?.id || '' },
+        body: JSON.stringify({
+          messages: [...chatHistory, { role: 'user', content: text }],
+          context,
+        }),
+      });
+      const data = await res.json();
+      addMessage({ role: 'assistant', content: data.text || data.response || 'No response received.' });
+    } catch {
+      addMessage({ role: 'assistant', content: 'Connection error. Please try again.' });
+    } finally {
+      setIsChatLoading(false);
+    }
+  };
+
+  const handleLogout = () => signOut(() => { window.location.href = '/'; });
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) runAuditFile(file);
+    e.target.value = '';
+  };
+
+  // Quick question without audit context (empty state chips)
+  const handleQuickQuestion = (url, question) => {
+    if (url && (url.startsWith('http') || url.includes('sam.gov'))) { runAuditUrl(url); return; }
+    if (question) sendChat(question);
+  };
+
+  const isLoading = isAuditing || isChatLoading;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: C.bg, color: C.text, fontFamily: "'Inter', system-ui, sans-serif" }}>
+      <input type="file" ref={fileRef} style={{ display: 'none' }} accept=".pdf" onChange={handleFileChange} />
+
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
 
-        {/* Left sidebar — Pipeline */}
-        <nav style={{
-          width: '240px', flexShrink: 0,
-          background: '#fff', borderRight: '1px solid #e2e8f0',
-          display: 'flex', flexDirection: 'column', overflow: 'hidden'
-        }}>
-          <div style={{ padding: '16px' }}>
-            <button
-              onClick={() => setShowNewAudit(true)}
-              style={{
-                width: '100%', padding: '10px',
-                background: '#002244', color: 'white',
-                border: 'none', borderRadius: '8px',
-                fontWeight: 700, fontSize: '12px',
-                display: 'flex', alignItems: 'center',
-                justifyContent: 'center', gap: '7px',
-                cursor: 'pointer',
-                boxShadow: '0 2px 8px rgba(0,34,68,0.15)'
-              }}
-            >
-              <Plus size={14} /> New Audit
-            </button>
-          </div>
+        {/* Left sidebar */}
+        <LeftSidebar
+          activeAudit={activeAudit}
+          history={history}
+          onNewAudit={() => { setMessages([]); setActiveAudit(null); setThinkingSteps([]); }}
+          onSelectAudit={loadAudit}
+          onBack={onBack}
+          user={user}
+          onLogout={handleLogout}
+        />
 
-          <div style={{
-            padding: '0 16px 8px',
-            fontSize: '10px', fontWeight: 800, color: '#94a3b8',
-            letterSpacing: '0.1em', textTransform: 'uppercase'
-          }}>
-            Audit History
-          </div>
-
-          <div style={{ flex: 1, overflowY: 'auto', padding: '0 8px' }}>
-            {pipeline.length > 0 ? (
-              pipeline.map(item => (
-                <PipelineItem
-                  key={item.id}
-                  item={item}
-                  active={activeAudit?.id === item.id}
-                  onClick={() => loadAuditDetail(item.id)}
-                />
-              ))
+        {/* Center — Chat */}
+        <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: C.bg }}>
+          {/* Top bar */}
+          <div style={{ height: 52, borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', padding: '0 20px', gap: 10, flexShrink: 0 }}>
+            {activeAudit ? (
+              <>
+                <FileText size={14} color={C.textDim} />
+                <span style={{ fontSize: 13, fontWeight: 600, color: C.textMuted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 300 }}>
+                  {extractSolicitationName(activeAudit)}
+                </span>
+                {activeAudit?.verdict?.recommendation && (
+                  <span style={{ fontSize: 11, fontWeight: 800, color: verdictColor(activeAudit.verdict.recommendation), background: `${verdictColor(activeAudit.verdict.recommendation)}18`, padding: '3px 8px', borderRadius: 6, border: `1px solid ${verdictColor(activeAudit.verdict.recommendation)}33`, flexShrink: 0 }}>
+                    {activeAudit.verdict.recommendation.toUpperCase()}
+                  </span>
+                )}
+              </>
             ) : (
-              <div style={{ padding: '20px 8px', textAlign: 'center' }}>
-                <p style={{ fontSize: '12px', color: '#94a3b8', margin: 0, lineHeight: 1.5 }}>
-                  No audits yet. Run your first audit to build your pipeline.
-                </p>
-              </div>
+              <span style={{ fontSize: 12, color: C.textDim }}>No active solicitation</span>
+            )}
+            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
+              {isAuditing && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: C.accent }}>
+                  <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />
+                  Analyzing solicitation...
+                </div>
+              )}
+              {/* Audit Mode toggle */}
+              <button
+                onClick={() => setAuditMode(v => !v)}
+                title={auditMode ? 'Exit Audit Mode — hide uncertainty flags' : 'Audit Mode — highlight items AI is uncertain about'}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  fontSize: 10, fontWeight: 800, letterSpacing: '0.07em',
+                  color: auditMode ? '#f59e0b' : C.textDim,
+                  background: auditMode ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.04)',
+                  border: `1px solid ${auditMode ? 'rgba(245,158,11,0.35)' : C.border}`,
+                  borderRadius: 6, padding: '5px 11px', cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                {auditMode ? <Eye size={11} /> : <EyeOff size={11} />}
+                AUDIT MODE {auditMode ? 'ON' : 'OFF'}
+              </button>
+            </div>
+          </div>
+
+          {/* Message thread */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}>
+            {messages.length === 0 ? (
+              <EmptyState
+                onAuditUrl={handleQuickQuestion}
+                onAuditFile={runAuditFile}
+                fileRef={fileRef}
+                onStartChat={() => document.querySelector('textarea')?.focus()}
+                userName={user?.firstName || user?.email?.split('@')[0] || ''}
+              />
+            ) : (
+              <>
+                {messages.map(msg => <MessageBubble key={msg.id} msg={msg} auditMode={auditMode} />)}
+                {isChatLoading && (
+                  <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 20 }}>
+                    <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(59,130,246,0.2)', border: `1px solid ${C.accent}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Shield size={14} color={C.accent} />
+                    </div>
+                    <div style={{ display: 'flex', gap: 5, padding: '14px 16px', background: C.surfaceHi, borderRadius: '16px 16px 16px 4px', border: `1px solid ${C.border}` }}>
+                      {[0, 1, 2].map(i => (
+                        <div key={i} style={{ width: 7, height: 7, borderRadius: '50%', background: C.textDim, animation: `bounce 1.2s ${i * 0.2}s infinite` }} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <div ref={bottomRef} />
+              </>
             )}
           </div>
 
-          <PipelineStats pipeline={pipeline} />
-        </nav>
-
-        {/* Main content */}
-        <main style={{
-          flex: 1, overflow: activeTab === 'forge' ? 'hidden' : 'auto',
-          display: 'flex', flexDirection: 'column'
-        }}>
-          {activeTab !== 'forge' && (
-            <div style={{ padding: '28px 32px', maxWidth: '1100px', width: '100%', margin: '0 auto' }}>
-              <PersonalWorkspaceCard
-                user={user}
-                pipeline={pipeline}
-                activeAudit={activeAudit}
-                onStartAudit={() => setShowNewAudit(true)}
-                onViewCompliance={() => setActiveTab('compliance')}
-                onOpenCopilot={() => setActiveTab('chat')}
-              />
-              {activeTab === 'chat' && (
-                <BidSmithChat reportData={activeAudit} />
-              )}
-              {activeTab === 'intelligence' && (
-                <IntelligenceBrief
-                  auditData={activeAudit}
-                  onOpenForge={() => setActiveTab('forge')}
-                />
-              )}
-              {activeTab === 'compliance' && (
-                <ComplianceMatrix auditData={activeAudit} />
-              )}
-            </div>
-          )}
-
-          {activeTab === 'forge' && (
-            <ProposalForge
-              auditData={activeAudit}
-              onBack={() => setActiveTab('intelligence')}
-            />
-          )}
+          {/* Chat input */}
+          <ChatInput
+            onSend={sendChat}
+            onAuditUrl={(url) => runAuditUrl(url)}
+            onAuditFile={runAuditFile}
+            fileRef={fileRef}
+            loading={isLoading}
+            hasAudit={!!activeAudit}
+          />
         </main>
-      </div>
 
-      {/* New Audit Modal */}
-      {showNewAudit && (
-        <NewAuditModal
-          onClose={() => setShowNewAudit(false)}
-          onAuditComplete={handleAuditComplete}
-          onServerError={() => { setShowNewAudit(false); setServerError(true); }}
-          userId={user?.id}
-          userEmail={user?.email}
-        />
-      )}
+        {/* Right sidebar — Agent thinking */}
+        <AgentThinkingPanel steps={thinkingSteps} isRunning={isAuditing} />
+      </div>
 
       <style dangerouslySetInnerHTML={{ __html: `
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-        body { margin: 0; }
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #f1f5f9; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        body { margin: 0; background: ${C.bg}; }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: ${C.border}; border-radius: 10px; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes bounce { 0%, 80%, 100% { transform: translateY(0); } 40% { transform: translateY(-6px); } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
       `}} />
     </div>
   );
