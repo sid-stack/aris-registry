@@ -345,9 +345,8 @@ function VerdictCard({ audit, auditMode }) {
     <div style={{
       background: C.surfaceHi,
       border: `1px solid ${auditMode && isLowConf ? 'rgba(245,158,11,0.4)' : C.border}`,
-      borderLeft: `3px solid ${auditMode && isLowConf ? '#f59e0b' : color}`,
-      borderRadius: 10, padding: '16px 18px', maxWidth: 480,
-      background: auditMode && isLowConf ? 'rgba(245,158,11,0.05)' : C.surfaceHi,
+        borderLeft: `3px solid ${auditMode && isLowConf ? '#f59e0b' : color}`,
+        borderRadius: 10, padding: '16px 18px', maxWidth: 480,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
         <span style={{ fontSize: 10, fontWeight: 800, color: C.textDim, letterSpacing: '0.1em' }}>BID / NO-BID VERDICT</span>
