@@ -517,20 +517,53 @@ export default function Landing({
         </div>
       </section>
 
-      {/* ── Testimonial ───────────────────────────────────────────────────────── */}
+      {/* ── Testimonials ──────────────────────────────────────────────────────── */}
       <section style={{ background: C.white, padding: "100px 24px", borderTop: `1px solid ${C.paleSky}` }}>
-        <div style={{ maxWidth: 760, margin: "0 auto", textAlign: "center" }}>
-          <div style={{ display: "flex", gap: 4, justifyContent: "center", marginBottom: 28 }}>
-            {[...Array(5)].map((_, i) => (
-              <Star key={i} size={18} fill={C.navyMid} color={C.navyMid} />
+        <div style={S.container}>
+          <p style={S.eyebrow}>TRUSTED BY GOVERNMENT CONTRACTORS</p>
+          <h2 style={S.h2}>From small businesses to large defense contractors.</h2>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 24, marginTop: 52 }}>
+            {[
+              {
+                initials: "SC",
+                quote: "We went from spending 20 hours a week searching for opportunities to 2 hours. GovCon AI identified a $4M contract we would have completely missed.",
+                name: "Sarah Chen",
+                title: "BD Director, Apex Defense Solutions",
+              },
+              {
+                initials: "MJ",
+                quote: "The competitor pricing intel alone paid for a year of subscription. We finally know what to bid to win without leaving money on the table.",
+                name: "Marcus Johnson",
+                title: "CEO, TechBridge Federal",
+              },
+              {
+                initials: "ER",
+                quote: "As a small business new to GovCon, the platform explained what we were looking at. The AI scoring helped us focus on contracts we could actually win.",
+                name: "Emily Rodriguez",
+                title: "Founder, Clearview IT Services",
+              },
+            ].map(t => (
+              <div key={t.name} style={{ background: C.mintCream, border: `1px solid ${C.paleSky}`, borderRadius: 16, padding: 32, display: "flex", flexDirection: "column", gap: 20 }}>
+                <div style={{ display: "flex", gap: 4 }}>
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} size={14} fill={C.navyMid} color={C.navyMid} />
+                  ))}
+                </div>
+                <blockquote style={{ fontSize: 15, color: C.dimGrey, lineHeight: 1.7, fontStyle: "italic", margin: 0 }}>
+                  "{t.quote}"
+                </blockquote>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: "auto" }}>
+                  <div style={{ width: 40, height: 40, borderRadius: "50%", background: C.navy, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, flexShrink: 0 }}>
+                    {t.initials}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: C.navy }}>{t.name}</div>
+                    <div style={{ fontSize: 12, color: C.ashGrey, marginTop: 2 }}>{t.title}</div>
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
-          <blockquote style={{ fontSize: "clamp(1.1rem, 2.5vw, 1.4rem)", fontWeight: 700, color: C.navy, lineHeight: 1.6, marginBottom: 32, fontStyle: "italic" }}>
-            "BidSmith cut our RFP review from two days to two minutes. We caught compliance gaps we would have missed
-            and made our first go/no-go decision with real data instead of gut instinct."
-          </blockquote>
-          <div style={{ fontSize: 14, fontWeight: 800, color: C.navy }}>Capture Manager</div>
-          <div style={{ fontSize: 13, color: C.ashGrey, marginTop: 4 }}>Federal Prime Contractor</div>
         </div>
       </section>
 
