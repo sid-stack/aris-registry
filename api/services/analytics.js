@@ -92,10 +92,67 @@ export async function ensureAnalyticsSchema() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+
+    CREATE TABLE IF NOT EXISTS paid_audits (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      uid TEXT NOT NULL,
+      solicitation_id TEXT NOT NULL,
+      stripe_session_id TEXT,
+      amount_cents INT NOT NULL DEFAULT 9900,
+      paid_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE(uid, solicitation_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_paid_audits_uid ON paid_audits (uid, solicitation_id);
+    CREATE INDEX IF NOT EXISTS idx_paid_audits_session ON paid_audits (stripe_session_id);
   `);
 
-
   analyticsSchemaReady = true;
+}
+
+// ── Payment helpers ────────────────────────────────────────────────────────────
+
+/**
+ * Record a completed Stripe payment for a specific audit.
+ * Called by the webhook on checkout.session.completed.
+ */
+export async function markAuditPaid({ uid, solicitationId, stripeSessionId, amountCents }) {
+  if (!analyticsDb) return false;
+  try {
+    await ensureAnalyticsSchema();
+    await analyticsDb.query(
+      `INSERT INTO paid_audits (uid, solicitation_id, stripe_session_id, amount_cents)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (uid, solicitation_id) DO UPDATE
+         SET stripe_session_id = EXCLUDED.stripe_session_id,
+             amount_cents = EXCLUDED.amount_cents,
+             paid_at = NOW()`,
+      [uid, solicitationId, stripeSessionId || null, amountCents || 9900]
+    );
+    return true;
+  } catch (err) {
+    console.error("[PAID_AUDITS] mark_failed", err.message);
+    return false;
+  }
+}
+
+/**
+ * Check whether a user has paid for a specific audit.
+ * Returns true if a paid_audits row exists for (uid, solicitationId).
+ */
+export async function checkAuditPaid(uid, solicitationId) {
+  if (!analyticsDb || !uid || !solicitationId) return false;
+  try {
+    await ensureAnalyticsSchema();
+    const { rows } = await analyticsDb.query(
+      `SELECT 1 FROM paid_audits WHERE uid = $1 AND solicitation_id = $2 LIMIT 1`,
+      [uid, solicitationId]
+    );
+    return rows.length > 0;
+  } catch (err) {
+    console.error("[PAID_AUDITS] check_failed", err.message);
+    return false;
+  }
 }
 
 export async function recordAnalyticsEvent(event) {

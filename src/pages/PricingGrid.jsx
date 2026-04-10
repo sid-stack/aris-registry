@@ -38,12 +38,12 @@ export default function PricingGrid({ onTryFree, onGetPro, onGetEnterprise }) {
             <div style={styles.badge}>MOST POPULAR</div>
             <div style={styles.cardHeader}>
               <h3 style={{...styles.cardTier, color: '#fff'}}>Pro</h3>
-              <div style={{...styles.price, color: '#fff'}}>$299</div>
+              <div style={{...styles.price, color: '#fff'}}>$499<span style={{ fontSize: '1.2rem', fontWeight: 600, opacity: 0.8 }}>/mo</span></div>
             </div>
             <ul style={styles.featureList}>
+              <li style={{...styles.featureItem, color: '#e2e8f0'}}><CheckCircle size={16} color="#fff" /> Unlimited RFP audits</li>
               <li style={{...styles.featureItem, color: '#e2e8f0'}}><CheckCircle size={16} color="#fff" /> Multi-section extraction</li>
-              <li style={{...styles.featureItem, color: '#e2e8f0'}}><CheckCircle size={16} color="#fff" /> Full capability matrix</li>
-              <li style={{...styles.featureItem, color: '#e2e8f0'}}><CheckCircle size={16} color="#fff" /> Multi-format export (.XLSX, .DOCX)</li>
+              <li style={{...styles.featureItem, color: '#e2e8f0'}}><CheckCircle size={16} color="#fff" /> Full exports (.XLSX, .DOCX)</li>
               <li style={{...styles.featureItem, color: '#e2e8f0'}}><CheckCircle size={16} color="#fff" /> Requirement editing & tagging</li>
             </ul>
             <button style={styles.proBtn} onClick={onGetPro}>
@@ -55,10 +55,10 @@ export default function PricingGrid({ onTryFree, onGetPro, onGetEnterprise }) {
           <div style={styles.card}>
             <div style={styles.cardHeader}>
               <h3 style={styles.cardTier}>Enterprise</h3>
-              <div style={styles.price}>$999</div>
+              <div style={styles.price}>$999<span style={{ fontSize: '1.2rem', fontWeight: 600 }}>/mo</span></div>
             </div>
             <ul style={styles.featureList}>
-              <li style={styles.featureItem}><CheckCircle size={16} color="#16a34a" /> Full RFP breakdown (SOW/PWS)</li>
+              <li style={styles.featureItem}><CheckCircle size={16} color="#16a34a" /> Everything in Pro</li>
               <li style={styles.featureItem}><CheckCircle size={16} color="#16a34a" /> Team collaboration workflows</li>
               <li style={styles.featureItem}><CheckCircle size={16} color="#16a34a" /> Priority processing pipeline</li>
               <li style={styles.featureItem}><CheckCircle size={16} color="#16a34a" /> Dedicated GovCon consultant</li>

@@ -2,22 +2,25 @@ import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-export const STRIPE_PRODUCTS = {
-  starter: { productId: "prod_1QKx2jGYLlqVJEww4X8ZKqLd", priceId: "price_1T0KVnGYLlqVJEwwhV510OeS", mode: "subscription" },
-  growth: { productId: "prod_1QKx3kGYLlqVJEww7K2Xh9nM", priceId: "price_1T0KVnGYLlqVJEwwhV510OeS", mode: "subscription" },
-  pilot: { productId: "prod_1QKx4pGYLlqVJEww9N4Xh2nO", priceId: "price_1T0KVnGYLlqVJEwwhV510OeS", mode: "payment" },
+// ── Pricing ladder: $99 / $499 / $999 ─────────────────────────────────────────
+export const AUDIT_PRICE_CENTS = 9900; // $99 — single audit unlock
+
+export const STRIPE_PLANS = {
+  starter:    { priceId: process.env.STRIPE_PRICE_STARTER,    mode: "payment",      amountCents: 9900  },
+  pro:        { priceId: process.env.STRIPE_PRICE_PRO,        mode: "subscription", amountCents: 49900 },
+  enterprise: { priceId: process.env.STRIPE_PRICE_ENTERPRISE, mode: "subscription", amountCents: 99900 },
 };
 
-export const STRIPE_PREMIUM_PRODUCTS = {
-  standard: { priceId: process.env.STRIPE_PRICE_PREMIUM_STANDARD, turnaroundHours: "48" },
-  express: { priceId: process.env.STRIPE_PRICE_PREMIUM_EXPRESS, turnaroundHours: "24" },
-};
+// Legacy alias (kept for backward compat with any existing references)
+export const STRIPE_PRODUCTS = STRIPE_PLANS;
+export const STRIPE_PREMIUM_PRODUCTS = {};
 
-export async function createDynamicCheckoutSession({ estimatedValue, opportunityTitle, origin }) {
-  const numericValue = parseFloat(String(estimatedValue || "0").replace(/[$,MKB]/gi, "")) || 0;
-  const isHighValue = numericValue >= 10_000_000;
-  const priceAmount = isHighValue ? 29900 : 9900; // cents
-  const planName = isHighValue ? "Enterprise Audit" : "Standard Audit";
+/**
+ * One-click checkout for a single audit unlock ($99).
+ * Encodes uid + solicitationId in metadata so the webhook can unlock the gate.
+ */
+export async function createDynamicCheckoutSession({ solicitationId, opportunityTitle, uid, origin }) {
+  const baseUrl = origin || "https://bidsmith.pro";
 
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
@@ -26,43 +29,59 @@ export async function createDynamicCheckoutSession({ estimatedValue, opportunity
       price_data: {
         currency: "usd",
         product_data: {
-          name: `ARIS ${planName} — Compliance Matrix`,
+          name: "BidSmith — Full Compliance Audit",
           description: opportunityTitle
-            ? `Full FAR/DFARS remediation script for: ${opportunityTitle}`
+            ? `Full FAR/DFARS compliance matrix + risk brief: ${opportunityTitle}`
             : "Full compliance matrix, risk flags, remediation script, and bid/no-bid brief",
         },
-        unit_amount: priceAmount,
+        unit_amount: AUDIT_PRICE_CENTS,
       },
       quantity: 1,
     }],
     metadata: {
+      uid:            uid            || "anonymous",
+      solicitation_id: solicitationId || "",
       opportunityTitle: opportunityTitle || "",
-      estimatedValue: String(estimatedValue || ""),
     },
-    success_url: `${origin}/app?checkout=success`,
-    cancel_url: `${origin}/app?checkout=cancelled`,
+    success_url: `${baseUrl}/dashboard?checkout=success&sid=${encodeURIComponent(solicitationId || "")}`,
+    cancel_url:  `${baseUrl}/dashboard?checkout=cancelled`,
   });
 
   return session;
 }
 
-export async function createCheckoutSession({ plan, premiumTier, context, origin }) {
-  const planConfig = STRIPE_PRODUCTS[plan];
-  if (!planConfig) throw new Error("Unsupported plan");
+export async function createCheckoutSession({ plan, context, origin }) {
+  const planConfig = STRIPE_PLANS[plan];
+  if (!planConfig) throw new Error(`Unsupported plan: ${plan}`);
+
+  const baseUrl = origin || "https://bidsmith.pro";
 
   const session = await stripe.checkout.sessions.create({
     mode: planConfig.mode,
     payment_method_types: ["card"],
-    line_items: [
-      { price: planConfig.priceId, quantity: 1 },
-    ],
-    metadata: { ...context, premium_tier: premiumTier },
-    success_url: `${origin}/app?checkout=success`,
-    cancel_url: `${origin}/app?checkout=cancelled`,
+    ...(planConfig.priceId
+      ? { line_items: [{ price: planConfig.priceId, quantity: 1 }] }
+      : {
+          line_items: [{
+            price_data: {
+              currency: "usd",
+              product_data: { name: `BidSmith ${plan} Plan` },
+              unit_amount: planConfig.amountCents,
+              ...(planConfig.mode === "subscription" ? { recurring: { interval: "month" } } : {}),
+            },
+            quantity: 1,
+          }],
+        }),
+    metadata: { plan, ...(context || {}) },
+    success_url: `${baseUrl}/dashboard?checkout=success`,
+    cancel_url:  `${baseUrl}/dashboard?checkout=cancelled`,
   });
 
   return session;
 }
+
+// ── Expose the raw stripe instance for webhook signature verification ──────────
+export { stripe };
 
 export async function getRevenueStats() {
   if (!process.env.STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY.includes('placeholder')) {

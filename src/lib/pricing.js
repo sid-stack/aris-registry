@@ -1,76 +1,62 @@
 /**
- * Canonical GTM pricing ladder used across landing, templates, and proposal copy.
- * 4-tier funnel: Free → Starter → Standard → Enterprise
+ * Canonical pricing ladder — $99 / $499 / $999
+ *
+ * Tier 1 ($99):  Single-audit unlock (PaywallGate — one-time payment)
+ * Tier 2 ($499): Pro subscription — unlimited audits / mo
+ * Tier 3 ($999): Enterprise — team + priority + consultant
  */
-export const STRIPE_PAYMENT_LINKS = {
-  starter:    null, // TODO: create $99/mo Stripe price — mailto CTA until set
-  standard:   "https://buy.stripe.com/3cIaEX66197ad9H9na2Fa00",
-  enterprise: "https://buy.stripe.com/cNibJ19id8369XvfLy2Fa01",
-};
+
+// Single-audit unlock price (matches AUDIT_PRICE_CENTS in api/services/stripe.js)
+export const SINGLE_AUDIT_PRICE = 99;
 
 export const GTM_PRICING_PLANS = [
   {
     key: "starter",
     title: "Starter",
     price: "$99",
-    annualNote: "1 audit session",
-    description: "Perfect for single-bid verification. Includes 1 full audit + basic compliance matrix.",
-    buttonLabel: "Get Started",
-    buttonLink: "mailto:sid@bidsmith.pro?subject=Starter Plan",
+    annualNote: "1 audit unlock",
+    description: "Perfect for single-bid verification. One-time unlock for 1 full compliance audit.",
+    buttonLabel: "Unlock Audit",
+    buttonLink: null, // dynamic — triggers PaywallGate checkout
     badge: null,
     tier: "starter",
     callout: "Starter - $99",
+    mode: "payment",
   },
   {
     key: "pro",
     title: "Pro",
-    price: "$299",
-    annualNote: "Multi-section extraction",
-    description: "For active capture teams. Includes multi-section extraction, full exports, and collaborative edits.",
+    price: "$499",
+    annualNote: "/mo · unlimited audits",
+    description: "For active capture teams. Unlimited audits, multi-section extraction, and full exports.",
     buttonLabel: "Go Pro",
-    buttonLink: STRIPE_PAYMENT_LINKS.standard, // Mapping to existing standard for now or update if needed
+    buttonLink: "mailto:sid@bidsmith.pro?subject=Pro Plan - $499",
     badge: "Most Popular",
     tier: "pro",
-    callout: "Pro - $299",
+    callout: "Pro - $499/mo",
+    mode: "subscription",
   },
   {
     key: "enterprise",
     title: "Enterprise",
     price: "$999",
-    annualNote: "Full RFP breakdown",
+    annualNote: "/mo · team + consultant",
     description: "The complete bid acceleration engine. Full RFP breakdown, team workflows, and priority processing.",
     buttonLabel: "Contact Sales",
-    buttonLink: "mailto:sid@bidsmith.pro?subject=Enterprise Plan",
+    buttonLink: "mailto:sid@bidsmith.pro?subject=Enterprise Plan - $999",
     badge: null,
     tier: "enterprise",
-    callout: "Enterprise - $999",
+    callout: "Enterprise - $999/mo",
+    mode: "subscription",
   },
 ];
 
-// Credit packs for pay-per-use model
-export const CREDIT_PACKS = [
-  {
-    key: "starter_pack",
-    title: "Starter",
-    credits: 1,
-    price: "$99",
-    description: "1 full audit session.",
-    callout: "Starter - $99"
-  },
-  {
-    key: "professional_pack",
-    title: "Pro",
-    credits: 1,
-    price: "$299",
-    description: "Multi-section extraction + export.",
-    callout: "Pro - $299"
-  },
-  {
-    key: "enterprise_pack",
-    title: "Enterprise",
-    credits: 1,
-    price: "$999",
-    description: "Full RFP breakdown + priority.",
-    callout: "Enterprise - $999"
-  }
-];
+// Legacy alias — kept so any existing import of STRIPE_PAYMENT_LINKS doesn't break
+export const STRIPE_PAYMENT_LINKS = {
+  starter:    null,
+  standard:   "mailto:sid@bidsmith.pro?subject=Pro Plan",
+  enterprise: "mailto:sid@bidsmith.pro?subject=Enterprise Plan",
+};
+
+// Credit packs (pay-per-use copy)
+export const CREDIT_PACKS = GTM_PRICING_PLANS;

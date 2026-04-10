@@ -17,8 +17,8 @@ import { traceLLM } from "./utils/tracing.js";
 import { callLLM, callLLMStream } from "./llm/openrouter.js";
 
 // Services
-import { createDynamicCheckoutSession } from "./services/stripe.js";
-import { recordAnalyticsEvent, getAdminStats, saveAudit, getAuditHistory, getAuditById, savePendingReport, getPendingReports, getPendingReportById, markReportSent, updateReportNotes } from "./services/analytics.js";
+import { createDynamicCheckoutSession, stripe } from "./services/stripe.js";
+import { recordAnalyticsEvent, getAdminStats, saveAudit, getAuditHistory, getAuditById, savePendingReport, getPendingReports, getPendingReportById, markReportSent, updateReportNotes, markAuditPaid, checkAuditPaid } from "./services/analytics.js";
 import { fetchSolicitationText } from "./services/samGov.js";
 import { runAudit } from "./agents/auditPipeline.js";
 import { addToWaitlist, getWaitlist, getWaitlistStats, markInvited } from "./services/waitlist.js";
@@ -49,6 +49,64 @@ const apiLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: "Too many requests, please try again later." }
 });
+
+// ── Stripe Webhook (raw body required — MUST be before express.json()) ──────────
+app.post(
+  "/api/stripe/webhook",
+  express.raw({ type: "application/json" }),
+  asyncHandler(async (req, res) => {
+    const sig = req.headers["stripe-signature"];
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+    if (!webhookSecret) {
+      logger.warn("[STRIPE_WEBHOOK] STRIPE_WEBHOOK_SECRET not set — skipping verification");
+      return res.sendStatus(400);
+    }
+
+    let event;
+    try {
+      event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+    } catch (err) {
+      logger.error("[STRIPE_WEBHOOK] signature_verification_failed", { error: err.message });
+      return res.status(400).json({ error: `Webhook signature invalid: ${err.message}` });
+    }
+
+    logger.info("[STRIPE_WEBHOOK] received", { type: event.type, id: event.id });
+
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object;
+      const uid            = session.metadata?.uid            || "anonymous";
+      const solicitationId = session.metadata?.solicitation_id || "";
+      const amountCents    = session.amount_total             || 9900;
+
+      if (solicitationId) {
+        await markAuditPaid({
+          uid,
+          solicitationId,
+          stripeSessionId: session.id,
+          amountCents,
+        });
+        logger.info("[STRIPE_WEBHOOK] audit_unlocked", { uid, solicitationId });
+      }
+
+      await recordAnalyticsEvent({
+        uid,
+        eventType: "checkout_completed",
+        value: amountCents / 100,
+        page: "checkout",
+        path: "/api/stripe/webhook",
+        metadata: { session_id: session.id, solicitation_id: solicitationId },
+      });
+    }
+
+    if (event.type === "payment_intent.payment_failed") {
+      const pi = event.data.object;
+      logger.warn("[STRIPE_WEBHOOK] payment_failed", { payment_intent: pi.id });
+    }
+
+    res.json({ received: true });
+  })
+);
 
 app.use(express.json());
 app.use(cors());
@@ -929,10 +987,20 @@ app.post("/api/audit/link", apiLimiter, asyncHandler(async (req, res) => {
 
 // ─── /api/create-dynamic-checkout-session ────────────────────────────────────
 app.post("/api/create-dynamic-checkout-session", apiLimiter, asyncHandler(async (req, res) => {
-  const { estimatedValue, opportunityTitle } = req.body;
+  const { solicitationId, opportunityTitle, uid } = req.body;
   const origin = req.headers.origin || `https://${req.headers.host}` || "https://bidsmith.pro";
-  const session = await createDynamicCheckoutSession({ estimatedValue, opportunityTitle, origin });
+  const session = await createDynamicCheckoutSession({ solicitationId, opportunityTitle, uid, origin });
   res.json({ url: session.url, sessionId: session.id });
+}));
+
+// ─── /api/payment/status — check if user has paid for a specific audit ────────
+app.get("/api/payment/status", asyncHandler(async (req, res) => {
+  const { uid, solicitation_id } = req.query;
+  if (!uid || !solicitation_id) {
+    return res.json({ paid: false });
+  }
+  const paid = await checkAuditPaid(uid, solicitation_id);
+  res.json({ paid });
 }));
 
 // ─── /api/export-rtm ─────────────────────────────────────────────────────────

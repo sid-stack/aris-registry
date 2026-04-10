@@ -496,27 +496,50 @@ const fs = {
 };
 
 // ── Paywall Gate — free teaser + locked full analysis ─────────────────────
-function PaywallGate({ children, hasAudit, isPaid = false }) {
+function PaywallGate({ children, hasAudit, isPaid = false, checkingPayment = false, solicitationId = '', opportunityTitle = '', uid = 'anonymous' }) {
+  const [unlocking, setUnlocking] = React.useState(false);
+
   const handleUnlock = async () => {
+    setUnlocking(true);
     try {
       const res = await fetch('/api/create-dynamic-checkout-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ estimatedValue: 'Full Risk Analysis', opportunityTitle: 'BidSmith Deep-Shred' }),
+        body: JSON.stringify({ solicitationId, opportunityTitle, uid }),
       });
       const { url } = await res.json();
-      if (url) window.open(url, '_blank');
+      if (url) window.location.href = url; // same-tab redirect for clean UX
+      else window.open('https://bidsmith.pro/pricing', '_blank');
     } catch {
       window.open('https://bidsmith.pro/pricing', '_blank');
+    } finally {
+      setUnlocking(false);
     }
   };
 
   if (!hasAudit) return null;
+
+  // While checking DB after payment redirect, show a subtle spinner
+  if (checkingPayment) {
+    return (
+      <div style={pw.wrap}>
+        <div style={pw.preview}>{children}</div>
+        <div style={pw.overlay}>
+          <div style={pw.lockCard}>
+            <p style={{ ...pw.lockTitle, fontSize: 13 }}>Verifying payment…</p>
+            <p style={pw.lockSub}>Hang tight while we confirm your unlock.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Fully unlocked — render children without any gate
   if (isPaid) return <>{children}</>;
 
   return (
     <div style={pw.wrap}>
-      {/* Preview — first card visible */}
+      {/* Preview — blurred teaser of first few rows */}
       <div style={pw.preview}>{children}</div>
 
       {/* Lock overlay */}
@@ -525,21 +548,26 @@ function PaywallGate({ children, hasAudit, isPaid = false }) {
           <div style={pw.lockIcon}>🔒</div>
           <p style={pw.lockTitle}>Full Risk Analysis Locked</p>
           <p style={pw.lockSub}>
-            You're seeing the summary. Unlock the complete compliance matrix,
+            You're seeing the teaser. Unlock the complete compliance matrix,
             proposal roadmap, disqualifier flags, and export tools.
           </p>
           <div style={pw.featureList}>
-            {['Full compliance matrix (all requirements)', 'Proposal roadmap + section guidance', 'Disqualifier deep-dive + FAR citations', 'Export to CSV / copy bid brief'].map(f => (
+            {[
+              'Full compliance matrix (all requirements)',
+              'Proposal roadmap + section guidance',
+              'Disqualifier deep-dive + FAR citations',
+              'Export to CSV / copy bid brief',
+            ].map(f => (
               <div key={f} style={pw.featureRow}>
                 <span style={{ color: '#22c55e', fontSize: 11 }}>✓</span>
                 <span style={pw.featureText}>{f}</span>
               </div>
             ))}
           </div>
-          <button onClick={handleUnlock} style={pw.cta}>
-            Unlock Full Analysis — $49
+          <button onClick={handleUnlock} disabled={unlocking} style={{ ...pw.cta, opacity: unlocking ? 0.6 : 1 }}>
+            {unlocking ? 'Redirecting to checkout…' : 'Unlock Full Analysis — $99'}
           </button>
-          <p style={pw.ctaSub}>One-time per solicitation · Instant access</p>
+          <p style={pw.ctaSub}>One-time · Per solicitation · Instant access</p>
         </div>
       </div>
     </div>
@@ -818,6 +846,10 @@ export default function BentoDashboard({ user = null, onBack }) {
   const [health, setHealth]           = useState(null);
   const [featuredUrl, setFeaturedUrl] = useState(null); // set when featured RFP clicked
 
+  // Payment / unlock state
+  const [isPaid, setIsPaid]               = useState(false);
+  const [checkingPayment, setCheckingPayment] = useState(false);
+
   // Audit history (sidebar)
   const [auditHistory, setAuditHistory]       = useState([]);
   const [loadingHistory, setLoadingHistory]   = useState(false);
@@ -847,6 +879,38 @@ export default function BentoDashboard({ user = null, onBack }) {
   }, [user?.id]);
 
   useEffect(() => { fetchHistory(); }, [fetchHistory]);
+
+  // ── Payment status helper ──────────────────────────────────────────────────
+  const fetchPaymentStatus = useCallback(async (solId) => {
+    if (!user?.id || !solId) return;
+    setCheckingPayment(true);
+    try {
+      const res = await fetch(`/api/payment/status?uid=${encodeURIComponent(user.id)}&solicitation_id=${encodeURIComponent(solId)}`);
+      const data = await res.json();
+      setIsPaid(!!data.paid);
+    } catch {
+      setIsPaid(false);
+    } finally {
+      setCheckingPayment(false);
+    }
+  }, [user?.id]);
+
+  // ── Checkout redirect param detection ─────────────────────────────────────
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const checkoutStatus = params.get('checkout');
+    const sid = params.get('sid');
+    if (checkoutStatus === 'success') {
+      showToast('Payment successful — Audit unlocked!', 'success');
+      if (sid) setTimeout(() => fetchPaymentStatus(sid), 1500); // slight delay for webhook
+      // Clean the URL param without reloading
+      const clean = window.location.pathname;
+      window.history.replaceState({}, '', clean);
+    } else if (checkoutStatus === 'cancelled') {
+      showToast('Payment cancelled. Your audit preview is still available.', 'info');
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSelectAudit = (historyEntry) => {
     const result = historyEntry.audit_result;
@@ -893,11 +957,15 @@ export default function BentoDashboard({ user = null, onBack }) {
     setAuditResult(data);
     setActiveAuditId(null); // fresh audit, not from history
     setAnalyzing(false);
+    setIsPaid(false); // reset for new audit — re-check below
     if (chatMode) resetChatMode();
     const cacheMsg = data?.meta?.cache_hit
       ? 'Audit loaded from cache (0s latency)'
       : 'Audit complete';
     showToast(cacheMsg, 'success');
+    // Check if this audit was already paid for (e.g. returning user)
+    const solId = data?.solicitation_number || data?.opportunity_id;
+    if (solId) fetchPaymentStatus(solId);
     // Refresh history sidebar so new audit appears immediately
     setTimeout(fetchHistory, 800);
   };
@@ -1077,7 +1145,14 @@ export default function BentoDashboard({ user = null, onBack }) {
       </div>
 
       {/* ── Paywall gate — full risk analysis ───────────────────────────── */}
-      <PaywallGate hasAudit={!!auditResult && !analyzing} isPaid={false}>
+      <PaywallGate
+        hasAudit={!!auditResult && !analyzing}
+        isPaid={isPaid}
+        checkingPayment={checkingPayment}
+        solicitationId={auditResult?.solicitation_number || auditResult?.opportunity_id || ''}
+        opportunityTitle={auditResult?.title || ''}
+        uid={user?.id || 'anonymous'}
+      >
         <div style={{ padding: '0 28px' }}>
           <div style={{ background: '#0f0f0f', border: '1px solid #1a1a1a', borderRadius: 16, padding: '20px 20px 16px' }}>
             <p style={{ margin: '0 0 12px', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: '#4b5563', textTransform: 'uppercase' }}>Full Compliance Matrix</p>
