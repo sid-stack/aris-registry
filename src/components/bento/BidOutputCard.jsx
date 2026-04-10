@@ -6,7 +6,7 @@
  *   loading     — bool, shows skeleton while inference runs
  */
 import { useState } from 'react';
-import { ClipboardCopy, Check, FileOutput } from 'lucide-react';
+import { ClipboardCopy, Check, FileOutput, Database, Cpu, Clock } from 'lucide-react';
 
 // ── Format audit as markdown for clipboard ────────────────────────────────────
 function formatForClipboard(audit) {
@@ -203,11 +203,89 @@ export default function BidOutputCard({ auditResult, loading = false }) {
               {v.rationale.slice(0, 200)}{v.rationale.length > 200 ? '…' : ''}
             </p>
           )}
+
+          {/* ── Audit Metadata ── */}
+          <AuditMeta audit={auditResult} />
         </div>
       )}
     </div>
   );
 }
+
+// ── Audit provenance strip ─────────────────────────────────────────────────────
+function AuditMeta({ audit }) {
+  if (!audit) return null;
+  const meta         = audit.meta || {};
+  const oppId        = audit.opportunity_id || audit.solicitation_number || null;
+  const genAt        = audit.generated_at ? new Date(audit.generated_at) : null;
+  const genFormatted = genAt ? genAt.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZoneName: 'short' }) : null;
+  const version      = meta.logic_gate_version || 'v2.2';
+  const cacheHit     = Boolean(meta.cache_hit);
+  const servedAt     = meta.cache_served_at ? new Date(meta.cache_served_at) : null;
+
+  return (
+    <div style={m.wrap}>
+      <p style={m.label}>AUDIT PROVENANCE</p>
+      <div style={m.grid}>
+        {oppId && (
+          <div style={m.row}>
+            <Database size={9} color="#4b5563" style={{ flexShrink: 0 }} />
+            <span style={m.key}>Opportunity</span>
+            <span style={m.val}>{oppId}</span>
+          </div>
+        )}
+        {genFormatted && (
+          <div style={m.row}>
+            <Clock size={9} color="#4b5563" style={{ flexShrink: 0 }} />
+            <span style={m.key}>Generated</span>
+            <span style={m.val}>{genFormatted}</span>
+          </div>
+        )}
+        <div style={m.row}>
+          <Cpu size={9} color="#4b5563" style={{ flexShrink: 0 }} />
+          <span style={m.key}>Logic Gate</span>
+          <span style={{ ...m.val, fontFamily: 'monospace', color: '#6366f1' }}>{version}</span>
+        </div>
+        <div style={m.row}>
+          <span style={{ width: 9, flexShrink: 0 }} />
+          <span style={m.key}>Source</span>
+          <span style={{
+            ...m.val,
+            color: cacheHit ? '#22c55e' : '#6b7280',
+            fontWeight: 700,
+          }}>
+            {cacheHit ? `CACHE HIT${servedAt ? ` · ${servedAt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}` : ''}` : 'LIVE INFERENCE'}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const m = {
+  wrap: {
+    borderTop: '1px solid #1a1a1a',
+    paddingTop: 12,
+    marginTop: 4,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 8,
+  },
+  label: {
+    margin: 0, fontSize: '9px', fontWeight: 700,
+    letterSpacing: '0.1em', color: '#2a2a2a', textTransform: 'uppercase',
+  },
+  grid: { display: 'flex', flexDirection: 'column', gap: 5 },
+  row: { display: 'flex', alignItems: 'center', gap: 6 },
+  key: {
+    fontSize: 10, color: '#4b5563', width: 72, flexShrink: 0,
+    letterSpacing: '-0.01em',
+  },
+  val: {
+    fontSize: 10, color: '#6b7280', letterSpacing: '-0.01em',
+    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+  },
+};
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 const s = {

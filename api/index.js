@@ -22,6 +22,7 @@ import { recordAnalyticsEvent, getAdminStats, saveAudit, getAuditHistory, getAud
 import { fetchSolicitationText } from "./services/samGov.js";
 import { runAudit } from "./agents/auditPipeline.js";
 import { addToWaitlist, getWaitlist, getWaitlistStats, markInvited } from "./services/waitlist.js";
+import { getAuditCache, setAuditCache, auditCacheStats } from "./services/auditCache.js";
 
 import multer from "multer";
 import pdfParse from "pdf-parse";
@@ -55,6 +56,9 @@ app.use(requestId);
 app.use(requestLogger);
 
 
+// Increment with each breaking change to the audit schema / logic-gate prompt.
+const LOGIC_GATE_VERSION = "v2.2";
+
 function toMvpAuditResult(raw = {}) {
   const verdict = raw.verdict || {};
   const requirements = Array.isArray(raw.requirements) ? raw.requirements : [];
@@ -63,6 +67,7 @@ function toMvpAuditResult(raw = {}) {
   return {
     id: raw.id || null,
     solicitation_number: raw.solicitation_number || null,
+    opportunity_id: raw.solicitation_number || raw.id || null,
     title: raw.title || "Federal Solicitation",
     agency: raw.agency || "Federal Agency",
     contract_type: raw.contract_type || null,
@@ -98,6 +103,12 @@ function toMvpAuditResult(raw = {}) {
       discriminator: step.discriminator || "",
     })),
     generated_at: raw.generated_at || new Date().toISOString(),
+    // Audit provenance — shown in Metadata card
+    meta: {
+      logic_gate_version: LOGIC_GATE_VERSION,
+      cache_hit: false,
+      cache_served_at: null,
+    },
   };
 }
 
@@ -125,11 +136,13 @@ app.get("/api/health", (_req, res) => {
   res.json({
     status: "ok",
     ts: new Date().toISOString(),
+    logic_gate_version: LOGIC_GATE_VERSION,
     providers: {
       mercury: Boolean(process.env.MERCURY_API_KEY),
       gemini: Boolean(process.env.GEMINI_API_KEY),
       openrouter: Boolean(process.env.OPENROUTER_API_KEY || process.env.OPEN_ROUTER_KEY),
     },
+    audit_cache: auditCacheStats(),
   });
 });
 
@@ -752,6 +765,20 @@ app.post("/api/audit/link", apiLimiter, asyncHandler(async (req, res) => {
   }
 
   const normalized = url.toLowerCase().trim();
+
+  // ── Cache check (24h TTL) ─────────────────────────────────────────────────
+  const cachedResult = await getAuditCache(normalized);
+  if (cachedResult) {
+    logger.info("audit_cache_served", requestMeta(req, {
+      url: normalized.slice(0, 120),
+      solicitation_id: cachedResult.solicitation_number || cachedResult.id,
+    }));
+    return res.json({
+      ...cachedResult,
+      meta: { ...(cachedResult.meta || {}), cache_hit: true, cache_served_at: new Date().toISOString() },
+    });
+  }
+
   let solicitationText = "";
   let meta = { id: "LINK_AUDIT", title: "Federal Solicitation", agency: "Federal Agency", value: "0" };
 
@@ -881,6 +908,9 @@ app.post("/api/audit/link", apiLimiter, asyncHandler(async (req, res) => {
       win_probability: result.verdict?.win_probability ?? null,
       audit_result: result,
     }).catch(() => {});
+
+    // Store in cache for next 24h — fire and forget
+    setAuditCache(normalized, result).catch(() => {});
 
     return res.json(result);
   } catch (err) {

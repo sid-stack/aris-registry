@@ -343,10 +343,67 @@ function StatCard({ icon: Icon, iconColor, iconBg, label, value, sub, trend }) {
   );
 }
 
+// ── Analysis progress steps (latency transparency) ────────────────────────
+const ANALYSIS_STEPS = [
+  { id: 'fetch',    label: 'Fetching solicitation',        detail: 'SAM.gov API + PDF extraction'    },
+  { id: 'parse',    label: 'Parsing clause structure',     detail: 'Section L / M / C identification' },
+  { id: 'audit',    label: 'Running compliance audit',     detail: '3-agent pipeline — logic gate v2.2' },
+  { id: 'verdict',  label: 'Generating bid/no-bid verdict',detail: 'Win probability + risk scoring'   },
+];
+
+function AnalysisProgress({ activeStep }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '18px 0 4px' }}>
+      {ANALYSIS_STEPS.map((step, i) => {
+        const done    = i < activeStep;
+        const active  = i === activeStep;
+        const pending = i > activeStep;
+        return (
+          <div key={step.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+            {/* Status indicator */}
+            <div style={{
+              width: 18, height: 18, borderRadius: '50%', flexShrink: 0, marginTop: 1,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: done   ? 'rgba(34,197,94,0.15)'  :
+                          active ? 'rgba(59,130,246,0.15)' :
+                                   'rgba(255,255,255,0.04)',
+              border: `1.5px solid ${done   ? '#22c55e50'  :
+                                     active ? '#3b82f650' :
+                                              '#1f1f1f'}`,
+            }}>
+              {done ? (
+                <span style={{ fontSize: 9, color: '#22c55e', fontWeight: 800 }}>✓</span>
+              ) : active ? (
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#3b82f6', animation: 'pulse 1.2s ease-in-out infinite', display: 'block' }} />
+              ) : (
+                <span style={{ width: 4, height: 4, borderRadius: '50%', background: '#2a2a2a', display: 'block' }} />
+              )}
+            </div>
+            {/* Label */}
+            <div style={{ minWidth: 0 }}>
+              <p style={{
+                margin: 0, fontSize: 12, fontWeight: active ? 600 : 500,
+                color: done ? '#6b7280' : active ? '#f9fafb' : '#374151',
+                letterSpacing: '-0.01em',
+              }}>{step.label}</p>
+              {active && (
+                <p style={{ margin: '2px 0 0', fontSize: 10, color: '#4b5563', letterSpacing: '-0.01em' }}>
+                  {step.detail}
+                </p>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────
 export default function BentoDashboard() {
   const [auditResult, setAuditResult] = useState(null);
   const [analyzing, setAnalyzing]     = useState(false);
+  const [analysisStep, setAnalysisStep] = useState(0);
   const [toast, setToast]             = useState(null);
   const [health, setHealth]           = useState(null);
 
@@ -368,21 +425,42 @@ export default function BentoDashboard() {
     setTimeout(() => setToast(null), 4500);
   };
 
+  // Step ticker: advances every ~8s to simulate 4-stage pipeline
+  const stepTimerRef = useRef(null);
+
   const handleStart = () => {
     setAnalyzing(true);
     setAuditResult(null);
+    setAnalysisStep(0);
+    // Advance through steps: 0→1 at 5s, 1→2 at 14s, 2→3 at 22s
+    const delays = [5_000, 14_000, 22_000];
+    delays.forEach((delay, i) => {
+      const t = setTimeout(() => setAnalysisStep(i + 1), delay);
+      if (!stepTimerRef.current) stepTimerRef.current = [];
+      stepTimerRef.current.push(t);
+    });
   };
 
   const handleResult = data => {
+    // Clear step timers
+    (stepTimerRef.current || []).forEach(clearTimeout);
+    stepTimerRef.current = [];
+    setAnalysisStep(ANALYSIS_STEPS.length); // all done
     setAuditResult(data);
     setAnalyzing(false);
     // If we were in chat mode after an error and got a successful audit, exit chat mode
     if (chatMode) resetChatMode();
-    showToast('Audit complete', 'success');
+    // Show cache hit indicator in toast
+    const cacheMsg = data?.meta?.cache_hit
+      ? 'Audit loaded from cache (0s latency)'
+      : 'Audit complete';
+    showToast(cacheMsg, 'success');
   };
 
   // ── Error → Chat bridge ──────────────────────────────────────────────────────
   const handleError = (errObj) => {
+    (stepTimerRef.current || []).forEach(clearTimeout);
+    stepTimerRef.current = [];
     setAnalyzing(false);
 
     // Ignore pure validation errors (no file selected etc.)
@@ -481,6 +559,7 @@ export default function BentoDashboard() {
             auditResult={auditResult}
             loading={analyzing}
             inquiryMode={chatMode && !auditResult}
+            analysisProgress={analyzing ? <AnalysisProgress activeStep={analysisStep} /> : null}
           />
         </div>
       </div>

@@ -94,7 +94,7 @@ function CitationChip({ index, text, url }) {
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
-export default function LiveAnalysisCard({ auditResult, loading = false, inquiryMode = false }) {
+export default function LiveAnalysisCard({ auditResult, loading = false, inquiryMode = false, analysisProgress = null }) {
   const verdict  = auditResult?.verdict     || {};
   const intel    = auditResult?.intelligence || {};
   const reqs     = Array.isArray(auditResult?.requirements) ? auditResult.requirements : [];
@@ -152,7 +152,10 @@ export default function LiveAnalysisCard({ auditResult, loading = false, inquiry
 
       {/* ── States ── */}
       {loading ? (
-        <SkeletonBody />
+        <>
+          {analysisProgress}
+          <SkeletonBody />
+        </>
       ) : inquiryMode ? (
         <div style={s.empty}>
           <div style={{ ...s.emptyDot, background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'pulse 2s ease-in-out infinite' }}>

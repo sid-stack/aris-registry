@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { TableProperties, Loader2, Sparkles, AlertCircle, BookOpen, ChevronDown, AlertTriangle, Eye, EyeOff } from 'lucide-react';
+import { TableProperties, Loader2, Sparkles, AlertCircle, BookOpen, ChevronDown, AlertTriangle, Eye, EyeOff, Flag } from 'lucide-react';
 import '../../pages/SamRep.css';
+
+const FLAGS_KEY = 'bidsmith:flags';
 
 const sampleMatrix = [
   { id: 'CM-01', requirement: 'SAM.gov Registration',          section: 'Admin',  category: 'Eligibility',   farRef: 'FAR 52.204-7',      status: 'compliant',    risk: 'LOW',    action: 'Confirm active registration before submission.' },
@@ -17,14 +19,19 @@ const sampleMatrix = [
   { id: 'CM-12', requirement: 'FAR Clause Compliance',          section: 'I',      category: 'Legal',         farRef: 'Various',           status: 'compliant',    risk: 'LOW',    action: 'Standard clauses reviewed. No deviations flagged.' },
 ];
 
+// High-contrast, no-emoji badges for clean enterprise look
 const statusConfig = {
-  compliant:    { label: '✅ Compliant',       color: 'var(--success)',     bg: 'rgba(34,197,94,0.1)' },
-  noncompliant: { label: '❌ Non-Compliant',   color: 'var(--risk-high)',   bg: 'rgba(239,68,68,0.1)' },
-  conditional:  { label: '⚠️ Conditional',     color: 'var(--risk-medium)', bg: 'rgba(245,158,11,0.1)' },
-  review:       { label: '🔍 Review Required', color: 'var(--accent)',      bg: 'rgba(59,130,246,0.1)' },
+  compliant:    { label: '✓ PASS',       color: '#16a34a', bg: 'rgba(22,163,74,0.12)',    border: 'rgba(22,163,74,0.3)'  },
+  noncompliant: { label: '✕ FAIL',       color: '#dc2626', bg: 'rgba(220,38,38,0.12)',    border: 'rgba(220,38,38,0.3)'  },
+  conditional:  { label: '△ CONDITIONAL',color: '#d97706', bg: 'rgba(217,119,6,0.12)',    border: 'rgba(217,119,6,0.3)'  },
+  review:       { label: '○ REVIEW',     color: '#2563eb', bg: 'rgba(37,99,235,0.12)',    border: 'rgba(37,99,235,0.3)'  },
 };
 
-const riskColor = { HIGH: 'var(--risk-high)', MEDIUM: 'var(--risk-medium)', LOW: 'var(--success)' };
+const riskColor = {
+  HIGH:   '#dc2626',  // bold red — not orange
+  MEDIUM: '#d97706',  // amber
+  LOW:    '#16a34a',  // green
+};
 
 // Source citation tag — shows § reference and expands to show the excerpt
 const MatrixSourceTag = ({ section, excerpt }) => {
@@ -48,7 +55,7 @@ const MatrixSourceTag = ({ section, excerpt }) => {
   );
 };
 
-const MobileComplianceCard = ({ req, onDraft, draftingId, auditMode }) => {
+const MobileComplianceCard = ({ req, onDraft, draftingId, auditMode, isFlagged, onToggleFlag }) => {
   const [expanded, setExpanded] = useState(false);
   const s = statusConfig[req.status] || statusConfig.review;
   const isDrafting = draftingId === req.id;
@@ -84,8 +91,17 @@ const MobileComplianceCard = ({ req, onDraft, draftingId, auditMode }) => {
             </span>
           )}
         </div>
-        <div style={{ fontSize: "10px", fontWeight: 700, color: s.color, border: `1px solid ${s.color}`, background: s.bg, padding: "4px 8px", borderRadius: "4px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-          {s.label}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ fontSize: '10px', fontWeight: 800, color: s.color, border: `1.5px solid ${s.border || s.color}`, background: s.bg, padding: '3px 8px', borderRadius: '4px', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>
+            {s.label}
+          </div>
+          <button
+            onClick={(e) => { e.stopPropagation(); onToggleFlag(req.id); }}
+            title={isFlagged ? 'Remove flag' : 'Flag for review'}
+            style={{ background: isFlagged ? 'rgba(239,68,68,0.1)' : 'transparent', border: `1px solid ${isFlagged ? 'rgba(239,68,68,0.3)' : 'rgba(255,255,255,0.08)'}`, borderRadius: 4, padding: '3px 5px', cursor: 'pointer', display: 'flex', alignItems: 'center', transition: 'all 0.15s' }}
+          >
+            <Flag size={10} color={isFlagged ? '#ef4444' : '#4b5563'} fill={isFlagged ? '#ef4444' : 'none'} />
+          </button>
         </div>
       </div>
 
@@ -171,6 +187,20 @@ const ComplianceMatrix = () => {
   const [error, setError] = useState(null);
   const [rawText, setRawText] = useState('');
   const [auditMode, setAuditMode] = useState(false);
+  // Flagged items — persisted to localStorage so flags survive page refresh
+  const [flaggedIds, setFlaggedIds] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem(FLAGS_KEY) || '[]')); }
+    catch { return new Set(); }
+  });
+
+  const toggleFlag = (id) => {
+    setFlaggedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      try { localStorage.setItem(FLAGS_KEY, JSON.stringify([...next])); } catch {}
+      return next;
+    });
+  };
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -233,6 +263,11 @@ const ComplianceMatrix = () => {
           <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
             {requirementsCount} Requirements · FAR-Referenced
           </span>
+          {flaggedIds.size > 0 && (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '9px', fontWeight: 800, color: '#ef4444', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 5, padding: '3px 7px', letterSpacing: '0.06em' }}>
+              <Flag size={8} fill="#ef4444" /> {flaggedIds.size} FLAGGED
+            </span>
+          )}
           <button
             onClick={() => setAuditMode(v => !v)}
             title={auditMode ? 'Exit Audit Mode' : 'Audit Mode — highlight items AI is uncertain about'}
@@ -320,7 +355,7 @@ const ComplianceMatrix = () => {
         isMobile ? (
           <div className="compliance-mobile-stack" style={{ marginTop: '12px' }}>
             {displayItems.map((req) => (
-              <MobileComplianceCard key={req.id} req={req} onDraft={handleDraft} draftingId={draftingId} auditMode={auditMode} />
+              <MobileComplianceCard key={req.id} req={req} onDraft={handleDraft} draftingId={draftingId} auditMode={auditMode} isFlagged={flaggedIds.has(req.id)} onToggleFlag={toggleFlag} />
             ))}
           </div>
         ) : (
@@ -335,33 +370,38 @@ const ComplianceMatrix = () => {
                       color: 'var(--text-secondary)', textTransform: 'uppercase', whiteSpace: 'nowrap',
                     }}>{h}</th>
                   ))}
+                  <th style={{ padding: '8px 10px', textAlign: 'center', fontSize: '9px', fontWeight: 700, color: '#ef4444' }}>FLAG</th>
                   <th style={{ padding: '8px 10px', textAlign: 'right', fontSize: '9px', fontWeight: 700, color: 'var(--accent)' }}>DRAFT</th>
                 </tr>
               </thead>
               <tbody>
                 {displayItems.map((row) => {
                   const { id, requirement, section, category, farRef, status, risk, action, source_excerpt } = row;
-                  const s = statusConfig[status] || statusConfig.review;
+                  const sc = statusConfig[status] || statusConfig.review;
                   const isDrafting = draftingId === id;
-                  const flagged = auditMode && (risk === 'HIGH' || !source_excerpt);
+                  const auditFlagged = auditMode && (risk === 'HIGH' || !source_excerpt);
+                  const userFlagged  = flaggedIds.has(id);
                   const rowBg = isDrafting
                     ? 'var(--accent-soft)'
-                    : flagged
-                      ? 'rgba(245,158,11,0.05)'
-                      : 'transparent';
+                    : userFlagged
+                      ? 'rgba(239,68,68,0.04)'
+                      : auditFlagged
+                        ? 'rgba(245,158,11,0.04)'
+                        : 'transparent';
+                  const borderLeftColor = userFlagged ? '#ef4444' : auditFlagged ? '#f59e0b' : 'transparent';
                   return (
                     <tr key={id} style={{
                       borderBottom: '1px solid var(--border)',
                       background: rowBg,
-                      borderLeft: flagged ? '3px solid #f59e0b' : '3px solid transparent',
+                      borderLeft: `3px solid ${borderLeftColor}`,
                     }}
-                      onMouseEnter={e => !isDrafting && !flagged && (e.currentTarget.style.background = 'var(--card-hover)')}
+                      onMouseEnter={e => !isDrafting && (e.currentTarget.style.background = userFlagged ? 'rgba(239,68,68,0.07)' : 'var(--card-hover)')}
                       onMouseLeave={e => !isDrafting && (e.currentTarget.style.background = rowBg)}
                     >
                       <td style={{ padding: '10px', color: 'var(--text-secondary)', fontFamily: 'monospace', fontSize: '10px', whiteSpace: 'nowrap' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                           {id}
-                          {flagged && (
+                          {auditFlagged && (
                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, fontSize: '8px', fontWeight: 800, color: '#f59e0b', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 3, padding: '1px 4px' }}>
                               <AlertTriangle size={7} /> VERIFY
                             </span>
@@ -375,27 +415,28 @@ const ComplianceMatrix = () => {
                       <td style={{ padding: '10px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{category}</td>
                       <td style={{ padding: '10px', color: 'var(--accent)', whiteSpace: 'nowrap', fontFamily: 'monospace', fontSize: '10px' }}>{farRef}</td>
                       <td style={{ padding: '10px', whiteSpace: 'nowrap' }}>
-                        <span style={{ fontSize: '10px', fontWeight: 600, padding: '3px 8px', borderRadius: '3px', background: s.bg, color: s.color }}>{s.label}</span>
+                        {/* High-contrast, bold PASS/FAIL badge */}
+                        <span style={{ fontSize: '10px', fontWeight: 800, padding: '3px 8px', borderRadius: '3px', background: sc.bg, color: sc.color, border: `1.5px solid ${sc.border || sc.color}`, letterSpacing: '0.05em' }}>{sc.label}</span>
                       </td>
                       <td style={{ padding: '10px', whiteSpace: 'nowrap' }}>
-                        <span style={{ fontSize: '10px', fontWeight: 700, color: riskColor[risk] || riskColor.MEDIUM }}>{risk}</span>
+                        <span style={{ fontSize: '10px', fontWeight: 800, color: riskColor[risk] || riskColor.MEDIUM }}>{risk}</span>
                       </td>
                       <td style={{ padding: '10px', color: 'var(--text-secondary)', fontSize: '11px', minWidth: '200px', lineHeight: 1.4 }}>{action}</td>
+                      {/* Flag for Review */}
+                      <td style={{ padding: '10px', textAlign: 'center' }}>
+                        <button
+                          onClick={() => toggleFlag(id)}
+                          title={userFlagged ? 'Remove flag' : 'Flag for human review'}
+                          style={{ background: userFlagged ? 'rgba(239,68,68,0.12)' : 'transparent', border: `1px solid ${userFlagged ? 'rgba(239,68,68,0.3)' : 'var(--border)'}`, borderRadius: 4, padding: '4px 6px', cursor: 'pointer', transition: 'all 0.15s' }}
+                        >
+                          <Flag size={10} color={userFlagged ? '#ef4444' : '#4b5563'} fill={userFlagged ? '#ef4444' : 'none'} />
+                        </button>
+                      </td>
                       <td style={{ padding: '10px', textAlign: 'right' }}>
                         <button
                           onClick={() => handleDraft(id)}
                           disabled={isDrafting}
-                          style={{
-                            background: 'var(--accent)',
-                            color: 'white',
-                            border: 'none',
-                            padding: '4px 8px',
-                            borderRadius: '3px',
-                            fontSize: '9px',
-                            fontWeight: 800,
-                            cursor: 'pointer',
-                            opacity: isDrafting ? 0.5 : 1
-                          }}
+                          style={{ background: 'var(--accent)', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '3px', fontSize: '9px', fontWeight: 800, cursor: 'pointer', opacity: isDrafting ? 0.5 : 1 }}
                         >
                           {isDrafting ? '...' : 'DRAFT'}
                         </button>
