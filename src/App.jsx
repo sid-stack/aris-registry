@@ -192,8 +192,40 @@ export default function App() {
   };
 
   const authWall = (
-    <div style={{ minHeight: "100vh", background: "#0a0d14", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <SignIn routing="hash" />
+    <div style={{
+      minHeight: "100vh",
+      background: "linear-gradient(135deg, #0f1623 0%, #111827 50%, #0c1220 100%)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
+    }}>
+      <SignIn
+        routing="hash"
+        appearance={{
+          variables: {
+            colorBackground:       "#ffffff",
+            colorText:             "#111827",
+            colorTextSecondary:    "#6b7280",
+            colorPrimary:          "#1d4ed8",
+            colorDanger:           "#dc2626",
+            colorInputBackground:  "#f9fafb",
+            colorInputText:        "#111827",
+            borderRadius:          "10px",
+            fontFamily:            '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
+            fontSize:              "14px",
+          },
+          elements: {
+            card:                  "shadow-xl",
+            socialButtonsBlockButton:
+              "bg-white border border-gray-200 text-gray-800 hover:bg-gray-50 font-medium",
+            socialButtonsBlockButtonText: "text-gray-800 font-medium",
+            formButtonPrimary:
+              "bg-blue-700 hover:bg-blue-800 text-white font-semibold",
+            footerActionLink:      "text-blue-600 hover:text-blue-700",
+          },
+        }}
+      />
     </div>
   );
 
