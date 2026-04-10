@@ -1,12 +1,13 @@
 import {
   Check, AlertTriangle, Zap, Loader2, Shield,
   FileText, TrendingUp, Search, ChevronRight, Star,
-  ArrowRight, BarChart2, Link2
+  ArrowRight, BarChart2, Link2, Play
 } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import FaqSection from "../components/FaqSection";
 import "./Landing.css";
 import PricingComparison from "../components/PricingComparison";
+import DemoSection from "../components/DemoSection";
 
 // ─── Color Palette ────────────────────────────────────────────────────────────
 const C = {
@@ -189,6 +190,7 @@ export default function Landing({
             {!isMobile && (
               <>
                 <a href="/pricing" style={S.navLink}>Pricing</a>
+                <button style={S.navLink} onClick={() => onViewSample?.()}>Demo</button>
                 <a href="https://arislabs.mintlify.app/" target="_blank" rel="noopener noreferrer" style={S.navLink}>Docs</a>
               </>
             )}
@@ -226,6 +228,13 @@ export default function Landing({
             </button>
             <button style={S.ctaSecondary} onClick={() => onEnterApp?.("hero_secondary_cta")}>
               {isAuthenticated ? "Run New Audit" : "Start Free Audit"}
+            </button>
+            <button
+              style={{ ...S.ctaSecondary, display: "inline-flex", alignItems: "center", gap: 8, borderColor: C.navyMid, color: C.navyMid }}
+              onClick={() => onViewSample?.()}
+            >
+              <Play size={15} fill={C.navyMid} strokeWidth={0} />
+              Watch Live Demo
             </button>
           </div>
 
@@ -301,6 +310,9 @@ export default function Landing({
           )}
         </div>
       </section>
+
+      {/* ── Live Demo Section ────────────────────────────────────────────────── */}
+      <DemoSection onTryDemo={() => onViewSample?.()} />
 
       {/* ── SAM.gov Quick-Audit Bar ───────────────────────────────────────────── */}
       <section style={{ background: C.navy, padding: "28px 24px" }}>
