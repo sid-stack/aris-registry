@@ -344,6 +344,263 @@ function StatCard({ icon: Icon, iconColor, iconBg, label, value, sub, trend }) {
   );
 }
 
+// ── Featured / Hot RFPs this week ─────────────────────────────────────────
+const FEATURED_RFPS = [
+  {
+    id:       'fa462626q0009',
+    title:    'Army Cyber Operations Support Services',
+    agency:   'Dept. of the Army',
+    naics:    '541519',
+    value:    '$24.5M',
+    setAside: 'Unrestricted',
+    tag:      '🔥 Trending',
+    tagColor: '#ef4444',
+    url:      'https://sam.gov/opp/fa462626q0009/view',
+  },
+  {
+    id:       '70cdsr24r00000003',
+    title:    'DHS Enterprise Cloud Infrastructure (ECIP)',
+    agency:   'Dept. of Homeland Security',
+    naics:    '541512',
+    value:    '$180M',
+    setAside: 'Small Business',
+    tag:      '💰 High Value',
+    tagColor: '#f59e0b',
+    url:      'https://sam.gov/opp/70cdsr24r00000003/view',
+  },
+  {
+    id:       'hhsm500t0001',
+    title:    'HHS Health IT Modernization — Phase III',
+    agency:   'HHS / CMS',
+    naics:    '541511',
+    value:    '$62M',
+    setAside: '8(a) Set-Aside',
+    tag:      '⚡ Closing Soon',
+    tagColor: '#a78bfa',
+    url:      'https://sam.gov/opp/hhsm500t0001/view',
+  },
+  {
+    id:       'va797p24q0112',
+    title:    'VA Enterprise DevSecOps Platform',
+    agency:   'Dept. of Veterans Affairs',
+    naics:    '541513',
+    value:    '$38M',
+    setAside: 'SDVOSB',
+    tag:      '🏛️ Federal Priority',
+    tagColor: '#3b82f6',
+    url:      'https://sam.gov/opp/va797p24q0112/view',
+  },
+  {
+    id:       'n0042124r0001',
+    title:    'NAVSEA Shipyard IT Network Upgrade',
+    agency:   'Dept. of the Navy',
+    naics:    '334111',
+    value:    '$91M',
+    setAside: 'HUBZone',
+    tag:      '🆕 Just Posted',
+    tagColor: '#22c55e',
+    url:      'https://sam.gov/opp/n0042124r0001/view',
+  },
+];
+
+function FeaturedSolicitations({ onSelect }) {
+  return (
+    <div style={fs.wrap}>
+      <div style={fs.header}>
+        <span style={fs.eyebrow}>HOT RFPs THIS WEEK</span>
+        <span style={fs.sub}>Click any card to instantly audit it →</span>
+      </div>
+      <div style={fs.scroll}>
+        {FEATURED_RFPS.map(rfp => (
+          <button key={rfp.id} onClick={() => onSelect(rfp.url)} style={fs.card}>
+            <div style={fs.cardTop}>
+              <span style={{ ...fs.tag, color: rfp.tagColor, borderColor: rfp.tagColor + '40', background: rfp.tagColor + '12' }}>
+                {rfp.tag}
+              </span>
+              <span style={fs.naics}>NAICS {rfp.naics}</span>
+            </div>
+            <p style={fs.title}>{rfp.title}</p>
+            <p style={fs.agency}>{rfp.agency}</p>
+            <div style={fs.cardBottom}>
+              <span style={fs.value}>{rfp.value}</span>
+              <span style={fs.setAside}>{rfp.setAside}</span>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const fs = {
+  wrap: {
+    padding: '0 28px 20px',
+  },
+  header: {
+    display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 12,
+  },
+  eyebrow: {
+    fontSize: '10px', fontWeight: 800, letterSpacing: '0.1em',
+    color: '#4b5563', textTransform: 'uppercase',
+  },
+  sub: {
+    fontSize: '11px', color: '#2a2a2a',
+  },
+  scroll: {
+    display: 'flex', gap: 10, overflowX: 'auto',
+    paddingBottom: 4, scrollbarWidth: 'none',
+  },
+  card: {
+    flexShrink: 0, width: 200,
+    background: '#0f0f0f',
+    border: '1px solid #1a1a1a',
+    borderRadius: 12,
+    padding: '12px 14px',
+    cursor: 'pointer',
+    textAlign: 'left',
+    display: 'flex', flexDirection: 'column', gap: 6,
+    transition: 'border-color 0.15s, background 0.15s, transform 0.12s',
+  },
+  cardTop: {
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+  },
+  tag: {
+    fontSize: '9px', fontWeight: 800, letterSpacing: '0.04em',
+    padding: '2px 6px', borderRadius: 4, border: '1px solid',
+    whiteSpace: 'nowrap',
+  },
+  naics: {
+    fontSize: '9px', color: '#374151', fontFamily: 'monospace',
+  },
+  title: {
+    margin: 0, fontSize: '12px', fontWeight: 600,
+    color: '#e5e7eb', lineHeight: 1.35,
+    display: '-webkit-box', WebkitLineClamp: 2,
+    WebkitBoxOrient: 'vertical', overflow: 'hidden',
+  },
+  agency: {
+    margin: 0, fontSize: '10px', color: '#6b7280',
+    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+  },
+  cardBottom: {
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 2,
+  },
+  value: {
+    fontSize: '12px', fontWeight: 800, color: '#22c55e', letterSpacing: '-0.02em',
+  },
+  setAside: {
+    fontSize: '9px', fontWeight: 600, color: '#6b7280',
+    background: '#1a1a1a', border: '1px solid #222',
+    borderRadius: 4, padding: '2px 6px',
+  },
+};
+
+// ── Paywall Gate — free teaser + locked full analysis ─────────────────────
+function PaywallGate({ children, hasAudit, isPaid = false }) {
+  const handleUnlock = async () => {
+    try {
+      const res = await fetch('/api/create-dynamic-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estimatedValue: 'Full Risk Analysis', opportunityTitle: 'BidSmith Deep-Shred' }),
+      });
+      const { url } = await res.json();
+      if (url) window.open(url, '_blank');
+    } catch {
+      window.open('https://bidsmith.pro/pricing', '_blank');
+    }
+  };
+
+  if (!hasAudit) return null;
+  if (isPaid) return <>{children}</>;
+
+  return (
+    <div style={pw.wrap}>
+      {/* Preview — first card visible */}
+      <div style={pw.preview}>{children}</div>
+
+      {/* Lock overlay */}
+      <div style={pw.overlay}>
+        <div style={pw.lockCard}>
+          <div style={pw.lockIcon}>🔒</div>
+          <p style={pw.lockTitle}>Full Risk Analysis Locked</p>
+          <p style={pw.lockSub}>
+            You're seeing the summary. Unlock the complete compliance matrix,
+            proposal roadmap, disqualifier flags, and export tools.
+          </p>
+          <div style={pw.featureList}>
+            {['Full compliance matrix (all requirements)', 'Proposal roadmap + section guidance', 'Disqualifier deep-dive + FAR citations', 'Export to CSV / copy bid brief'].map(f => (
+              <div key={f} style={pw.featureRow}>
+                <span style={{ color: '#22c55e', fontSize: 11 }}>✓</span>
+                <span style={pw.featureText}>{f}</span>
+              </div>
+            ))}
+          </div>
+          <button onClick={handleUnlock} style={pw.cta}>
+            Unlock Full Analysis — $49
+          </button>
+          <p style={pw.ctaSub}>One-time per solicitation · Instant access</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const pw = {
+  wrap: {
+    position: 'relative',
+  },
+  preview: {
+    maxHeight: 240,
+    overflow: 'hidden',
+    maskImage: 'linear-gradient(to bottom, black 40%, transparent 100%)',
+    WebkitMaskImage: 'linear-gradient(to bottom, black 40%, transparent 100%)',
+    pointerEvents: 'none',
+  },
+  overlay: {
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    padding: '20px 28px 32px',
+  },
+  lockCard: {
+    width: '100%', maxWidth: 480,
+    background: '#0f0f0f',
+    border: '1px solid #1f1f1f',
+    borderRadius: 16,
+    padding: '28px 28px 24px',
+    display: 'flex', flexDirection: 'column', alignItems: 'center',
+    gap: 10, textAlign: 'center',
+  },
+  lockIcon: { fontSize: 28 },
+  lockTitle: {
+    margin: 0, fontSize: 16, fontWeight: 700,
+    color: '#f9fafb', letterSpacing: '-0.02em',
+  },
+  lockSub: {
+    margin: 0, fontSize: 12, color: '#6b7280',
+    lineHeight: 1.6, maxWidth: 360,
+  },
+  featureList: {
+    display: 'flex', flexDirection: 'column', gap: 6,
+    alignSelf: 'stretch', margin: '4px 0',
+  },
+  featureRow: {
+    display: 'flex', alignItems: 'flex-start', gap: 8,
+    textAlign: 'left',
+  },
+  featureText: { fontSize: 12, color: '#9ca3af' },
+  cta: {
+    padding: '12px 32px',
+    background: 'linear-gradient(135deg, #1d4ed8, #2563eb)',
+    border: 'none', borderRadius: 10,
+    color: '#fff', fontSize: 14, fontWeight: 700,
+    cursor: 'pointer', transition: 'opacity 0.15s',
+    letterSpacing: '-0.01em', marginTop: 4,
+  },
+  ctaSub: {
+    margin: 0, fontSize: 10, color: '#374151',
+  },
+};
+
 // ── Analysis progress steps (latency transparency) ────────────────────────
 const ANALYSIS_STEPS = [
   { id: 'fetch',    label: 'Fetching solicitation',        detail: 'SAM.gov API + PDF extraction'    },
@@ -559,6 +816,7 @@ export default function BentoDashboard({ user = null, onBack }) {
   const [analysisStep, setAnalysisStep] = useState(0);
   const [toast, setToast]             = useState(null);
   const [health, setHealth]           = useState(null);
+  const [featuredUrl, setFeaturedUrl] = useState(null); // set when featured RFP clicked
 
   // Audit history (sidebar)
   const [auditHistory, setAuditHistory]       = useState([]);
@@ -737,6 +995,13 @@ export default function BentoDashboard({ user = null, onBack }) {
         </p>
       </div>
 
+      {/* ── Hot RFPs this week ───────────────────────────────────────────── */}
+      <FeaturedSolicitations onSelect={url => {
+        setFeaturedUrl(null);
+        // Small tick to reset then set, forcing the useEffect in RfpUploadZone to re-fire
+        setTimeout(() => setFeaturedUrl(url), 10);
+      }} />
+
       {/* ── Bento Row 1 ─────────────────────────────────────────────────── */}
       <div style={s.row1}>
 
@@ -755,7 +1020,7 @@ export default function BentoDashboard({ user = null, onBack }) {
               onAuditStart={handleStart}
             />
           ) : (
-            <RfpUploadZone onStart={handleStart} onResult={handleResult} onError={handleError} />
+            <RfpUploadZone onStart={handleStart} onResult={handleResult} onError={handleError} initialUrl={featuredUrl} />
           )}
         </div>
 
@@ -806,10 +1071,25 @@ export default function BentoDashboard({ user = null, onBack }) {
         <EvalStatusCard />
       </div>
 
-      {/* ── Bento Row 3 — Bid Output ────────────────────────────────────── */}
+      {/* ── Bento Row 3 — Bid Output (free preview) + Paywall ──────────── */}
       <div style={s.row3}>
         <BidOutputCard auditResult={auditResult} loading={analyzing} />
       </div>
+
+      {/* ── Paywall gate — full risk analysis ───────────────────────────── */}
+      <PaywallGate hasAudit={!!auditResult && !analyzing} isPaid={false}>
+        <div style={{ padding: '0 28px' }}>
+          <div style={{ background: '#0f0f0f', border: '1px solid #1a1a1a', borderRadius: 16, padding: '20px 20px 16px' }}>
+            <p style={{ margin: '0 0 12px', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: '#4b5563', textTransform: 'uppercase' }}>Full Compliance Matrix</p>
+            {(auditResult?.requirements || []).slice(0, 3).map((req, i) => (
+              <div key={i} style={{ padding: '10px 0', borderBottom: '1px solid #1a1a1a', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                <span style={{ fontSize: 10, fontWeight: 800, color: req.risk === 'HIGH' ? '#dc2626' : req.risk === 'LOW' ? '#22c55e' : '#f59e0b', width: 36, flexShrink: 0, paddingTop: 1 }}>{req.risk}</span>
+                <p style={{ margin: 0, fontSize: 12, color: '#9ca3af', lineHeight: 1.4 }}>{req.requirement}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </PaywallGate>
 
       {/* ── Toast ───────────────────────────────────────────────────────── */}
       {toast && (

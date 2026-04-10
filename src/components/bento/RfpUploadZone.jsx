@@ -3,12 +3,12 @@
  * Accepts PDF files or raw SAM.gov URL.
  * Calls /api/audit/pdf (file) or /api/audit/link (URL).
  */
-import { useState, useRef, useCallback } from 'react';
-import { Upload, Link2, FileText, X, Loader2, CheckCircle2 } from 'lucide-react';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { Upload, Link2, FileText, X, Loader2, CheckCircle2, Zap } from 'lucide-react';
 
 const ACCEPTED_MIME = ['application/pdf'];
 
-export default function RfpUploadZone({ onResult, onError, onStart }) {
+export default function RfpUploadZone({ onResult, onError, onStart, initialUrl = null }) {
   const [mode, setMode]       = useState('drop');   // 'drop' | 'url'
   const [dragging, setDragging] = useState(false);
   const [file, setFile]       = useState(null);
@@ -16,8 +16,21 @@ export default function RfpUploadZone({ onResult, onError, onStart }) {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const inputRef              = useRef(null);
+  const didAutoSubmit         = useRef(null); // tracks last initialUrl we auto-fired
 
   const reset = () => { setFile(null); setUrl(''); setSuccess(false); };
+
+  // When a featured solicitation is clicked, switch to URL mode, populate, and fire
+  useEffect(() => {
+    if (initialUrl && initialUrl !== didAutoSubmit.current) {
+      didAutoSubmit.current = initialUrl;
+      setMode('url');
+      setUrl(initialUrl);
+      setSuccess(false);
+      // Slight delay so state settles before submit
+      setTimeout(() => submitUrl(initialUrl), 80);
+    }
+  }, [initialUrl]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Drag handlers ──────────────────────────────────────────────────────────
   const onDragOver  = useCallback(e => { e.preventDefault(); setDragging(true); }, []);
@@ -39,57 +52,60 @@ export default function RfpUploadZone({ onResult, onError, onStart }) {
     if (chosen) setFile(chosen);
   };
 
-  // ── Submit ─────────────────────────────────────────────────────────────────
-  const handleSubmit = async () => {
+  // ── Submit helpers ─────────────────────────────────────────────────────────
+  const submitUrl = async (targetUrl) => {
     if (loading) return;
+    const trimmed = (targetUrl || url).trim();
+    if (!trimmed) return;
     setLoading(true);
     setSuccess(false);
     onStart?.();
-
     try {
-      let res;
-      if (mode === 'drop' && file) {
-        const form = new FormData();
-        form.append('file', file);
-        res = await fetch('/api/audit/pdf', { method: 'POST', body: form });
-      } else if (mode === 'url' && url.trim()) {
-        res = await fetch('/api/audit/link', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url: url.trim() }),
-        });
-      } else {
-        onError?.({ message: 'Provide a PDF or SAM.gov URL.', code: 'VALIDATION', failedUrl: null });
-        setLoading(false);
-        return;
-      }
-
-      // Always parse JSON first so we get the real error message
+      const res = await fetch('/api/audit/link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: trimmed }),
+      });
       const data = await res.json().catch(() => null);
-
       if (!res.ok) {
-        const msg = data?.error || data?.message || `Request failed (${res.status})`;
-        // Pass the full structured error so callers can classify it
-        const errObj = {
-          message: msg,
-          hint: data?.hint || null,
-          code: data?.code || String(res.status),
-          externalLinks: data?.externalLinks || [],
-          failedUrl: mode === 'url' ? url.trim() : null,
-          rawData: data,
-        };
-        onError?.(errObj);
-        setLoading(false);
+        onError?.({ message: data?.error || `Request failed (${res.status})`, hint: data?.hint || null, code: data?.code || String(res.status), externalLinks: data?.externalLinks || [], failedUrl: trimmed, rawData: data });
         return;
       }
-
       setSuccess(true);
       onResult?.(data);
     } catch (err) {
-      onError?.({ message: err.message, code: 'NETWORK_ERROR', failedUrl: null });
+      onError?.({ message: err.message, code: 'NETWORK_ERROR', failedUrl: trimmed });
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSubmit = async () => {
+    if (loading) return;
+    if (mode === 'url') { submitUrl(url); return; }
+    if (mode === 'drop' && file) {
+      setLoading(true);
+      setSuccess(false);
+      onStart?.();
+      try {
+        const form = new FormData();
+        form.append('file', file);
+        const res = await fetch('/api/audit/pdf', { method: 'POST', body: form });
+        const data = await res.json().catch(() => null);
+        if (!res.ok) {
+          onError?.({ message: data?.error || `Request failed (${res.status})`, hint: data?.hint || null, code: data?.code || String(res.status), externalLinks: [], failedUrl: null, rawData: data });
+          return;
+        }
+        setSuccess(true);
+        onResult?.(data);
+      } catch (err) {
+        onError?.({ message: err.message, code: 'NETWORK_ERROR', failedUrl: null });
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+    onError?.({ message: 'Provide a PDF or SAM.gov URL.', code: 'VALIDATION', failedUrl: null });
   };
 
   const canSubmit = (mode === 'drop' && file) || (mode === 'url' && url.trim().length > 10);
