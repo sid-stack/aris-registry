@@ -36,7 +36,8 @@ const PAGE_META = {
   privacy:      { title: "Privacy Policy | BidSmith", description: "How BidSmith collects, uses, and protects your data.", path: "/privacy" },
   terms:        { title: "Terms of Service | BidSmith", description: "Terms and conditions governing your use of the BidSmith federal RFP audit platform.", path: "/terms" },
   cookies:      { title: "Cookie Policy | BidSmith", description: "How BidSmith uses cookies and local storage.", path: "/cookies" },
-  app:          { title: "BidSmith Audit Workspace | Federal RFP Compliance Analysis", description: "Your BidSmith federal solicitation audit workspace. Paste a SAM.gov URL or upload a PDF to begin.", path: "/app" },
+  app:          { title: "BidSmith Command Center | Federal RFP Compliance Analysis", description: "Your BidSmith Command Center. Paste a SAM.gov URL or upload a PDF to begin.", path: "/dashboard" },
+  dashboard:    { title: "BidSmith Command Center | Federal RFP Compliance Analysis", description: "Your BidSmith Command Center. Paste a SAM.gov URL or upload a PDF — bid/no-bid verdict in 90 seconds.", path: "/dashboard" },
   pricing:      { title: "BidSmith Pricing | Federal RFP Audit Plans — Free to $999/mo", description: "Start free with 3 audits per month. Upgrade for unlimited audits, full FAR/DFARS analysis, and deep-shred strategy. No hidden fees.", path: "/pricing" },
   "rfp-generator": { title: "Free RFP Compliance Matrix Generator | 90-Second FAR/DFARS Analysis — BidSmith", description: "Turn any government RFP into a structured compliance matrix in 90 seconds. Identify missing requirements and disqualification risks before you commit proposal resources.", path: "/rfp-compliance-matrix-generator" },
   admin:        { title: "Admin Portal | BidSmith", description: "Internal analytics portal.", path: "/admin" },
@@ -71,7 +72,7 @@ function usePageMeta(view) {
     const ogUrl = document.querySelector('meta[property="og:url"]');
     if (ogUrl) ogUrl.setAttribute("content", canonicalUrl);
 
-    const NOINDEX_VIEWS = new Set(["app", "admin", "bento"]);
+    const NOINDEX_VIEWS = new Set(["app", "dashboard", "admin", "bento"]);
     let robotsMeta = document.querySelector('meta[name="robots"]');
     if (!robotsMeta) {
       robotsMeta = document.createElement("meta");
@@ -89,14 +90,15 @@ const LANDING_SECTION_ALIASES = {
 };
 
 function resolveView(path) {
-  if (path.startsWith("/app") || window.location.search.includes("app=true")) return "app";
-  if (path === "/dashboard" || path === "/app/dashboard" || path === "/dashboard-v2") return "app";
+  // All workspace entry points converge on /dashboard
+  if (path === "/dashboard" || path === "/app/dashboard" || path === "/dashboard-v2") return "dashboard";
+  if (path.startsWith("/app") || window.location.search.includes("app=true")) return "dashboard";
+  if (path === "/bento" || path === "/bento-dashboard") return "dashboard";
+  if (path === "/chat" || path === "/aris") return "dashboard";
   if (path === "/templates") return "templates";
   if (path === "/pricing") return "pricing";
   if (path === "/rfp-compliance-matrix-generator") return "rfp-generator";
   if (path === "/admin") return "admin";
-  if (path === "/bento" || path === "/bento-dashboard") return "bento";
-  if (path === "/chat" || path === "/aris") return "app";
   if (path === "/contact") return "contact";
   if (path === "/privacy" || path === "/terms" || path === "/cookies") return path.slice(1);
   if (path === "/sam-rep") return "sam-rep";
@@ -136,8 +138,9 @@ export default function App() {
 
   useEffect(() => {
     const pathMap = {
-      app: "/app", templates: "/templates", pricing: "/pricing",
-      admin: "/admin", bento: "/bento", contact: "/contact", "sam-rep": "/sam-rep",
+      app: "/dashboard", dashboard: "/dashboard",
+      templates: "/templates", pricing: "/pricing",
+      admin: "/admin", bento: "/dashboard", contact: "/contact", "sam-rep": "/sam-rep",
       soc: "/soc", about: "/about", demo: "/demo",
       "govcon-guide": "/govcon-guide", "rfp-generator": "/rfp-compliance-matrix-generator",
       "404": "/404",
@@ -173,19 +176,19 @@ export default function App() {
     trackEvent("landing_quick_audit_started", { entry: "url_bar" });
     setInitialFile(null);
     setInitialUrl(url);
-    setView("app");
+    setView("dashboard");
   };
 
   const handleAnalyzeFile = (file) => {
     trackEvent("landing_quick_audit_started", { entry: "pdf_upload" });
     setInitialUrl("");
     setInitialFile(file);
-    setView("app");
+    setView("dashboard");
   };
 
   const handleEnterApp = (entry = "generic") => {
     trackEvent("landing_cta_clicked", { entry, authenticated: Boolean(authenticated && user) });
-    setView("app");
+    setView("dashboard");
   };
 
   const authWall = (
@@ -217,26 +220,26 @@ export default function App() {
       break;
     case "compliance": {
       const slug = window.location.pathname.replace("/compliance/", "");
-      content = <CompliancePage slug={slug} onBack={() => setView("app")} />;
+      content = <CompliancePage slug={slug} onBack={() => setView("dashboard")} />;
       break;
     }
     case "demo":
-      content = <Demo onBack={() => setView("landing")} onEnterApp={() => setView("app")} />;
+      content = <Demo onBack={() => setView("landing")} onEnterApp={() => setView("dashboard")} />;
       break;
     case "govcon-guide":
-      content = <GovConGuide onBack={() => setView("landing")} onEnterApp={() => setView("app")} />;
+      content = <GovConGuide onBack={() => setView("landing")} onEnterApp={() => setView("dashboard")} />;
       break;
     case "pricing":
       content = (
         <PricingGrid
-          onTryFree={() => setView("app")}
+          onTryFree={() => setView("dashboard")}
           onGetPro={() => window.open("https://buy.stripe.com/3cIaEX66197ad9H9na2Fa00", "_blank")}
           onGetEnterprise={() => window.open("https://buy.stripe.com/cNibJ19id8369XvfLy2Fa01", "_blank")}
         />
       );
       break;
     case "rfp-generator":
-      content = <RfpMatrixGenerator onUpload={() => setView("app")} />;
+      content = <RfpMatrixGenerator onUpload={() => setView("dashboard")} />;
       break;
     case "admin":
       content = authLoading ? loadingScreen : authenticated ? <AdminDashboard onBack={() => setView("landing")} /> : authWall;
@@ -244,19 +247,19 @@ export default function App() {
     case "contact":
       content = <Contact onBack={() => setView("landing")} />;
       break;
+    // /app, /bento, /chat all resolve here — single Command Center
     case "bento":
-      content = <BentoDashboard />;
-      break;
     case "app":
+    case "dashboard":
       content = authLoading ? loadingScreen : authenticated && user
-        ? <GovConDashboardV2 onBack={() => setView("landing")} user={user} initialUrl={initialUrl} initialFile={initialFile} />
+        ? <BentoDashboard onBack={() => setView("landing")} user={user} />
         : authWall;
       break;
     case "landing":
       content = (
         <Landing
           onEnterApp={handleEnterApp}
-          onEnterDashboard={() => setView("app")}
+          onEnterDashboard={() => setView("dashboard")}
           onViewSample={() => setView("demo")}
           onAnalyze={handleAnalyze}
           onAnalyzeFile={handleAnalyzeFile}

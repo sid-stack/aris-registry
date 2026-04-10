@@ -1,21 +1,22 @@
 /**
- * BentoDashboard — Apple-clean Bento-grid intelligence dashboard.
+ * BentoDashboard — The BidSmith Command Center.
  *
- * Layout (fluid, 12-col Bento):
- *   Row 1: [RFP Upload — 5col] [Live Analysis — 7col]
- *   Row 2: [Audit Stats — 4col] [Compliance Snapshot — 4col] [Eval Status — 4col]
+ * Layout:
+ *   [Sidebar 220px] | [Main — scrollable]
+ *     Sidebar: logo, new audit, audit history, user/logout
+ *     Main:
+ *       Row 1: [RFP Input / Chat] [Live Analysis]
+ *       Row 2: [Win Prob] [Risk Signals] [Compliance] [Eval]
+ *       Row 3: [Bid Output]
  *
- * Stateless Bridge: all data flows from API → state → cards. No local DB.
- * API endpoints used:
- *   POST /api/audit/pdf   → file upload
- *   POST /api/audit/link  → SAM.gov URL
- *   GET  /api/health      → system status
- *   GET  /api/evals/status → eval runner results
+ * Single source of truth — /app, /bento, /dashboard all route here.
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Shield, Zap, Activity, FileSearch, ArrowUpRight, Send, RotateCcw,
-         MessageSquare, Loader2, ExternalLink, AlertTriangle } from 'lucide-react';
+         MessageSquare, Loader2, ExternalLink, AlertTriangle,
+         Clock, ChevronRight, LogOut, Plus, LayoutDashboard } from 'lucide-react';
+import { useClerk } from '@clerk/clerk-react';
 import RfpUploadZone   from '../components/bento/RfpUploadZone';
 import LiveAnalysisCard from '../components/bento/LiveAnalysisCard';
 import EvalStatusCard  from '../components/bento/EvalStatusCard';
@@ -399,18 +400,174 @@ function AnalysisProgress({ activeStep }) {
   );
 }
 
+// ── Command Center Sidebar ─────────────────────────────────────────────────
+function Sidebar({ user, auditHistory, loadingHistory, activeAuditId, onSelectAudit, onNewAudit }) {
+  const { signOut } = useClerk();
+
+  const verdictColor = (v) =>
+    v === 'BID' ? '#22c55e' : v === 'NO-BID' ? '#ef4444' : '#f59e0b';
+
+  return (
+    <div style={sb.sidebar}>
+      {/* Logo */}
+      <div style={sb.logoRow}>
+        <div style={sb.logoMark}><Shield size={13} color="#3b82f6" /></div>
+        <span style={sb.logoText}>BidSmith</span>
+      </div>
+
+      {/* New Audit */}
+      <button onClick={onNewAudit} style={sb.newBtn}>
+        <Plus size={12} />
+        New Audit
+      </button>
+
+      {/* History */}
+      <div style={sb.sectionLabel}>RECENT AUDITS</div>
+      <div style={sb.historyList}>
+        {loadingHistory ? (
+          <div style={sb.historyEmpty}>Loading…</div>
+        ) : auditHistory.length === 0 ? (
+          <div style={sb.historyEmpty}>No audits yet</div>
+        ) : (
+          auditHistory.map(a => {
+            const isActive = a.id === activeAuditId;
+            const rec = a.audit_result?.verdict?.recommendation || a.verdict || '–';
+            return (
+              <button
+                key={a.id}
+                onClick={() => onSelectAudit(a)}
+                style={{ ...sb.historyItem, background: isActive ? 'rgba(59,130,246,0.08)' : 'transparent', borderColor: isActive ? 'rgba(59,130,246,0.2)' : 'transparent' }}
+              >
+                <div style={sb.historyTop}>
+                  <span style={{ ...sb.historyVerdict, color: verdictColor(rec) }}>{rec}</span>
+                  <span style={sb.historyDate}>
+                    {a.created_at ? new Date(a.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
+                  </span>
+                </div>
+                <div style={sb.historyTitle}>
+                  {(a.title || a.audit_result?.title || 'Untitled Solicitation').slice(0, 36)}
+                </div>
+                <div style={sb.historyAgency}>
+                  {(a.agency || a.audit_result?.agency || '').slice(0, 32)}
+                </div>
+              </button>
+            );
+          })
+        )}
+      </div>
+
+      {/* Footer — user + logout */}
+      <div style={sb.footer}>
+        {user?.email && (
+          <div style={sb.userRow}>
+            <div style={sb.userAvatar}>
+              {(user.email[0] || 'U').toUpperCase()}
+            </div>
+            <span style={sb.userEmail} title={user.email}>
+              {user.email.split('@')[0]}
+            </span>
+          </div>
+        )}
+        <button onClick={() => signOut()} style={sb.logoutBtn} title="Sign out">
+          <LogOut size={12} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+const sb = {
+  sidebar: {
+    width: 220, minWidth: 220, flexShrink: 0,
+    background: '#0a0a0a',
+    borderRight: '1px solid #111',
+    display: 'flex', flexDirection: 'column',
+    height: '100vh', position: 'sticky', top: 0,
+    overflowY: 'auto', padding: '16px 0 0',
+    scrollbarWidth: 'none',
+  },
+  logoRow: {
+    display: 'flex', alignItems: 'center', gap: 8,
+    padding: '0 16px 18px', borderBottom: '1px solid #111',
+  },
+  logoMark: {
+    width: 26, height: 26, borderRadius: 7,
+    background: 'rgba(59,130,246,0.12)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+  },
+  logoText: { fontSize: 13, fontWeight: 700, color: '#f9fafb', letterSpacing: '-0.02em' },
+  newBtn: {
+    margin: '14px 12px 6px',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+    padding: '8px 0',
+    background: 'rgba(59,130,246,0.1)',
+    border: '1px solid rgba(59,130,246,0.2)',
+    borderRadius: 8, color: '#60a5fa',
+    fontSize: 12, fontWeight: 600,
+    cursor: 'pointer', transition: 'all 0.15s',
+    letterSpacing: '-0.01em',
+  },
+  sectionLabel: {
+    padding: '12px 16px 6px',
+    fontSize: '9px', fontWeight: 700, letterSpacing: '0.1em',
+    color: '#2a2a2a', textTransform: 'uppercase',
+  },
+  historyList: { flex: 1, overflowY: 'auto', padding: '0 8px', scrollbarWidth: 'none' },
+  historyEmpty: { fontSize: 11, color: '#2a2a2a', padding: '8px 8px', textAlign: 'center' },
+  historyItem: {
+    width: '100%', textAlign: 'left',
+    padding: '9px 10px', borderRadius: 7,
+    border: '1px solid transparent',
+    cursor: 'pointer', transition: 'background 0.12s, border-color 0.12s',
+    marginBottom: 2,
+    display: 'flex', flexDirection: 'column', gap: 3,
+  },
+  historyTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  historyVerdict: { fontSize: '9px', fontWeight: 800, letterSpacing: '0.08em' },
+  historyDate: { fontSize: '9px', color: '#374151' },
+  historyTitle: { fontSize: '11px', fontWeight: 500, color: '#9ca3af', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  historyAgency: { fontSize: '10px', color: '#374151', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  footer: {
+    borderTop: '1px solid #111',
+    padding: '12px 12px',
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+    marginTop: 'auto',
+  },
+  userRow: { display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 },
+  userAvatar: {
+    width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
+    background: 'rgba(59,130,246,0.15)',
+    border: '1px solid rgba(59,130,246,0.25)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    fontSize: '10px', fontWeight: 700, color: '#60a5fa',
+  },
+  userEmail: { fontSize: 11, color: '#4b5563', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  logoutBtn: {
+    flexShrink: 0, width: 28, height: 28, borderRadius: 7,
+    background: 'transparent', border: '1px solid #1a1a1a',
+    color: '#4b5563', cursor: 'pointer',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    transition: 'all 0.15s',
+  },
+};
+
 // ── Main page ─────────────────────────────────────────────────────────────
-export default function BentoDashboard() {
+export default function BentoDashboard({ user = null, onBack }) {
   const [auditResult, setAuditResult] = useState(null);
+  const [activeAuditId, setActiveAuditId] = useState(null);
   const [analyzing, setAnalyzing]     = useState(false);
   const [analysisStep, setAnalysisStep] = useState(0);
   const [toast, setToast]             = useState(null);
   const [health, setHealth]           = useState(null);
 
+  // Audit history (sidebar)
+  const [auditHistory, setAuditHistory]       = useState([]);
+  const [loadingHistory, setLoadingHistory]   = useState(false);
+
   // Chat overlay state
-  const [chatMode, setChatMode]       = useState(false);   // is overlay active?
-  const [chatContext, setChatContext]  = useState(null);    // CHAT_CONTEXTS output
-  const [colVisible, setColVisible]   = useState(true);    // drive opacity/transform
+  const [chatMode, setChatMode]       = useState(false);
+  const [chatContext, setChatContext]  = useState(null);
+  const [colVisible, setColVisible]   = useState(true);
 
   // Health probe
   useEffect(() => {
@@ -419,6 +576,36 @@ export default function BentoDashboard() {
       .then(d => setHealth(d))
       .catch(() => setHealth(null));
   }, []);
+
+  // Audit history — fetch on mount if user is present
+  const fetchHistory = useCallback(() => {
+    if (!user?.id) return;
+    setLoadingHistory(true);
+    fetch('/api/audits?limit=20', { headers: { 'x-user-id': user.id } })
+      .then(r => r.ok ? r.json() : { audits: [] })
+      .then(d => setAuditHistory(Array.isArray(d.audits) ? d.audits : []))
+      .catch(() => setAuditHistory([]))
+      .finally(() => setLoadingHistory(false));
+  }, [user?.id]);
+
+  useEffect(() => { fetchHistory(); }, [fetchHistory]);
+
+  const handleSelectAudit = (historyEntry) => {
+    const result = historyEntry.audit_result;
+    if (result) {
+      setAuditResult(result);
+      setActiveAuditId(historyEntry.id);
+      if (chatMode) resetChatMode();
+      showToast(`Loaded: ${result.title?.slice(0, 40) || 'Audit'}`, 'info');
+    }
+  };
+
+  const handleNewAudit = () => {
+    setAuditResult(null);
+    setActiveAuditId(null);
+    setAnalyzing(false);
+    if (chatMode) resetChatMode();
+  };
 
   const showToast = (msg, type = 'info') => {
     setToast({ msg, type });
@@ -442,19 +629,19 @@ export default function BentoDashboard() {
   };
 
   const handleResult = data => {
-    // Clear step timers
     (stepTimerRef.current || []).forEach(clearTimeout);
     stepTimerRef.current = [];
-    setAnalysisStep(ANALYSIS_STEPS.length); // all done
+    setAnalysisStep(ANALYSIS_STEPS.length);
     setAuditResult(data);
+    setActiveAuditId(null); // fresh audit, not from history
     setAnalyzing(false);
-    // If we were in chat mode after an error and got a successful audit, exit chat mode
     if (chatMode) resetChatMode();
-    // Show cache hit indicator in toast
     const cacheMsg = data?.meta?.cache_hit
       ? 'Audit loaded from cache (0s latency)'
       : 'Audit complete';
     showToast(cacheMsg, 'success');
+    // Refresh history sidebar so new audit appears immediately
+    setTimeout(fetchHistory, 800);
   };
 
   // ── Error → Chat bridge ──────────────────────────────────────────────────────
@@ -498,16 +685,32 @@ export default function BentoDashboard() {
     ? auditResult.intelligence.top_risks.length : null;
 
   return (
-    <div style={s.page}>
+    <div style={s.shell}>
+      {/* ── Sidebar ─────────────────────────────────────────────────────── */}
+      <Sidebar
+        user={user}
+        auditHistory={auditHistory}
+        loadingHistory={loadingHistory}
+        activeAuditId={activeAuditId}
+        onSelectAudit={handleSelectAudit}
+        onNewAudit={handleNewAudit}
+      />
+
+      {/* ── Main scrollable content ──────────────────────────────────────── */}
+      <div style={s.page}>
       {/* ── Top bar ─────────────────────────────────────────────────────── */}
       <header style={s.topBar}>
         <div style={s.topBarLeft}>
-          <div style={s.logoMark}>
-            <Shield size={14} color="#3b82f6" />
-          </div>
-          <span style={s.logoText}>BidSmith</span>
-          <span style={s.logoSep}>/</span>
-          <span style={s.logoSub}>Intelligence Dashboard</span>
+          <LayoutDashboard size={13} color="#4b5563" />
+          <span style={s.logoSub}>Command Center</span>
+          {auditResult && (
+            <>
+              <span style={s.logoSep}>/</span>
+              <span style={{ ...s.logoSub, color: '#9ca3af', maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {auditResult.title?.slice(0, 50) || auditResult.solicitation_number || 'Active Audit'}
+              </span>
+            </>
+          )}
         </div>
 
         <div style={s.topBarRight}>
@@ -517,9 +720,12 @@ export default function BentoDashboard() {
               <span style={s.healthLabel}>API Online</span>
             </div>
           )}
-          <a href="/app" style={s.openApp}>
-            Open App <ArrowUpRight size={11} style={{ marginLeft: 3 }} />
-          </a>
+          {auditResult?.meta?.cache_hit && (
+            <div style={{ ...s.healthPill, background: 'rgba(34,197,94,0.08)', borderColor: 'rgba(34,197,94,0.15)' }}>
+              <span style={{ ...s.healthDot, background: '#22c55e' }} />
+              <span style={{ ...s.healthLabel, color: '#22c55e' }}>Cache Hit</span>
+            </div>
+          )}
         </div>
       </header>
 
@@ -527,7 +733,7 @@ export default function BentoDashboard() {
       <div style={s.titleBlock}>
         <h1 style={s.pageTitle}>RFP Intelligence</h1>
         <p style={s.pageSubtitle}>
-          Upload an RFP or paste a SAM.gov link. AI analysis streams back in real-time.
+          Paste a SAM.gov link or upload a PDF — bid/no-bid verdict in 90 seconds.
         </p>
       </div>
 
@@ -631,21 +837,31 @@ export default function BentoDashboard() {
         a { transition: opacity 0.15s; }
         a:hover { opacity: 0.75; }
         .mini-thread::-webkit-scrollbar { display: none; }
+        .bs-sidebar::-webkit-scrollbar { display: none; }
       `}</style>
+      </div>
     </div>
   );
 }
 
 // ── Styles ──────────────────────────────────────────────────────────────────
 const s = {
-  page: {
+  // Outer flex container — sidebar + main
+  shell: {
+    display: 'flex',
     minHeight: '100vh',
     background: '#080808',
     fontFamily: '"Inter", "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
     color: '#f9fafb',
-    padding: '0 0 60px',
     WebkitFontSmoothing: 'antialiased',
     MozOsxFontSmoothing: 'grayscale',
+  },
+  // Scrollable main column
+  page: {
+    flex: 1,
+    minWidth: 0,
+    overflowX: 'hidden',
+    padding: '0 0 60px',
   },
 
   // ── Top bar ──
