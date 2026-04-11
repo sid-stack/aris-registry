@@ -4,11 +4,18 @@
  * Calls /api/audit/pdf (file) or /api/audit/link (URL).
  */
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Upload, Link2, FileText, X, Loader2, CheckCircle2, Zap } from 'lucide-react';
+import { Upload, Link2, FileText, X, Loader2, CheckCircle2, Send } from 'lucide-react';
 
 const ACCEPTED_MIME = ['application/pdf'];
 
-export default function RfpUploadZone({ onResult, onError, onStart, initialUrl = null, user = null }) {
+export default function RfpUploadZone({
+  onResult,
+  onError,
+  onStart,
+  initialUrl = null,
+  user = null,
+  variant = 'card', // 'card' | 'chatBar'
+}) {
   const [mode, setMode]       = useState('drop');   // 'drop' | 'url'
   const [dragging, setDragging] = useState(false);
   const [file, setFile]       = useState(null);
@@ -131,6 +138,90 @@ export default function RfpUploadZone({ onResult, onError, onStart, initialUrl =
 
   const canSubmit = (mode === 'drop' && file) || (mode === 'url' && url.trim().length > 10);
 
+  if (variant === 'chatBar') {
+    return (
+      <div style={cb.wrap}>
+        <div style={cb.inner}>
+          <input ref={inputRef} type="file" accept=".pdf" style={{ display: 'none' }} onChange={onFileChange} />
+          <button
+            type="button"
+            style={cb.iconBtn}
+            title="Attach PDF"
+            onClick={() => inputRef.current?.click()}
+          >
+            <Upload size={18} color="#9ca3af" />
+          </button>
+          <div style={cb.modeToggle}>
+            <button
+              type="button"
+              style={mode === 'url' ? cb.modeOn : cb.modeOff}
+              onClick={() => { setMode('url'); setFile(null); }}
+            >
+              <Link2 size={14} />
+            </button>
+            <button
+              type="button"
+              style={mode === 'drop' ? cb.modeOn : cb.modeOff}
+              onClick={() => { setMode('drop'); setUrl(''); }}
+            >
+              <FileText size={14} />
+            </button>
+          </div>
+          {mode === 'url' ? (
+            <input
+              style={cb.textField}
+              type="url"
+              placeholder="Paste a SAM.gov opportunity URL or message…"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && canSubmit && !loading && handleSubmit()}
+            />
+          ) : (
+            <div
+              style={{
+                ...cb.dropMini,
+                ...(dragging ? cb.dropMiniActive : {}),
+                ...(file ? cb.dropMiniFile : {}),
+              }}
+              onDragOver={onDragOver}
+              onDragLeave={onDragLeave}
+              onDrop={onDrop}
+              onClick={() => !file && inputRef.current?.click()}
+            >
+              {!file ? (
+                <span style={cb.dropHint}>Drop PDF or click to attach</span>
+              ) : (
+                <span style={cb.fileChip}>
+                  <FileText size={14} color="#4ade80" />
+                  <span style={cb.fileChipName}>{file.name}</span>
+                  <button
+                    type="button"
+                    style={cb.clearMini}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      reset();
+                    }}
+                  >
+                    <X size={14} />
+                  </button>
+                </span>
+              )}
+            </div>
+          )}
+          <button
+            type="button"
+            style={{ ...cb.sendBtn, ...((!canSubmit || loading) ? cb.sendDisabled : {}) }}
+            onClick={handleSubmit}
+            disabled={!canSubmit || loading}
+            title="Run audit"
+          >
+            {loading ? <Loader2 size={18} style={s.spin} /> : <Send size={18} />}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={s.card}>
       {/* Header */}
@@ -212,9 +303,9 @@ export default function RfpUploadZone({ onResult, onError, onStart, initialUrl =
 // ── Styles ──────────────────────────────────────────────────────────────────
 const s = {
   card: {
-    background: '#111111',
-    border: '1px solid #1f1f1f',
-    borderRadius: 16,
+    background: '#fff',
+    border: '1px solid #dadce0',
+    borderRadius: 8,
     padding: '20px 20px 16px',
     display: 'flex',
     flexDirection: 'column',
@@ -228,11 +319,11 @@ const s = {
     justifyContent: 'space-between',
   },
   label: {
-    fontSize: 11,
-    fontWeight: 600,
-    letterSpacing: '0.08em',
-    textTransform: 'uppercase',
-    color: '#6b7280',
+    fontSize: 12,
+    fontWeight: 500,
+    letterSpacing: '0',
+    textTransform: 'none',
+    color: '#5f6368',
   },
   tabRow: {
     display: 'flex',
@@ -241,26 +332,26 @@ const s = {
   tab: {
     display: 'flex',
     alignItems: 'center',
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: 500,
-    color: '#6b7280',
+    color: '#5f6368',
     background: 'transparent',
-    border: '1px solid #1f1f1f',
-    borderRadius: 6,
-    padding: '4px 10px',
+    border: '1px solid #dadce0',
+    borderRadius: 4,
+    padding: '6px 12px',
     cursor: 'pointer',
     transition: 'all 0.15s',
   },
   tabActive: {
     display: 'flex',
     alignItems: 'center',
-    fontSize: 11,
-    fontWeight: 600,
-    color: '#ffffff',
-    background: '#1a1a1a',
-    border: '1px solid #2f2f2f',
-    borderRadius: 6,
-    padding: '4px 10px',
+    fontSize: 12,
+    fontWeight: 500,
+    color: '#1967d2',
+    background: '#e8f0fe',
+    border: '1px solid #d2e3fc',
+    borderRadius: 4,
+    padding: '6px 12px',
     cursor: 'pointer',
   },
   dropZone: {
@@ -270,26 +361,28 @@ const s = {
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    border: '1.5px dashed #1f1f1f',
-    borderRadius: 12,
+    border: '1.5px dashed #dadce0',
+    borderRadius: 8,
     cursor: 'pointer',
     transition: 'border-color 0.15s, background 0.15s',
     gap: 6,
+    background: '#f8f9fa',
   },
   dropZoneDragging: {
-    borderColor: '#3b82f6',
-    background: 'rgba(59,130,246,0.04)',
+    borderColor: '#1a73e8',
+    background: '#e8f0fe',
   },
   dropZoneFilled: {
-    border: '1.5px solid #1f2f1f',
-    background: 'rgba(34,197,94,0.04)',
+    border: '1.5px solid #ceead6',
+    background: '#e6f4ea',
     cursor: 'default',
   },
   uploadIcon: {
     width: 40,
     height: 40,
     borderRadius: 10,
-    background: '#1a1a1a',
+    background: '#fff',
+    border: '1px solid #e8eaed',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -297,14 +390,14 @@ const s = {
   },
   dropTitle: {
     margin: 0,
-    fontSize: 13,
-    fontWeight: 500,
-    color: '#e5e7eb',
+    fontSize: 14,
+    fontWeight: 400,
+    color: '#202124',
   },
   dropSub: {
     margin: 0,
-    fontSize: 11,
-    color: '#4b5563',
+    fontSize: 13,
+    color: '#5f6368',
   },
   fileRow: {
     display: 'flex',
@@ -314,8 +407,8 @@ const s = {
   },
   fileName: {
     flex: 1,
-    fontSize: 12,
-    color: '#d1fae5',
+    fontSize: 13,
+    color: '#137333',
     fontWeight: 500,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
@@ -336,12 +429,12 @@ const s = {
   urlInput: {
     width: '100%',
     boxSizing: 'border-box',
-    background: '#0d0d0d',
-    border: '1px solid #1f1f1f',
-    borderRadius: 10,
-    padding: '10px 14px',
-    fontSize: 12,
-    color: '#f9fafb',
+    background: '#f8f9fa',
+    border: '1px solid #dadce0',
+    borderRadius: 8,
+    padding: '12px 14px',
+    fontSize: 14,
+    color: '#202124',
     fontFamily: 'inherit',
     outline: 'none',
   },
@@ -350,16 +443,16 @@ const s = {
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    background: '#ffffff',
-    color: '#000000',
+    background: '#1a73e8',
+    color: '#fff',
     border: 'none',
-    borderRadius: 10,
+    borderRadius: 4,
     padding: '10px 0',
-    fontSize: 13,
-    fontWeight: 600,
+    fontSize: 14,
+    fontWeight: 500,
     cursor: 'pointer',
     transition: 'opacity 0.15s',
-    letterSpacing: '-0.01em',
+    letterSpacing: '0',
   },
   submitDisabled: {
     opacity: 0.35,
@@ -368,5 +461,150 @@ const s = {
   spin: {
     marginRight: 6,
     animation: 'spin 1s linear infinite',
+  },
+};
+
+/** ChatGPT-style bottom composer */
+const cb = {
+  wrap: {
+    width: '100%',
+    maxWidth: 720,
+    margin: '0 auto',
+    boxSizing: 'border-box',
+  },
+  inner: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    background: '#fff',
+    border: '1px solid #dadce0',
+    borderRadius: 24,
+    padding: '6px 8px 6px 12px',
+    minHeight: 52,
+    boxSizing: 'border-box',
+    boxShadow: '0 1px 2px rgba(60,64,67,0.08)',
+  },
+  iconBtn: {
+    flexShrink: 0,
+    width: 36,
+    height: 36,
+    borderRadius: '50%',
+    border: 'none',
+    background: 'transparent',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modeToggle: {
+    display: 'flex',
+    gap: 2,
+    padding: 2,
+    borderRadius: 8,
+    background: '#f1f3f4',
+    flexShrink: 0,
+  },
+  modeOn: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 32,
+    height: 30,
+    borderRadius: 6,
+    border: 'none',
+    background: '#fff',
+    color: '#1967d2',
+    cursor: 'pointer',
+    boxShadow: '0 1px 1px rgba(60,64,67,0.12)',
+  },
+  modeOff: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 32,
+    height: 30,
+    borderRadius: 6,
+    border: 'none',
+    background: 'transparent',
+    color: '#5f6368',
+    cursor: 'pointer',
+  },
+  textField: {
+    flex: 1,
+    minWidth: 0,
+    border: 'none',
+    background: 'transparent',
+    fontSize: 16,
+    lineHeight: 1.45,
+    color: '#202124',
+    fontFamily: 'inherit',
+    outline: 'none',
+    padding: '8px 4px',
+  },
+  dropMini: {
+    flex: 1,
+    minHeight: 40,
+    minWidth: 0,
+    display: 'flex',
+    alignItems: 'center',
+    padding: '0 8px',
+    borderRadius: 12,
+    border: '1px dashed #dadce0',
+    cursor: 'pointer',
+    background: '#f8f9fa',
+  },
+  dropMiniActive: {
+    borderColor: '#1a73e8',
+    background: '#e8f0fe',
+  },
+  dropMiniFile: {
+    borderStyle: 'solid',
+    borderColor: '#ceead6',
+    background: '#e6f4ea',
+  },
+  dropHint: {
+    fontSize: 14,
+    color: '#80868b',
+  },
+  fileChip: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    width: '100%',
+    minWidth: 0,
+  },
+  fileChipName: {
+    flex: 1,
+    fontSize: 14,
+    color: '#202124',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  clearMini: {
+    border: 'none',
+    background: 'transparent',
+    color: '#5f6368',
+    cursor: 'pointer',
+    padding: 4,
+    display: 'flex',
+  },
+  sendBtn: {
+    flexShrink: 0,
+    width: 40,
+    height: 40,
+    borderRadius: '50%',
+    border: 'none',
+    background: '#1a73e8',
+    color: '#fff',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: 'opacity 0.15s',
+  },
+  sendDisabled: {
+    opacity: 0.35,
+    cursor: 'not-allowed',
   },
 };

@@ -12,7 +12,7 @@ const DOT_CONFIG = {
   pass:    { color: '#22c55e', bg: 'rgba(34,197,94,0.12)',  shadow: '0 0 8px rgba(34,197,94,0.3)',  Icon: CheckCircle2 },
   fail:    { color: '#ef4444', bg: 'rgba(239,68,68,0.12)',  shadow: '0 0 8px rgba(239,68,68,0.3)',  Icon: XCircle      },
   error:   { color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', shadow: '0 0 8px rgba(245,158,11,0.3)', Icon: AlertCircle  },
-  pending: { color: '#374151', bg: '#1a1a1a',               shadow: 'none',                          Icon: Clock        },
+  pending: { color: '#5f6368', bg: '#f1f3f4',               shadow: 'none',                          Icon: Clock        },
 };
 
 function StatusDot({ eval: ev, index }) {
@@ -69,7 +69,7 @@ export default function EvalStatusCard() {
   const summary = data?.summary;
   const overall = summary?.overall || 'pending';
 
-  const overallColor = overall === 'pass' ? '#22c55e' : overall === 'warn' ? '#f59e0b' : overall === 'fail' ? '#ef4444' : '#374151';
+  const overallColor = overall === 'pass' ? '#1e8e3e' : overall === 'warn' ? '#f9ab00' : overall === 'fail' ? '#d93025' : '#5f6368';
   const overallLabel = overall === 'pass' ? 'All Passing' : overall === 'warn' ? 'Warning' : overall === 'fail' ? 'Regressions Detected' : 'Not Run';
 
   const timeStr = lastFetch
@@ -82,7 +82,7 @@ export default function EvalStatusCard() {
       <div style={s.header}>
         <div style={s.headerLeft}>
           <div style={s.iconWrap}>
-            <FlaskConical size={14} color="#a78bfa" />
+            <FlaskConical size={14} color="#1a73e8" />
           </div>
           <div>
             <p style={s.title}>Eval Status</p>
@@ -90,7 +90,7 @@ export default function EvalStatusCard() {
           </div>
         </div>
         <button style={s.refreshBtn} onClick={() => fetchStatus(true)} title="Refresh">
-          <RefreshCw size={12} color="#6b7280" style={loading ? { animation: 'spin 1s linear infinite' } : {}} />
+          <RefreshCw size={12} color="#5f6368" style={loading ? { animation: 'spin 1s linear infinite' } : {}} />
         </button>
       </div>
 
@@ -130,15 +130,16 @@ export default function EvalStatusCard() {
 // ── Styles ──────────────────────────────────────────────────────────────────
 const s = {
   card: {
-    background: '#111111',
-    border: '1px solid #1f1f1f',
-    borderRadius: 16,
+    background: '#fff',
+    border: '1px solid #dadce0',
+    borderRadius: 8,
     padding: '20px 20px 16px',
     display: 'flex',
     flexDirection: 'column',
     gap: 14,
     height: '100%',
     boxSizing: 'border-box',
+    boxShadow: '0 1px 2px rgba(60,64,67,0.06)',
   },
   header: {
     display: 'flex',
@@ -153,8 +154,8 @@ const s = {
   iconWrap: {
     width: 30,
     height: 30,
-    borderRadius: 9,
-    background: 'rgba(167,139,250,0.1)',
+    borderRadius: 8,
+    background: '#e8f0fe',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -162,23 +163,23 @@ const s = {
   },
   title: {
     margin: 0,
-    fontSize: 13,
-    fontWeight: 600,
-    color: '#f9fafb',
+    fontSize: 15,
+    fontWeight: 400,
+    color: '#202124',
     letterSpacing: '-0.01em',
   },
   subtitle: {
     margin: 0,
-    fontSize: 10,
-    color: '#4b5563',
+    fontSize: 12,
+    color: '#5f6368',
     marginTop: 1,
   },
   refreshBtn: {
     width: 28,
     height: 28,
     borderRadius: 8,
-    background: '#0d0d0d',
-    border: '1px solid #1f1f1f',
+    background: '#fff',
+    border: '1px solid #dadce0',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -200,13 +201,13 @@ const s = {
     flexShrink: 0,
   },
   overallLabel: {
-    fontSize: 12,
-    fontWeight: 600,
+    fontSize: 13,
+    fontWeight: 500,
     flex: 1,
   },
   overallCount: {
-    fontSize: 11,
-    color: '#4b5563',
+    fontSize: 12,
+    color: '#5f6368',
     fontVariantNumeric: 'tabular-nums',
   },
   dotList: {
@@ -220,9 +221,9 @@ const s = {
     alignItems: 'center',
     gap: 10,
     padding: '6px 10px',
-    borderRadius: 9,
-    background: '#0d0d0d',
-    border: '1px solid #161616',
+    borderRadius: 8,
+    background: '#f8f9fa',
+    border: '1px solid #e8eaed',
     cursor: 'default',
   },
   dotWrap: {
@@ -242,9 +243,9 @@ const s = {
     overflow: 'hidden',
   },
   dotLabel: {
-    fontSize: 11,
-    fontWeight: 500,
-    color: '#9ca3af',
+    fontSize: 12,
+    fontWeight: 400,
+    color: '#202124',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
@@ -264,19 +265,19 @@ const s = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    borderTop: '1px solid #161616',
+    borderTop: '1px solid #e8eaed',
     paddingTop: 10,
   },
   footerMeta: {
-    fontSize: 10,
-    color: '#374151',
+    fontSize: 12,
+    color: '#5f6368',
   },
   footerError: {
-    fontSize: 10,
-    color: '#ef4444',
+    fontSize: 12,
+    color: '#d93025',
   },
   footerHint: {
-    fontSize: 10,
-    color: '#1f2937',
+    fontSize: 12,
+    color: '#80868b',
   },
 };

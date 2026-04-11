@@ -54,7 +54,7 @@ function Bone({ w = '100%', h = 11, radius = 5, style = {} }) {
   return (
     <div style={{
       width: w, height: h, borderRadius: radius,
-      background: 'linear-gradient(90deg,#1a1a1a 25%,#242424 50%,#1a1a1a 75%)',
+      background: 'linear-gradient(90deg,#f1f3f4 25%,#e8eaed 50%,#f1f3f4 75%)',
       backgroundSize: '200% 100%',
       animation: 'shimmer 1.6s infinite',
       ...style,
@@ -116,7 +116,7 @@ export default function BidOutputCard({ auditResult, loading = false }) {
       <div style={s.header}>
         <div style={s.headerLeft}>
           <div style={s.iconWrap}>
-            <FileOutput size={14} color="#f59e0b" />
+            <FileOutput size={14} color="#1a73e8" />
           </div>
           <span style={s.title}>Bid Brief</span>
         </div>
@@ -144,13 +144,13 @@ export default function BidOutputCard({ auditResult, loading = false }) {
         <SkeletonBody />
       ) : isInsufficient ? (
         <div style={s.empty}>
-          <p style={{ ...s.emptyText, color: '#f59e0b' }}>
+          <p style={{ ...s.emptyText, color: '#b06000' }}>
             {auditResult?.queued
               ? 'Queued for manual review — check back shortly.'
               : 'Upload a government solicitation PDF or SAM.gov link to generate a brief.'}
           </p>
           {!auditResult?.queued && (
-            <p style={{ ...s.emptyText, marginTop: 4, fontSize: 10 }}>
+            <p style={{ ...s.emptyText, marginTop: 4, fontSize: 12, color: '#80868b' }}>
               If this keeps happening, verify OPENROUTER_API_KEY / GEMINI_API_KEY in your .env
             </p>
           )}
@@ -164,8 +164,8 @@ export default function BidOutputCard({ auditResult, loading = false }) {
           {/* Verdict pill */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{
-              fontSize: 18, fontWeight: 800,
-              color: verdictColor, letterSpacing: '-0.03em',
+              fontSize: 18, fontWeight: 600,
+              color: verdictColor, letterSpacing: '-0.02em',
             }}>
               {v.recommendation || 'CONDITIONAL'}
             </span>
@@ -229,29 +229,29 @@ function AuditMeta({ audit }) {
       <div style={m.grid}>
         {oppId && (
           <div style={m.row}>
-            <Database size={9} color="#4b5563" style={{ flexShrink: 0 }} />
+            <Database size={9} color="#5f6368" style={{ flexShrink: 0 }} />
             <span style={m.key}>Opportunity</span>
             <span style={m.val}>{oppId}</span>
           </div>
         )}
         {genFormatted && (
           <div style={m.row}>
-            <Clock size={9} color="#4b5563" style={{ flexShrink: 0 }} />
+            <Clock size={9} color="#5f6368" style={{ flexShrink: 0 }} />
             <span style={m.key}>Generated</span>
             <span style={m.val}>{genFormatted}</span>
           </div>
         )}
         <div style={m.row}>
-          <Cpu size={9} color="#4b5563" style={{ flexShrink: 0 }} />
+          <Cpu size={9} color="#5f6368" style={{ flexShrink: 0 }} />
           <span style={m.key}>Logic Gate</span>
-          <span style={{ ...m.val, fontFamily: 'monospace', color: '#6366f1' }}>{version}</span>
+          <span style={{ ...m.val, fontFamily: 'monospace', color: '#1967d2' }}>{version}</span>
         </div>
         <div style={m.row}>
           <span style={{ width: 9, flexShrink: 0 }} />
           <span style={m.key}>Source</span>
           <span style={{
             ...m.val,
-            color: cacheHit ? '#22c55e' : '#6b7280',
+            color: cacheHit ? '#1e8e3e' : '#5f6368',
             fontWeight: 700,
           }}>
             {cacheHit ? `CACHE HIT${servedAt ? ` · ${servedAt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}` : ''}` : 'LIVE INFERENCE'}
@@ -264,7 +264,7 @@ function AuditMeta({ audit }) {
 
 const m = {
   wrap: {
-    borderTop: '1px solid #1a1a1a',
+    borderTop: '1px solid #e8eaed',
     paddingTop: 12,
     marginTop: 4,
     display: 'flex',
@@ -272,17 +272,17 @@ const m = {
     gap: 8,
   },
   label: {
-    margin: 0, fontSize: '9px', fontWeight: 700,
-    letterSpacing: '0.1em', color: '#2a2a2a', textTransform: 'uppercase',
+    margin: 0, fontSize: 11, fontWeight: 500,
+    letterSpacing: '0', color: '#5f6368', textTransform: 'none',
   },
   grid: { display: 'flex', flexDirection: 'column', gap: 5 },
   row: { display: 'flex', alignItems: 'center', gap: 6 },
   key: {
-    fontSize: 10, color: '#4b5563', width: 72, flexShrink: 0,
+    fontSize: 12, color: '#5f6368', width: 72, flexShrink: 0,
     letterSpacing: '-0.01em',
   },
   val: {
-    fontSize: 10, color: '#6b7280', letterSpacing: '-0.01em',
+    fontSize: 12, color: '#202124', letterSpacing: '-0.01em',
     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
   },
 };
@@ -290,45 +290,46 @@ const m = {
 // ── Styles ────────────────────────────────────────────────────────────────────
 const s = {
   card: {
-    background: '#111111',
-    border: '1px solid #1f1f1f',
-    borderRadius: 16,
+    background: '#fff',
+    border: '1px solid #dadce0',
+    borderRadius: 8,
     padding: '20px 20px 16px',
     display: 'flex',
     flexDirection: 'column',
     gap: 14,
     height: '100%',
     boxSizing: 'border-box',
+    boxShadow: '0 1px 2px rgba(60,64,67,0.06)',
   },
   header: {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
   },
   headerLeft: { display: 'flex', alignItems: 'center', gap: 8 },
   iconWrap: {
-    width: 26, height: 26, borderRadius: 7,
-    background: 'rgba(245,158,11,0.1)',
+    width: 28, height: 28, borderRadius: 8,
+    background: '#e8f0fe',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
   },
   title: {
-    fontSize: 13, fontWeight: 600, color: '#f9fafb', letterSpacing: '-0.01em',
+    fontSize: 15, fontWeight: 400, color: '#202124', letterSpacing: '-0.01em',
   },
   copyBtn: {
     display: 'inline-flex', alignItems: 'center',
-    fontSize: 12, fontWeight: 600,
-    color: '#f9fafb',
-    background: '#1a1a1a',
-    border: '1px solid #2a2a2a',
-    borderRadius: 8,
-    padding: '6px 12px',
+    fontSize: 13, fontWeight: 500,
+    color: '#1a73e8',
+    background: '#fff',
+    border: '1px solid #dadce0',
+    borderRadius: 4,
+    padding: '6px 14px',
     cursor: 'pointer',
     transition: 'all 0.15s',
     letterSpacing: '-0.01em',
     whiteSpace: 'nowrap',
   },
   copyBtnSuccess: {
-    background: 'rgba(34,197,94,0.1)',
-    borderColor: 'rgba(34,197,94,0.25)',
-    color: '#22c55e',
+    background: '#e6f4ea',
+    borderColor: '#ceead6',
+    color: '#1e8e3e',
   },
   copyBtnDisabled: {
     opacity: 0.3,
@@ -339,24 +340,24 @@ const s = {
     padding: '20px 0',
   },
   emptyText: {
-    margin: 0, fontSize: 12, color: '#374151', textAlign: 'center',
+    margin: 0, fontSize: 14, color: '#5f6368', textAlign: 'center',
   },
   probBadge: {
-    fontSize: 11, fontWeight: 500, color: '#6b7280',
-    background: '#0d0d0d', border: '1px solid #1f1f1f',
-    borderRadius: 20, padding: '2px 8px',
+    fontSize: 12, fontWeight: 500, color: '#5f6368',
+    background: '#f1f3f4', border: '1px solid #dadce0',
+    borderRadius: 16, padding: '2px 10px',
   },
   summaryText: {
-    margin: 0, fontSize: 12, color: '#9ca3af', lineHeight: 1.65,
+    margin: 0, fontSize: 14, color: '#202124', lineHeight: 1.6,
   },
   metaRow: { display: 'flex', flexWrap: 'wrap', gap: 5 },
   metaChip: {
-    fontSize: 10, fontWeight: 500, color: '#6b7280',
-    background: '#0d0d0d', border: '1px solid #1a1a1a',
-    borderRadius: 5, padding: '3px 7px',
+    fontSize: 12, fontWeight: 500, color: '#202124',
+    background: '#f8f9fa', border: '1px solid #dadce0',
+    borderRadius: 4, padding: '3px 8px',
   },
   rationaleText: {
-    margin: 0, fontSize: 11, color: '#4b5563', lineHeight: 1.6,
-    borderTop: '1px solid #1a1a1a', paddingTop: 10,
+    margin: 0, fontSize: 13, color: '#5f6368', lineHeight: 1.55,
+    borderTop: '1px solid #e8eaed', paddingTop: 10,
   },
 };

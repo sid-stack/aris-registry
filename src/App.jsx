@@ -287,40 +287,39 @@ export default function App() {
   };
 
   const authWall = (
-    <div style={{
-      minHeight: "100vh",
-      background: "linear-gradient(135deg, #0f1623 0%, #111827 50%, #0c1220 100%)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
-    }}>
-      <SignIn
-        routing="hash"
-        appearance={{
-          variables: {
-            colorBackground:       "#ffffff",
-            colorText:             "#111827",
-            colorTextSecondary:    "#6b7280",
-            colorPrimary:          "#1d4ed8",
-            colorDanger:           "#dc2626",
-            colorInputBackground:  "#f9fafb",
-            colorInputText:        "#111827",
-            borderRadius:          "10px",
-            fontFamily:            '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
-            fontSize:              "14px",
-          },
-          elements: {
-            card:                  "shadow-xl",
-            socialButtonsBlockButton:
-              "bg-white border border-gray-200 text-gray-800 hover:bg-gray-50 font-medium",
-            socialButtonsBlockButtonText: "text-gray-800 font-medium",
-            formButtonPrimary:
-              "bg-blue-700 hover:bg-blue-800 text-white font-semibold",
-            footerActionLink:      "text-blue-600 hover:text-blue-700",
-          },
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "linear-gradient(145deg, #0c1220 0%, #111827 42%, #0f172a 100%)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontFamily: '"Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
+        padding: "28px 18px",
+        boxSizing: "border-box",
+      }}
+    >
+      <div
+        style={{
+          width: "100%",
+          maxWidth: 432,
         }}
-      />
+      >
+        <p
+          style={{
+            margin: "0 0 18px",
+            textAlign: "center",
+            fontSize: 13,
+            fontWeight: 600,
+            letterSpacing: "0.14em",
+            textTransform: "uppercase",
+            color: "rgba(148, 163, 184, 0.95)",
+          }}
+        >
+          BidSmith
+        </p>
+        <SignIn routing="hash" />
+      </div>
     </div>
   );
 

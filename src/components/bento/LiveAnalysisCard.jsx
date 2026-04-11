@@ -21,7 +21,7 @@ function Bone({ w = '100%', h = 12, radius = 6, style = {} }) {
   return (
     <div style={{
       width: w, height: h, borderRadius: radius,
-      background: 'linear-gradient(90deg,#1a1a1a 25%,#242424 50%,#1a1a1a 75%)',
+      background: 'linear-gradient(90deg,#f1f3f4 25%,#e8eaed 50%,#f1f3f4 75%)',
       backgroundSize: '200% 100%',
       animation: 'shimmer 1.6s infinite',
       flexShrink: 0,
@@ -45,7 +45,7 @@ function SkeletonBody() {
         ))}
       </div>
       {/* summary block skeleton */}
-      <div style={{ background: '#0d0d0d', borderRadius: 10, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 7 }}>
+      <div style={{ background: '#f8f9fa', borderRadius: 8, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 7, border: '1px solid #e8eaed' }}>
         <Bone w="95%" />
         <Bone w="80%" />
         <Bone w="65%" />
@@ -126,7 +126,7 @@ export default function LiveAnalysisCard({ auditResult, loading = false, inquiry
       <div style={s.header}>
         <div style={s.headerLeft}>
           <div style={{ ...s.iconWrap, opacity: loading ? 0.4 : 1 }}>
-            <Brain size={14} color="#3b82f6" />
+            <Brain size={14} color="#1a73e8" />
           </div>
           <span style={s.title}>Live Analysis</span>
           {loading && (
@@ -158,25 +158,25 @@ export default function LiveAnalysisCard({ auditResult, loading = false, inquiry
         </>
       ) : inquiryMode ? (
         <div style={s.empty}>
-          <div style={{ ...s.emptyDot, background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'pulse 2s ease-in-out infinite' }}>
-            <Brain size={16} color="#3b82f6" />
+          <div style={{ ...s.emptyDot, background: '#e8f0fe', border: '1px solid #d2e3fc', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'pulse 2s ease-in-out infinite' }}>
+            <Brain size={16} color="#1a73e8" />
           </div>
-          <p style={{ ...s.emptyTitle, color: '#3b82f6' }}>Inquiry Mode</p>
+          <p style={{ ...s.emptyTitle, color: '#1967d2' }}>Inquiry Mode</p>
           <p style={s.emptySub}>
             AI is waiting for your input. Once you provide a valid solicitation, analysis will stream here automatically.
           </p>
           <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8, width: '100%', maxWidth: 240 }}>
             {[
-              { label: 'Win Probability',    color: '#4b5563' },
-              { label: 'Model Confidence',   color: '#4b5563' },
-              { label: 'Compliance Coverage',color: '#4b5563' },
+              { label: 'Win Probability',    color: '#5f6368' },
+              { label: 'Model Confidence',   color: '#5f6368' },
+              { label: 'Compliance Coverage',color: '#5f6368' },
             ].map(({ label, color }) => (
               <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 10, color: '#374151', fontWeight: 500, width: 130, flexShrink: 0 }}>{label}</span>
-                <div style={{ flex: 1, height: 3, borderRadius: 3, background: '#1a1a1a', overflow: 'hidden' }}>
-                  <div style={{ width: 0, height: '100%', background: '#2a2a2a' }} />
+                <span style={{ fontSize: 12, color: '#5f6368', fontWeight: 500, width: 130, flexShrink: 0 }}>{label}</span>
+                <div style={{ flex: 1, height: 3, borderRadius: 3, background: '#e8eaed', overflow: 'hidden' }}>
+                  <div style={{ width: 0, height: '100%', background: '#dadce0' }} />
                 </div>
-                <span style={{ fontSize: 10, color: '#374151', width: 28, textAlign: 'right' }}>—</span>
+                <span style={{ fontSize: 12, color: '#80868b', width: 28, textAlign: 'right' }}>—</span>
               </div>
             ))}
           </div>
@@ -251,15 +251,16 @@ export default function LiveAnalysisCard({ auditResult, loading = false, inquiry
 // ── Styles ────────────────────────────────────────────────────────────────────
 const s = {
   card: {
-    background: '#111111',
-    border: '1px solid #1f1f1f',
-    borderRadius: 16,
+    background: '#fff',
+    border: '1px solid #dadce0',
+    borderRadius: 8,
     padding: '20px 20px 16px',
     display: 'flex',
     flexDirection: 'column',
     gap: 16,
     height: '100%',
     boxSizing: 'border-box',
+    boxShadow: '0 1px 2px rgba(60,64,67,0.06)',
   },
   header: {
     display: 'flex',
@@ -268,25 +269,24 @@ const s = {
   },
   headerLeft: { display: 'flex', alignItems: 'center', gap: 8 },
   iconWrap: {
-    width: 26, height: 26, borderRadius: 7,
-    background: 'rgba(59,130,246,0.1)',
+    width: 28, height: 28, borderRadius: 8,
+    background: '#e8f0fe',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     transition: 'opacity 0.3s',
     WebkitTransition: 'opacity 0.3s',
   },
-  title: { fontSize: 13, fontWeight: 600, color: '#f9fafb', letterSpacing: '-0.01em' },
+  title: { fontSize: 15, fontWeight: 400, color: '#202124', letterSpacing: '-0.01em' },
   inferringBadge: {
     display: 'flex', alignItems: 'center', gap: 5,
-    fontSize: 10, fontWeight: 600,
-    color: '#3b82f6',
-    background: 'rgba(59,130,246,0.08)',
-    border: '1px solid rgba(59,130,246,0.15)',
-    borderRadius: 20, padding: '2px 8px',
+    fontSize: 12, fontWeight: 500,
+    color: '#1967d2',
+    background: '#e8f0fe',
+    border: '1px solid #d2e3fc',
+    borderRadius: 16, padding: '2px 10px',
   },
   inferringDot: {
     width: 5, height: 5, borderRadius: '50%',
-    background: '#3b82f6',
-    boxShadow: '0 0 6px #3b82f6',
+    background: '#1a73e8',
     animation: 'pulse 1.2s ease-in-out infinite',
   },
   badge: {
@@ -302,23 +302,23 @@ const s = {
   },
   emptyDot: {
     width: 32, height: 32, borderRadius: '50%',
-    background: '#1a1a1a', marginBottom: 4,
+    background: '#f1f3f4', marginBottom: 4,
   },
-  emptyTitle: { margin: 0, fontSize: 13, fontWeight: 500, color: '#4b5563' },
+  emptyTitle: { margin: 0, fontSize: 15, fontWeight: 400, color: '#5f6368' },
   emptySub: {
-    margin: 0, fontSize: 11, color: '#374151',
-    textAlign: 'center', maxWidth: 240, lineHeight: 1.5,
+    margin: 0, fontSize: 13, color: '#80868b',
+    textAlign: 'center', maxWidth: 280, lineHeight: 1.5,
   },
   section: { display: 'flex', flexDirection: 'column', gap: 8 },
   sectionLabel: {
-    margin: 0, fontSize: 10, fontWeight: 600,
-    letterSpacing: '0.08em', textTransform: 'uppercase', color: '#4b5563',
+    margin: 0, fontSize: 12, fontWeight: 500,
+    letterSpacing: '0', textTransform: 'none', color: '#5f6368',
   },
   bars: { display: 'flex', flexDirection: 'column', gap: 8 },
   barRow: { display: 'flex', alignItems: 'center', gap: 10 },
-  barLabel: { fontSize: 11, color: '#9ca3af', width: 140, flexShrink: 0 },
+  barLabel: { fontSize: 13, color: '#5f6368', width: 140, flexShrink: 0 },
   barTrack: {
-    flex: 1, height: 4, background: '#1a1a1a',
+    flex: 1, height: 4, background: '#e8eaed',
     borderRadius: 2, overflow: 'hidden',
   },
   barFill: {
@@ -327,24 +327,24 @@ const s = {
     WebkitTransition: 'width 0.6s cubic-bezier(0.4,0,0.2,1)',
   },
   barScore: { fontSize: 11, fontWeight: 600, width: 34, textAlign: 'right', flexShrink: 0 },
-  summary: { background: '#0d0d0d', borderRadius: 10, padding: '10px 12px' },
-  summaryText: { margin: 0, fontSize: 12, color: '#9ca3af', lineHeight: 1.6 },
+  summary: { background: '#f8f9fa', borderRadius: 8, padding: '10px 12px', border: '1px solid #e8eaed' },
+  summaryText: { margin: 0, fontSize: 14, color: '#202124', lineHeight: 1.55 },
   chips: { display: 'flex', flexWrap: 'wrap', gap: 6 },
   chip: {
     display: 'inline-flex', alignItems: 'center', gap: 5,
-    background: '#0d0d0d', border: '1px solid #1f1f1f',
-    borderRadius: 6, padding: '4px 8px',
+    background: '#f8f9fa', border: '1px solid #dadce0',
+    borderRadius: 4, padding: '4px 8px',
     textDecoration: 'none', transition: 'border-color 0.15s', maxWidth: '100%',
     WebkitTransition: 'border-color 0.15s',
   },
-  chipIndex: { fontSize: 10, fontWeight: 700, color: '#3b82f6', flexShrink: 0 },
+  chipIndex: { fontSize: 11, fontWeight: 500, color: '#1a73e8', flexShrink: 0 },
   chipText: {
-    fontSize: 11, color: '#9ca3af',
+    fontSize: 12, color: '#202124',
     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
   },
   rationale: {
     display: 'flex', gap: 8, alignItems: 'flex-start',
-    borderTop: '1px solid #1a1a1a', paddingTop: 12,
+    borderTop: '1px solid #e8eaed', paddingTop: 12,
   },
-  rationaleText: { margin: 0, fontSize: 11, color: '#4b5563', lineHeight: 1.6 },
+  rationaleText: { margin: 0, fontSize: 13, color: '#5f6368', lineHeight: 1.55 },
 };
