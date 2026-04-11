@@ -1,21 +1,16 @@
 /**
  * BentoDashboard — The BidSmith Command Center.
  *
- * Layout:
- *   [Sidebar 220px] | [Main — scrollable]
- *     Sidebar: logo, new audit, audit history, user/logout
- *     Main:
- *       Row 1: [RFP Input / Chat] [Live Analysis]
- *       Row 2: [Win Prob] [Risk Signals] [Compliance] [Eval]
- *       Row 3: [Bid Output]
- *
- * Single source of truth — /app, /bento, /dashboard all route here.
+ * Layout: collapsible left rail (files, solicitation, history) |
+ *   center conversation + hot RFPs + paywall |
+ *   collapsible right rail (agents, sources, brief, eval).
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { Shield, Zap, Activity, FileSearch, ArrowUpRight, Send, RotateCcw,
-         MessageSquare, Loader2, ExternalLink, AlertTriangle,
-         Clock, ChevronRight, LogOut, Plus, LayoutDashboard } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { Shield, ArrowUpRight, Send, RotateCcw,
+         Loader2, ExternalLink, AlertTriangle,
+         Clock, ChevronRight, LogOut, Plus, LayoutDashboard,
+         PanelLeftClose, PanelLeft, PanelRightClose, PanelRight, Cpu } from 'lucide-react';
 import { useClerk, useUser } from '@clerk/clerk-react';
 import RfpUploadZone   from '../components/bento/RfpUploadZone';
 import LiveAnalysisCard from '../components/bento/LiveAnalysisCard';
@@ -66,6 +61,11 @@ const CHAT_CONTEXTS = {
   }),
 };
 
+const DEFAULT_CHAT_WELCOME =
+  "I'm ARIS — your GovCon advisor inside BidSmith.\n\nPaste a **SAM.gov opportunity URL** here, upload a **PDF** from the **Files** tab on the left, or ask a federal contracting question. I'll use your loaded audit when you have one.";
+
+const RAIL_W = 300;
+
 function classifyError(err) {
   if (!err || typeof err !== 'object') return '_DEFAULT';
   const code = String(err.code || '');
@@ -77,126 +77,61 @@ function classifyError(err) {
   return '_DEFAULT';
 }
 
-// ── MiniChatShell — renders inside the uploadCol when an error triggers ───────
-function MiniChatShell({ context, onReset, onAuditResult, onAuditStart, user = null, auditResult = null }) {
-  const [messages, setMessages] = useState([
-    { role: 'ai', text: context.aiMessage, id: 0 },
-  ]);
+// ── Center column: conversational ARIS (messages driven by parent) ────────────
+function WorkspaceChat({
+  messages,
+  loading,
+  onSend,
+  placeholder,
+  headerBadge,
+  headerBadgeColor,
+  headerTitle = 'Conversation',
+  onClearThread,
+}) {
   const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
   const bottomRef = useRef(null);
   const textareaRef = useRef(null);
-  const requestHeaders = {
-    'Content-Type': 'application/json',
-    ...(user?.id ? { 'x-user-id': user.id } : {}),
-    ...(user?.email ? { 'x-user-email': user.email } : {}),
-    'x-subscribed': user?.isSubscribed ? 'true' : 'false',
-  };
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, loading]);
 
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 100) + 'px';
+      textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 120) + 'px';
     }
   }, [input]);
 
-  const send = useCallback(async () => {
+  const submit = () => {
     const text = input.trim();
     if (!text || loading) return;
     setInput('');
-
-    const isUrl = text.startsWith('http') || text.includes('sam.gov');
-    setMessages(m => [...m, { role: 'user', text, id: Date.now() }]);
-    setLoading(true);
-
-    // If it looks like a SAM.gov URL, try to audit it
-    if (isUrl) {
-      onAuditStart?.();
-      try {
-        const res = await fetch('/api/audit/link', {
-          method: 'POST',
-          headers: requestHeaders,
-          body: JSON.stringify({ url: text }),
-        });
-        const data = await res.json();
-        const cacheHeader = (res.headers.get('x-bidsmith-cache') || res.headers.get('x-cache') || '').toLowerCase();
-        const cacheHitFromHeader = cacheHeader.includes('hit');
-        const normalized = data ? {
-          ...data,
-          meta: {
-            ...(data.meta || {}),
-            cache_hit: data?.meta?.cache_hit === true || cacheHitFromHeader || data?.isCached === true,
-          },
-        } : data;
-        if (res.ok && !data.error) {
-          onAuditResult?.(normalized);
-          setMessages(m => [...m, {
-            role: 'ai',
-            text: `Audit complete. Verdict: **${normalized.verdict?.recommendation || 'CONDITIONAL'}** (${normalized.verdict?.win_probability ?? '?'}% win probability).\n\n${normalized.verdict?.summary || ''}`,
-            id: Date.now(),
-          }]);
-        } else {
-          const nextClass = classifyError(data);
-          const nextCtx = (CHAT_CONTEXTS[nextClass] || CHAT_CONTEXTS._DEFAULT)(data);
-          setMessages(m => [...m, { role: 'ai', text: nextCtx.aiMessage, id: Date.now() }]);
-        }
-      } catch {
-        setMessages(m => [...m, { role: 'ai', text: 'Connection error. Check your network and try again.', id: Date.now() }]);
-      }
-    } else {
-      // Regular chat — send to /api/chat with context
-      try {
-        const history = messages
-          .filter(m => m.role === 'user' || m.role === 'ai')
-          .slice(-8)
-          .map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text }));
-
-        const res = await fetch('/api/chat', {
-          method: 'POST',
-          headers: requestHeaders,
-          body: JSON.stringify({
-            messages: [...history, { role: 'user', content: text }],
-            context: context.apiContext,
-            auditContext: auditResult && typeof auditResult === 'object' ? auditResult : null,
-          }),
-        });
-        const data = await res.json();
-        const plan = data.plan && typeof data.plan === 'object' ? data.plan : null;
-        setMessages(m => [...m, {
-          role: 'ai',
-          text: data.text || data.response || 'No response received.',
-          plan,
-          id: Date.now(),
-        }]);
-      } catch {
-        setMessages(m => [...m, { role: 'ai', text: 'Connection error.', id: Date.now() }]);
-      }
-    }
-
-    setLoading(false);
-  }, [input, loading, messages, context, onAuditResult, onAuditStart, auditResult]);
+    onSend(text);
+  };
 
   return (
     <div style={cs.shell}>
-      {/* Header */}
       <div style={cs.header}>
         <div style={cs.headerLeft}>
-          <span style={{ ...cs.badge, color: context.badgeColor, borderColor: context.badgeColor + '44', background: context.badgeColor + '14' }}>
-            {context.badge}
+          <span style={{
+            ...cs.badge,
+            color: headerBadgeColor,
+            borderColor: `${headerBadgeColor}44`,
+            background: `${headerBadgeColor}14`,
+          }}>
+            {headerBadge}
           </span>
-          <span style={cs.headerTitle}>AI Assistant</span>
+          <span style={cs.headerTitle}>{headerTitle}</span>
         </div>
-        <button onClick={onReset} style={cs.resetBtn} title="Back to upload">
-          <RotateCcw size={12} style={{ marginRight: 5 }} /> Upload new file
-        </button>
+        {onClearThread && (
+          <button type="button" onClick={onClearThread} style={cs.resetBtn} title="Reset conversation">
+            <RotateCcw size={12} style={{ marginRight: 5 }} /> Clear chat
+          </button>
+        )}
       </div>
 
-      {/* Message thread */}
-      <div style={cs.thread}>
+      <div style={cs.thread} className="workspace-chat-thread">
         {messages.map(msg => (
           <div key={msg.id} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
             {msg.role === 'ai' && (
@@ -209,7 +144,7 @@ function MiniChatShell({ context, onReset, onAuditResult, onAuditStart, user = n
               background: msg.role === 'user' ? '#e8f0fe' : '#f8f9fa',
               borderColor: msg.role === 'user' ? '#d2e3fc' : '#e8eaed',
               color: '#202124',
-              maxWidth: msg.role === 'user' ? '80%' : '95%',
+              maxWidth: msg.role === 'user' ? '82%' : '92%',
               borderRadius: 8,
             }}>
               {msg.role === 'ai' && (msg.plan?.steps?.length > 0 || msg.plan?.next_action) && (
@@ -232,10 +167,9 @@ function MiniChatShell({ context, onReset, onAuditResult, onAuditStart, user = n
               {msg.text.split('\n').map((line, i) => (
                 <span key={i}>{line}{i < msg.text.split('\n').length - 1 && <br />}</span>
               ))}
-              {/* External links inside the AI message */}
-              {msg.role === 'ai' && messages.indexOf(msg) === 0 && context.externalLinks?.length > 0 && (
+              {msg.role === 'ai' && msg.externalLinks?.length > 0 && (
                 <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 5 }}>
-                  {context.externalLinks.map((link, i) => (
+                  {msg.externalLinks.map((link, i) => (
                     <a key={i} href={link} target="_blank" rel="noopener noreferrer" style={cs.extLink}>
                       <ExternalLink size={10} /> {link.replace(/^https?:\/\//, '')}
                     </a>
@@ -250,8 +184,8 @@ function MiniChatShell({ context, onReset, onAuditResult, onAuditStart, user = n
             <div style={cs.aiAvatar}><Shield size={10} color="#1a73e8" /></div>
             <div style={{ ...cs.bubble, background: '#f1f3f4', borderColor: '#e8eaed' }}>
               <span style={{ display: 'flex', gap: 4 }}>
-                {[0,1,2].map(i => (
-                  <span key={i} style={{ width: 5, height: 5, borderRadius: '50%', background: '#80868b', animation: `bounce 1.2s ${i*0.2}s infinite`, display: 'inline-block' }} />
+                {[0, 1, 2].map(i => (
+                  <span key={i} style={{ width: 5, height: 5, borderRadius: '50%', background: '#80868b', animation: `bounce 1.2s ${i * 0.2}s infinite`, display: 'inline-block' }} />
                 ))}
               </span>
             </div>
@@ -260,19 +194,19 @@ function MiniChatShell({ context, onReset, onAuditResult, onAuditStart, user = n
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
       <div style={cs.inputWrap}>
         <textarea
           ref={textareaRef}
           value={input}
           onChange={e => setInput(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
-          placeholder={context.placeholder}
+          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(); } }}
+          placeholder={placeholder}
           rows={1}
           style={cs.textarea}
         />
         <button
-          onClick={send}
+          type="button"
+          onClick={submit}
           disabled={!input.trim() || loading}
           style={{ ...cs.sendBtn, opacity: !input.trim() || loading ? 0.4 : 1 }}
         >
@@ -283,7 +217,6 @@ function MiniChatShell({ context, onReset, onAuditResult, onAuditStart, user = n
   );
 }
 
-// MiniChatShell styles
 const cs = {
   shell: {
     background: '#fff',
@@ -292,9 +225,10 @@ const cs = {
     display: 'flex',
     flexDirection: 'column',
     height: '100%',
+    minHeight: 0,
+    flex: 1,
     boxSizing: 'border-box',
     overflow: 'hidden',
-    minHeight: 280,
   },
   header: {
     display: 'flex',
@@ -329,6 +263,7 @@ const cs = {
   },
   thread: {
     flex: 1,
+    minHeight: 0,
     overflowY: 'auto',
     padding: '12px 14px 8px',
     display: 'flex',
@@ -414,23 +349,346 @@ const cs = {
   },
 };
 
-// ── Stat card (Row 2, col 1-2) ────────────────────────────────────────────
-function StatCard({ icon: Icon, iconColor, iconBg, label, value, sub, trend }) {
+const rail = {
+  outer: (open) => ({
+    width: open ? RAIL_W : 0,
+    minWidth: open ? RAIL_W : 0,
+    flexShrink: 0,
+    borderRight: '1px solid #dadce0',
+    background: '#fff',
+    display: 'flex',
+    flexDirection: 'column',
+    minHeight: 0,
+    overflow: 'hidden',
+    transition: 'width 0.2s ease, min-width 0.2s ease',
+  }),
+  outerRight: (open) => ({
+    width: open ? RAIL_W : 0,
+    minWidth: open ? RAIL_W : 0,
+    flexShrink: 0,
+    borderLeft: '1px solid #dadce0',
+    background: '#fff',
+    display: 'flex',
+    flexDirection: 'column',
+    minHeight: 0,
+    overflow: 'hidden',
+    transition: 'width 0.2s ease, min-width 0.2s ease',
+  }),
+  inner: {
+    width: RAIL_W,
+    minWidth: RAIL_W,
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100%',
+    minHeight: 0,
+  },
+  head: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '10px 12px',
+    borderBottom: '1px solid #e8eaed',
+    flexShrink: 0,
+  },
+  headTitle: { fontSize: 13, fontWeight: 500, color: '#202124' },
+  iconBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    border: '1px solid #dadce0',
+    background: '#fff',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    color: '#5f6368',
+  },
+  tabs: {
+    display: 'flex',
+    gap: 0,
+    borderBottom: '1px solid #e8eaed',
+    flexShrink: 0,
+    padding: '0 6px',
+  },
+  tab: (on) => ({
+    flex: 1,
+    padding: '8px 4px',
+    fontSize: 11,
+    fontWeight: on ? 600 : 400,
+    color: on ? '#1967d2' : '#5f6368',
+    background: 'transparent',
+    border: 'none',
+    borderBottom: on ? '2px solid #1a73e8' : '2px solid transparent',
+    cursor: 'pointer',
+    marginBottom: -1,
+  }),
+  body: {
+    flex: 1,
+    minHeight: 0,
+    overflowY: 'auto',
+    padding: '10px 12px',
+    scrollbarWidth: 'thin',
+  },
+  sourceRow: {
+    padding: '10px 0',
+    borderBottom: '1px solid #e8eaed',
+    fontSize: 12,
+    color: '#202124',
+    lineHeight: 1.45,
+  },
+  sourceMeta: { fontSize: 10, color: '#80868b', marginBottom: 4, fontWeight: 500 },
+  agentRow: {
+    padding: '8px 0',
+    fontSize: 12,
+    color: '#5f6368',
+    borderBottom: '1px solid #f1f3f4',
+    display: 'flex',
+    gap: 8,
+    alignItems: 'flex-start',
+  },
+  detailLabel: { fontSize: 11, color: '#80868b', marginBottom: 2 },
+  detailVal: { fontSize: 13, color: '#202124', marginBottom: 10, lineHeight: 1.4 },
+  edgeToggle: (side) => ({
+    position: 'absolute',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    [side]: 0,
+    zIndex: 20,
+    width: 22,
+    height: 48,
+    border: '1px solid #dadce0',
+    background: '#fff',
+    borderRadius: side === 'left' ? '0 8px 8px 0' : '8px 0 0 8px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    color: '#5f6368',
+    boxShadow: '0 1px 2px rgba(60,64,67,0.12)',
+  }),
+};
+
+function LeftWorkspaceRail({
+  open,
+  onToggle,
+  tab,
+  setTab,
+  user,
+  auditHistory,
+  loadingHistory,
+  activeAuditId,
+  onSelectAudit,
+  onNewAudit,
+  billingStatus,
+  onStart,
+  onResult,
+  onError,
+  initialUrl,
+  auditResult,
+}) {
+  const { signOut } = useClerk();
+  const verdictColor = (v) =>
+    v === 'BID' ? '#1e8e3e' : v === 'NO-BID' ? '#d93025' : '#f9ab00';
+
   return (
-    <div style={s.statCard}>
-      <div style={{ ...s.statIcon, background: iconBg }}>
-        <Icon size={14} color={iconColor} />
+    <div style={rail.outer(open)}>
+      <div style={rail.inner}>
+        <div style={rail.head}>
+          <span style={rail.headTitle}>Workspace</span>
+          <button type="button" style={rail.iconBtn} onClick={onToggle} title="Collapse panel">
+            <PanelLeftClose size={16} />
+          </button>
+        </div>
+        <div style={rail.tabs}>
+          <button type="button" style={rail.tab(tab === 'files')} onClick={() => setTab('files')}>Files</button>
+          <button type="button" style={rail.tab(tab === 'details')} onClick={() => setTab('details')}>Solicitation</button>
+          <button type="button" style={rail.tab(tab === 'history')} onClick={() => setTab('history')}>History</button>
+        </div>
+        <div style={rail.body}>
+          {tab === 'files' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <button type="button" onClick={onNewAudit} style={sb.newBtn}>
+                <Plus size={12} /> New audit
+              </button>
+              <RfpUploadZone
+                variant="card"
+                onStart={onStart}
+                onResult={onResult}
+                onError={onError}
+                initialUrl={initialUrl}
+                user={user}
+              />
+            </div>
+          )}
+          {tab === 'details' && (
+            <div>
+              {!auditResult ? (
+                <p style={{ margin: 0, fontSize: 13, color: '#80868b', lineHeight: 1.5 }}>
+                  Run an audit or pick one from History. Extracted solicitation fields and summary appear here.
+                </p>
+              ) : (
+                <>
+                  <p style={rail.detailLabel}>Title</p>
+                  <p style={rail.detailVal}>{auditResult.title || '—'}</p>
+                  <p style={rail.detailLabel}>Solicitation</p>
+                  <p style={rail.detailVal}>{auditResult.solicitation_number || auditResult.opportunity_id || '—'}</p>
+                  <p style={rail.detailLabel}>Agency</p>
+                  <p style={rail.detailVal}>{auditResult.agency || '—'}</p>
+                  <p style={rail.detailLabel}>Due date</p>
+                  <p style={rail.detailVal}>{auditResult.due_date || '—'}</p>
+                  <p style={rail.detailLabel}>Set-aside</p>
+                  <p style={rail.detailVal}>{auditResult.set_aside_type || '—'}</p>
+                  <p style={rail.detailLabel}>Contract type</p>
+                  <p style={rail.detailVal}>{auditResult.contract_type || '—'}</p>
+                  <p style={rail.detailLabel}>Executive summary</p>
+                  <p style={{ ...rail.detailVal, fontSize: 12, color: '#5f6368' }}>
+                    {(auditResult.executiveSummary || '').slice(0, 520)}{(auditResult.executiveSummary || '').length > 520 ? '…' : ''}
+                  </p>
+                  {auditResult.sam_url && (
+                    <a href={auditResult.sam_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: '#1967d2' }}>
+                      Open SAM.gov →
+                    </a>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+          {tab === 'history' && (
+            <div>
+              {loadingHistory ? (
+                <div style={sb.historyEmpty}>Loading…</div>
+              ) : auditHistory.length === 0 ? (
+                <div style={sb.historyEmpty}>No audits yet</div>
+              ) : (
+                auditHistory.map(a => {
+                  const isActive = a.id === activeAuditId;
+                  const rec = a.audit_result?.verdict?.recommendation || a.verdict || '–';
+                  return (
+                    <button
+                      key={a.id}
+                      type="button"
+                      onClick={() => onSelectAudit(a)}
+                      style={{
+                        ...sb.historyItem,
+                        background: isActive ? '#e8f0fe' : 'transparent',
+                        borderColor: 'transparent',
+                      }}
+                    >
+                      <div style={sb.historyTop}>
+                        <span style={{ ...sb.historyVerdict, color: verdictColor(rec) }}>{rec}</span>
+                        <span style={sb.historyDate}>
+                          {a.created_at ? new Date(a.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
+                        </span>
+                      </div>
+                      <div style={sb.historyTitle}>
+                        {(a.title || a.audit_result?.title || 'Untitled').slice(0, 40)}
+                      </div>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          )}
+        </div>
+        <div style={{ ...sb.footer, marginTop: 'auto', borderTop: '1px solid #e8eaed' }}>
+          <div style={sb.footerMeta}>
+            {user?.email && (
+              <div style={sb.userRow}>
+                <div style={sb.userAvatar}>{(user.email[0] || 'U').toUpperCase()}</div>
+                <span style={sb.userEmail} title={user.email}>{user.email.split('@')[0]}</span>
+              </div>
+            )}
+            {billingStatus && <div style={sb.billingPill}>{billingStatus}</div>}
+          </div>
+          <button type="button" onClick={() => signOut()} style={sb.logoutBtn} title="Sign out">
+            <LogOut size={12} />
+          </button>
+        </div>
       </div>
-      <div style={s.statBody}>
-        <p style={s.statValue}>{value}</p>
-        <p style={s.statLabel}>{label}</p>
-        {sub && <p style={s.statSub}>{sub}</p>}
+    </div>
+  );
+}
+
+function RightWorkspaceRail({
+  open,
+  onToggle,
+  tab,
+  setTab,
+  auditResult,
+  analyzing,
+  analysisStep,
+}) {
+  const reqs = Array.isArray(auditResult?.requirements) ? auditResult.requirements : [];
+  return (
+    <div style={rail.outerRight(open)}>
+      <div style={rail.inner}>
+        <div style={rail.head}>
+          <span style={rail.headTitle}>Analysis</span>
+          <button type="button" style={rail.iconBtn} onClick={onToggle} title="Collapse panel">
+            <PanelRightClose size={16} />
+          </button>
+        </div>
+        <div style={rail.tabs}>
+          <button type="button" style={rail.tab(tab === 'agents')} onClick={() => setTab('agents')}>Agents</button>
+          <button type="button" style={rail.tab(tab === 'sources')} onClick={() => setTab('sources')}>Sources</button>
+          <button type="button" style={rail.tab(tab === 'brief')} onClick={() => setTab('brief')}>Brief</button>
+          <button type="button" style={rail.tab(tab === 'eval')} onClick={() => setTab('eval')}>Eval</button>
+        </div>
+        <div style={rail.body}>
+          {tab === 'agents' && (
+            <div>
+              <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 500, color: '#80868b' }}>Pipeline</p>
+              {ANALYSIS_STEPS.map((step, i) => (
+                <div key={step.id} style={rail.agentRow}>
+                  <Cpu size={14} color={i <= analysisStep ? '#1a73e8' : '#dadce0'} style={{ flexShrink: 0, marginTop: 2 }} />
+                  <div>
+                    <div style={{ fontWeight: i === analysisStep && analyzing ? 600 : 400, color: '#202124' }}>{step.label}</div>
+                    <div style={{ fontSize: 11, color: '#80868b', marginTop: 2 }}>{step.detail}</div>
+                  </div>
+                </div>
+              ))}
+              <div style={{ marginTop: 16, borderTop: '1px solid #e8eaed', paddingTop: 12 }}>
+                <LiveAnalysisCard
+                  auditResult={auditResult}
+                  loading={analyzing}
+                  inquiryMode={!auditResult && !analyzing}
+                  analysisProgress={analyzing ? <AnalysisProgress activeStep={analysisStep} /> : null}
+                />
+              </div>
+            </div>
+          )}
+          {tab === 'sources' && (
+            <div>
+              {!reqs.length ? (
+                <p style={{ margin: 0, fontSize: 13, color: '#80868b' }}>Requirement citations and excerpts appear after an audit.</p>
+              ) : (
+                reqs.map((r, i) => (
+                  <div key={r.id || i} style={rail.sourceRow}>
+                    <div style={rail.sourceMeta}>
+                      {r.id || `REQ-${i + 1}`}
+                      {r.section ? ` · ${r.section}` : ''}
+                      {r.risk ? ` · ${r.risk}` : ''}
+                    </div>
+                    <div>{r.requirement || r.text || '—'}</div>
+                    {(r.source_excerpt || r.sourceExcerpt) && (
+                      <div style={{ marginTop: 6, fontSize: 11, color: '#5f6368', fontStyle: 'italic', lineHeight: 1.4 }}>
+                        “{String(r.source_excerpt || r.sourceExcerpt).slice(0, 280)}{String(r.source_excerpt || r.sourceExcerpt).length > 280 ? '…' : ''}”
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+          {tab === 'brief' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <BidOutputCard auditResult={auditResult} loading={analyzing} />
+              <SubmissionChecklist auditResult={auditResult} loading={analyzing} />
+            </div>
+          )}
+          {tab === 'eval' && <EvalStatusCard />}
+        </div>
       </div>
-      {trend !== undefined && (
-        <span style={{ ...s.trend, color: trend >= 0 ? '#22c55e' : '#ef4444' }}>
-          {trend >= 0 ? '+' : ''}{trend}%
-        </span>
-      )}
     </div>
   );
 }
@@ -1150,128 +1408,9 @@ function AnalysisProgress({ activeStep }) {
   );
 }
 
-// ── Command Center Sidebar ─────────────────────────────────────────────────
-function Sidebar({ user, auditHistory, loadingHistory, activeAuditId, onSelectAudit, onNewAudit, billingStatus = null }) {
-  const { signOut } = useClerk();
-
-  const verdictColor = (v) =>
-    v === 'BID' ? '#1e8e3e' : v === 'NO-BID' ? '#d93025' : '#f9ab00';
-
-  return (
-    <div style={sb.sidebar}>
-      {/* Logo */}
-      <div style={sb.logoRow}>
-        <div style={sb.logoMark}><Shield size={13} color="#1a73e8" /></div>
-        <span style={sb.logoText}>BidSmith</span>
-      </div>
-
-      {/* New Audit */}
-      <button onClick={onNewAudit} style={sb.newBtn}>
-        <Plus size={12} />
-        New Audit
-      </button>
-
-      {/* History */}
-      <div style={sb.sectionLabel}>RECENT AUDITS</div>
-      <div style={sb.historyList}>
-        {loadingHistory ? (
-          <div style={sb.historyEmpty}>Loading…</div>
-        ) : auditHistory.length === 0 ? (
-          <div style={sb.historyEmpty}>No audits yet</div>
-        ) : (
-          auditHistory.map(a => {
-            const isActive = a.id === activeAuditId;
-            const rec = a.audit_result?.verdict?.recommendation || a.verdict || '–';
-            return (
-              <button
-                key={a.id}
-                onClick={() => onSelectAudit(a)}
-                style={{
-                  ...sb.historyItem,
-                  background: isActive ? '#e8f0fe' : 'transparent',
-                  borderColor: 'transparent',
-                }}
-              >
-                <div style={sb.historyTop}>
-                  <span style={{ ...sb.historyVerdict, color: verdictColor(rec) }}>{rec}</span>
-                  <span style={sb.historyDate}>
-                    {a.created_at ? new Date(a.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
-                  </span>
-                </div>
-                <div style={sb.historyTitle}>
-                  {(a.title || a.audit_result?.title || 'Untitled Solicitation').slice(0, 36)}
-                </div>
-                <div style={sb.historyAgency}>
-                  {(a.agency || a.audit_result?.agency || '').slice(0, 32)}
-                </div>
-              </button>
-            );
-          })
-        )}
-      </div>
-
-      {/* Footer — user + logout */}
-      <div style={sb.footer}>
-        <div style={sb.footerMeta}>
-          {user?.email && (
-            <div style={sb.userRow}>
-              <div style={sb.userAvatar}>
-                {(user.email[0] || 'U').toUpperCase()}
-              </div>
-              <span style={sb.userEmail} title={user.email}>
-                {user.email.split('@')[0]}
-              </span>
-            </div>
-          )}
-          {billingStatus && (
-            <div style={sb.billingPill}>
-              {billingStatus}
-            </div>
-          )}
-        </div>
-        <button onClick={() => signOut()} style={sb.logoutBtn} title="Sign out">
-          <LogOut size={12} />
-        </button>
-      </div>
-    </div>
-  );
-}
-
 const sb = {
-  sidebar: {
-    width: 256,
-    minWidth: 256,
-    flexShrink: 0,
-    background: '#fff',
-    borderRight: '1px solid #dadce0',
-    display: 'flex',
-    flexDirection: 'column',
-    height: '100vh',
-    position: 'sticky',
-    top: 0,
-    overflowY: 'auto',
-    padding: '10px 0 0',
-    scrollbarWidth: 'thin',
-  },
-  logoRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-    padding: '0 16px 12px',
-    borderBottom: '1px solid #dadce0',
-  },
-  logoMark: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    background: '#e8f0fe',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logoText: { fontSize: 15, fontWeight: 500, color: '#202124', letterSpacing: '-0.02em' },
   newBtn: {
-    margin: '12px 12px 4px',
+    margin: 0,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1286,14 +1425,6 @@ const sb = {
     cursor: 'pointer',
     transition: 'background 0.15s, box-shadow 0.15s',
     letterSpacing: '-0.01em',
-  },
-  sectionLabel: {
-    padding: '14px 16px 6px',
-    fontSize: 11,
-    fontWeight: 500,
-    letterSpacing: '0.02em',
-    color: '#5f6368',
-    textTransform: 'none',
   },
   historyList: { flex: 1, overflowY: 'auto', padding: '0 8px', scrollbarWidth: 'thin' },
   historyEmpty: { fontSize: 13, color: '#80868b', padding: '12px 8px', textAlign: 'center' },
@@ -1319,13 +1450,6 @@ const sb = {
     fontWeight: 400,
     color: '#202124',
     lineHeight: 1.35,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-  },
-  historyAgency: {
-    fontSize: 12,
-    color: '#5f6368',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
@@ -1418,14 +1542,43 @@ export default function BentoDashboard({ user = null, onBack }) {
   const pendingCheckoutSessionIdRef = useRef(null);
   const pendingCheckoutSidRef = useRef(null);
 
-  // Audit history (sidebar)
+  // Audit history (left rail)
   const [auditHistory, setAuditHistory]       = useState([]);
   const [loadingHistory, setLoadingHistory]   = useState(false);
 
-  // Chat overlay state
-  const [chatMode, setChatMode]       = useState(false);
-  const [chatContext, setChatContext]  = useState(null);
-  const [colVisible, setColVisible]   = useState(true);
+  // Three-panel workspace
+  const [leftRailOpen, setLeftRailOpen]   = useState(true);
+  const [rightRailOpen, setRightRailOpen] = useState(true);
+  const [leftRailTab, setLeftRailTab]     = useState('files');
+  const [rightRailTab, setRightRailTab]   = useState('agents');
+
+  const [workspaceMessages, setWorkspaceMessages] = useState(() => [
+    { role: 'ai', text: DEFAULT_CHAT_WELCOME, id: Date.now() },
+  ]);
+  const [workspaceLoading, setWorkspaceLoading] = useState(false);
+  const [sessionApiContext, setSessionApiContext] = useState(null);
+  const [chatHeaderBadge, setChatHeaderBadge]     = useState('ARIS');
+  const [chatHeaderBadgeColor, setChatHeaderBadgeColor] = useState('#1a73e8');
+  const [chatPlaceholder, setChatPlaceholder] = useState(
+    'Paste a SAM.gov URL, ask a question, or use Files to upload a PDF…'
+  );
+  const wsMessagesRef = useRef(workspaceMessages);
+  useEffect(() => { wsMessagesRef.current = workspaceMessages; }, [workspaceMessages]);
+
+  const requestHeaders = useMemo(() => ({
+    'Content-Type': 'application/json',
+    ...(user?.id ? { 'x-user-id': user.id } : {}),
+    ...(user?.email ? { 'x-user-email': user.email } : {}),
+    'x-subscribed': user?.isSubscribed ? 'true' : 'false',
+  }), [user?.id, user?.email, user?.isSubscribed]);
+
+  const resetWorkspaceChat = useCallback(() => {
+    setWorkspaceMessages([{ role: 'ai', text: DEFAULT_CHAT_WELCOME, id: Date.now() }]);
+    setSessionApiContext(null);
+    setChatHeaderBadge('ARIS');
+    setChatHeaderBadgeColor('#1a73e8');
+    setChatPlaceholder('Paste a SAM.gov URL, ask a question, or use Files to upload a PDF…');
+  }, []);
   const clerkSubscribed = clerkUser?.publicMetadata?.isSubscribed === true;
   const isSubscribed = clerkSubscribed || user?.isSubscribed === true;
   const activePlan = clerkUser?.publicMetadata?.plan || user?.plan || null;
@@ -1656,18 +1809,27 @@ export default function BentoDashboard({ user = null, onBack }) {
       setIsPaid(isSubscribed);
       const solId = result?.solicitation_number || result?.opportunity_id;
       if (solId) fetchPaymentStatus(solId);
-      if (chatMode) resetChatMode();
+      const title = result.title?.slice(0, 80) || result.solicitation_number || 'Audit';
+      setWorkspaceMessages([{
+        role: 'ai',
+        text: `Loaded **${title}**. Ask questions about this audit in the thread — context is attached.`,
+        id: Date.now(),
+      }]);
+      setSessionApiContext(null);
+      setChatHeaderBadge('ARIS');
+      setChatHeaderBadgeColor('#1a73e8');
+      setChatPlaceholder('Ask about requirements, risks, or bid strategy…');
       showToast(`Loaded: ${result.title?.slice(0, 40) || 'Audit'}`, 'info');
     }
   };
 
-  const handleNewAudit = () => {
+  const handleNewAudit = useCallback(() => {
     setAuditResult(null);
     setActiveAuditId(null);
     setAnalyzing(false);
     setDemoUnlocked(false);
-    if (chatMode) resetChatMode();
-  };
+    resetWorkspaceChat();
+  }, [resetWorkspaceChat]);
 
   // Step ticker: advances every ~8s to simulate 4-stage pipeline
   const stepTimerRef = useRef(null);
@@ -1694,7 +1856,15 @@ export default function BentoDashboard({ user = null, onBack }) {
     setActiveAuditId(null); // fresh audit, not from history
     setAnalyzing(false);
     setIsPaid(isSubscribed); // subscribers remain unlocked on all audits
-    if (chatMode) resetChatMode();
+    setSessionApiContext(null);
+    setChatHeaderBadge('ARIS');
+    setChatHeaderBadgeColor('#1a73e8');
+    setChatPlaceholder('Ask about requirements, risks, or bid strategy…');
+    setWorkspaceMessages(m => [...m, {
+      role: 'ai',
+      text: `Audit complete. Verdict: **${data.verdict?.recommendation || 'CONDITIONAL'}** (${data.verdict?.win_probability ?? '?'}% win probability).\n\n${data.verdict?.summary || data.executiveSummary?.slice(0, 240) || ''}${(data.executiveSummary || '').length > 240 ? '…' : ''}`,
+      id: Date.now(),
+    }]);
     const cacheMsg = data?.meta?.cache_hit
       ? 'Audit loaded from cache (0s latency)'
       : 'Audit complete';
@@ -1758,45 +1928,105 @@ export default function BentoDashboard({ user = null, onBack }) {
     const ctxFn = CHAT_CONTEXTS[errorClass] || CHAT_CONTEXTS._DEFAULT;
     const ctx = ctxFn(errObj);
 
-    // Animate out the upload zone, then swap to chat
-    setColVisible(false);
-    setTimeout(() => {
-      setChatContext(ctx);
-      setChatMode(true);
-      setColVisible(true);
-    }, 220);
+    setSessionApiContext(ctx.apiContext);
+    setChatHeaderBadge(ctx.badge);
+    setChatHeaderBadgeColor(ctx.badgeColor);
+    setChatPlaceholder(ctx.placeholder);
+    setWorkspaceMessages(m => [...m, {
+      role: 'ai',
+      text: ctx.aiMessage,
+      id: Date.now(),
+      externalLinks: ctx.externalLinks || [],
+    }]);
   };
 
-  const resetChatMode = () => {
-    setColVisible(false);
-    setTimeout(() => {
-      setChatMode(false);
-      setChatContext(null);
-      setColVisible(true);
-    }, 220);
-  };
+  const sendWorkspaceMessage = useCallback(async (text) => {
+    const trimmed = text.trim();
+    if (!trimmed || workspaceLoading) return;
 
-  // Derived stats
-  const winProb   = auditResult?.verdict?.win_probability;
-  const riskCount = Array.isArray(auditResult?.intelligence?.top_risks)
-    ? auditResult.intelligence.top_risks.length : null;
+    const prior = wsMessagesRef.current;
+    const userMsg = { role: 'user', text: trimmed, id: Date.now() };
+    const threadAfterUser = [...prior, userMsg];
+    setWorkspaceMessages(threadAfterUser);
+    wsMessagesRef.current = threadAfterUser;
+    setWorkspaceLoading(true);
+
+    try {
+      const isUrl = trimmed.startsWith('http') || trimmed.includes('sam.gov');
+
+      if (isUrl) {
+        handleStart();
+        try {
+          const res = await fetch('/api/audit/link', {
+            method: 'POST',
+            headers: requestHeaders,
+            body: JSON.stringify({ url: trimmed }),
+          });
+          const data = await res.json();
+          const cacheHeader = (res.headers.get('x-bidsmith-cache') || res.headers.get('x-cache') || '').toLowerCase();
+          const cacheHitFromHeader = cacheHeader.includes('hit');
+          const normalized = data ? {
+            ...data,
+            meta: {
+              ...(data.meta || {}),
+              cache_hit: data?.meta?.cache_hit === true || cacheHitFromHeader || data?.isCached === true,
+            },
+          } : data;
+          if (res.ok && !data.error) {
+            handleResult(normalized);
+          } else {
+            const nextClass = classifyError(data);
+            const nextCtx = (CHAT_CONTEXTS[nextClass] || CHAT_CONTEXTS._DEFAULT)(data);
+            setSessionApiContext(nextCtx.apiContext);
+            setChatHeaderBadge(nextCtx.badge);
+            setChatHeaderBadgeColor(nextCtx.badgeColor);
+            setChatPlaceholder(nextCtx.placeholder);
+            setWorkspaceMessages(m => [...m, {
+              role: 'ai',
+              text: nextCtx.aiMessage,
+              id: Date.now(),
+              externalLinks: nextCtx.externalLinks || [],
+            }]);
+          }
+        } catch {
+          setWorkspaceMessages(m => [...m, { role: 'ai', text: 'Connection error. Check your network and try again.', id: Date.now() }]);
+        }
+      } else {
+        try {
+          const hist = prior
+            .filter(m => m.role === 'user' || m.role === 'ai')
+            .slice(-8)
+            .map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text }));
+
+          const res = await fetch('/api/chat', {
+            method: 'POST',
+            headers: requestHeaders,
+            body: JSON.stringify({
+              messages: [...hist, { role: 'user', content: trimmed }],
+              context: sessionApiContext,
+              auditContext: auditResult && typeof auditResult === 'object' ? auditResult : null,
+            }),
+          });
+          const data = await res.json();
+          const plan = data.plan && typeof data.plan === 'object' ? data.plan : null;
+          setWorkspaceMessages(m => [...m, {
+            role: 'ai',
+            text: data.text || data.response || 'No response received.',
+            plan,
+            id: Date.now(),
+          }]);
+        } catch {
+          setWorkspaceMessages(m => [...m, { role: 'ai', text: 'Connection error.', id: Date.now() }]);
+        }
+      }
+    } finally {
+      setWorkspaceLoading(false);
+    }
+  }, [workspaceLoading, sessionApiContext, auditResult, requestHeaders, handleStart, handleResult]);
 
   return (
     <div style={s.shell}>
-      {/* ── Sidebar ─────────────────────────────────────────────────────── */}
-      <Sidebar
-        user={user}
-        auditHistory={auditHistory}
-        loadingHistory={loadingHistory}
-        activeAuditId={activeAuditId}
-        onSelectAudit={handleSelectAudit}
-        onNewAudit={handleNewAudit}
-        billingStatus={billingStatus}
-      />
-
-      {/* ── Main scrollable content ──────────────────────────────────────── */}
       <div style={s.page}>
-      {/* ── Top bar ─────────────────────────────────────────────────────── */}
       <header style={s.topBar}>
         <div style={s.topBarLeft}>
           <LayoutDashboard size={16} color="#5f6368" />
@@ -1888,128 +2118,97 @@ export default function BentoDashboard({ user = null, onBack }) {
         </div>
       )}
 
-      <div style={s.mainColumn}>
-      {/* ── Page title ──────────────────────────────────────────────────── */}
-      <div style={s.titleBlock}>
-        <h1 style={s.pageTitle}>RFP audit</h1>
-        <p style={s.pageSubtitle}>
-          SAM.gov link or PDF — verdict in about 90 seconds.
-        </p>
-      </div>
+      <div style={s.workspaceRow}>
+        <LeftWorkspaceRail
+          open={leftRailOpen}
+          onToggle={() => setLeftRailOpen(o => !o)}
+          tab={leftRailTab}
+          setTab={setLeftRailTab}
+          user={user}
+          auditHistory={auditHistory}
+          loadingHistory={loadingHistory}
+          activeAuditId={activeAuditId}
+          onSelectAudit={handleSelectAudit}
+          onNewAudit={handleNewAudit}
+          billingStatus={billingStatus}
+          onStart={handleStart}
+          onResult={handleResult}
+          onError={handleError}
+          initialUrl={featuredUrl}
+          auditResult={auditResult}
+        />
 
-      {/* ── Hot RFPs this week ───────────────────────────────────────────── */}
-      <FeaturedSolicitations onSelect={handleFeaturedSelect} />
-
-      {/* ── Bento Row 1 ─────────────────────────────────────────────────── */}
-      <div style={s.row1}>
-
-        {/* Upload col — morphs into MiniChatShell on error */}
-        <div style={{
-          ...s.uploadCol,
-          opacity: colVisible ? 1 : 0,
-          transform: colVisible ? 'translateY(0) scale(1)' : 'translateY(6px) scale(0.99)',
-          transition: 'opacity 0.22s ease, transform 0.22s ease',
-        }}>
-          {chatMode && chatContext ? (
-            <MiniChatShell
-              context={chatContext}
-              onReset={resetChatMode}
-              onAuditResult={handleResult}
-              onAuditStart={handleStart}
-              user={user}
-              auditResult={auditResult}
+        <div style={s.centerWrap}>
+          {!leftRailOpen && (
+            <button
+              type="button"
+              aria-label="Open workspace panel"
+              style={rail.edgeToggle('left')}
+              onClick={() => setLeftRailOpen(true)}
+            >
+              <PanelLeft size={16} />
+            </button>
+          )}
+          <div style={s.centerColumn}>
+            <div style={s.featuredStrip}>
+              <FeaturedSolicitations onSelect={handleFeaturedSelect} dock />
+            </div>
+            <WorkspaceChat
+              messages={workspaceMessages}
+              loading={workspaceLoading}
+              onSend={sendWorkspaceMessage}
+              placeholder={chatPlaceholder}
+              headerBadge={chatHeaderBadge}
+              headerBadgeColor={chatHeaderBadgeColor}
+              headerTitle="Conversation"
+              onClearThread={resetWorkspaceChat}
             />
-          ) : (
-            <RfpUploadZone
-              variant="chatBar"
-              onStart={handleStart}
-              onResult={handleResult}
-              onError={handleError}
-              initialUrl={featuredUrl}
-              user={user}
-            />
+            <PaywallGate
+              hasAudit={!!auditResult && !analyzing}
+              isPaid={accessUnlocked}
+              checkingPayment={checkingPayment}
+              reconcileOffered={showPaymentSyncCta}
+              onSyncPayment={handleSyncPayment}
+              syncPaymentBusy={syncPaymentBusy}
+              unlockReason={isSubscribed ? 'subscription' : demoUnlocked ? 'demo' : isPaid ? 'payment' : 'locked'}
+              solicitationId={auditResult?.solicitation_number || auditResult?.opportunity_id || ''}
+              opportunityTitle={auditResult?.title || ''}
+              uid={billingUid || 'anonymous'}
+            >
+              <div style={{ padding: 0 }}>
+                <div style={{ background: '#fff', border: '1px solid #dadce0', borderRadius: 8, padding: '16px 18px' }}>
+                  <p style={{ margin: '0 0 12px', fontSize: 12, fontWeight: 500, color: '#5f6368' }}>Compliance matrix</p>
+                  {(auditResult?.requirements || []).slice(0, 3).map((req, i) => (
+                    <div key={i} style={{ padding: '10px 0', borderBottom: '1px solid #e8eaed', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: req.risk === 'HIGH' ? '#d93025' : req.risk === 'LOW' ? '#1e8e3e' : '#f9ab00', width: 40, flexShrink: 0, paddingTop: 2 }}>{req.risk}</span>
+                      <p style={{ margin: 0, fontSize: 13, color: '#202124', lineHeight: 1.45 }}>{req.requirement}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </PaywallGate>
+          </div>
+          {!rightRailOpen && (
+            <button
+              type="button"
+              aria-label="Open analysis panel"
+              style={rail.edgeToggle('right')}
+              onClick={() => setRightRailOpen(true)}
+            >
+              <PanelRight size={16} />
+            </button>
           )}
         </div>
 
-        {/* Analysis col — stays put, shows "Inquiry" badge when in chat mode */}
-        <div style={s.analysisCol}>
-          <LiveAnalysisCard
-            auditResult={auditResult}
-            loading={analyzing}
-            inquiryMode={chatMode && !auditResult}
-            analysisProgress={analyzing ? <AnalysisProgress activeStep={analysisStep} /> : null}
-          />
-        </div>
-      </div>
-
-      {/* ── Bento Row 2 ─────────────────────────────────────────────────── */}
-      <div style={s.row2}>
-        <StatCard
-          icon={Zap}
-          iconColor="#f59e0b"
-          iconBg="rgba(245,158,11,0.1)"
-          label="Win Probability"
-          value={winProb != null ? `${winProb}%` : '–'}
-          sub={auditResult ? auditResult.agency || 'Federal Agency' : 'No audit loaded'}
-          trend={null}
+        <RightWorkspaceRail
+          open={rightRailOpen}
+          onToggle={() => setRightRailOpen(o => !o)}
+          tab={rightRailTab}
+          setTab={setRightRailTab}
+          auditResult={auditResult}
+          analyzing={analyzing}
+          analysisStep={analysisStep}
         />
-        <StatCard
-          icon={Activity}
-          iconColor="#a78bfa"
-          iconBg="rgba(167,139,250,0.1)"
-          label="Risk Signals"
-          value={riskCount != null ? riskCount : '–'}
-          sub={riskCount != null ? 'disqualifiers flagged' : 'No audit loaded'}
-          trend={null}
-        />
-        <StatCard
-          icon={FileSearch}
-          iconColor="#3b82f6"
-          iconBg="rgba(59,130,246,0.1)"
-          label="Compliance Coverage"
-          value={(() => {
-            const reqs = Array.isArray(auditResult?.requirements) ? auditResult.requirements : [];
-            if (!reqs.length) return '–';
-            const met = reqs.filter(r => r.status === 'compliant' || r.met).length;
-            return `${Math.round((met / reqs.length) * 100)}%`;
-          })()}
-          sub={auditResult ? `${(Array.isArray(auditResult?.requirements) ? auditResult.requirements : []).filter(r => r.status === 'compliant' || r.met).length} reqs met` : 'No audit loaded'}
-        />
-        <EvalStatusCard />
-      </div>
-
-      {/* ── Bento Row 3 — Bid Output + Submission Checklist ────────────── */}
-      <div style={s.row3}>
-        <BidOutputCard auditResult={auditResult} loading={analyzing} />
-        <SubmissionChecklist auditResult={auditResult} loading={analyzing} />
-      </div>
-
-      {/* ── Paywall gate — full risk analysis ───────────────────────────── */}
-      <PaywallGate
-        hasAudit={!!auditResult && !analyzing}
-        isPaid={accessUnlocked}
-        checkingPayment={checkingPayment}
-        reconcileOffered={showPaymentSyncCta}
-        onSyncPayment={handleSyncPayment}
-        syncPaymentBusy={syncPaymentBusy}
-        unlockReason={isSubscribed ? 'subscription' : demoUnlocked ? 'demo' : isPaid ? 'payment' : 'locked'}
-        solicitationId={auditResult?.solicitation_number || auditResult?.opportunity_id || ''}
-        opportunityTitle={auditResult?.title || ''}
-        uid={billingUid || 'anonymous'}
-      >
-        <div style={{ padding: 0 }}>
-          <div style={{ background: '#fff', border: '1px solid #dadce0', borderRadius: 8, padding: '16px 18px' }}>
-            <p style={{ margin: '0 0 12px', fontSize: 12, fontWeight: 500, color: '#5f6368' }}>Compliance matrix</p>
-            {(auditResult?.requirements || []).slice(0, 3).map((req, i) => (
-              <div key={i} style={{ padding: '10px 0', borderBottom: '1px solid #e8eaed', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                <span style={{ fontSize: 11, fontWeight: 600, color: req.risk === 'HIGH' ? '#d93025' : req.risk === 'LOW' ? '#1e8e3e' : '#f9ab00', width: 40, flexShrink: 0, paddingTop: 2 }}>{req.risk}</span>
-                <p style={{ margin: 0, fontSize: 13, color: '#202124', lineHeight: 1.45 }}>{req.requirement}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </PaywallGate>
-
       </div>
 
       {/* ── Toast ───────────────────────────────────────────────────────── */}
@@ -2049,6 +2248,7 @@ export default function BentoDashboard({ user = null, onBack }) {
 const s = {
   shell: {
     display: 'flex',
+    flexDirection: 'column',
     minHeight: '100vh',
     width: '100%',
     background: '#f8f9fa',
@@ -2061,16 +2261,41 @@ const s = {
   page: {
     flex: 1,
     minWidth: 0,
-    overflowX: 'hidden',
+    minHeight: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden',
     padding: 0,
     background: '#f8f9fa',
   },
-  mainColumn: {
-    maxWidth: 1080,
-    margin: '0 auto',
+  workspaceRow: {
+    flex: 1,
+    display: 'flex',
+    minHeight: 0,
+    minWidth: 0,
     width: '100%',
-    padding: '0 24px 48px',
-    boxSizing: 'border-box',
+  },
+  centerWrap: {
+    flex: 1,
+    position: 'relative',
+    display: 'flex',
+    minWidth: 0,
+    minHeight: 0,
+    background: '#f8f9fa',
+  },
+  centerColumn: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    minWidth: 0,
+    minHeight: 0,
+    padding: '0 16px 20px',
+    gap: 12,
+    overflow: 'hidden',
+  },
+  featuredStrip: {
+    flexShrink: 0,
+    paddingTop: 8,
   },
 
   // ── Top bar ──
