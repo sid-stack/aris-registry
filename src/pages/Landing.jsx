@@ -172,14 +172,7 @@ export default function Landing({
           {/* Brand */}
           <div style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", flexShrink: 0 }} onClick={onGoHome}>
             <img src="/logo.jpg" alt="BidSmith" style={{ height: 28, borderRadius: 4 }} />
-            <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-              <span style={S.navLogo}>BidSmith</span>
-              {!isMobile && (
-                <span style={{ fontSize: 9, fontWeight: 700, color: C.ashGrey, letterSpacing: "0.14em", textTransform: "uppercase", lineHeight: 1 }}>
-                  Federal Compliance Intelligence
-                </span>
-              )}
-            </div>
+            <span style={S.navLogo}>BidSmith</span>
           </div>
 
           {/* Nav links — desktop only */}
@@ -187,6 +180,8 @@ export default function Landing({
             <nav style={{ display: "flex", gap: 4, alignItems: "center" }}>
               <a href="/pricing" style={S.navLink} className="landing-nav-link-item">Pricing</a>
               <button style={S.navLink} className="landing-nav-link-item" onClick={() => onViewSample?.()}>Demo</button>
+              <a href="/resources" style={S.navLink} className="landing-nav-link-item">Resources</a>
+              <a href="/traffic-brief" style={S.navLink} className="landing-nav-link-item">Traffic Brief</a>
               <a href="https://arislabs.mintlify.app/" target="_blank" rel="noopener noreferrer" style={S.navLink} className="landing-nav-link-item">Docs</a>
             </nav>
           )}
@@ -797,7 +792,7 @@ export default function Landing({
           <div style={{ display: "flex", gap: 40, flexWrap: "wrap", alignItems: "flex-start" }}>
             <div>
               <p style={{ fontSize: 11, fontWeight: 800, color: C.ashGrey, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 12 }}>Product</p>
-              {[["Open App", "/app"], ["Pricing", "/pricing"], ["Docs", "https://arislabs.mintlify.app/"]].map(([label, href]) => (
+              {[["Open App", "/app"], ["Pricing", "/pricing"], ["Resources", "/resources"], ["Docs", "https://arislabs.mintlify.app/"]].map(([label, href]) => (
                 <a key={label} href={href} target={href.startsWith("http") ? "_blank" : undefined} rel="noopener noreferrer" style={{ display: "block", fontSize: 13, color: C.dimGrey, marginBottom: 8, textDecoration: "none" }}>{label}</a>
               ))}
             </div>
