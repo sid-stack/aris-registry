@@ -2,7 +2,7 @@
  * Full-stack E2E: Clerk auth + GovCon V2 audit workspace + API mocks.
  *
  * Architecture note (main branch @ 2026):
- * - Workspace: `/app` and `/dashboard` both render GovConDashboardV2 (capture dashboard).
+ * - Workspace: `/dashboard` is canonical; `/app` redirects to `/dashboard`.
  * - Ingestion API: `POST /api/analyze-link` (not `/api/audits/run`; that route is mocked for
  *   forward-compatibility with the pre-production audit-session flow).
  * - Sidebar list label: **My Pipeline** (product copy; tests treat it as the “reports” surface).
@@ -192,7 +192,7 @@ test.describe("GovCon V2 — full pipeline (mocked APIs)", () => {
   test("login → ingest → loading → report → export PDF → dashboard history → logout", async ({
     page,
   }) => {
-    await page.goto("/app");
+    await page.goto("/dashboard");
 
     await clerk.signIn({
       page,
@@ -204,7 +204,7 @@ test.describe("GovCon V2 — full pipeline (mocked APIs)", () => {
     });
 
     await expect(page.getByText("BIDSMITH", { exact: false })).toBeVisible();
-    await expect(page).toHaveURL(/\/app/);
+    await expect(page).toHaveURL(/\/dashboard/);
 
     await page.getByRole("button", { name: /New Audit/i }).click();
 

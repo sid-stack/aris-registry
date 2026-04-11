@@ -8,6 +8,7 @@ import { trackEvent, trackPageView } from "./utils/analytics";
 import { BOFU_RESOURCES } from "./content/growthPlanData";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
+import { pathForView, WORKSPACE_PATH } from "./lib/routes";
 
 const Templates        = lazy(() => import("./pages/Templates"));
 const Legal            = lazy(() => import("./pages/Legal"));
@@ -205,7 +206,6 @@ export default function App() {
 
   useEffect(() => {
     if (!aliasSection || view !== "landing") return;
-    window.history.replaceState({ view: "landing" }, "", `/#${aliasSection}`);
     const timer = setTimeout(() => {
       document.getElementById(aliasSection)?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 120);
@@ -233,40 +233,63 @@ export default function App() {
 
   useEffect(() => {
     if (window.history.state === null || window.history.state?.view === undefined) {
-      window.history.pushState({ view: "landing" }, "", window.location.href);
+      const initialView = resolveView(window.location.pathname);
+      window.history.replaceState({ view: initialView }, "", window.location.href);
     }
   }, []);
 
   useEffect(() => {
-    const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-    window.history.replaceState({ view }, "", currentUrl);
-
     const handlePopState = () => {
-      setView("landing");
-      window.history.pushState({ view: "landing" }, "", "/");
+      setView(resolveView(window.location.pathname));
     };
-
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [view]);
+  }, []);
+
+  useEffect(() => {
+    const base = pathForView(view);
+    if (base === null) return;
+
+    const search = window.location.search || "";
+    const hash =
+      view === "landing" && aliasSection ? `#${aliasSection}` :
+      view === "landing" ? "" :
+      window.location.hash || "";
+
+    const next = `${base}${search}${hash}`;
+    const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    if (current !== next) {
+      window.history.replaceState({ view }, "", next);
+    }
+  }, [view, aliasSection]);
+
+  const goWorkspace = () => {
+    window.history.pushState({ view: "dashboard" }, "", `${WORKSPACE_PATH}${window.location.search || ""}`);
+    setView("dashboard");
+  };
+
+  const goLanding = () => {
+    window.history.pushState({ view: "landing" }, "", `/${window.location.search || ""}`);
+    setView("landing");
+  };
 
   const handleAnalyze = (url) => {
     trackEvent("landing_quick_audit_started", { entry: "url_bar" });
     setInitialFile(null);
     setInitialUrl(url);
-    setView("dashboard");
+    goWorkspace();
   };
 
   const handleAnalyzeFile = (file) => {
     trackEvent("landing_quick_audit_started", { entry: "pdf_upload" });
     setInitialUrl("");
     setInitialFile(file);
-    setView("dashboard");
+    goWorkspace();
   };
 
   const handleEnterApp = (entry = "generic") => {
     trackEvent("landing_cta_clicked", { entry, authenticated: Boolean(authenticated && user) });
-    setView("dashboard");
+    goWorkspace();
   };
 
   const authWall = (
@@ -324,41 +347,41 @@ export default function App() {
       content = <Legal type={view} />;
       break;
     case "sam-rep":
-      content = <SamRep onBack={() => setView("landing")} />;
+      content = <SamRep onBack={goLanding} />;
       break;
     case "soc":
-      content = <Security onBack={() => setView("landing")} />;
+      content = <Security onBack={goLanding} />;
       break;
     case "about":
-      content = <About onBack={() => setView("landing")} />;
+      content = <About onBack={goLanding} />;
       break;
     case "compliance": {
       const slug = window.location.pathname.replace("/compliance/", "");
-      content = <CompliancePage slug={slug} onBack={() => setView("dashboard")} />;
+      content = <CompliancePage slug={slug} onBack={goWorkspace} />;
       break;
     }
     case "demo":
-      content = <Demo onBack={() => setView("landing")} onEnterApp={() => setView("dashboard")} />;
+      content = <Demo onBack={goLanding} onEnterApp={goWorkspace} />;
       break;
     case "govcon-guide":
-      content = <GovConGuide onBack={() => setView("landing")} onEnterApp={() => setView("dashboard")} />;
+      content = <GovConGuide onBack={goLanding} onEnterApp={goWorkspace} />;
       break;
     case "pricing":
       content = (
         <PricingGrid
-          onTryFree={() => setView("dashboard")}
+          onTryFree={goWorkspace}
           userId={user?.id}
           user={user}
         />
       );
       break;
     case "traffic-brief":
-      content = authLoading ? loadingScreen : authenticated ? <TrafficBrief onBack={() => setView("landing")} /> : authWall;
+      content = authLoading ? loadingScreen : authenticated ? <TrafficBrief onBack={goLanding} /> : authWall;
       break;
     case "resources":
       content = (
         <GrowthPlaybook
-          onBack={() => setView("landing")}
+          onBack={goLanding}
           onOpenResource={(slug) => {
             window.history.pushState({ view: "resource" }, "", `/resources/${slug}`);
             setView("resource");
@@ -375,44 +398,44 @@ export default function App() {
             window.history.pushState({ view: "resources" }, "", "/resources");
             setView("resources");
           }}
-          onEnterApp={() => setView("dashboard")}
+          onEnterApp={goWorkspace}
         />
       );
       break;
     }
     case "rfp-generator":
-      content = <RfpMatrixGenerator onUpload={() => setView("dashboard")} />;
+      content = <RfpMatrixGenerator onUpload={goWorkspace} />;
       break;
     case "admin":
-      content = authLoading ? loadingScreen : authenticated ? <AdminDashboard onBack={() => setView("landing")} /> : authWall;
+      content = authLoading ? loadingScreen : authenticated ? <AdminDashboard onBack={goLanding} /> : authWall;
       break;
     case "contact":
-      content = <Contact onBack={() => setView("landing")} />;
+      content = <Contact onBack={goLanding} />;
       break;
     // /app, /bento, /chat all resolve here — single Command Center
     case "bento":
     case "app":
     case "dashboard":
       content = authLoading ? loadingScreen : authenticated && user
-        ? <BentoDashboard onBack={() => setView("landing")} user={user} />
+        ? <BentoDashboard onBack={goLanding} user={user} />
         : authWall;
       break;
     case "landing":
       content = (
         <Landing
           onEnterApp={handleEnterApp}
-          onEnterDashboard={() => setView("dashboard")}
+          onEnterDashboard={goWorkspace}
           onViewSample={() => setView("demo")}
           onAnalyze={handleAnalyze}
           onAnalyzeFile={handleAnalyzeFile}
-          onGoHome={() => setView("landing")}
+          onGoHome={goLanding}
           isAuthenticated={Boolean(authenticated && user)}
           userEmail={user?.email || ""}
         />
       );
       break;
     default:
-      content = <NotFound onBack={() => setView("landing")} />;
+      content = <NotFound onBack={goLanding} />;
   }
 
   return (

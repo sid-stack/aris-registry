@@ -19,7 +19,7 @@ export default function NotFound() {
 
         <div className="wanderer-actions">
           <a href="/" className="wanderer-btn wanderer-btn-primary">Return Home</a>
-          <a href="/app" className="wanderer-btn wanderer-btn-secondary">Open Workspace</a>
+          <a href="/dashboard" className="wanderer-btn wanderer-btn-secondary">Open Workspace</a>
         </div>
       </section>
     </main>

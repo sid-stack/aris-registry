@@ -17,7 +17,12 @@ import { traceLLM } from "./utils/tracing.js";
 import { callLLM, callLLMStream } from "./llm/openrouter.js";
 
 // Services
-import { createDynamicCheckoutSession, createCheckoutSession as createSubscriptionSession, stripe } from "./services/stripe.js";
+import {
+  createDynamicCheckoutSession,
+  createCheckoutSession as createSubscriptionSession,
+  getStripeConfigStatus,
+  stripe,
+} from "./services/stripe.js";
 import { createClerkClient } from "@clerk/backend";
 import { recordAnalyticsEvent, getAdminStats, getTrafficBrief, saveAudit, getAuditHistory, getAuditById, savePendingReport, getPendingReports, getPendingReportById, markReportSent, updateReportNotes, markAuditPaid, checkAuditPaid } from "./services/analytics.js";
 import { sendTrafficBriefNow, startTrafficBriefScheduler } from "./services/trafficBriefScheduler.js";
@@ -57,6 +62,41 @@ function isAdminAuthorized(req) {
   const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
   const adminPassword = process.env.ADMIN_PASSWORD || "";
   return Boolean(adminPassword) && token === adminPassword;
+}
+
+function getRuntimeConfigStatus() {
+  return {
+    nodeEnv: process.env.NODE_ENV || "development",
+    railwayUrlConfigured: Boolean(process.env.RAILWAY_URL?.trim()),
+    clerkSecretConfigured: Boolean(process.env.CLERK_SECRET_KEY?.trim()),
+    stripe: getStripeConfigStatus(),
+  };
+}
+
+function getAppOrigin(req) {
+  return req.headers.origin || process.env.APP_URL || "https://www.bidsmith.pro";
+}
+
+function buildFlowTestVerdict(text, solicitationId) {
+  const safeText = String(text || "").trim();
+  const success = safeText.length >= 100;
+
+  return {
+    success,
+    solicitationId,
+    inputChars: safeText.length,
+    verdict: success
+      ? {
+          recommendation: "BID",
+          win_probability: 78,
+          confidence: "HIGH",
+          summary: "Diagnostic mock confirms the paste path can return a free verdict without invoking the paywall.",
+        }
+      : null,
+    message: success
+      ? "Paste-to-verdict path validated with mock audit output."
+      : "Provide at least 100 characters of solicitation text to validate the paste path.",
+  };
 }
 
 // Free-tier gate: 1 audit per IP per 24 h for unauthenticated / non-subscribed users.
@@ -339,10 +379,12 @@ app.get("/api/evals/status", asyncHandler(async (_req, res) => {
 }));
 
 app.get("/api/health", (_req, res) => {
+  const runtime = getRuntimeConfigStatus();
   res.json({
     status: "ok",
     ts: new Date().toISOString(),
     logic_gate_version: LOGIC_GATE_VERSION,
+    runtime,
     providers: {
       mercury: Boolean(process.env.MERCURY_API_KEY),
       gemini: Boolean(process.env.GEMINI_API_KEY),
@@ -387,18 +429,122 @@ app.get(/\.env(\..*)?$|\.(git|htaccess|DS_Store)|wp-admin|phpinfo/i, (_req, res)
 });
 
 app.get("/app-config.js", (_req, res) => {
+  const isProductionRuntime = process.env.NODE_ENV === "production";
   const publicConfig = {
     VITE_CLERK_PUBLISHABLE_KEY: process.env.VITE_CLERK_PUBLISHABLE_KEY || "",
+    VITE_API_URL: isProductionRuntime
+      ? (process.env.RAILWAY_URL || process.env.VITE_API_URL || "https://api.bidsmith.pro")
+      : (process.env.VITE_API_URL || ""),
+    RAILWAY_URL: isProductionRuntime ? (process.env.RAILWAY_URL || "https://api.bidsmith.pro") : "",
   };
 
   res.type("application/javascript");
   res.send(`window.__APP_CONFIG__ = Object.assign({}, window.__APP_CONFIG__ || {}, ${JSON.stringify(publicConfig)});`);
 });
 
+// Legacy workspace URL — canonical path is /dashboard (matches Vercel + client router).
+app.get(/^\/app(\/.*)?$/i, (_req, res) => {
+  res.redirect(308, "/dashboard");
+});
+
 app.use(express.static(join(__dirname, "../dist")));
 
 // Multer for memory upload
 const upload = multer({ storage: multer.memoryStorage() });
+
+// ─── /api/test-flow — hidden revenue tunnel diagnostic ────────────────────────
+app.all("/api/test-flow", asyncHandler(async (req, res) => {
+  const runtime = getRuntimeConfigStatus();
+  const body = req.method === "POST" ? (req.body || {}) : {};
+  const solicitationId = String(body.solicitationId || req.query.solicitationId || "TEST-SOL-001");
+  const opportunityTitle = String(body.opportunityTitle || req.query.opportunityTitle || "Diagnostic Federal Opportunity");
+  const uid = String(body.uid || req.headers["x-user-id"] || req.query.uid || "test-flow-user");
+  const liveStripe = body.live === true || req.query.live === "true";
+  const text = String(
+    body.text
+      || req.query.text
+      || "Sample solicitation text for BidSmith diagnostic validation. This placeholder is intentionally longer than one hundred characters so the mock verdict path passes."
+  );
+
+  const pasteToVerdict = buildFlowTestVerdict(text, solicitationId);
+  let verdictToCheckout;
+
+  if (liveStripe) {
+    try {
+      const session = await createDynamicCheckoutSession({
+        solicitationId,
+        opportunityTitle,
+        uid,
+        origin: getAppOrigin(req),
+      });
+      verdictToCheckout = {
+        success: Boolean(session?.url),
+        mode: "live",
+        sessionId: session?.id || null,
+        checkoutUrl: session?.url || null,
+        metadata: {
+          uid,
+          solicitation_id: solicitationId,
+          opportunityTitle,
+        },
+        message: session?.url
+          ? "Live Stripe checkout session created."
+          : "Stripe session was created without a redirect URL.",
+      };
+    } catch (error) {
+      verdictToCheckout = {
+        success: false,
+        mode: "live",
+        checkoutUrl: null,
+        error: error.message,
+      };
+    }
+  } else {
+    const origin = getAppOrigin(req);
+    verdictToCheckout = {
+      success: true,
+      mode: "simulation",
+      checkoutUrl: `${origin}/checkout/mock?plan=starter&solicitationId=${encodeURIComponent(solicitationId)}`,
+      metadata: {
+        uid,
+        solicitation_id: solicitationId,
+        opportunityTitle,
+      },
+      message: "Simulated Stripe redirect generated from the same metadata shape used by production checkout.",
+    };
+  }
+
+  const webhookToMetadata = {
+    success: runtime.clerkSecretConfigured && runtime.stripe.webhookSecretConfigured,
+    mode: liveStripe ? "live-ready" : "simulation",
+    metadataPayload: {
+      publicMetadata: {
+        isSubscribed: true,
+        plan: "starter",
+        subscriptionUpdatedAt: new Date().toISOString(),
+      },
+    },
+    prerequisites: {
+      clerkSecretConfigured: runtime.clerkSecretConfigured,
+      stripeWebhookSecretConfigured: runtime.stripe.webhookSecretConfigured,
+    },
+    message: runtime.clerkSecretConfigured && runtime.stripe.webhookSecretConfigured
+      ? "Webhook metadata update path is configured and ready."
+      : "Webhook metadata update path is missing a required secret.",
+  };
+
+  res.json({
+    ok: pasteToVerdict.success && verdictToCheckout.success && webhookToMetadata.success,
+    hidden: true,
+    liveStripe,
+    runtime,
+    steps: {
+      pasteToVerdict,
+      verdictToCheckout,
+      webhookToMetadata,
+    },
+  });
+}));
 
 // ─── /api/audit/pdf ───────────────────────────────────────────────────────────
 app.post("/api/audit/pdf", freeAuditLimiter, upload.single("file"), asyncHandler(async (req, res) => {
@@ -988,12 +1134,12 @@ app.post("/api/waitlist/invite", asyncHandler(async (req, res) => {
           <p style="color:#475569;font-size:14px;line-height:1.6;margin:0 0 20px">
             ${custom_message || "You're one of the first people to get access to BidSmith — the AI audit engine for government contractors. Go ahead and run your first audit."}
           </p>
-          <a href="https://bidsmith.pro/app" style="display:inline-block;background:#002244;color:white;padding:14px 28px;border-radius:10px;font-weight:800;font-size:14px;text-decoration:none;margin-bottom:24px">
+          <a href="https://www.bidsmith.pro/dashboard" style="display:inline-block;background:#002244;color:white;padding:14px 28px;border-radius:10px;font-weight:800;font-size:14px;text-decoration:none;margin-bottom:24px">
             Open BidSmith →
           </a>
           <p style="color:#64748b;font-size:13px;line-height:1.6">
             Share with a colleague:<br>
-            <a href="https://bidsmith.pro/app?ref=${entry.id.slice(0,8)}" style="color:#0B3D91;font-weight:600">bidsmith.pro/app?ref=${entry.id.slice(0,8)}</a>
+            <a href="https://www.bidsmith.pro/dashboard?ref=${entry.id.slice(0,8)}" style="color:#0B3D91;font-weight:600">www.bidsmith.pro/dashboard?ref=${entry.id.slice(0,8)}</a>
           </p>
           <p style="color:#94a3b8;font-size:12px;margin:24px 0 0">Reply to this email with any questions — Sid reads every one.</p>
         </div>

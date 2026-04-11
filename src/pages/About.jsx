@@ -97,7 +97,7 @@ const About = ({ onBack }) => {
            <h3 className="cta-title">Ready to eliminate the risk in your bidding?</h3>
            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '32px' }}>Start your first compliance audit in under 60 seconds.</p>
            <button 
-            onClick={() => window.location.href = '/app'}
+            onClick={() => { window.location.href = "/dashboard"; }}
             className="about-cta-btn"
            >
              Open Audit Workspace

@@ -272,6 +272,7 @@ const s = {
     background: 'rgba(59,130,246,0.1)',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     transition: 'opacity 0.3s',
+    WebkitTransition: 'opacity 0.3s',
   },
   title: { fontSize: 13, fontWeight: 600, color: '#f9fafb', letterSpacing: '-0.01em' },
   inferringBadge: {
@@ -323,6 +324,7 @@ const s = {
   barFill: {
     height: '100%', borderRadius: 2,
     transition: 'width 0.6s cubic-bezier(0.4,0,0.2,1)',
+    WebkitTransition: 'width 0.6s cubic-bezier(0.4,0,0.2,1)',
   },
   barScore: { fontSize: 11, fontWeight: 600, width: 34, textAlign: 'right', flexShrink: 0 },
   summary: { background: '#0d0d0d', borderRadius: 10, padding: '10px 12px' },
@@ -333,6 +335,7 @@ const s = {
     background: '#0d0d0d', border: '1px solid #1f1f1f',
     borderRadius: 6, padding: '4px 8px',
     textDecoration: 'none', transition: 'border-color 0.15s', maxWidth: '100%',
+    WebkitTransition: 'border-color 0.15s',
   },
   chipIndex: { fontSize: 10, fontWeight: 700, color: '#3b82f6', flexShrink: 0 },
   chipText: {

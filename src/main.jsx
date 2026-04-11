@@ -75,7 +75,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     )}
 
     <ClerkProvider publishableKey={clerkPubKey}
-    fallbackRedirectUrl="/app"
+    fallbackRedirectUrl="/dashboard"
     appearance={{
       variables: {
         colorBackground: '#0d0f14',

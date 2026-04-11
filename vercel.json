@@ -1,5 +1,9 @@
 {
   "version": 2,
+  "redirects": [
+    { "source": "/app", "destination": "/dashboard", "permanent": true },
+    { "source": "/app/:path*", "destination": "/dashboard", "permanent": true }
+  ],
   "builds": [
     {
       "src": "package.json",

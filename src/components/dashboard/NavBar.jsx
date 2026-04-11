@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FileText, Share2, Link, Shield, Sun, Moon, Check, ArrowLeft } from 'lucide-react';
-import { triggerPDFExport } from './ExportToolbar';
+import { triggerPDFExport } from '../../utils/pdfExport';
 
 const NavBar = ({ theme, onToggleTheme, onBack }) => {
   const isDark = theme === 'dark';

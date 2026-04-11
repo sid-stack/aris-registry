@@ -1582,6 +1582,7 @@ const s = {
     top: 0,
     background: 'rgba(8,8,8,0.9)',
     backdropFilter: 'blur(12px)',
+    WebkitBackdropFilter: 'blur(12px)',
     zIndex: 50,
   },
   topBarLeft: {
@@ -1678,6 +1679,7 @@ const s = {
     gridTemplateColumns: '5fr 7fr',
     gap: 14,
     padding: '0 28px',
+    WebkitTransform: 'translateZ(0)',
   },
   uploadCol: {
     minHeight: 300,
@@ -1690,6 +1692,7 @@ const s = {
     gridTemplateColumns: '1fr 1fr 1fr 1fr',
     gap: 14,
     padding: '14px 28px 0',
+    WebkitTransform: 'translateZ(0)',
   },
   row3: {
     padding: '14px 28px 0',
@@ -1762,6 +1765,7 @@ const s = {
     borderRadius: 10,
     border: '1px solid',
     backdropFilter: 'blur(8px)',
+    WebkitBackdropFilter: 'blur(8px)',
     zIndex: 100,
     minWidth: 200,
   },

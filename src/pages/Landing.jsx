@@ -6,6 +6,7 @@ import { useEffect, useState, useRef } from "react";
 import FaqSection from "../components/FaqSection";
 import "./Landing.css";
 import DemoSection from "../components/DemoSection";
+import { WORKSPACE_PATH } from "../lib/routes";
 
 // ─── Color Palette ────────────────────────────────────────────────────────────
 const C = {
@@ -615,7 +616,7 @@ export default function Landing({
               const isOpen = expandedStory === s.tag;
               return (
                 <div key={s.tag} style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-                  <article style={{ background: C.white, border: `1px solid ${C.paleSky}`, borderRadius: isOpen ? "16px 16px 0 0" : 16, padding: 32, display: "flex", flexDirection: "column", gap: 16, transition: "border-radius 0.2s" }}>
+                  <article style={{ background: C.white, border: `1px solid ${C.paleSky}`, borderRadius: isOpen ? "16px 16px 0 0" : 16, padding: 32, display: "flex", flexDirection: "column", gap: 16, transition: "border-radius 0.2s", WebkitTransition: "border-radius 0.2s" }}>
                     <span style={{ fontSize: 10, fontWeight: 800, color: C.navyMid, letterSpacing: "0.12em", textTransform: "uppercase", background: C.mintCream, padding: "4px 10px", borderRadius: 6, width: "fit-content", border: `1px solid ${C.paleSky}` }}>
                       {s.tag}
                     </span>
@@ -792,7 +793,7 @@ export default function Landing({
           <div style={{ display: "flex", gap: 40, flexWrap: "wrap", alignItems: "flex-start" }}>
             <div>
               <p style={{ fontSize: 11, fontWeight: 800, color: C.ashGrey, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 12 }}>Product</p>
-              {[["Open App", "/app"], ["Pricing", "/pricing"], ["Resources", "/resources"], ["Docs", "https://arislabs.mintlify.app/"]].map(([label, href]) => (
+              {[["Open App", WORKSPACE_PATH], ["Pricing", "/pricing"], ["Resources", "/resources"], ["Docs", "https://arislabs.mintlify.app/"]].map(([label, href]) => (
                 <a key={label} href={href} target={href.startsWith("http") ? "_blank" : undefined} rel="noopener noreferrer" style={{ display: "block", fontSize: 13, color: C.dimGrey, marginBottom: 8, textDecoration: "none" }}>{label}</a>
               ))}
             </div>
@@ -826,7 +827,7 @@ const S = {
   navInner: { maxWidth: 1200, margin: "0 auto", height: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 24, padding: "0 24px" },
   navLogo: { fontSize: 20, fontWeight: 900, color: C.navy, fontFamily: "'Playfair Display', serif", letterSpacing: "0.02em", lineHeight: 1 },
   navLink: { fontSize: 14, color: C.dimGrey, background: "none", border: "none", cursor: "pointer", fontWeight: 600, padding: "8px 14px", textDecoration: "none", display: "inline-block", borderRadius: 6, whiteSpace: "nowrap" },
-  navSignIn: { fontSize: 14, color: C.navyMid, background: "none", border: `1.5px solid ${C.paleSky}`, cursor: "pointer", fontWeight: 700, padding: "8px 16px", borderRadius: 8, whiteSpace: "nowrap", transition: "all 0.18s cubic-bezier(0.4,0,0.2,1)" },
+  navSignIn: { fontSize: 14, color: C.navyMid, background: "none", border: `1.5px solid ${C.paleSky}`, cursor: "pointer", fontWeight: 700, padding: "8px 16px", borderRadius: 8, whiteSpace: "nowrap", transition: "all 0.18s cubic-bezier(0.4,0,0.2,1)", WebkitTransition: "all 0.18s cubic-bezier(0.4,0,0.2,1)" },
   navCta: { background: C.navy, color: "#fff", padding: "9px 22px", borderRadius: 8, border: "none", fontWeight: 700, cursor: "pointer", fontSize: 14, whiteSpace: "nowrap" },
 
   hero: { background: `linear-gradient(180deg, ${C.white} 0%, ${C.mintCream} 100%)`, padding: "100px 24px 80px" },

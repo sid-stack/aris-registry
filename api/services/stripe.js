@@ -1,6 +1,7 @@
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const AUDIT_PRICE_CENTS = Number(process.env.STRIPE_AUDIT_PRICE_CENTS || 9900);
 
 // ── Pricing ladder: $99 / $299 / $999 (synced from live Stripe products) ──────
 export const STRIPE_PLANS = {
@@ -12,6 +13,24 @@ export const STRIPE_PLANS = {
 // Legacy alias (kept for backward compat with any existing references)
 export const STRIPE_PRODUCTS = STRIPE_PLANS;
 export const STRIPE_PREMIUM_PRODUCTS = {};
+
+export function getStripeConfigStatus() {
+  return {
+    secretKeyConfigured: Boolean(process.env.STRIPE_SECRET_KEY?.trim()),
+    webhookSecretConfigured: Boolean(process.env.STRIPE_WEBHOOK_SECRET?.trim()),
+    auditPriceCents: AUDIT_PRICE_CENTS,
+    plans: Object.fromEntries(
+      Object.entries(STRIPE_PLANS).map(([plan, config]) => [
+        plan,
+        {
+          mode: config.mode,
+          priceConfigured: Boolean(config.priceId?.trim?.()),
+          amountCents: config.amountCents,
+        },
+      ])
+    ),
+  };
+}
 
 /**
  * One-click checkout for a single audit unlock ($99).
