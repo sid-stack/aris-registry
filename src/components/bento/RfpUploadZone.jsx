@@ -8,7 +8,7 @@ import { Upload, Link2, FileText, X, Loader2, CheckCircle2, Zap } from 'lucide-r
 
 const ACCEPTED_MIME = ['application/pdf'];
 
-export default function RfpUploadZone({ onResult, onError, onStart, initialUrl = null }) {
+export default function RfpUploadZone({ onResult, onError, onStart, initialUrl = null, user = null }) {
   const [mode, setMode]       = useState('drop');   // 'drop' | 'url'
   const [dragging, setDragging] = useState(false);
   const [file, setFile]       = useState(null);
@@ -19,6 +19,11 @@ export default function RfpUploadZone({ onResult, onError, onStart, initialUrl =
   const didAutoSubmit         = useRef(null); // tracks last initialUrl we auto-fired
 
   const reset = () => { setFile(null); setUrl(''); setSuccess(false); };
+  const authHeaders = {
+    ...(user?.id ? { 'x-user-id': user.id } : {}),
+    ...(user?.email ? { 'x-user-email': user.email } : {}),
+    'x-subscribed': user?.isSubscribed ? 'true' : 'false',
+  };
 
   // When a featured solicitation is clicked, switch to URL mode, populate, and fire
   useEffect(() => {
@@ -63,16 +68,25 @@ export default function RfpUploadZone({ onResult, onError, onStart, initialUrl =
     try {
       const res = await fetch('/api/audit/link', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
         body: JSON.stringify({ url: trimmed }),
       });
       const data = await res.json().catch(() => null);
+      const cacheHeader = (res.headers.get('x-bidsmith-cache') || res.headers.get('x-cache') || '').toLowerCase();
+      const cacheHitFromHeader = cacheHeader.includes('hit');
+      const normalized = data ? {
+        ...data,
+        meta: {
+          ...(data.meta || {}),
+          cache_hit: data?.meta?.cache_hit === true || cacheHitFromHeader || data?.isCached === true,
+        },
+      } : data;
       if (!res.ok) {
         onError?.({ message: data?.error || `Request failed (${res.status})`, hint: data?.hint || null, code: data?.code || String(res.status), externalLinks: data?.externalLinks || [], failedUrl: trimmed, rawData: data });
         return;
       }
       setSuccess(true);
-      onResult?.(data);
+      onResult?.(normalized);
     } catch (err) {
       onError?.({ message: err.message, code: 'NETWORK_ERROR', failedUrl: trimmed });
     } finally {
@@ -90,14 +104,21 @@ export default function RfpUploadZone({ onResult, onError, onStart, initialUrl =
       try {
         const form = new FormData();
         form.append('file', file);
-        const res = await fetch('/api/audit/pdf', { method: 'POST', body: form });
+        const res = await fetch('/api/audit/pdf', { method: 'POST', headers: authHeaders, body: form });
         const data = await res.json().catch(() => null);
+        const normalized = data ? {
+          ...data,
+          meta: {
+            ...(data.meta || {}),
+            cache_hit: data?.meta?.cache_hit === true || data?.isCached === true,
+          },
+        } : data;
         if (!res.ok) {
           onError?.({ message: data?.error || `Request failed (${res.status})`, hint: data?.hint || null, code: data?.code || String(res.status), externalLinks: [], failedUrl: null, rawData: data });
           return;
         }
         setSuccess(true);
-        onResult?.(data);
+        onResult?.(normalized);
       } catch (err) {
         onError?.({ message: err.message, code: 'NETWORK_ERROR', failedUrl: null });
       } finally {

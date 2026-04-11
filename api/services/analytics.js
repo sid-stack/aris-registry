@@ -105,6 +105,15 @@ export async function ensureAnalyticsSchema() {
 
     CREATE INDEX IF NOT EXISTS idx_paid_audits_uid ON paid_audits (uid, solicitation_id);
     CREATE INDEX IF NOT EXISTS idx_paid_audits_session ON paid_audits (stripe_session_id);
+
+    CREATE TABLE IF NOT EXISTS analytics_job_runs (
+      id BIGSERIAL PRIMARY KEY,
+      job_name TEXT NOT NULL,
+      run_date DATE NOT NULL,
+      metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE(job_name, run_date)
+    );
   `);
 
   analyticsSchemaReady = true;
@@ -230,6 +239,151 @@ export async function getBetaSignupCount() {
 }
 
 import { getRevenueStats, getStripeLogs } from "./stripe.js";
+
+function getInternalUidList() {
+  return (process.env.ANALYTICS_INTERNAL_UIDS || "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+}
+
+function sqlArrayParams(values, startIndex = 1) {
+  if (!values.length) return { sql: "NULL", params: [] };
+  const placeholders = values.map((_, i) => `$${startIndex + i}`).join(", ");
+  return { sql: placeholders, params: values };
+}
+
+export async function getTrafficBrief() {
+  if (!analyticsDb) return { error: "Database not configured" };
+  try {
+    await ensureAnalyticsSchema();
+
+    const internalUids = getInternalUidList();
+    const { sql: uidSql, params: uidParams } = sqlArrayParams(internalUids);
+    const uidClause = internalUids.length
+      ? `AND uid NOT IN (${uidSql})`
+      : "";
+
+    const filterClause = `
+      page NOT ILIKE '%localhost%'
+      AND page NOT ILIKE '%127.0.0.1%'
+      AND page NOT ILIKE '%file://%'
+      ${uidClause}
+    `;
+
+    const [summaryRes, trendRes, topPagesRes] = await Promise.all([
+      analyticsDb.query(
+        `
+          WITH yday AS (
+            SELECT *
+            FROM analytics_events
+            WHERE created_at >= date_trunc('day', now()) - interval '1 day'
+              AND created_at < date_trunc('day', now())
+              AND ${filterClause}
+          ),
+          last7 AS (
+            SELECT *
+            FROM analytics_events
+            WHERE created_at >= now() - interval '7 days'
+              AND ${filterClause}
+          )
+          SELECT
+            (SELECT COUNT(DISTINCT uid) FROM yday WHERE event_type = 'page_view') AS visitors_yesterday,
+            (SELECT COUNT(*) FROM yday WHERE event_type = 'page_view') AS pageviews_yesterday,
+            (SELECT COUNT(*) FROM yday WHERE event_type = 'qualified_session') AS qualified_yesterday,
+            (SELECT COUNT(*) FROM yday WHERE event_type IN ('audit_started', 'Audit Started')) AS audits_yesterday,
+            (SELECT COUNT(DISTINCT uid) FROM last7 WHERE event_type = 'page_view') AS visitors_7d,
+            (SELECT COUNT(*) FROM last7 WHERE event_type = 'page_view') AS pageviews_7d,
+            (SELECT COUNT(*) FROM last7 WHERE event_type = 'qualified_session') AS qualified_7d,
+            (SELECT COUNT(*) FROM last7 WHERE event_type IN ('audit_started', 'Audit Started')) AS audits_7d
+        `,
+        uidParams,
+      ),
+      analyticsDb.query(
+        `
+          SELECT
+            to_char(date_trunc('day', created_at), 'Mon DD') AS day,
+            COUNT(DISTINCT uid) FILTER (WHERE event_type = 'page_view') AS visitors,
+            COUNT(*) FILTER (WHERE event_type = 'page_view') AS pageviews,
+            COUNT(*) FILTER (WHERE event_type = 'qualified_session') AS qualified,
+            COUNT(*) FILTER (WHERE event_type IN ('audit_started', 'Audit Started')) AS audits
+          FROM analytics_events
+          WHERE created_at >= now() - interval '7 days'
+            AND ${filterClause}
+          GROUP BY date_trunc('day', created_at)
+          ORDER BY date_trunc('day', created_at)
+        `,
+        uidParams,
+      ),
+      analyticsDb.query(
+        `
+          SELECT path, COUNT(*) AS pageviews, COUNT(DISTINCT uid) AS visitors
+          FROM analytics_events
+          WHERE created_at >= date_trunc('day', now()) - interval '1 day'
+            AND created_at < date_trunc('day', now())
+            AND event_type = 'page_view'
+            AND ${filterClause}
+          GROUP BY path
+          ORDER BY pageviews DESC
+          LIMIT 8
+        `,
+        uidParams,
+      ),
+    ]);
+
+    const summary = summaryRes.rows[0] || {};
+    const visitorsYesterday = Number(summary.visitors_yesterday || 0);
+    const qualifiedYesterday = Number(summary.qualified_yesterday || 0);
+    const auditsYesterday = Number(summary.audits_yesterday || 0);
+
+    const qualifiedToAuditRate = qualifiedYesterday > 0
+      ? Math.round((auditsYesterday / qualifiedYesterday) * 1000) / 10
+      : 0;
+
+    return {
+      summary: {
+        visitors_yesterday: visitorsYesterday,
+        pageviews_yesterday: Number(summary.pageviews_yesterday || 0),
+        qualified_yesterday: qualifiedYesterday,
+        audits_yesterday: auditsYesterday,
+        qualified_to_audit_rate_pct: qualifiedToAuditRate,
+        visitors_7d: Number(summary.visitors_7d || 0),
+        pageviews_7d: Number(summary.pageviews_7d || 0),
+        qualified_7d: Number(summary.qualified_7d || 0),
+        audits_7d: Number(summary.audits_7d || 0),
+      },
+      trend_7d: trendRes.rows,
+      top_pages_yesterday: topPagesRes.rows,
+      generated_at: new Date().toISOString(),
+      filters: {
+        excluded_localhost: true,
+        excluded_internal_uid_count: internalUids.length,
+      },
+    };
+  } catch (err) {
+    return { error: err.message };
+  }
+}
+
+export async function claimDailyJobRun(jobName, runDate, metadata = {}) {
+  if (!analyticsDb) return false;
+  try {
+    await ensureAnalyticsSchema();
+    const result = await analyticsDb.query(
+      `
+        INSERT INTO analytics_job_runs (job_name, run_date, metadata)
+        VALUES ($1, $2::date, $3::jsonb)
+        ON CONFLICT (job_name, run_date) DO NOTHING
+        RETURNING id
+      `,
+      [jobName, runDate, JSON.stringify(metadata)],
+    );
+    return result.rowCount > 0;
+  } catch (err) {
+    console.error("[ANALYTICS_JOB_RUNS] claim_failed", err.message);
+    return false;
+  }
+}
 
 export async function getAdminStats() {
   if (!analyticsDb) return { error: "Database not configured" };

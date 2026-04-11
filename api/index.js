@@ -19,7 +19,8 @@ import { callLLM, callLLMStream } from "./llm/openrouter.js";
 // Services
 import { createDynamicCheckoutSession, createCheckoutSession as createSubscriptionSession, stripe } from "./services/stripe.js";
 import { createClerkClient } from "@clerk/backend";
-import { recordAnalyticsEvent, getAdminStats, saveAudit, getAuditHistory, getAuditById, savePendingReport, getPendingReports, getPendingReportById, markReportSent, updateReportNotes, markAuditPaid, checkAuditPaid } from "./services/analytics.js";
+import { recordAnalyticsEvent, getAdminStats, getTrafficBrief, saveAudit, getAuditHistory, getAuditById, savePendingReport, getPendingReports, getPendingReportById, markReportSent, updateReportNotes, markAuditPaid, checkAuditPaid } from "./services/analytics.js";
+import { sendTrafficBriefNow, startTrafficBriefScheduler } from "./services/trafficBriefScheduler.js";
 import { fetchSolicitationText } from "./services/samGov.js";
 import { runAudit } from "./agents/auditPipeline.js";
 import { addToWaitlist, getWaitlist, getWaitlistStats, markInvited } from "./services/waitlist.js";
@@ -79,7 +80,7 @@ app.post(
   express.raw({ type: "application/json" }),
   asyncHandler(async (req, res) => {
     const sig = req.headers["stripe-signature"];
-    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET?.trim();
 
     if (!webhookSecret) {
       logger.warn("[STRIPE_WEBHOOK] STRIPE_WEBHOOK_SECRET not set — skipping verification");
@@ -231,6 +232,85 @@ function toMvpAuditResult(raw = {}) {
   };
 }
 
+const FEATURED_DEMO_AUDITS = {
+  "army-cyber": {
+    id: "FA462626Q0009",
+    solicitation_number: "FA462626Q0009",
+    title: "Army Cyber Operations Support Services",
+    agency: "Dept. of the Army",
+    contract_type: "IDIQ",
+    set_aside_type: "Unrestricted",
+    executiveSummary: "Cyber operations support opportunity with strong technical fit but aggressive transition and staffing requirements.",
+    verdict: { recommendation: "BID", win_probability: 81, confidence: "HIGH", rationale: "Strong alignment with SOC and RMF requirements.", summary: "Proceed with rapid teaming and staffing lock." },
+    intelligence: { top_risks: ["Transition staffing lead time", "24x7 SOC surge coverage"], hidden_requirements: ["On-call escalation matrix in proposal"], timeline_pressure: { detected: true, days_to_respond: 28, explanation: "Compressed proposal timeline." } },
+    requirements: [
+      { id: "REQ-1", requirement: "Provide 24x7 cyber monitoring support.", section: "PWS 3.2", category: "Operations", risk: "MED", action_required: "Include rotating SOC shift plan." },
+      { id: "REQ-2", requirement: "Demonstrate RMF artifact delivery capability.", section: "Section L", category: "Compliance", risk: "LOW", action_required: "Map RMF templates to milestones." },
+      { id: "REQ-3", requirement: "Submit key personnel resumes with certifications.", section: "Section M", category: "Staffing", risk: "HIGH", is_disqualifier: true, action_required: "Pre-lock certified leads before bid submission." },
+    ],
+  },
+  "dhs-ecip": {
+    id: "70CDSR24R00000003",
+    solicitation_number: "70CDSR24R00000003",
+    title: "DHS Enterprise Cloud Infrastructure (ECIP)",
+    agency: "Dept. of Homeland Security",
+    contract_type: "Task Order",
+    set_aside_type: "Small Business",
+    executiveSummary: "Large cloud modernization scope with strong upside and strict migration governance requirements.",
+    verdict: { recommendation: "CONDITIONAL", win_probability: 73, confidence: "MEDIUM", rationale: "Win path depends on migration references and security controls.", summary: "Bid with strong cloud transition evidence." },
+    intelligence: { top_risks: ["Cross-region data residency", "Cutover window penalties"], hidden_requirements: ["Wave-based migration rollback plan"], timeline_pressure: { detected: true, days_to_respond: 21, explanation: "Tight response window." } },
+    requirements: [
+      { id: "REQ-1", requirement: "FedRAMP moderate controls alignment.", section: "C.5", category: "Security", risk: "MED", action_required: "Provide control inheritance matrix." },
+      { id: "REQ-2", requirement: "Prior migrations > 1M records.", section: "M.2", category: "Past Performance", risk: "HIGH", action_required: "Lead with similar federal migration references." },
+    ],
+  },
+  "hhs-modernization": {
+    id: "HHSM500T0001",
+    solicitation_number: "HHSM500T0001",
+    title: "HHS Health IT Modernization — Phase III",
+    agency: "HHS / CMS",
+    contract_type: "Firm Fixed Price",
+    set_aside_type: "8(a) Set-Aside",
+    executiveSummary: "Health IT modernization opportunity with moderate integration risk and favorable incumbent displacement signal.",
+    verdict: { recommendation: "BID", win_probability: 77, confidence: "HIGH", rationale: "Strong integration capability fit and favorable score weighting.", summary: "Bid with patient-data interoperability theme." },
+    intelligence: { top_risks: ["Legacy integration debt"], hidden_requirements: ["Data migration rehearsal"], timeline_pressure: { detected: false, days_to_respond: 35, explanation: "Standard response runway." } },
+    requirements: [
+      { id: "REQ-1", requirement: "HL7/FHIR interoperability experience.", section: "SOW 2.1", category: "Technical", risk: "LOW", action_required: "Show prior federal health integrations." },
+      { id: "REQ-2", requirement: "PHI handling with audit logging.", section: "SOW 4.3", category: "Security", risk: "MED", action_required: "Provide PHI monitoring controls." },
+    ],
+  },
+  "va-devsecops": {
+    id: "VA797P24Q0112",
+    solicitation_number: "VA797P24Q0112",
+    title: "VA Enterprise DevSecOps Platform",
+    agency: "Dept. of Veterans Affairs",
+    contract_type: "BPA",
+    set_aside_type: "SDVOSB",
+    executiveSummary: "DevSecOps platform contract with strong CI/CD fit but strict ATO gating and supply-chain compliance needs.",
+    verdict: { recommendation: "CONDITIONAL", win_probability: 69, confidence: "MEDIUM", rationale: "Technical fit is high; ATO readiness is the gating factor.", summary: "Bid only with complete ATO path and SBOM controls." },
+    intelligence: { top_risks: ["ATO accreditation timeline", "SBOM enforcement"], hidden_requirements: ["Container signing evidence"], timeline_pressure: { detected: true, days_to_respond: 18, explanation: "Fast close and technical volume heavy." } },
+    requirements: [
+      { id: "REQ-1", requirement: "Provide CI/CD pipeline with SAST/DAST integration.", section: "C.2", category: "Technical", risk: "LOW", action_required: "Map pipeline controls to STIG requirements." },
+      { id: "REQ-2", requirement: "Submit ATO artifact package.", section: "L.6", category: "Compliance", risk: "HIGH", is_disqualifier: true, action_required: "Include existing ATO evidence and authority chain." },
+    ],
+  },
+  "navsea-network": {
+    id: "N0042124R0001",
+    solicitation_number: "N0042124R0001",
+    title: "NAVSEA Shipyard IT Network Upgrade",
+    agency: "Dept. of the Navy",
+    contract_type: "Task Order",
+    set_aside_type: "HUBZone",
+    executiveSummary: "Network modernization opportunity with manageable technical complexity and stronger-than-average margin profile.",
+    verdict: { recommendation: "BID", win_probability: 75, confidence: "MEDIUM", rationale: "Clear compliance path and predictable execution scope.", summary: "Bid with phased rollout and downtime mitigation strategy." },
+    intelligence: { top_risks: ["Maintenance window constraints"], hidden_requirements: ["Fallback connectivity architecture"], timeline_pressure: { detected: false, days_to_respond: 32, explanation: "Adequate response timeline." } },
+    requirements: [
+      { id: "REQ-1", requirement: "Zero-downtime migration plan.", section: "PWS 4.2", category: "Operations", risk: "MED", action_required: "Include rollback and cutover checkpoints." },
+      { id: "REQ-2", requirement: "HUBZone eligibility proof.", section: "L.2", category: "Eligibility", risk: "MED", action_required: "Attach HUBZone certification artifacts." },
+    ],
+  },
+};
+
 // ─── /api/evals/status — serve latest eval_results.json for the EvalStatusCard ──
 app.get("/api/evals/status", asyncHandler(async (_req, res) => {
   const { readFile } = await import("fs/promises");
@@ -264,6 +344,33 @@ app.get("/api/health", (_req, res) => {
     audit_cache: auditCacheStats(),
   });
 });
+
+app.get("/api/featured/:demoId", asyncHandler(async (req, res) => {
+  const demoId = String(req.params.demoId || "").toLowerCase();
+  const demoPayload = FEATURED_DEMO_AUDITS[demoId];
+  if (!demoPayload) {
+    return res.status(404).json({ error: "Featured demo not found." });
+  }
+
+  const normalized = toMvpAuditResult({
+    ...demoPayload,
+    generated_at: new Date().toISOString(),
+  });
+  const response = {
+    ...normalized,
+    isCached: true,
+    meta: {
+      ...(normalized.meta || {}),
+      cache_hit: true,
+      cache_served_at: new Date().toISOString(),
+      source: "featured-demo",
+    },
+  };
+
+  res.setHeader("x-bidsmith-cache", "HIT");
+  res.setHeader("Cache-Control", "public, max-age=60");
+  res.json(response);
+}));
 
 // /api/fed-search has no handler — requests fall through to 404 naturally
 
@@ -671,6 +778,19 @@ app.get("/api/admin/stats", asyncHandler(async (req, res) => {
   res.json(stats);
 }));
 
+app.get("/api/admin/traffic-brief", asyncHandler(async (_req, res) => {
+  const brief = await getTrafficBrief();
+  res.json(brief);
+}));
+
+app.post("/api/admin/traffic-brief/send-now", asyncHandler(async (_req, res) => {
+  const result = await sendTrafficBriefNow("manual_endpoint");
+  if (!result.success) {
+    return res.status(502).json(result);
+  }
+  res.json(result);
+}));
+
 // ─── /api/admin/pending-reports ──────────────────────────────────────────────
 app.get("/api/admin/pending-reports", asyncHandler(async (req, res) => {
   const { status } = req.query;
@@ -892,6 +1012,7 @@ app.post("/api/audit/link", freeAuditLimiter, apiLimiter, asyncHandler(async (re
       url: normalized.slice(0, 120),
       solicitation_id: cachedResult.solicitation_number || cachedResult.id,
     }));
+    res.setHeader("x-bidsmith-cache", "HIT");
     return res.json({
       ...cachedResult,
       meta: { ...(cachedResult.meta || {}), cache_hit: true, cache_served_at: new Date().toISOString() },
@@ -1031,6 +1152,7 @@ app.post("/api/audit/link", freeAuditLimiter, apiLimiter, asyncHandler(async (re
     // Store in cache for next 24h — fire and forget
     setAuditCache(normalized, result).catch(() => {});
 
+    res.setHeader("x-bidsmith-cache", "MISS");
     return res.json(result);
   } catch (err) {
     logger.error("audit_stage_error", requestMeta(req, {
@@ -1219,4 +1341,5 @@ app.listen(PORT, () => {
     node_env: process.env.NODE_ENV || "development",
     trust_proxy: trustProxySetting,
   });
+  startTrafficBriefScheduler();
 });
