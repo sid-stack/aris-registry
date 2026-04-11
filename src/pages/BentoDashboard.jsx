@@ -16,7 +16,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Shield, Zap, Activity, FileSearch, ArrowUpRight, Send, RotateCcw,
          MessageSquare, Loader2, ExternalLink, AlertTriangle,
          Clock, ChevronRight, LogOut, Plus, LayoutDashboard } from 'lucide-react';
-import { useClerk } from '@clerk/clerk-react';
+import { useClerk, useUser } from '@clerk/clerk-react';
 import RfpUploadZone   from '../components/bento/RfpUploadZone';
 import LiveAnalysisCard from '../components/bento/LiveAnalysisCard';
 import EvalStatusCard  from '../components/bento/EvalStatusCard';
@@ -78,7 +78,7 @@ function classifyError(err) {
 }
 
 // ── MiniChatShell — renders inside the uploadCol when an error triggers ───────
-function MiniChatShell({ context, onReset, onAuditResult, onAuditStart }) {
+function MiniChatShell({ context, onReset, onAuditResult, onAuditStart, user = null }) {
   const [messages, setMessages] = useState([
     { role: 'ai', text: context.aiMessage, id: 0 },
   ]);
@@ -86,6 +86,12 @@ function MiniChatShell({ context, onReset, onAuditResult, onAuditStart }) {
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef(null);
   const textareaRef = useRef(null);
+  const requestHeaders = {
+    'Content-Type': 'application/json',
+    ...(user?.id ? { 'x-user-id': user.id } : {}),
+    ...(user?.email ? { 'x-user-email': user.email } : {}),
+    'x-subscribed': user?.isSubscribed ? 'true' : 'false',
+  };
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -113,15 +119,24 @@ function MiniChatShell({ context, onReset, onAuditResult, onAuditStart }) {
       try {
         const res = await fetch('/api/audit/link', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: requestHeaders,
           body: JSON.stringify({ url: text }),
         });
         const data = await res.json();
+        const cacheHeader = (res.headers.get('x-bidsmith-cache') || res.headers.get('x-cache') || '').toLowerCase();
+        const cacheHitFromHeader = cacheHeader.includes('hit');
+        const normalized = data ? {
+          ...data,
+          meta: {
+            ...(data.meta || {}),
+            cache_hit: data?.meta?.cache_hit === true || cacheHitFromHeader || data?.isCached === true,
+          },
+        } : data;
         if (res.ok && !data.error) {
-          onAuditResult?.(data);
+          onAuditResult?.(normalized);
           setMessages(m => [...m, {
             role: 'ai',
-            text: `Audit complete. Verdict: **${data.verdict?.recommendation || 'CONDITIONAL'}** (${data.verdict?.win_probability ?? '?'}% win probability).\n\n${data.verdict?.summary || ''}`,
+            text: `Audit complete. Verdict: **${normalized.verdict?.recommendation || 'CONDITIONAL'}** (${normalized.verdict?.win_probability ?? '?'}% win probability).\n\n${normalized.verdict?.summary || ''}`,
             id: Date.now(),
           }]);
         } else {
@@ -142,7 +157,7 @@ function MiniChatShell({ context, onReset, onAuditResult, onAuditStart }) {
 
         const res = await fetch('/api/chat', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: requestHeaders,
           body: JSON.stringify({
             messages: [...history, { role: 'user', content: text }],
             context: context.apiContext,
@@ -348,6 +363,8 @@ function StatCard({ icon: Icon, iconColor, iconBg, label, value, sub, trend }) {
 const FEATURED_RFPS = [
   {
     id:       'fa462626q0009',
+    demoId:   'army-cyber',
+    demo:     true,
     title:    'Army Cyber Operations Support Services',
     agency:   'Dept. of the Army',
     naics:    '541519',
@@ -359,6 +376,8 @@ const FEATURED_RFPS = [
   },
   {
     id:       '70cdsr24r00000003',
+    demoId:   'dhs-ecip',
+    demo:     true,
     title:    'DHS Enterprise Cloud Infrastructure (ECIP)',
     agency:   'Dept. of Homeland Security',
     naics:    '541512',
@@ -370,6 +389,8 @@ const FEATURED_RFPS = [
   },
   {
     id:       'hhsm500t0001',
+    demoId:   'hhs-modernization',
+    demo:     true,
     title:    'HHS Health IT Modernization — Phase III',
     agency:   'HHS / CMS',
     naics:    '541511',
@@ -381,6 +402,8 @@ const FEATURED_RFPS = [
   },
   {
     id:       'va797p24q0112',
+    demoId:   'va-devsecops',
+    demo:     true,
     title:    'VA Enterprise DevSecOps Platform',
     agency:   'Dept. of Veterans Affairs',
     naics:    '541513',
@@ -392,6 +415,8 @@ const FEATURED_RFPS = [
   },
   {
     id:       'n0042124r0001',
+    demoId:   'navsea-network',
+    demo:     true,
     title:    'NAVSEA Shipyard IT Network Upgrade',
     agency:   'Dept. of the Navy',
     naics:    '334111',
@@ -408,11 +433,11 @@ function FeaturedSolicitations({ onSelect }) {
     <div style={fs.wrap}>
       <div style={fs.header}>
         <span style={fs.eyebrow}>HOT RFPs THIS WEEK</span>
-        <span style={fs.sub}>Click any card to instantly audit it →</span>
+        <span style={fs.sub}>Click any card to instantly run a cached demo audit →</span>
       </div>
       <div style={fs.scroll}>
         {FEATURED_RFPS.map(rfp => (
-          <button key={rfp.id} onClick={() => onSelect(rfp.url)} style={fs.card}>
+          <button key={rfp.id} onClick={() => onSelect(rfp)} style={fs.card}>
             <div style={fs.cardTop}>
               <span style={{ ...fs.tag, color: rfp.tagColor, borderColor: rfp.tagColor + '40', background: rfp.tagColor + '12' }}>
                 {rfp.tag}
@@ -423,7 +448,7 @@ function FeaturedSolicitations({ onSelect }) {
             <p style={fs.agency}>{rfp.agency}</p>
             <div style={fs.cardBottom}>
               <span style={fs.value}>{rfp.value}</span>
-              <span style={fs.setAside}>{rfp.setAside}</span>
+                <span style={fs.setAside}>{rfp.demo ? 'Demo Instant' : rfp.setAside}</span>
             </div>
           </button>
         ))}
@@ -495,9 +520,158 @@ const fs = {
   },
 };
 
+// ── Submission Checklist — "Don't miss a deliverable" ─────────────────────
+function SubmissionChecklist({ auditResult, loading = false }) {
+  const checklist = auditResult?.submission_checklist || [];
+  const incumbentSignals = auditResult?.incumbent_signals || [];
+  const [checked, setChecked] = React.useState({});
+
+  const toggle = (i) => setChecked(prev => ({ ...prev, [i]: !prev[i] }));
+  const doneCount = Object.values(checked).filter(Boolean).length;
+
+  if (loading) {
+    return (
+      <div style={cl.card}>
+        <div style={cl.header}>
+          <span style={cl.dot} />
+          <span style={cl.title}>Submission Checklist</span>
+        </div>
+        {[1,2,3].map(i => (
+          <div key={i} style={{ height: 18, background: '#1a1a1a', borderRadius: 4, marginBottom: 10, opacity: 0.5, animation: 'pulse 1.4s ease-in-out infinite' }} />
+        ))}
+      </div>
+    );
+  }
+
+  if (!auditResult || checklist.length === 0) {
+    return (
+      <div style={cl.card}>
+        <div style={cl.header}>
+          <span style={cl.dot} />
+          <span style={cl.title}>Submission Checklist</span>
+          <span style={cl.badge}>GUIDE</span>
+        </div>
+        <p style={{ fontSize: 11, color: '#4b5563', margin: 0, lineHeight: 1.6 }}>
+          Run an audit to generate a complete list of every document and form you must submit.
+          The engine detects page limits, required volumes, signed certifications, and hidden deliverables.
+        </p>
+      </div>
+    );
+  }
+
+  const progress = checklist.length > 0 ? Math.round((doneCount / checklist.length) * 100) : 0;
+
+  return (
+    <div style={cl.card}>
+      <div style={cl.header}>
+        <span style={cl.dot} />
+        <span style={cl.title}>Submission Checklist</span>
+        <span style={{ ...cl.badge, marginLeft: 'auto' }}>
+          {doneCount}/{checklist.length}
+        </span>
+      </div>
+
+      {/* Progress bar */}
+      <div style={{ height: 3, background: '#1a1a1a', borderRadius: 99, marginBottom: 14, overflow: 'hidden' }}>
+        <div style={{
+          height: '100%', borderRadius: 99,
+          width: `${progress}%`,
+          background: progress === 100 ? '#16a34a' : '#2563eb',
+          transition: 'width 0.4s ease',
+        }} />
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {checklist.map((item, i) => (
+          <button
+            key={i}
+            onClick={() => toggle(i)}
+            style={{
+              display: 'flex', alignItems: 'flex-start', gap: 9,
+              background: 'transparent', border: 'none', cursor: 'pointer',
+              padding: '5px 0', textAlign: 'left',
+            }}
+          >
+            <span style={{
+              flexShrink: 0, width: 14, height: 14, borderRadius: 3,
+              border: `1.5px solid ${checked[i] ? '#16a34a' : '#374151'}`,
+              background: checked[i] ? '#16a34a' : 'transparent',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              marginTop: 1, transition: 'all 0.15s',
+            }}>
+              {checked[i] && <span style={{ color: '#fff', fontSize: 9, fontWeight: 900, lineHeight: 1 }}>✓</span>}
+            </span>
+            <span style={{
+              fontSize: 11, color: checked[i] ? '#4b5563' : '#d1d5db',
+              lineHeight: 1.5,
+              textDecoration: checked[i] ? 'line-through' : 'none',
+            }}>
+              {item}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {/* Incumbent signals — if detected */}
+      {incumbentSignals.length > 0 && (
+        <div style={{ marginTop: 16, padding: '10px 12px', background: 'rgba(217,119,6,0.08)', border: '1px solid rgba(217,119,6,0.25)', borderRadius: 8 }}>
+          <p style={{ margin: '0 0 8px', fontSize: 9, fontWeight: 800, color: '#d97706', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+            Incumbent Signals Detected
+          </p>
+          {incumbentSignals.map((sig, i) => (
+            <p key={i} style={{ margin: '0 0 4px', fontSize: 10, color: '#fbbf24', lineHeight: 1.5 }}>
+              · {sig}
+            </p>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const cl = {
+  card: {
+    background: '#0a0a0a', border: '1px solid #1a1a1a', borderRadius: 14,
+    padding: '18px 20px', flex: 1, minWidth: 0,
+  },
+  header: {
+    display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14,
+  },
+  dot: {
+    width: 7, height: 7, borderRadius: '50%', background: '#16a34a',
+    boxShadow: '0 0 6px rgba(22,163,74,0.5)', flexShrink: 0,
+  },
+  title: {
+    fontSize: 10, fontWeight: 700, color: '#9ca3af',
+    letterSpacing: '0.1em', textTransform: 'uppercase',
+  },
+  badge: {
+    fontSize: 9, fontWeight: 800, color: '#4b5563',
+    background: '#111', border: '1px solid #222',
+    borderRadius: 4, padding: '2px 6px', letterSpacing: '0.06em',
+  },
+};
+
 // ── Paywall Gate — free teaser + locked full analysis ─────────────────────
-function PaywallGate({ children, hasAudit, isPaid = false, checkingPayment = false, solicitationId = '', opportunityTitle = '', uid = 'anonymous' }) {
-  const [unlocking, setUnlocking] = React.useState(false);
+function PaywallGate({
+  children,
+  hasAudit,
+  isPaid = false,
+  checkingPayment = false,
+  solicitationId = '',
+  opportunityTitle = '',
+  uid = 'anonymous',
+  unlockReason = 'payment',
+}) {
+  const [unlocking, setUnlocking] = useState(false);
+  const reasonLabel = unlockReason === 'subscription'
+    ? 'Unlocked by subscription'
+    : unlockReason === 'demo'
+      ? 'Unlocked for demo'
+      : unlockReason === 'payment'
+        ? 'Unlocked by one-time payment'
+        : 'Locked';
+  const badgeStyle = isPaid ? pw.statusUnlocked : pw.statusLocked;
 
   const handleUnlock = async () => {
     setUnlocking(true);
@@ -523,6 +697,7 @@ function PaywallGate({ children, hasAudit, isPaid = false, checkingPayment = fal
   if (checkingPayment) {
     return (
       <div style={pw.wrap}>
+        <div style={{ ...pw.statusBadge, ...pw.statusChecking }}>Unlock status: Verifying…</div>
         <div style={pw.preview}>{children}</div>
         <div style={pw.overlay}>
           <div style={pw.lockCard}>
@@ -535,10 +710,18 @@ function PaywallGate({ children, hasAudit, isPaid = false, checkingPayment = fal
   }
 
   // Fully unlocked — render children without any gate
-  if (isPaid) return <>{children}</>;
+  if (isPaid) {
+    return (
+      <div style={pw.wrap}>
+        <div style={{ ...pw.statusBadge, ...badgeStyle }}>Unlock status: {reasonLabel}</div>
+        {children}
+      </div>
+    );
+  }
 
   return (
     <div style={pw.wrap}>
+      <div style={{ ...pw.statusBadge, ...badgeStyle }}>Unlock status: Locked</div>
       {/* Preview — blurred teaser of first few rows */}
       <div style={pw.preview}>{children}</div>
 
@@ -577,6 +760,36 @@ function PaywallGate({ children, hasAudit, isPaid = false, checkingPayment = fal
 const pw = {
   wrap: {
     position: 'relative',
+    paddingTop: 28,
+  },
+  statusBadge: {
+    position: 'absolute',
+    top: 0,
+    left: 28,
+    zIndex: 2,
+    fontSize: 10,
+    fontWeight: 700,
+    letterSpacing: '0.06em',
+    textTransform: 'uppercase',
+    borderRadius: 999,
+    padding: '5px 10px',
+    border: '1px solid',
+    width: 'fit-content',
+  },
+  statusUnlocked: {
+    color: '#22c55e',
+    background: 'rgba(34,197,94,0.12)',
+    borderColor: 'rgba(34,197,94,0.26)',
+  },
+  statusLocked: {
+    color: '#f59e0b',
+    background: 'rgba(245,158,11,0.12)',
+    borderColor: 'rgba(245,158,11,0.28)',
+  },
+  statusChecking: {
+    color: '#60a5fa',
+    background: 'rgba(59,130,246,0.12)',
+    borderColor: 'rgba(59,130,246,0.28)',
   },
   preview: {
     maxHeight: 240,
@@ -686,7 +899,7 @@ function AnalysisProgress({ activeStep }) {
 }
 
 // ── Command Center Sidebar ─────────────────────────────────────────────────
-function Sidebar({ user, auditHistory, loadingHistory, activeAuditId, onSelectAudit, onNewAudit }) {
+function Sidebar({ user, auditHistory, loadingHistory, activeAuditId, onSelectAudit, onNewAudit, billingStatus = null }) {
   const { signOut } = useClerk();
 
   const verdictColor = (v) =>
@@ -743,16 +956,23 @@ function Sidebar({ user, auditHistory, loadingHistory, activeAuditId, onSelectAu
 
       {/* Footer — user + logout */}
       <div style={sb.footer}>
-        {user?.email && (
-          <div style={sb.userRow}>
-            <div style={sb.userAvatar}>
-              {(user.email[0] || 'U').toUpperCase()}
+        <div style={sb.footerMeta}>
+          {user?.email && (
+            <div style={sb.userRow}>
+              <div style={sb.userAvatar}>
+                {(user.email[0] || 'U').toUpperCase()}
+              </div>
+              <span style={sb.userEmail} title={user.email}>
+                {user.email.split('@')[0]}
+              </span>
             </div>
-            <span style={sb.userEmail} title={user.email}>
-              {user.email.split('@')[0]}
-            </span>
-          </div>
-        )}
+          )}
+          {billingStatus && (
+            <div style={sb.billingPill}>
+              {billingStatus}
+            </div>
+          )}
+        </div>
         <button onClick={() => signOut()} style={sb.logoutBtn} title="Sign out">
           <LogOut size={12} />
         </button>
@@ -818,6 +1038,12 @@ const sb = {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
     marginTop: 'auto',
   },
+  footerMeta: {
+    display: 'flex',
+    flexDirection: 'column',
+    minWidth: 0,
+    gap: 6,
+  },
   userRow: { display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 },
   userAvatar: {
     width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
@@ -827,6 +1053,18 @@ const sb = {
     fontSize: '10px', fontWeight: 700, color: '#60a5fa',
   },
   userEmail: { fontSize: 11, color: '#4b5563', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  billingPill: {
+    fontSize: 10,
+    color: '#22c55e',
+    background: 'rgba(34,197,94,0.12)',
+    border: '1px solid rgba(34,197,94,0.2)',
+    borderRadius: 999,
+    padding: '2px 8px',
+    width: 'fit-content',
+    textTransform: 'uppercase',
+    letterSpacing: '0.06em',
+    fontWeight: 700,
+  },
   logoutBtn: {
     flexShrink: 0, width: 28, height: 28, borderRadius: 7,
     background: 'transparent', border: '1px solid #1a1a1a',
@@ -838,6 +1076,7 @@ const sb = {
 
 // ── Main page ─────────────────────────────────────────────────────────────
 export default function BentoDashboard({ user = null, onBack }) {
+  const { user: clerkUser } = useUser();
   const [auditResult, setAuditResult] = useState(null);
   const [activeAuditId, setActiveAuditId] = useState(null);
   const [analyzing, setAnalyzing]     = useState(false);
@@ -848,7 +1087,9 @@ export default function BentoDashboard({ user = null, onBack }) {
 
   // Payment / unlock state
   const [isPaid, setIsPaid]               = useState(false);
+  const [demoUnlocked, setDemoUnlocked]   = useState(false);
   const [checkingPayment, setCheckingPayment] = useState(false);
+  const [syncingSubscription, setSyncingSubscription] = useState(false);
 
   // Audit history (sidebar)
   const [auditHistory, setAuditHistory]       = useState([]);
@@ -858,6 +1099,12 @@ export default function BentoDashboard({ user = null, onBack }) {
   const [chatMode, setChatMode]       = useState(false);
   const [chatContext, setChatContext]  = useState(null);
   const [colVisible, setColVisible]   = useState(true);
+  const clerkSubscribed = clerkUser?.publicMetadata?.isSubscribed === true;
+  const isSubscribed = clerkSubscribed || user?.isSubscribed === true;
+  const activePlan = clerkUser?.publicMetadata?.plan || user?.plan || null;
+  const subscriptionUpdatedAt = clerkUser?.publicMetadata?.subscriptionUpdatedAt || user?.subscriptionUpdatedAt || null;
+  const accessUnlocked = isSubscribed || isPaid || demoUnlocked;
+  const billingStatus = isSubscribed ? `${activePlan || "active"}` : null;
 
   // Health probe
   useEffect(() => {
@@ -883,6 +1130,11 @@ export default function BentoDashboard({ user = null, onBack }) {
   // ── Payment status helper ──────────────────────────────────────────────────
   const fetchPaymentStatus = useCallback(async (solId) => {
     if (!user?.id || !solId) return;
+    if (isSubscribed) {
+      setIsPaid(true);
+      setCheckingPayment(false);
+      return;
+    }
     setCheckingPayment(true);
     try {
       const res = await fetch(`/api/payment/status?uid=${encodeURIComponent(user.id)}&solicitation_id=${encodeURIComponent(solId)}`);
@@ -893,15 +1145,47 @@ export default function BentoDashboard({ user = null, onBack }) {
     } finally {
       setCheckingPayment(false);
     }
-  }, [user?.id]);
+  }, [isSubscribed, user?.id]);
+
+  // Poll Clerk metadata after subscription checkout return.
+  const syncSubscriptionStatus = useCallback(async () => {
+    if (!clerkUser) return false;
+    setSyncingSubscription(true);
+    try {
+      for (let attempt = 0; attempt < 8; attempt += 1) {
+        await clerkUser.reload();
+        const subscribed = clerkUser.publicMetadata?.isSubscribed === true;
+        if (subscribed) return true;
+        await new Promise(resolve => setTimeout(resolve, 1200));
+      }
+      return false;
+    } catch {
+      return false;
+    } finally {
+      setSyncingSubscription(false);
+    }
+  }, [clerkUser]);
 
   // ── Checkout redirect param detection ─────────────────────────────────────
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const checkoutStatus = params.get('checkout');
     const sid = params.get('sid');
+    const source = params.get('source');
+    const plan = params.get('plan');
     if (checkoutStatus === 'success') {
-      showToast('Payment successful — Audit unlocked!', 'success');
+      if (source === 'subscription') {
+        showToast('Payment received. Activating subscription…', 'info');
+        syncSubscriptionStatus().then((ok) => {
+          if (ok) {
+            showToast(`Subscription active${plan ? `: ${plan}` : ''}. Full dashboard unlocked.`, 'success');
+          } else {
+            showToast('Payment received. Subscription sync is still processing — refresh in 10 seconds.', 'info');
+          }
+        });
+      } else {
+        showToast('Payment successful — Audit unlocked!', 'success');
+      }
       if (sid) setTimeout(() => fetchPaymentStatus(sid), 1500); // slight delay for webhook
       // Clean the URL param without reloading
       const clean = window.location.pathname;
@@ -910,13 +1194,17 @@ export default function BentoDashboard({ user = null, onBack }) {
       showToast('Payment cancelled. Your audit preview is still available.', 'info');
       window.history.replaceState({}, '', window.location.pathname);
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [fetchPaymentStatus, syncSubscriptionStatus]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSelectAudit = (historyEntry) => {
     const result = historyEntry.audit_result;
     if (result) {
       setAuditResult(result);
       setActiveAuditId(historyEntry.id);
+      setDemoUnlocked(false);
+      setIsPaid(isSubscribed);
+      const solId = result?.solicitation_number || result?.opportunity_id;
+      if (solId) fetchPaymentStatus(solId);
       if (chatMode) resetChatMode();
       showToast(`Loaded: ${result.title?.slice(0, 40) || 'Audit'}`, 'info');
     }
@@ -926,6 +1214,7 @@ export default function BentoDashboard({ user = null, onBack }) {
     setAuditResult(null);
     setActiveAuditId(null);
     setAnalyzing(false);
+    setDemoUnlocked(false);
     if (chatMode) resetChatMode();
   };
 
@@ -940,6 +1229,7 @@ export default function BentoDashboard({ user = null, onBack }) {
   const handleStart = () => {
     setAnalyzing(true);
     setAuditResult(null);
+    setDemoUnlocked(false);
     setAnalysisStep(0);
     // Advance through steps: 0→1 at 5s, 1→2 at 14s, 2→3 at 22s
     const delays = [5_000, 14_000, 22_000];
@@ -957,7 +1247,7 @@ export default function BentoDashboard({ user = null, onBack }) {
     setAuditResult(data);
     setActiveAuditId(null); // fresh audit, not from history
     setAnalyzing(false);
-    setIsPaid(false); // reset for new audit — re-check below
+    setIsPaid(isSubscribed); // subscribers remain unlocked on all audits
     if (chatMode) resetChatMode();
     const cacheMsg = data?.meta?.cache_hit
       ? 'Audit loaded from cache (0s latency)'
@@ -968,6 +1258,41 @@ export default function BentoDashboard({ user = null, onBack }) {
     if (solId) fetchPaymentStatus(solId);
     // Refresh history sidebar so new audit appears immediately
     setTimeout(fetchHistory, 800);
+  };
+
+  const handleFeaturedSelect = async (rfp) => {
+    if (!rfp) return;
+    if (!rfp.demo || !rfp.demoId) {
+      setDemoUnlocked(false);
+      setFeaturedUrl(null);
+      setTimeout(() => setFeaturedUrl(rfp.url), 10);
+      return;
+    }
+
+    handleStart();
+    try {
+      const res = await fetch(`/api/featured/${encodeURIComponent(rfp.demoId)}`);
+      const data = await res.json();
+      const cacheHeader = (res.headers.get('x-bidsmith-cache') || res.headers.get('x-cache') || '').toLowerCase();
+      const cacheHitFromHeader = cacheHeader.includes('hit');
+      const normalized = {
+        ...data,
+        meta: {
+          ...(data.meta || {}),
+          cache_hit: data?.meta?.cache_hit === true || cacheHitFromHeader || data?.isCached === true,
+        },
+      };
+      if (!res.ok || normalized?.error) {
+        throw new Error(normalized?.error || 'Unable to load featured audit.');
+      }
+      setDemoUnlocked(true);
+      handleResult(normalized);
+      showToast('Demo solicitation loaded instantly (paywall bypass enabled).', 'success');
+    } catch (err) {
+      setDemoUnlocked(false);
+      setAnalyzing(false);
+      showToast(err.message || 'Featured solicitation failed to load.', 'error');
+    }
   };
 
   // ── Error → Chat bridge ──────────────────────────────────────────────────────
@@ -1020,6 +1345,7 @@ export default function BentoDashboard({ user = null, onBack }) {
         activeAuditId={activeAuditId}
         onSelectAudit={handleSelectAudit}
         onNewAudit={handleNewAudit}
+        billingStatus={billingStatus}
       />
 
       {/* ── Main scrollable content ──────────────────────────────────────── */}
@@ -1040,10 +1366,31 @@ export default function BentoDashboard({ user = null, onBack }) {
         </div>
 
         <div style={s.topBarRight}>
+          {isSubscribed && (
+            <div style={{ ...s.healthPill, background: 'rgba(34,197,94,0.08)', borderColor: 'rgba(34,197,94,0.15)' }}>
+              <span style={{ ...s.healthDot, background: '#22c55e' }} />
+              <span style={{ ...s.healthLabel, color: '#22c55e' }}>
+                Plan: {(activePlan || 'active').toUpperCase()}
+              </span>
+            </div>
+          )}
+          {syncingSubscription && (
+            <div style={{ ...s.healthPill, background: 'rgba(59,130,246,0.1)', borderColor: 'rgba(59,130,246,0.2)' }}>
+              <span style={{ ...s.healthDot, background: '#3b82f6' }} />
+              <span style={{ ...s.healthLabel, color: '#60a5fa' }}>Syncing subscription...</span>
+            </div>
+          )}
           {health && (
             <div style={s.healthPill}>
               <span style={s.healthDot} />
               <span style={s.healthLabel}>API Online</span>
+            </div>
+          )}
+          {subscriptionUpdatedAt && isSubscribed && (
+            <div style={s.healthPill}>
+              <span style={s.healthLabel}>
+                Updated {new Date(subscriptionUpdatedAt).toLocaleDateString()}
+              </span>
             </div>
           )}
           {auditResult?.meta?.cache_hit && (
@@ -1064,11 +1411,7 @@ export default function BentoDashboard({ user = null, onBack }) {
       </div>
 
       {/* ── Hot RFPs this week ───────────────────────────────────────────── */}
-      <FeaturedSolicitations onSelect={url => {
-        setFeaturedUrl(null);
-        // Small tick to reset then set, forcing the useEffect in RfpUploadZone to re-fire
-        setTimeout(() => setFeaturedUrl(url), 10);
-      }} />
+      <FeaturedSolicitations onSelect={handleFeaturedSelect} />
 
       {/* ── Bento Row 1 ─────────────────────────────────────────────────── */}
       <div style={s.row1}>
@@ -1086,9 +1429,16 @@ export default function BentoDashboard({ user = null, onBack }) {
               onReset={resetChatMode}
               onAuditResult={handleResult}
               onAuditStart={handleStart}
+              user={user}
             />
           ) : (
-            <RfpUploadZone onStart={handleStart} onResult={handleResult} onError={handleError} initialUrl={featuredUrl} />
+            <RfpUploadZone
+              onStart={handleStart}
+              onResult={handleResult}
+              onError={handleError}
+              initialUrl={featuredUrl}
+              user={user}
+            />
           )}
         </div>
 
@@ -1139,16 +1489,18 @@ export default function BentoDashboard({ user = null, onBack }) {
         <EvalStatusCard />
       </div>
 
-      {/* ── Bento Row 3 — Bid Output (free preview) + Paywall ──────────── */}
+      {/* ── Bento Row 3 — Bid Output + Submission Checklist ────────────── */}
       <div style={s.row3}>
         <BidOutputCard auditResult={auditResult} loading={analyzing} />
+        <SubmissionChecklist auditResult={auditResult} loading={analyzing} />
       </div>
 
       {/* ── Paywall gate — full risk analysis ───────────────────────────── */}
       <PaywallGate
         hasAudit={!!auditResult && !analyzing}
-        isPaid={isPaid}
+        isPaid={accessUnlocked}
         checkingPayment={checkingPayment}
+        unlockReason={isSubscribed ? 'subscription' : demoUnlocked ? 'demo' : isPaid ? 'payment' : 'locked'}
         solicitationId={auditResult?.solicitation_number || auditResult?.opportunity_id || ''}
         opportunityTitle={auditResult?.title || ''}
         uid={user?.id || 'anonymous'}
@@ -1341,6 +1693,10 @@ const s = {
   },
   row3: {
     padding: '14px 28px 0',
+    display: 'flex',
+    gap: 14,
+    alignItems: 'flex-start',
+    flexWrap: 'wrap',
   },
 
   // ── Stat card ──

@@ -45,7 +45,7 @@ function deriveRiskScore(auditorResult, strategistResult) {
   const reqs = auditorResult.requirements || [];
   let score = 40;
   for (const r of reqs) {
-    if (r.is_disqualifier) score += 20;
+    if (r.is_disqualifier || r.risk === "DISQUALIFIER") score += 22;
     else if (r.risk === "HIGH") score += 8;
     else if (r.risk === "MED") score += 4;
     else score -= 1;

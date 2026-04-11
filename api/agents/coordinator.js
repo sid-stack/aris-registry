@@ -52,8 +52,19 @@ function parseValueToNumber(raw) {
 
 // ─── UI format mapper ─────────────────────────────────────────────────────────
 
+const RISK_ORDER = { DISQUALIFIER: 0, HIGH: 1, MED: 2, LOW: 3 };
+
+function sortRequirements(requirements) {
+  return [...requirements].sort((a, b) => {
+    const aRank = (a.is_disqualifier || a.risk === "DISQUALIFIER") ? 0 : (RISK_ORDER[a.risk] ?? 4);
+    const bRank = (b.is_disqualifier || b.risk === "DISQUALIFIER") ? 0 : (RISK_ORDER[b.risk] ?? 4);
+    return aRank - bRank;
+  });
+}
+
 function toUIFormat(extractor, auditor, strategist, meta) {
   const requirements = auditor.requirements || [];
+  const sortedRequirements = sortRequirements(requirements);
   const intel = strategist.intelligence || {};
 
   return {
@@ -97,30 +108,42 @@ function toUIFormat(extractor, auditor, strategist, meta) {
     },
 
     // ── Compliance matrix ─────────────────────────────────────────────────────
-    compliance: requirements.slice(0, 12).map((r, i) => ({
+    compliance: sortedRequirements.slice(0, 12).map((r, i) => ({
       category: r.category || "Other",
-      verdict: r.is_disqualifier ? "DISQUALIFIER" : r.risk === "HIGH" ? "HIGH_RISK" : "WARNING",
-      risk: r.risk === "HIGH" ? 85 : r.risk === "MED" ? 60 : 35,
+      verdict: (r.is_disqualifier || r.risk === "DISQUALIFIER") ? "DISQUALIFIER"
+              : r.risk === "HIGH"  ? "HIGH_RISK"
+              : "WARNING",
+      risk: (r.is_disqualifier || r.risk === "DISQUALIFIER") ? 100
+           : r.risk === "HIGH" ? 85
+           : r.risk === "MED"  ? 60 : 35,
       description: r.text,
+      why_this_matters: r.why_this_matters || "",
       sourceSnippet: r.source_excerpt || r.text?.slice(0, 150),
       sectionRef: `Section ${r.section || "—"}`,
       angle: i * 30,
       label: (r.category || "REQ").slice(0, 3).toUpperCase(),
     })),
 
-    // ── Full requirement rows ─────────────────────────────────────────────────
-    requirements: requirements.map((r) => ({
+    // ── Full requirement rows (DISQUALIFIER first, then HIGH, MED, LOW) ───────
+    requirements: sortedRequirements.map((r) => ({
       id: r.id,
       requirement: r.text,
       section: r.section,
       category: r.category,
       status: "Not reviewed",
       risk: r.risk,
-      is_disqualifier: r.is_disqualifier,
+      is_disqualifier: r.is_disqualifier || r.risk === "DISQUALIFIER",
+      why_this_matters: r.why_this_matters || "",
       action_required: r.action_required || "",
       source_excerpt: r.source_excerpt || "",
       owner: "",
     })),
+
+    // ── Submission checklist ──────────────────────────────────────────────────
+    submission_checklist: auditor.submission_checklist || [],
+
+    // ── Incumbent signals ──────────────────────────────────────────────────────
+    incumbent_signals: auditor.incumbent_signals || [],
 
     // ── L/M conflicts ─────────────────────────────────────────────────────────
     bugs: (auditor.section_lm_conflicts || []).map((c) => ({

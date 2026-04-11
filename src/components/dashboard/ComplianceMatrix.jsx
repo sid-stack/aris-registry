@@ -28,9 +28,45 @@ const statusConfig = {
 };
 
 const riskColor = {
-  HIGH:   '#dc2626',  // bold red — not orange
-  MEDIUM: '#d97706',  // amber
-  LOW:    '#16a34a',  // green
+  DISQUALIFIER: '#991b1b',  // deep red — automatic rejection
+  HIGH:         '#dc2626',  // bold red
+  MED:          '#d97706',  // amber
+  MEDIUM:       '#d97706',  // alias
+  LOW:          '#16a34a',  // green
+};
+
+// Inline risk pill shown in the requirements table
+const RiskPill = ({ risk, isDisqualifier }) => {
+  const isKill = isDisqualifier || risk === 'DISQUALIFIER';
+  if (isKill) {
+    return (
+      <span style={{
+        display: 'inline-flex', alignItems: 'center', gap: 4,
+        fontSize: 9, fontWeight: 800, letterSpacing: '0.06em',
+        color: '#fff', background: '#991b1b',
+        border: '1px solid #7f1d1d',
+        borderRadius: 4, padding: '3px 7px',
+        textTransform: 'uppercase', whiteSpace: 'nowrap',
+      }}>
+        ⬛ AUTO-REJECT
+      </span>
+    );
+  }
+  const color = riskColor[risk] || riskColor.MED;
+  const bg    = risk === 'HIGH'   ? 'rgba(220,38,38,0.12)'
+              : risk === 'MED'    ? 'rgba(217,119,6,0.12)'
+              : 'rgba(22,163,74,0.10)';
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center',
+      fontSize: 9, fontWeight: 800, letterSpacing: '0.06em',
+      color, background: bg, border: `1px solid ${color}40`,
+      borderRadius: 4, padding: '3px 7px',
+      textTransform: 'uppercase', whiteSpace: 'nowrap',
+    }}>
+      {risk}
+    </span>
+  );
 };
 
 // Source citation tag — shows § reference and expands to show the excerpt
@@ -59,19 +95,20 @@ const MobileComplianceCard = ({ req, onDraft, draftingId, auditMode, isFlagged, 
   const [expanded, setExpanded] = useState(false);
   const s = statusConfig[req.status] || statusConfig.review;
   const isDrafting = draftingId === req.id;
-  const flagged = auditMode && (req.risk === 'HIGH' || !req.source_excerpt);
+  const isKill = req.is_disqualifier || req.risk === 'DISQUALIFIER';
+  const flagged = auditMode && (isKill || req.risk === 'HIGH' || !req.source_excerpt);
 
   return (
     <div style={{
-      background: flagged ? 'rgba(245,158,11,0.05)' : 'var(--card)',
-      border: `1px solid ${flagged ? 'rgba(245,158,11,0.3)' : 'var(--border)'}`,
-      borderLeft: `3px solid ${flagged ? '#f59e0b' : riskColor[req.risk] || riskColor.MEDIUM}`,
+      background: isKill ? 'rgba(153,27,27,0.07)' : flagged ? 'rgba(245,158,11,0.05)' : 'var(--card)',
+      border: `1px solid ${isKill ? 'rgba(153,27,27,0.4)' : flagged ? 'rgba(245,158,11,0.3)' : 'var(--border)'}`,
+      borderLeft: `3px solid ${isKill ? '#991b1b' : flagged ? '#f59e0b' : riskColor[req.risk] || riskColor.MED}`,
       borderRadius: "8px",
       padding: "16px",
       marginBottom: "12px",
       display: "flex",
       flexDirection: "column",
-      gap: "12px",
+      gap: "10px",
       position: 'relative',
       overflow: 'hidden'
     }}>
@@ -85,7 +122,8 @@ const MobileComplianceCard = ({ req, onDraft, draftingId, auditMode, isFlagged, 
           <span style={{ fontFamily: "monospace", fontSize: "14px", color: "var(--text-secondary)", fontWeight: 600 }}>
             {req.id}
           </span>
-          {flagged && (
+          <RiskPill risk={req.risk} isDisqualifier={req.is_disqualifier} />
+          {flagged && !isKill && (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: '9px', fontWeight: 800, color: '#f59e0b', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 4, padding: '2px 6px', letterSpacing: '0.06em' }}>
               <AlertTriangle size={8} /> VERIFY
             </span>
@@ -118,19 +156,27 @@ const MobileComplianceCard = ({ req, onDraft, draftingId, auditMode, isFlagged, 
         {req.requirement}
       </div>
 
+      {/* why_this_matters — the guide line */}
+      {req.why_this_matters && (
+        <div style={{
+          fontSize: 11, color: isKill ? '#fca5a5' : '#9ca3af',
+          lineHeight: 1.5, fontStyle: 'italic',
+          borderLeft: `2px solid ${isKill ? '#991b1b' : '#374151'}`,
+          paddingLeft: 8,
+        }}>
+          {req.why_this_matters}
+        </div>
+      )}
+
       <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", fontSize: "12px", color: "var(--text-secondary)", alignItems: 'center' }}>
         <MatrixSourceTag section={req.section} excerpt={req.source_excerpt} />
         <span>•</span>
         <span><strong>Cat:</strong> {req.category}</span>
-        <span>•</span>
-        <span><strong>FAR:</strong> {req.farRef}</span>
-        <span>•</span>
-        <span style={{ color: riskColor[req.risk] || riskColor.MEDIUM }}><strong>Risk:</strong> {req.risk}</span>
       </div>
 
       {expanded && (
         <div style={{ marginTop: "8px", paddingTop: "8px", borderTop: "1px solid var(--border)", fontSize: "13px", color: "var(--text-secondary)" }}>
-          <strong>Action: </strong>{req.action}
+          <strong>Action: </strong>{req.action_required || req.action}
           {flagged && !req.source_excerpt && (
             <div style={{ marginTop: 6, fontSize: 11, color: '#f59e0b', fontStyle: 'italic' }}>
               No source excerpt available — AI inferred this requirement. Cross-check against original RFP before submission.
@@ -363,7 +409,7 @@ const ComplianceMatrix = () => {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', minWidth: '850px' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                  {['ID', 'Requirement', 'Section', 'Category', 'FAR Reference', 'Status', 'Risk', 'Action'].map(h => (
+                  {['ID', 'Requirement + Why It Matters', 'Section', 'Category', 'Status', 'Risk'].map(h => (
                     <th key={h} style={{
                       padding: '8px 10px', textAlign: 'left',
                       fontSize: '9px', fontWeight: 700, letterSpacing: '0.12em',
@@ -376,50 +422,56 @@ const ComplianceMatrix = () => {
               </thead>
               <tbody>
                 {displayItems.map((row) => {
-                  const { id, requirement, section, category, farRef, status, risk, action, source_excerpt } = row;
+                  const { id, requirement, section, category, status, risk, action_required, action, source_excerpt, why_this_matters, is_disqualifier } = row;
                   const sc = statusConfig[status] || statusConfig.review;
                   const isDrafting = draftingId === id;
-                  const auditFlagged = auditMode && (risk === 'HIGH' || !source_excerpt);
+                  const isKill = is_disqualifier || risk === 'DISQUALIFIER';
+                  const auditFlagged = auditMode && (isKill || risk === 'HIGH' || !source_excerpt);
                   const userFlagged  = flaggedIds.has(id);
-                  const rowBg = isDrafting
-                    ? 'var(--accent-soft)'
-                    : userFlagged
-                      ? 'rgba(239,68,68,0.04)'
-                      : auditFlagged
-                        ? 'rgba(245,158,11,0.04)'
-                        : 'transparent';
-                  const borderLeftColor = userFlagged ? '#ef4444' : auditFlagged ? '#f59e0b' : 'transparent';
+                  const rowBg = isDrafting    ? 'var(--accent-soft)'
+                    : isKill                  ? 'rgba(153,27,27,0.07)'
+                    : userFlagged             ? 'rgba(239,68,68,0.04)'
+                    : auditFlagged            ? 'rgba(245,158,11,0.04)'
+                    : 'transparent';
+                  const borderLeftColor = isKill ? '#991b1b' : userFlagged ? '#ef4444' : auditFlagged ? '#f59e0b' : 'transparent';
                   return (
                     <tr key={id} style={{
                       borderBottom: '1px solid var(--border)',
                       background: rowBg,
                       borderLeft: `3px solid ${borderLeftColor}`,
                     }}
-                      onMouseEnter={e => !isDrafting && (e.currentTarget.style.background = userFlagged ? 'rgba(239,68,68,0.07)' : 'var(--card-hover)')}
+                      onMouseEnter={e => !isDrafting && (e.currentTarget.style.background = isKill ? 'rgba(153,27,27,0.12)' : userFlagged ? 'rgba(239,68,68,0.07)' : 'var(--card-hover)')}
                       onMouseLeave={e => !isDrafting && (e.currentTarget.style.background = rowBg)}
                     >
                       <td style={{ padding: '10px', color: 'var(--text-secondary)', fontFamily: 'monospace', fontSize: '10px', whiteSpace: 'nowrap' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                           {id}
-                          {auditFlagged && (
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, fontSize: '8px', fontWeight: 800, color: '#f59e0b', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 3, padding: '1px 4px' }}>
-                              <AlertTriangle size={7} /> VERIFY
-                            </span>
-                          )}
                         </div>
                       </td>
-                      <td style={{ padding: '10px', color: 'var(--text-primary)', fontWeight: 500, minWidth: '160px' }}>{requirement}</td>
+                      <td style={{ padding: '10px', minWidth: '200px', maxWidth: '320px' }}>
+                        <div style={{ color: 'var(--text-primary)', fontWeight: 500, lineHeight: 1.45, marginBottom: why_this_matters ? 5 : 0 }}>
+                          {requirement}
+                        </div>
+                        {why_this_matters && (
+                          <div style={{
+                            fontSize: 10, color: isKill ? '#fca5a5' : '#6b7280',
+                            fontStyle: 'italic', lineHeight: 1.45,
+                            borderLeft: `2px solid ${isKill ? '#7f1d1d' : '#374151'}`,
+                            paddingLeft: 6, marginTop: 4,
+                          }}>
+                            {why_this_matters}
+                          </div>
+                        )}
+                      </td>
                       <td style={{ padding: '10px', whiteSpace: 'nowrap' }}>
                         <MatrixSourceTag section={section} excerpt={source_excerpt} />
                       </td>
                       <td style={{ padding: '10px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{category}</td>
-                      <td style={{ padding: '10px', color: 'var(--accent)', whiteSpace: 'nowrap', fontFamily: 'monospace', fontSize: '10px' }}>{farRef}</td>
                       <td style={{ padding: '10px', whiteSpace: 'nowrap' }}>
-                        {/* High-contrast, bold PASS/FAIL badge */}
                         <span style={{ fontSize: '10px', fontWeight: 800, padding: '3px 8px', borderRadius: '3px', background: sc.bg, color: sc.color, border: `1.5px solid ${sc.border || sc.color}`, letterSpacing: '0.05em' }}>{sc.label}</span>
                       </td>
                       <td style={{ padding: '10px', whiteSpace: 'nowrap' }}>
-                        <span style={{ fontSize: '10px', fontWeight: 800, color: riskColor[risk] || riskColor.MEDIUM }}>{risk}</span>
+                        <RiskPill risk={risk} isDisqualifier={is_disqualifier} />
                       </td>
                       <td style={{ padding: '10px', color: 'var(--text-secondary)', fontSize: '11px', minWidth: '200px', lineHeight: 1.4 }}>{action}</td>
                       {/* Flag for Review */}
