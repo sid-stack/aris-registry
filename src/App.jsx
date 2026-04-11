@@ -326,7 +326,8 @@ export default function App() {
 
   const loadingScreen = <LoadingSpinner />;
 
-  if (authLoading) {
+  // Admin ops console: ADMIN_PASSWORD only (see AdminDashboard). No Clerk gate or wait.
+  if (authLoading && view !== "admin") {
     return loadingScreen;
   }
 
@@ -401,7 +402,7 @@ export default function App() {
       content = <RfpMatrixGenerator onUpload={goWorkspace} />;
       break;
     case "admin":
-      content = authLoading ? loadingScreen : authenticated ? <AdminDashboard onBack={goLanding} /> : authWall;
+      content = <AdminDashboard onBack={goLanding} />;
       break;
     case "contact":
       content = <Contact onBack={goLanding} />;

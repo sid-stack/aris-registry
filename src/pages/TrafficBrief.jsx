@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, RefreshCw } from "lucide-react";
-
-const ADMIN_KEY_STORAGE = "bidsmith_admin_api_key";
+import { ADMIN_API_KEY_STORAGE } from "../utils/adminAuthHeader";
 
 function MetricCard({ label, value, help }) {
   return (
@@ -19,7 +18,7 @@ export default function TrafficBrief({ onBack }) {
   const [error, setError] = useState("");
   const [adminKey, setAdminKey] = useState(() => {
     if (typeof window === "undefined") return "";
-    return window.localStorage.getItem(ADMIN_KEY_STORAGE) || "";
+    return window.localStorage.getItem(ADMIN_API_KEY_STORAGE) || "";
   });
   const [draftKey, setDraftKey] = useState("");
   const [locked, setLocked] = useState(false);
@@ -96,7 +95,7 @@ export default function TrafficBrief({ onBack }) {
                 onClick={() => {
                   const next = draftKey.trim();
                   if (!next) return;
-                  window.localStorage.setItem(ADMIN_KEY_STORAGE, next);
+                  window.localStorage.setItem(ADMIN_API_KEY_STORAGE, next);
                   setAdminKey(next);
                 }}
               >
@@ -106,7 +105,7 @@ export default function TrafficBrief({ onBack }) {
                 <button
                   style={s.clearButton}
                   onClick={() => {
-                    window.localStorage.removeItem(ADMIN_KEY_STORAGE);
+                    window.localStorage.removeItem(ADMIN_API_KEY_STORAGE);
                     setAdminKey("");
                     setData(null);
                     setDraftKey("");

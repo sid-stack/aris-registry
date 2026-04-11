@@ -78,6 +78,15 @@ function isAdminAuthorized(req) {
   return Boolean(adminPassword) && token === adminPassword;
 }
 
+/** @returns {boolean} false if 401 already sent */
+function requireAdmin(req, res) {
+  if (!isAdminAuthorized(req)) {
+    res.status(401).json({ error: "Unauthorized" });
+    return false;
+  }
+  return true;
+}
+
 function getRuntimeConfigStatus() {
   return {
     nodeEnv: process.env.NODE_ENV || "development",
@@ -992,24 +1001,21 @@ app.post("/api/chat/intent", asyncHandler(async (req, res) => {
   return res.json({ intent: "chat" });
 }));
 
-// ─── /api/admin/stats ────────────────────────────────────────────────────────
+// ─── /api/admin/* — all require Authorization: Bearer <ADMIN_PASSWORD> ───────
 app.get("/api/admin/stats", asyncHandler(async (req, res) => {
+  if (!requireAdmin(req, res)) return;
   const stats = await getAdminStats();
   res.json(stats);
 }));
 
-app.get("/api/admin/traffic-brief", asyncHandler(async (_req, res) => {
-  if (!isAdminAuthorized(_req)) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
+app.get("/api/admin/traffic-brief", asyncHandler(async (req, res) => {
+  if (!requireAdmin(req, res)) return;
   const brief = await getTrafficBrief();
   res.json(brief);
 }));
 
-app.post("/api/admin/traffic-brief/send-now", asyncHandler(async (_req, res) => {
-  if (!isAdminAuthorized(_req)) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
+app.post("/api/admin/traffic-brief/send-now", asyncHandler(async (req, res) => {
+  if (!requireAdmin(req, res)) return;
   const result = await sendTrafficBriefNow("manual_endpoint");
   if (!result.success) {
     return res.status(502).json(result);
@@ -1019,12 +1025,14 @@ app.post("/api/admin/traffic-brief/send-now", asyncHandler(async (_req, res) => 
 
 // ─── /api/admin/pending-reports ──────────────────────────────────────────────
 app.get("/api/admin/pending-reports", asyncHandler(async (req, res) => {
+  if (!requireAdmin(req, res)) return;
   const { status } = req.query;
   const reports = await getPendingReports(status || null);
   res.json({ reports });
 }));
 
 app.patch("/api/admin/pending-reports/:id/notes", asyncHandler(async (req, res) => {
+  if (!requireAdmin(req, res)) return;
   const { id } = req.params;
   const { notes } = req.body;
   await updateReportNotes(id, notes || "");
@@ -1032,6 +1040,7 @@ app.patch("/api/admin/pending-reports/:id/notes", asyncHandler(async (req, res) 
 }));
 
 app.post("/api/admin/pending-reports/:id/send", asyncHandler(async (req, res) => {
+  if (!requireAdmin(req, res)) return;
   const { id } = req.params;
   const report = await getPendingReportById(id);
   if (!report) return res.status(404).json({ error: "Report not found" });
@@ -1165,22 +1174,16 @@ app.post("/api/waitlist", asyncHandler(async (req, res) => {
   });
 }));
 
-// ─── /api/waitlist/list — admin only ─────────────────────────────────────────
+// ─── /api/waitlist/list — admin only (same Bearer as /api/admin/*) ─────────────
 app.get("/api/waitlist/list", asyncHandler(async (req, res) => {
-  const auth = req.headers.authorization;
-  if (auth !== `Bearer ${process.env.ADMIN_PASSWORD}`) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
+  if (!requireAdmin(req, res)) return;
   const [entries, stats] = await Promise.all([getWaitlist(), getWaitlistStats()]);
   res.json({ entries, stats });
 }));
 
 // ─── /api/waitlist/invite — mark invited + send email ────────────────────────
 app.post("/api/waitlist/invite", asyncHandler(async (req, res) => {
-  const auth = req.headers.authorization;
-  if (auth !== `Bearer ${process.env.ADMIN_PASSWORD}`) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
+  if (!requireAdmin(req, res)) return;
   const { ids, custom_message } = req.body;
   if (!ids?.length) return res.status(400).json({ error: "No IDs provided" });
 

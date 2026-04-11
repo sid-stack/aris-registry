@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { devWarn } from '../utils/devLog';
+import { ADMIN_API_KEY_STORAGE, adminAuthHeaders, getStoredAdminPassword } from '../utils/adminAuthHeader';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   AreaChart, Area, BarChart, Bar, Cell, PieChart, Pie
@@ -14,6 +15,8 @@ import {
 const COLORS = ['#2563EB', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
 
 const AdminDashboard = ({ onBack }) => {
+  const [adminKey, setAdminKey] = useState(() => getStoredAdminPassword());
+  const [draftKey, setDraftKey] = useState('');
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -40,29 +43,37 @@ const AdminDashboard = ({ onBack }) => {
   const [sendingReport, setSendingReport] = useState(null);
   const [sendResult, setSendResult] = useState({});
 
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
+    if (!adminKey) {
+      setLoading(false);
+      setStats(null);
+      setError('Enter the admin password to load analytics.');
+      return;
+    }
     setLoading(true);
+    setError(null);
     try {
-      const res = await fetch('/api/admin/stats');
+      const res = await fetch('/api/admin/stats', { headers: adminAuthHeaders() });
       const data = await res.json();
+      if (res.status === 401) throw new Error('Unauthorized — check ADMIN_PASSWORD.');
       if (data.error) throw new Error(data.error);
       setStats(data);
       setLastFetched(new Date().toLocaleTimeString());
     } catch (err) {
       setError(err.message);
+      setStats(null);
     } finally {
       setLoading(false);
     }
-  };
+  }, [adminKey]);
 
-  useEffect(() => { fetchStats(); }, []);
+  useEffect(() => { fetchStats(); }, [fetchStats]);
 
   const fetchWaitlist = async () => {
+    if (!adminKey) return;
     setWaitlistLoading(true);
     try {
-      const res = await fetch('/api/waitlist/list', {
-        headers: { Authorization: `Bearer ${localStorage.getItem('aris_authenticated') === 'true' ? (window.__ADMIN_PW || 'aris369') : ''}` }
-      });
+      const res = await fetch('/api/waitlist/list', { headers: adminAuthHeaders() });
       const data = await res.json();
       setWaitlist(data.entries || []);
       setWaitlistStats(data.stats || {});
@@ -71,13 +82,14 @@ const AdminDashboard = ({ onBack }) => {
   };
 
   useEffect(() => {
-    if (activeTab === 'waitlist') fetchWaitlist();
-  }, [activeTab]);
+    if (activeTab === 'waitlist' && adminKey) fetchWaitlist();
+  }, [activeTab, adminKey]);
 
   const fetchPendingReports = async () => {
+    if (!adminKey) return;
     setPendingLoading(true);
     try {
-      const res = await fetch('/api/admin/pending-reports');
+      const res = await fetch('/api/admin/pending-reports', { headers: adminAuthHeaders() });
       const data = await res.json();
       setPendingReports(data.reports || []);
       const notes = {};
@@ -88,13 +100,13 @@ const AdminDashboard = ({ onBack }) => {
   };
 
   useEffect(() => {
-    if (activeTab === 'pending_reports') fetchPendingReports();
-  }, [activeTab]);
+    if (activeTab === 'pending_reports' && adminKey) fetchPendingReports();
+  }, [activeTab, adminKey]);
 
   const saveNotes = async (id) => {
     await fetch(`/api/admin/pending-reports/${id}/notes`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: adminAuthHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ notes: reportNotes[id] || '' }),
     });
   };
@@ -104,7 +116,10 @@ const AdminDashboard = ({ onBack }) => {
     setSendResult(prev => ({ ...prev, [id]: null }));
     try {
       await saveNotes(id);
-      const res = await fetch(`/api/admin/pending-reports/${id}/send`, { method: 'POST' });
+      const res = await fetch(`/api/admin/pending-reports/${id}/send`, {
+        method: 'POST',
+        headers: adminAuthHeaders(),
+      });
       const data = await res.json();
       if (data.success) {
         setSendResult(prev => ({ ...prev, [id]: `Sent to ${data.sent_to}` }));
@@ -120,15 +135,12 @@ const AdminDashboard = ({ onBack }) => {
   };
 
   const sendInvites = async () => {
-    if (!selectedIds.length) return;
+    if (!adminKey || !selectedIds.length) return;
     setInviting(true); setInviteResult(null);
     try {
       const res = await fetch('/api/waitlist/invite', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${window.__ADMIN_PW || 'aris369'}`
-        },
+        headers: adminAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ ids: selectedIds, custom_message: inviteMsg || undefined })
       });
       const data = await res.json();
@@ -171,6 +183,74 @@ const AdminDashboard = ({ onBack }) => {
   const realRevenue30d = stats?.stripe?.total_30d || 0;
   const availableBalance = stats?.stripe?.available_balance || 0;
 
+  if (!adminKey) {
+    return (
+      <div style={{
+        minHeight: '100vh', background: '#0d0f14', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontFamily: '"Inter", system-ui, sans-serif', padding: 24,
+      }}>
+        <div style={{
+          maxWidth: 440, width: '100%', background: '#111827', padding: 28, borderRadius: 12,
+          border: '1px solid #1f2937', boxShadow: '0 25px 50px rgba(0,0,0,0.35)',
+        }}>
+          <h1 style={{ color: '#f9fafb', fontSize: 18, fontWeight: 800, margin: '0 0 8px' }}>Admin API access</h1>
+          <p style={{ color: '#94a3b8', fontSize: 13, lineHeight: 1.55, margin: '0 0 18px' }}>
+            Enter the same secret as <code style={{ color: '#e2e8f0' }}>ADMIN_PASSWORD</code> in your server environment.
+            It is stored only in this browser as a Bearer token for admin endpoints.
+          </p>
+          <input
+            type="password"
+            autoComplete="off"
+            placeholder="Admin password"
+            value={draftKey}
+            onChange={(e) => setDraftKey(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                const t = draftKey.trim();
+                if (!t) return;
+                window.localStorage.setItem(ADMIN_API_KEY_STORAGE, t);
+                setAdminKey(t);
+                setDraftKey('');
+              }
+            }}
+            style={{
+              width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: 8,
+              border: '1px solid #374151', background: '#0b1220', color: '#f9fafb', fontSize: 14, marginBottom: 12,
+            }}
+          />
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={() => {
+                const t = draftKey.trim();
+                if (!t) return;
+                window.localStorage.setItem(ADMIN_API_KEY_STORAGE, t);
+                setAdminKey(t);
+                setDraftKey('');
+              }}
+              style={{
+                padding: '10px 18px', borderRadius: 8, border: 'none', background: '#2563eb', color: '#fff',
+                fontWeight: 700, fontSize: 13, cursor: 'pointer',
+              }}
+            >
+              Unlock dashboard
+            </button>
+            <button
+              type="button"
+              onClick={onBack}
+              style={{
+                padding: '10px 18px', borderRadius: 8, border: '1px solid #374151', background: 'transparent',
+                color: '#94a3b8', fontWeight: 600, fontSize: 13, cursor: 'pointer',
+              }}
+            >
+              Back
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={sh.root}>
       {/* --- SIDEBAR --- */}
@@ -195,6 +275,18 @@ const AdminDashboard = ({ onBack }) => {
           <NavBtn icon={<Terminal size={18}/>} label="PostHog Stream" onClick={() => window.open('https://app.posthog.com', '_blank')} />
         </nav>
 
+        <button
+          type="button"
+          onClick={() => {
+            window.localStorage.removeItem(ADMIN_API_KEY_STORAGE);
+            setAdminKey('');
+            setStats(null);
+            setError(null);
+          }}
+          style={{ ...sh.sidebarFooter, marginBottom: 8, border: '1px solid #334155', background: 'transparent' }}
+        >
+          <ShieldCheck size={16} /> <span>CLEAR ADMIN KEY</span>
+        </button>
         <button onClick={onBack} style={sh.sidebarFooter}>
           <LogOut size={16} /> <span>TERMINATE SESSION</span>
         </button>
