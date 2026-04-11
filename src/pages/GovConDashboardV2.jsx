@@ -23,10 +23,14 @@ import {
   ChevronRight, AlertTriangle, Check, Zap, Brain,
   Loader2, Upload, Link2, X, TrendingUp, BarChart2,
   ChevronDown, Paperclip, RefreshCw, BookOpen, Eye,
-  EyeOff, Info, ExternalLink
+  EyeOff, Info, ExternalLink, Download, FileType2,
 } from 'lucide-react';
 import { trackEvent } from '../utils/analytics';
 import { createCheckoutSession } from '../lib/stripe';
+import { parseArisPlanJson } from '../utils/arisChatPlan';
+import { downloadComplianceMatrixDocx } from '../utils/complianceMatrixDocx';
+import { downloadGovConAuditPdf } from '../utils/govconAuditPdf';
+import NextBestAction from '../components/govcon/NextBestAction';
 
 // ─── Colors — dark sidebar + light main (ChatGPT style) ──────────────────────
 const C = {
@@ -725,6 +729,23 @@ function MessageBubble({ msg, auditMode, isStreaming, isSubscribed, userId }) {
             border: isUser ? 'none' : 'none',
             maxWidth: isUser ? '72%' : '100%',
           }}>
+            {msg.role === 'assistant' && (msg.plan?.steps?.length > 0 || msg.plan?.next_action) && (
+              <div style={{ marginBottom: 12, padding: '10px 12px', borderRadius: 8, background: C.surfaceHi, border: `1px solid ${C.border}` }}>
+                {msg.plan.steps?.length > 0 && (
+                  <>
+                    <p style={{ margin: '0 0 6px', fontSize: 10, fontWeight: 700, color: C.textDim, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Plan</p>
+                    <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: C.textMuted }}>
+                      {msg.plan.steps.map((s) => (
+                        <li key={s.id} style={{ marginBottom: 4 }}>{s.status === 'done' ? '✓ ' : '○ '}{s.title}</li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+                {msg.plan.next_action ? (
+                  <p style={{ margin: msg.plan.steps?.length ? '8px 0 0' : 0, fontSize: 13, color: C.accent, fontWeight: 600 }}>Next: {msg.plan.next_action}</p>
+                ) : null}
+              </div>
+            )}
             {msg.role === 'assistant'
               ? <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ p: ({children}) => <p style={{margin: '0 0 10px', color: C.text}}>{children}</p>, ul: ({children}) => <ul style={{margin: '0 0 10px', paddingLeft: 20}}>{children}</ul>, li: ({children}) => <li style={{marginBottom: 5, color: C.text}}>{children}</li>, strong: ({children}) => <strong style={{fontWeight: 700, color: C.text}}>{children}</strong> }}>{msg.content}</ReactMarkdown>
               : <span style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</span>
@@ -976,6 +997,8 @@ export default function GovConDashboardV2({ onBack, user }) {
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [streamingId, setStreamingId] = useState(null);
   const [auditMode, setAuditMode] = useState(false);
+  const [exportDocxLoading, setExportDocxLoading] = useState(false);
+  const [exportPdfLoading, setExportPdfLoading] = useState(false);
   const bottomRef = useRef(null);
   const fileRef = useRef(null);
   const thinkingTimers = useRef([]);
@@ -1197,7 +1220,13 @@ export default function GovConDashboardV2({ onBack, user }) {
 
       if (!res.ok || !res.body) {
         const data = await res.json().catch(() => null);
-        appendChunk(data?.text || data?.response || 'Something went wrong. Please try again.');
+        const txt = data?.text || data?.response || 'Something went wrong. Please try again.';
+        const pl = data?.plan;
+        setMessages(prev => prev.map(m => m.id === msgId ? {
+          ...m,
+          content: txt,
+          plan: pl ? { steps: pl.steps || [], next_action: pl.next_action || '' } : m.plan,
+        } : m));
       } else {
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
@@ -1215,11 +1244,32 @@ export default function GovConDashboardV2({ onBack, user }) {
             const payload = trimmed.slice(5).trim();
             if (payload === '[DONE]') break;
             try {
-              const { chunk } = JSON.parse(payload);
-              if (chunk) appendChunk(chunk);
+              const obj = JSON.parse(payload);
+              if (obj.chunk) appendChunk(obj.chunk);
+              if (obj.meta?.plan) {
+                setMessages(prev => prev.map(m => m.id === msgId ? {
+                  ...m,
+                  plan: {
+                    steps: obj.meta.plan.steps || [],
+                    next_action: obj.meta.plan.next_action || '',
+                  },
+                } : m));
+              }
             } catch { /* skip malformed line */ }
           }
         }
+        setMessages(prev => prev.map(m => {
+          if (m.id !== msgId || (m.plan?.steps?.length > 0 || m.plan?.next_action)) return m;
+          const parsed = parseArisPlanJson(m.content);
+          if (parsed.steps.length || parsed.next_action) {
+            return {
+              ...m,
+              content: parsed.answer || m.content,
+              plan: { steps: parsed.steps, next_action: parsed.next_action },
+            };
+          }
+          return m;
+        }));
       }
     } catch {
       appendChunk('Network error — please check your connection.');
@@ -1241,6 +1291,40 @@ export default function GovConDashboardV2({ onBack, user }) {
   const handleQuickQuestion = (url, question) => {
     if (url && (url.startsWith('http') || url.includes('sam.gov'))) { runAuditUrl(url); return; }
     if (question) sendChat(question);
+  };
+
+  const handleExportDocx = async () => {
+    if (!activeAudit || exportDocxLoading) return;
+    trackEvent("compliance_matrix_docx_download", {
+      format: "docx",
+      solicitation: activeAudit.solicitation_number || activeAudit.id || null,
+      category: "export",
+    });
+    setExportDocxLoading(true);
+    try {
+      await downloadComplianceMatrixDocx(activeAudit);
+    } catch {
+      addMessage({ role: 'assistant', type: 'text', content: "**Export failed.** Could not build the Word file. Try again or use PDF." });
+    } finally {
+      setExportDocxLoading(false);
+    }
+  };
+
+  const handleExportPdf = async () => {
+    if (!activeAudit || exportPdfLoading) return;
+    trackEvent("compliance_matrix_pdf_download", {
+      format: "pdf",
+      solicitation: activeAudit.solicitation_number || activeAudit.id || null,
+      category: "export",
+    });
+    setExportPdfLoading(true);
+    try {
+      await downloadGovConAuditPdf(activeAudit);
+    } catch {
+      addMessage({ role: 'assistant', type: 'text', content: "**PDF export failed.** Check your browser download settings and try again." });
+    } finally {
+      setExportPdfLoading(false);
+    }
   };
 
   const isLoading = isAuditing || isChatLoading;
@@ -1288,6 +1372,44 @@ export default function GovConDashboardV2({ onBack, user }) {
                   Analyzing solicitation...
         </div>
               )}
+              {activeAudit && !isAuditing && (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleExportPdf}
+                    disabled={exportPdfLoading}
+                    title="Download compliance matrix as PDF"
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      fontSize: 11, fontWeight: 700,
+                      color: C.textMuted,
+                      background: C.surfaceHi,
+                      border: `1px solid ${C.border}`,
+                      borderRadius: 8, padding: '6px 11px', cursor: exportPdfLoading ? 'wait' : 'pointer',
+                    }}
+                  >
+                    {exportPdfLoading ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> : <Download size={13} />}
+                    PDF
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleExportDocx}
+                    disabled={exportDocxLoading}
+                    title="Download Word matrix for bid construction"
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      fontSize: 11, fontWeight: 800,
+                      color: '#fff',
+                      background: C.accent,
+                      border: `1px solid ${C.accent}`,
+                      borderRadius: 8, padding: '6px 12px', cursor: exportDocxLoading ? 'wait' : 'pointer',
+                    }}
+                  >
+                    {exportDocxLoading ? <Loader2 size={13} color="#fff" style={{ animation: 'spin 1s linear infinite' }} /> : <FileType2 size={13} color="#fff" />}
+                    .docx (Bid construction)
+                  </button>
+                </>
+              )}
               {/* Audit Mode toggle */}
               <button
                 onClick={() => setAuditMode(v => !v)}
@@ -1307,6 +1429,19 @@ export default function GovConDashboardV2({ onBack, user }) {
               </button>
         </div>
         </div>
+
+          {activeAudit && (
+            <NextBestAction
+              audit={activeAudit}
+              fileRef={fileRef}
+              onAction={(type, prompt) => {
+                if (type === "chat" && prompt) sendChat(prompt);
+                if (type === "focus_chat") {
+                  document.querySelector("textarea")?.focus();
+                }
+              }}
+            />
+          )}
 
           {/* Message thread */}
           <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}>

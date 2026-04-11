@@ -1,14 +1,50 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { 
-  Send, 
+import {
+  Send,
   Brain,
   Activity,
   Loader2
 } from 'lucide-react';
 
+/** When false, copilot calls /api/chat (same contract as ARIS). Default true preserves offline demo. */
 const MVP_STRICT_MODE = (import.meta.env.VITE_MVP_STRICT_MODE ?? "true") !== "false";
+
+function PlanChecklist({ plan }) {
+  const steps = plan?.steps;
+  const next = plan?.next_action;
+  if (!steps?.length && !next) return null;
+  return (
+    <div style={{
+      marginBottom: 12,
+      padding: '10px 12px',
+      borderRadius: 8,
+      background: 'rgba(59, 130, 246, 0.08)',
+      border: '1px solid rgba(59, 130, 246, 0.2)',
+    }}>
+      {steps?.length > 0 && (
+        <p style={{ margin: '0 0 6px', fontSize: 10, fontWeight: 700, color: '#93c5fd', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+          Plan
+        </p>
+      )}
+      {steps?.length > 0 && (
+        <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: '#cbd5e1', lineHeight: 1.45 }}>
+          {steps.map((s) => (
+            <li key={s.id} style={{ marginBottom: 3 }}>
+              {s.status === 'done' ? '✓ ' : '○ '}{s.title}
+            </li>
+          ))}
+        </ul>
+      )}
+      {next ? (
+        <p style={{ margin: steps?.length ? '8px 0 0' : 0, fontSize: 12, color: '#60a5fa', fontWeight: 600 }}>
+          Next: {next}
+        </p>
+      ) : null}
+    </div>
+  );
+}
 
 function buildLocalGuidance(query, reportData) {
   const q = (query || "").toLowerCase();
@@ -104,9 +140,33 @@ const BidSmithChat = ({ selectedContext, onLog, onCommand, reportData }) => {
       return;
     }
 
-    const localReply = buildLocalGuidance(userText, reportData);
-    setMessages(prev => [...prev, { role: 'assistant', content: localReply }]);
-    setLoading(false);
+    try {
+      const history = messages
+        .filter(m => m.role === 'user' || m.role === 'assistant')
+        .map(m => ({ role: m.role, content: m.content }));
+
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [...history, { role: 'user', content: userText }],
+          auditContext: reportData && typeof reportData === 'object' ? reportData : null,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      const text = data.text || data.response || 'No response received.';
+      const plan = data.plan && typeof data.plan === 'object'
+        ? { steps: data.plan.steps || [], next_action: data.plan.next_action || '' }
+        : null;
+      setMessages(prev => [...prev, { role: 'assistant', content: text, plan }]);
+    } catch {
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: 'Could not reach the advisor API. Check your connection or try again.',
+      }]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -145,7 +205,12 @@ const BidSmithChat = ({ selectedContext, onLog, onCommand, reportData }) => {
                 lineHeight: 1.5
               }}>
                 {msg.role === 'assistant' ? (
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                  <>
+                    {(msg.plan?.steps?.length > 0 || msg.plan?.next_action) && (
+                      <PlanChecklist plan={msg.plan} />
+                    )}
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                  </>
                 ) : (
                   <div style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
                 )}

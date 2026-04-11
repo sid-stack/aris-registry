@@ -6,6 +6,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { parseArisPlanJson } from '../utils/arisChatPlan';
 import {
   Shield, Send, Plus, Paperclip, Link2,
   Loader2, AlertTriangle, CheckCircle2,
@@ -172,6 +173,41 @@ function AuditCard({ audit }) {
   );
 }
 
+// ─── Plan checklist (ARIS JSON contract) ─────────────────────────────────────
+function PlanBlock({ plan, nextAction }) {
+  const steps = plan?.steps;
+  if (!steps?.length && !nextAction) return null;
+  return (
+    <div style={{
+      marginBottom: 14,
+      padding: '12px 14px',
+      background: '#f9fafb',
+      borderRadius: 10,
+      border: `1px solid ${M.border}`,
+    }}>
+      {steps?.length > 0 && (
+        <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: M.textDim, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+          Plan
+        </p>
+      )}
+      {steps?.length > 0 && (
+        <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: M.textSub, lineHeight: 1.5 }}>
+          {steps.map((s) => (
+            <li key={s.id} style={{ marginBottom: 4, opacity: s.status === 'done' ? 0.65 : 1 }}>
+              {s.status === 'done' ? '✓ ' : '○ '}{s.title}
+            </li>
+          ))}
+        </ul>
+      )}
+      {nextAction ? (
+        <p style={{ margin: steps?.length ? '10px 0 0' : 0, fontSize: 13, color: M.accent, fontWeight: 600, lineHeight: 1.45 }}>
+          Next: {nextAction}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 // ─── Message bubble ───────────────────────────────────────────────────────────
 function Bubble({ msg, isMobile, streaming }) {
   const isUser = msg.role === 'user';
@@ -206,6 +242,9 @@ function Bubble({ msg, isMobile, streaming }) {
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <p style={{ margin: '0 0 5px', fontSize: 13, fontWeight: 700, color: M.text }}>ARIS</p>
+            {(msg.plan?.steps?.length > 0 || msg.plan?.next_action) && (
+              <PlanBlock plan={msg.plan} nextAction={msg.plan?.next_action} />
+            )}
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
@@ -519,9 +558,14 @@ export default function ArisChat({ initialPrompt: propPrompt = null }) {
       });
 
       if (!res.ok || !res.body) {
-        // Fallback to non-streaming endpoint
         const data = await res.json().catch(() => null);
-        appendChunk(data?.text || data?.response || 'Something went wrong. Please try again.');
+        const txt = data?.text || data?.response || 'Something went wrong. Please try again.';
+        const pl = data?.plan;
+        setMessages((prev) => prev.map((m) => (m.id === msgId ? {
+          ...m,
+          content: txt,
+          plan: pl ? { steps: pl.steps || [], next_action: pl.next_action || '' } : m.plan,
+        } : m)));
       } else {
         const reader  = res.body.getReader();
         const decoder = new TextDecoder();
@@ -541,11 +585,32 @@ export default function ArisChat({ initialPrompt: propPrompt = null }) {
             const payload = trimmed.slice(5).trim();
             if (payload === '[DONE]') break;
             try {
-              const { chunk } = JSON.parse(payload);
-              if (chunk) appendChunk(chunk);
+              const obj = JSON.parse(payload);
+              if (obj.chunk) appendChunk(obj.chunk);
+              if (obj.meta?.plan) {
+                setMessages((prev) => prev.map((m) => (m.id === msgId ? {
+                  ...m,
+                  plan: {
+                    steps: obj.meta.plan.steps || [],
+                    next_action: obj.meta.plan.next_action || '',
+                  },
+                } : m)));
+              }
             } catch {/* skip malformed line */}
           }
         }
+        setMessages((prev) => prev.map((m) => {
+          if (m.id !== msgId || (m.plan?.steps?.length > 0 || m.plan?.next_action)) return m;
+          const parsed = parseArisPlanJson(m.content);
+          if (parsed.steps.length || parsed.next_action) {
+            return {
+              ...m,
+              content: parsed.answer || m.content,
+              plan: { steps: parsed.steps, next_action: parsed.next_action },
+            };
+          }
+          return m;
+        }));
       }
     } catch {
       appendChunk('Network error — please check your connection.');

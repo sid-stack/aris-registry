@@ -13,8 +13,22 @@ import { sendEmail } from "./utils/mailer.js";
 import { logger, requestMeta } from "./utils/logger.js";
 
 // Stateless Utils & Infrastructure
+import { createHash } from "crypto";
 import { traceLLM } from "./utils/tracing.js";
 import { callLLM, callLLMStream } from "./llm/openrouter.js";
+import {
+  buildAuditContextBlock,
+  capThreadMessages,
+  applyFailedUrlToLastUser,
+  threadToConversationText,
+  auditFingerprint,
+  lastUserMessage,
+  normalizeForChatCache,
+  CHAT_HISTORY_MAX_PAIRS,
+} from "./chat/contextPack.js";
+import { selectGovconKb, GOVCON_KB_VERSION } from "./chat/kb.js";
+import { ARIS_JSON_RESPONSE_RULES, parseArisPlanJson } from "./chat/planning.js";
+import { getChatReplyCache, setChatReplyCache } from "./utils/upstash.js";
 
 // Services
 import {
@@ -121,6 +135,72 @@ const freeAuditLimiter = rateLimit({
   },
 });
 
+// ── Stripe entitlements (webhook + manual sync) ───────────────────────────────
+async function setSubscriptionMeta(clerkClient, uid, plan, active, { allowSkipWithoutUid = false } = {}) {
+  if (!process.env.CLERK_SECRET_KEY?.trim()) {
+    logger.error("[STRIPE_ENTITLEMENTS] clerk_secret_missing");
+    return false;
+  }
+  if (!uid || uid === "anonymous") {
+    if (allowSkipWithoutUid) return true;
+    logger.error("[STRIPE_ENTITLEMENTS] clerk_metadata_missing_uid", { active, plan });
+    return false;
+  }
+  try {
+    await clerkClient.users.updateUserMetadata(uid, {
+      publicMetadata: {
+        isSubscribed: active,
+        plan: active ? plan : null,
+        subscriptionUpdatedAt: new Date().toISOString(),
+      },
+    });
+    logger.info("[WEBHOOK] clerk_metadata_updated", { uid, plan, active });
+    return true;
+  } catch (err) {
+    logger.error("[WEBHOOK] clerk_metadata_update_failed", { uid, error: err.message });
+    return false;
+  }
+}
+
+/**
+ * Apply DB + Clerk updates for a completed Checkout Session (idempotent upsert on paid_audits).
+ * Used by the Stripe webhook and POST /api/payment/sync.
+ */
+async function applyCheckoutSessionEntitlements(clerkClient, session) {
+  const uid = session.metadata?.uid || "anonymous";
+  const solicitationId = session.metadata?.solicitation_id || "";
+  const amountCents = session.amount_total ?? 9900;
+  const plan = session.metadata?.plan || "starter";
+
+  if (solicitationId) {
+    const paidOk = await markAuditPaid({
+      uid,
+      solicitationId,
+      stripeSessionId: session.id,
+      amountCents,
+    });
+    if (!paidOk) {
+      logger.error("[WEBHOOK] Database persistence failed. Forcing Stripe retry.", {
+        uid,
+        solicitationId,
+        sessionId: session.id,
+      });
+      return { ok: false, code: "DB_PERSISTENCE_FAILED" };
+    }
+    logger.info("[STRIPE_WEBHOOK] audit_unlocked", { uid, solicitationId });
+  }
+
+  if (session.mode === "subscription") {
+    const metaOk = await setSubscriptionMeta(clerkClient, uid, plan, true, { allowSkipWithoutUid: false });
+    if (!metaOk) {
+      logger.error("[WEBHOOK] clerk_subscription_activation_failed", { uid, sessionId: session.id });
+      return { ok: false, code: "CLERK_METADATA_FAILED" };
+    }
+  }
+
+  return { ok: true };
+}
+
 // ── Stripe Webhook (raw body required — MUST be before express.json()) ──────────
 app.post(
   "/api/stripe/webhook",
@@ -144,42 +224,18 @@ app.post(
 
     logger.info("[STRIPE_WEBHOOK] received", { type: event.type, id: event.id });
 
-    // ── Initialise Clerk backend client (lazy, uses env var) ────────────────
     const clerkClient = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
-
-    // Helper: update Clerk user subscription metadata
-    const setSubscriptionMeta = async (uid, plan, active) => {
-      if (!uid || uid === "anonymous" || !process.env.CLERK_SECRET_KEY) return;
-      try {
-        await clerkClient.users.updateUserMetadata(uid, {
-          publicMetadata: {
-            isSubscribed: active,
-            plan: active ? plan : null,
-            subscriptionUpdatedAt: new Date().toISOString(),
-          },
-        });
-        logger.info("[WEBHOOK] clerk_metadata_updated", { uid, plan, active });
-      } catch (err) {
-        logger.error("[WEBHOOK] clerk_metadata_update_failed", { uid, error: err.message });
-      }
-    };
 
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
-      const uid            = session.metadata?.uid            || "anonymous";
+      const uid = session.metadata?.uid || "anonymous";
       const solicitationId = session.metadata?.solicitation_id || "";
-      const amountCents    = session.amount_total             || 9900;
-      const plan           = session.metadata?.plan           || "starter";
+      const amountCents = session.amount_total ?? 9900;
+      const plan = session.metadata?.plan || "starter";
 
-      // One-time audit unlock
-      if (solicitationId) {
-        await markAuditPaid({ uid, solicitationId, stripeSessionId: session.id, amountCents });
-        logger.info("[STRIPE_WEBHOOK] audit_unlocked", { uid, solicitationId });
-      }
-
-      // Subscription checkout — activate user immediately
-      if (session.mode === "subscription") {
-        await setSubscriptionMeta(uid, plan, true);
+      const ent = await applyCheckoutSessionEntitlements(clerkClient, session);
+      if (!ent.ok) {
+        return res.status(500).send(ent.code);
       }
 
       await recordAnalyticsEvent({
@@ -194,18 +250,24 @@ app.post(
 
     // Subscription renewed / reactivated
     if (event.type === "customer.subscription.updated") {
-      const sub   = event.data.object;
-      const uid   = sub.metadata?.uid || "";
-      const plan  = sub.metadata?.plan || "starter";
+      const sub = event.data.object;
+      const uid = sub.metadata?.uid || "";
+      const plan = sub.metadata?.plan || "starter";
       const active = sub.status === "active" || sub.status === "trialing";
-      await setSubscriptionMeta(uid, plan, active);
+      const metaOk = await setSubscriptionMeta(clerkClient, uid, plan, active, { allowSkipWithoutUid: true });
+      if (!metaOk) {
+        return res.status(500).send("CLERK_METADATA_FAILED");
+      }
     }
 
     // Subscription cancelled / expired
     if (event.type === "customer.subscription.deleted") {
-      const sub  = event.data.object;
-      const uid  = sub.metadata?.uid || "";
-      await setSubscriptionMeta(uid, null, false);
+      const sub = event.data.object;
+      const uid = sub.metadata?.uid || "";
+      const metaOk = await setSubscriptionMeta(clerkClient, uid, null, false, { allowSkipWithoutUid: true });
+      if (!metaOk) {
+        return res.status(500).send("CLERK_METADATA_FAILED");
+      }
     }
 
     if (event.type === "payment_intent.payment_failed") {
@@ -755,7 +817,7 @@ app.post("/api/draft", asyncHandler(async (req, res) => {
 }));
 
 // ─── /api/chat — stateless GovCon AI advisor ─────────────────────────────────
-const ARIS_SYSTEM_PROMPT = `You are ARIS, a senior government contracting advisor with deep federal procurement expertise. You work inside BidSmith — an AI audit platform for companies that win government contracts.
+const ARIS_SYSTEM_PROMPT_BASE = `You are ARIS, a senior government contracting advisor with deep federal procurement expertise. You work inside BidSmith — an AI audit platform for companies that win government contracts.
 
 ## Your expertise
 - FAR/DFARS clause interpretation (Parts 1–53)
@@ -767,16 +829,8 @@ const ARIS_SYSTEM_PROMPT = `You are ARIS, a senior government contracting adviso
 - SAM.gov, USASpending.gov, FPDS navigation
 - Teaming agreements, subcontracting, OTA vehicles
 
-## How you respond
-- Be a direct, senior advisor — not a chatbot. No fluff.
-- When given a SAM.gov URL or solicitation text → immediately start analyzing
-- When you lack context → ask ONE specific question at a time (never a list of questions)
-- Keep answers under 300 words unless doing a full analysis
-- Use bullet points for lists, bold for key terms
-- Always end ambiguous situations with a single clear next-step question
-
 ## When SAM.gov or a link fails
-Say exactly: "I couldn't pull that document automatically — that sometimes happens with NECO-hosted solicitations or restricted opportunities. Can you paste the solicitation number (e.g. W912DY-25-R-0001) or drop in the key text from the RFP?"
+In the JSON "answer" field, say exactly: "I couldn't pull that document automatically — that sometimes happens with NECO-hosted solicitations or restricted opportunities. Can you paste the solicitation number (e.g. W912DY-25-R-0001) or drop in the key text from the RFP?"
 
 ## Tone
 Direct, confident, precise. Like a capture manager who has won $500M+ in federal contracts and charges $400/hr.
@@ -784,101 +838,92 @@ Direct, confident, precise. Like a capture manager who has won $500M+ in federal
 ## Audit context (injected when available)
 {AUDIT_CONTEXT}`;
 
+function resolveChatAuditPayload(body) {
+  const raw = body.auditContext;
+  const ctxStr = typeof body.context === "string" ? body.context : null;
+  if (raw && typeof raw === "object") {
+    return { structured: raw, supplemental: ctxStr };
+  }
+  if (typeof raw === "string") {
+    return { structured: null, supplemental: raw };
+  }
+  return { structured: null, supplemental: ctxStr };
+}
+
+function buildArisSystemPrompt(auditBlock, kbInjection) {
+  const kb = kbInjection?.trim() || "(No supplemental KB slice for this turn.)";
+  return `${ARIS_SYSTEM_PROMPT_BASE.replace("{AUDIT_CONTEXT}", auditBlock)}
+
+## GovCon reference (curated internal notes; not legal advice)
+${kb}
+
+${ARIS_JSON_RESPONSE_RULES}`;
+}
+
+function prepareChatTurn(body) {
+  const { messages = [], failedUrl = null } = body;
+  const { structured, supplemental } = resolveChatAuditPayload(body);
+  const auditBlock = buildAuditContextBlock(structured, supplemental);
+  let threadMessages = capThreadMessages([...messages], CHAT_HISTORY_MAX_PAIRS);
+  threadMessages = applyFailedUrlToLastUser(threadMessages, failedUrl);
+  const userForKb = lastUserMessage(threadMessages);
+  const kbInjection = selectGovconKb(userForKb, structured, 3800);
+  const systemPrompt = buildArisSystemPrompt(auditBlock, kbInjection);
+  const conversationText = threadToConversationText(threadMessages);
+  const cacheKeyMaterial = `${normalizeForChatCache(userForKb)}|${auditFingerprint(structured)}|${GOVCON_KB_VERSION}`;
+  const cacheHash = createHash("sha256").update(cacheKeyMaterial).digest("hex");
+  return { systemPrompt, conversationText, cacheHash, structured };
+}
+
 app.post("/api/chat", asyncHandler(async (req, res) => {
-  const { messages = [], auditContext = null, failedUrl = null } = req.body;
+  const { messages = [], skipCache = false } = req.body;
 
   if (!messages.length) {
     return res.status(400).json({ error: "messages array is required" });
   }
 
-  // Build context block from prior audit result
-  let auditBlock = "No audit loaded yet.";
-  if (auditContext) {
-    const v = auditContext.verdict || {};
-    const reqs = Array.isArray(auditContext.requirements) ? auditContext.requirements : [];
-    const risks = Array.isArray(auditContext.intelligence?.top_risks) ? auditContext.intelligence.top_risks : [];
-    auditBlock = [
-      `Solicitation: ${auditContext.solicitation_number || "Unknown"} — ${auditContext.title || ""}`,
-      `Agency: ${auditContext.agency || "Unknown"}`,
-      `Verdict: ${v.recommendation || "PENDING"} | Win probability: ${v.win_probability ?? "?"}%`,
-      `Requirements extracted: ${reqs.length}`,
-      risks.length ? `Top risks: ${risks.slice(0, 3).join("; ")}` : "",
-      v.rationale ? `Rationale: ${v.rationale.slice(0, 300)}` : "",
-      auditContext.executiveSummary ? `Summary: ${auditContext.executiveSummary.slice(0, 400)}` : "",
-    ].filter(Boolean).join("\n");
-  }
+  const { systemPrompt, conversationText, cacheHash } = prepareChatTurn(req.body);
 
-  // If a URL failed, prepend context to the last user message
-  let threadMessages = [...messages];
-  if (failedUrl && threadMessages.length) {
-    const last = threadMessages[threadMessages.length - 1];
-    if (last.role === "user") {
-      threadMessages[threadMessages.length - 1] = {
-        ...last,
-        content: `[System note: The user submitted this SAM.gov URL but it could not be fetched automatically: ${failedUrl}]\n\n${last.content}`,
-      };
+  if (!skipCache) {
+    const hit = await getChatReplyCache(cacheHash);
+    if (hit) {
+      try {
+        const parsed = JSON.parse(hit);
+        return res.json({ ...parsed, cacheHit: true });
+      } catch {
+        /* miss */
+      }
     }
   }
 
-  const systemPrompt = ARIS_SYSTEM_PROMPT.replace("{AUDIT_CONTEXT}", auditBlock);
-
-  // Build the full conversation for the LLM
-  const conversationText = threadMessages
-    .map(m => `${m.role === "user" ? "User" : "ARIS"}: ${m.content}`)
-    .join("\n\n");
-
-  const text = await callLLM(systemPrompt, conversationText);
-  res.json({ text, response: text });
+  const raw = await callLLM(systemPrompt, conversationText);
+  const plan = parseArisPlanJson(raw);
+  const textOut = plan.answer || raw;
+  const payload = {
+    text: textOut,
+    response: textOut,
+    plan: { steps: plan.steps, next_action: plan.next_action },
+    raw,
+    cacheHit: false,
+  };
+  await setChatReplyCache(cacheHash, JSON.stringify(payload));
+  res.json(payload);
 }));
 
-// ─── /api/chat/stream — SSE streaming GovCon advisor ─────────────────────────
+// ─── /api/chat/stream — SSE: full LLM pass, then stream answer + plan meta ─────
 app.post("/api/chat/stream", (req, res) => {
-  const { messages = [], auditContext = null, failedUrl = null } = req.body;
+  const { messages = [] } = req.body;
 
   if (!messages.length) {
     res.status(400).json({ error: "messages array is required" });
     return;
   }
 
-  // SSE headers
   res.setHeader("Content-Type",  "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection",    "keep-alive");
-  res.setHeader("X-Accel-Buffering", "no"); // disable nginx buffering
+  res.setHeader("X-Accel-Buffering", "no");
   res.flushHeaders();
-
-  // Build audit context block (same as /api/chat)
-  let auditBlock = "No audit loaded yet.";
-  if (auditContext) {
-    const v     = auditContext.verdict || {};
-    const reqs  = Array.isArray(auditContext.requirements)             ? auditContext.requirements             : [];
-    const risks = Array.isArray(auditContext.intelligence?.top_risks)  ? auditContext.intelligence.top_risks   : [];
-    auditBlock = [
-      `Solicitation: ${auditContext.solicitation_number || "Unknown"} — ${auditContext.title || ""}`,
-      `Agency: ${auditContext.agency || "Unknown"}`,
-      `Verdict: ${v.recommendation || "PENDING"} | Win probability: ${v.win_probability ?? "?"}%`,
-      `Requirements extracted: ${reqs.length}`,
-      risks.length ? `Top risks: ${risks.slice(0, 3).join("; ")}` : "",
-      v.rationale ? `Rationale: ${v.rationale.slice(0, 300)}` : "",
-      auditContext.executiveSummary ? `Summary: ${auditContext.executiveSummary.slice(0, 400)}` : "",
-    ].filter(Boolean).join("\n");
-  }
-
-  let threadMessages = [...messages];
-  if (failedUrl && threadMessages.length) {
-    const last = threadMessages[threadMessages.length - 1];
-    if (last.role === "user") {
-      threadMessages[threadMessages.length - 1] = {
-        ...last,
-        content: `[System note: SAM.gov URL could not be fetched automatically: ${failedUrl}]\n\n${last.content}`,
-      };
-    }
-  }
-
-  const systemPrompt     = ARIS_SYSTEM_PROMPT.replace("{AUDIT_CONTEXT}", auditBlock);
-  const conversationText = threadMessages
-    .map(m => `${m.role === "user" ? "User" : "ARIS"}: ${m.content}`)
-    .join("\n\n");
 
   const send = (chunk) => {
     if (res.writableEnded) return;
@@ -892,13 +937,35 @@ app.post("/api/chat/stream", (req, res) => {
     }
   };
 
-  // Handle client disconnect
   req.on("close", () => { if (!res.writableEnded) res.end(); });
 
-  callLLMStream(systemPrompt, conversationText, {}, send, done).catch(err => {
-    logger.error("chat_stream_error", { error: err.message });
-    done();
-  });
+  const { systemPrompt, conversationText } = prepareChatTurn(req.body);
+
+  callLLM(systemPrompt, conversationText)
+    .then((raw) => {
+      const plan = parseArisPlanJson(raw);
+      const answer = plan.answer || raw;
+      const parts = answer.match(/[\s\S]{1,72}/g) || [answer];
+      let i = 0;
+      const pump = () => {
+        if (res.writableEnded) return;
+        if (i >= parts.length) {
+          res.write(`data: ${JSON.stringify({
+            meta: { plan: { steps: plan.steps, next_action: plan.next_action }, raw },
+          })}\n\n`);
+          done();
+          return;
+        }
+        send(parts[i++]);
+        setImmediate(pump);
+      };
+      pump();
+    })
+    .catch((err) => {
+      logger.error("chat_stream_error", { error: err.message });
+      send("Something went wrong. Please try again.");
+      done();
+    });
 });
 
 // ─── /api/chat/intent — detect if user input should trigger an audit ──────────
@@ -1345,8 +1412,9 @@ app.post("/api/checkout/session", apiLimiter, asyncHandler(async (req, res) => {
     plan,
     context: { uid, plan, ...(context || {}) },
     origin,
-    successUrl: successUrl || `${origin}/dashboard?checkout=success`,
-    cancelUrl:  cancelUrl  || `${origin}/pricing?checkout=cancelled`,
+    successUrl:
+      successUrl || `${origin}/dashboard?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
+    cancelUrl: cancelUrl || `${origin}/pricing?checkout=cancelled`,
   });
 
   res.json({ url: session.url, sessionId: session.id });
@@ -1361,6 +1429,52 @@ app.get("/api/payment/status", asyncHandler(async (req, res) => {
   const paid = await checkAuditPaid(uid, solicitation_id);
   res.json({ paid });
 }));
+
+// ─── /api/payment/sync — reconcile Checkout Session when webhook is delayed ────
+app.post(
+  "/api/payment/sync",
+  apiLimiter,
+  asyncHandler(async (req, res) => {
+    const sessionId = req.body?.session_id || req.body?.sessionId;
+    const uid = req.headers["x-user-id"]?.trim() || req.body?.uid?.trim();
+    if (!sessionId || !uid) {
+      return res.status(400).json({ ok: false, error: "session_id and user id required" });
+    }
+
+    let session;
+    try {
+      session = await stripe.checkout.sessions.retrieve(sessionId);
+    } catch (err) {
+      logger.warn("[PAYMENT_SYNC] retrieve_failed", { error: err.message });
+      return res.status(400).json({ ok: false, error: "Invalid or expired checkout session" });
+    }
+
+    if (session.status !== "complete") {
+      return res.status(400).json({ ok: false, error: "Checkout session is not complete" });
+    }
+
+    const paymentOk =
+      session.payment_status === "paid" || session.payment_status === "no_payment_required";
+    if (!paymentOk) {
+      return res.status(400).json({ ok: false, error: "Payment not completed" });
+    }
+
+    const metaUid = session.metadata?.uid || "";
+    if (metaUid !== uid) {
+      return res.status(403).json({ ok: false, error: "Session does not belong to this user" });
+    }
+
+    const clerkClient = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+    const ent = await applyCheckoutSessionEntitlements(clerkClient, session);
+    if (!ent.ok) {
+      logger.error("[PAYMENT_SYNC] entitlement_apply_failed", { code: ent.code, sessionId });
+      return res.status(500).json({ ok: false, error: ent.code });
+    }
+
+    logger.info("[PAYMENT_SYNC] ok", { sessionId, uid });
+    return res.json({ ok: true });
+  })
+);
 
 // ─── /api/export-rtm ─────────────────────────────────────────────────────────
 app.post("/api/export", asyncHandler(async (req, res) => {

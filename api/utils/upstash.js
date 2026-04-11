@@ -18,6 +18,29 @@ export const redis = (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_
  * Atomic monthly usage increment.
  * Accepts a userId (preferred) or falls back to IP for anonymous users.
  */
+const CHAT_CACHE_PREFIX = "aris:chat:v1:";
+
+/** @returns {Promise<string|null>} */
+export async function getChatReplyCache(hashKey) {
+  if (!redis || !hashKey) return null;
+  try {
+    const v = await redis.get(`${CHAT_CACHE_PREFIX}${hashKey}`);
+    return typeof v === "string" ? v : v != null ? String(v) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** @param {string} payload JSON string */
+export async function setChatReplyCache(hashKey, payload, ttlSec = 86400) {
+  if (!redis || !hashKey || !payload) return;
+  try {
+    await redis.set(`${CHAT_CACHE_PREFIX}${hashKey}`, payload, { ex: ttlSec });
+  } catch {
+    /* non-fatal */
+  }
+}
+
 export async function incrMonthlyUsage(clientId) {
   if (!redis) return { count: 1, reset: "static" }; // Fallback to limited trace
 

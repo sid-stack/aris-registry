@@ -54,7 +54,7 @@ export async function createCheckoutSession(planOrOptions, successUrl, cancelUrl
   }
 
   const uid = options.uid || null;
-  const defaultSuccessUrl = `${window.location.origin}/dashboard?checkout=success&source=subscription&plan=${encodeURIComponent(plan)}`;
+  const defaultSuccessUrl = `${window.location.origin}/dashboard?checkout=success&source=subscription&plan=${encodeURIComponent(plan)}&session_id={CHECKOUT_SESSION_ID}`;
   const defaultCancelUrl = `${window.location.origin}/pricing?checkout=cancelled&source=subscription&plan=${encodeURIComponent(plan)}`;
   const response = await fetch(apiUrl("/api/checkout/session"), {
     method: "POST",

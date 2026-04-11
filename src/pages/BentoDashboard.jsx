@@ -78,7 +78,7 @@ function classifyError(err) {
 }
 
 // ── MiniChatShell — renders inside the uploadCol when an error triggers ───────
-function MiniChatShell({ context, onReset, onAuditResult, onAuditStart, user = null }) {
+function MiniChatShell({ context, onReset, onAuditResult, onAuditStart, user = null, auditResult = null }) {
   const [messages, setMessages] = useState([
     { role: 'ai', text: context.aiMessage, id: 0 },
   ]);
@@ -161,12 +161,15 @@ function MiniChatShell({ context, onReset, onAuditResult, onAuditStart, user = n
           body: JSON.stringify({
             messages: [...history, { role: 'user', content: text }],
             context: context.apiContext,
+            auditContext: auditResult && typeof auditResult === 'object' ? auditResult : null,
           }),
         });
         const data = await res.json();
+        const plan = data.plan && typeof data.plan === 'object' ? data.plan : null;
         setMessages(m => [...m, {
           role: 'ai',
           text: data.text || data.response || 'No response received.',
+          plan,
           id: Date.now(),
         }]);
       } catch {
@@ -175,7 +178,7 @@ function MiniChatShell({ context, onReset, onAuditResult, onAuditStart, user = n
     }
 
     setLoading(false);
-  }, [input, loading, messages, context, onAuditResult, onAuditStart]);
+  }, [input, loading, messages, context, onAuditResult, onAuditStart, auditResult]);
 
   return (
     <div style={cs.shell}>
@@ -208,6 +211,23 @@ function MiniChatShell({ context, onReset, onAuditResult, onAuditStart, user = n
               maxWidth: msg.role === 'user' ? '80%' : '95%',
               borderRadius: msg.role === 'user' ? '12px 12px 3px 12px' : '3px 12px 12px 12px',
             }}>
+              {msg.role === 'ai' && (msg.plan?.steps?.length > 0 || msg.plan?.next_action) && (
+                <div style={{ marginBottom: 10, padding: '8px 10px', borderRadius: 8, background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.25)' }}>
+                  {msg.plan.steps?.length > 0 && (
+                    <>
+                      <p style={{ margin: '0 0 6px', fontSize: 9, fontWeight: 700, color: '#93c5fd', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Plan</p>
+                      <ul style={{ margin: 0, paddingLeft: 16, fontSize: 11, color: '#9ca3af', lineHeight: 1.4 }}>
+                        {msg.plan.steps.map((s) => (
+                          <li key={s.id} style={{ marginBottom: 2 }}>{s.status === 'done' ? '✓ ' : '○ '}{s.title}</li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
+                  {msg.plan.next_action ? (
+                    <p style={{ margin: msg.plan.steps?.length ? '6px 0 0' : 0, fontSize: 11, color: '#60a5fa', fontWeight: 600 }}>Next: {msg.plan.next_action}</p>
+                  ) : null}
+                </div>
+              )}
               {msg.text.split('\n').map((line, i) => (
                 <span key={i}>{line}{i < msg.text.split('\n').length - 1 && <br />}</span>
               ))}
@@ -658,6 +678,9 @@ function PaywallGate({
   hasAudit,
   isPaid = false,
   checkingPayment = false,
+  reconcileOffered = false,
+  onSyncPayment,
+  syncPaymentBusy = false,
   solicitationId = '',
   opportunityTitle = '',
   uid = 'anonymous',
@@ -701,8 +724,36 @@ function PaywallGate({
         <div style={pw.preview}>{children}</div>
         <div style={pw.overlay}>
           <div style={pw.lockCard}>
-            <p style={{ ...pw.lockTitle, fontSize: 13 }}>Verifying payment…</p>
-            <p style={pw.lockSub}>Hang tight while we confirm your unlock.</p>
+            <p style={{ ...pw.lockTitle, fontSize: 13 }}>Verifying your purchase with Stripe…</p>
+            <p style={pw.lockSub}>Hang tight — we are confirming your payment in our system.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Webhook slow — offer manual sync (user already charged)
+  if (reconcileOffered && !isPaid && onSyncPayment) {
+    return (
+      <div style={pw.wrap}>
+        <div style={{ ...pw.statusBadge, ...pw.statusChecking }}>Unlock status: Confirming…</div>
+        <div style={pw.preview}>{children}</div>
+        <div style={pw.overlay}>
+          <div style={pw.lockCard}>
+            <p style={{ ...pw.lockTitle, fontSize: 13 }}>Almost there</p>
+            <p style={pw.lockSub}>
+              Your payment succeeded, but our servers are still catching up. Tap below to sync your
+              access — or wait a moment and refresh.
+            </p>
+            <button
+              type="button"
+              onClick={onSyncPayment}
+              disabled={syncPaymentBusy}
+              style={{ ...pw.cta, opacity: syncPaymentBusy ? 0.6 : 1, marginTop: 6 }}
+            >
+              {syncPaymentBusy ? 'Syncing…' : 'Sync payment & unlock'}
+            </button>
+            <p style={pw.ctaSub}>Uses your Stripe receipt — no double charge</p>
           </div>
         </div>
       </div>
@@ -1077,6 +1128,7 @@ const sb = {
 // ── Main page ─────────────────────────────────────────────────────────────
 export default function BentoDashboard({ user = null, onBack }) {
   const { user: clerkUser } = useUser();
+  const billingUid = user?.id || clerkUser?.id || null;
   const [auditResult, setAuditResult] = useState(null);
   const [activeAuditId, setActiveAuditId] = useState(null);
   const [analyzing, setAnalyzing]     = useState(false);
@@ -1090,6 +1142,10 @@ export default function BentoDashboard({ user = null, onBack }) {
   const [demoUnlocked, setDemoUnlocked]   = useState(false);
   const [checkingPayment, setCheckingPayment] = useState(false);
   const [syncingSubscription, setSyncingSubscription] = useState(false);
+  const [showPaymentSyncCta, setShowPaymentSyncCta] = useState(false);
+  const [syncPaymentBusy, setSyncPaymentBusy] = useState(false);
+  const pendingCheckoutSessionIdRef = useRef(null);
+  const pendingCheckoutSidRef = useRef(null);
 
   // Audit history (sidebar)
   const [auditHistory, setAuditHistory]       = useState([]);
@@ -1129,7 +1185,7 @@ export default function BentoDashboard({ user = null, onBack }) {
 
   // ── Payment status helper ──────────────────────────────────────────────────
   const fetchPaymentStatus = useCallback(async (solId) => {
-    if (!user?.id || !solId) return;
+    if (!billingUid || !solId) return;
     if (isSubscribed) {
       setIsPaid(true);
       setCheckingPayment(false);
@@ -1137,7 +1193,9 @@ export default function BentoDashboard({ user = null, onBack }) {
     }
     setCheckingPayment(true);
     try {
-      const res = await fetch(`/api/payment/status?uid=${encodeURIComponent(user.id)}&solicitation_id=${encodeURIComponent(solId)}`);
+      const res = await fetch(
+        `/api/payment/status?uid=${encodeURIComponent(billingUid)}&solicitation_id=${encodeURIComponent(solId)}`
+      );
       const data = await res.json();
       setIsPaid(!!data.paid);
     } catch {
@@ -1145,7 +1203,32 @@ export default function BentoDashboard({ user = null, onBack }) {
     } finally {
       setCheckingPayment(false);
     }
-  }, [isSubscribed, user?.id]);
+  }, [billingUid, isSubscribed]);
+
+  /** Exponential backoff polling: 1s, 2s, 4s, 8s between checks (matches anti-fragile spec). */
+  const pollPaymentStatus = useCallback(
+    async (solId) => {
+      if (!billingUid || !solId) return false;
+      const gapsMs = [1000, 2000, 4000, 8000];
+      for (let i = 0; i <= gapsMs.length; i += 1) {
+        if (i > 0) await new Promise((r) => setTimeout(r, gapsMs[i - 1]));
+        try {
+          const res = await fetch(
+            `/api/payment/status?uid=${encodeURIComponent(billingUid)}&solicitation_id=${encodeURIComponent(solId)}`
+          );
+          const data = await res.json();
+          if (data.paid) {
+            setIsPaid(true);
+            return true;
+          }
+        } catch {
+          /* retry */
+        }
+      }
+      return false;
+    },
+    [billingUid]
+  );
 
   // Poll Clerk metadata after subscription checkout return.
   const syncSubscriptionStatus = useCallback(async () => {
@@ -1166,35 +1249,132 @@ export default function BentoDashboard({ user = null, onBack }) {
     }
   }, [clerkUser]);
 
-  // ── Checkout redirect param detection ─────────────────────────────────────
+  const showToast = (msg, type = 'info') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 4500);
+  };
+
+  // ── Checkout redirect param detection (active reconciliation, not happy-path only) ──
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const checkoutStatus = params.get('checkout');
     const sid = params.get('sid');
+    const sessionId = params.get('session_id');
     const source = params.get('source');
     const plan = params.get('plan');
-    if (checkoutStatus === 'success') {
-      if (source === 'subscription') {
-        showToast('Payment received. Activating subscription…', 'info');
-        syncSubscriptionStatus().then((ok) => {
-          if (ok) {
-            showToast(`Subscription active${plan ? `: ${plan}` : ''}. Full dashboard unlocked.`, 'success');
-          } else {
-            showToast('Payment received. Subscription sync is still processing — refresh in 10 seconds.', 'info');
-          }
-        });
-      } else {
-        showToast('Payment successful — Audit unlocked!', 'success');
-      }
-      if (sid) setTimeout(() => fetchPaymentStatus(sid), 1500); // slight delay for webhook
-      // Clean the URL param without reloading
-      const clean = window.location.pathname;
-      window.history.replaceState({}, '', clean);
-    } else if (checkoutStatus === 'cancelled') {
+    if (checkoutStatus !== 'success' && checkoutStatus !== 'cancelled') return;
+
+    if (checkoutStatus === 'cancelled') {
       showToast('Payment cancelled. Your audit preview is still available.', 'info');
       window.history.replaceState({}, '', window.location.pathname);
+      return;
     }
-  }, [fetchPaymentStatus, syncSubscriptionStatus]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const uid = billingUid;
+    window.history.replaceState({}, '', window.location.pathname);
+
+    (async () => {
+      pendingCheckoutSessionIdRef.current = sessionId || null;
+      pendingCheckoutSidRef.current = sid || null;
+
+      if (sessionId && uid) {
+        try {
+          const res = await fetch('/api/payment/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-user-id': uid },
+            body: JSON.stringify({ session_id: sessionId }),
+          });
+          await res.json().catch(() => ({}));
+        } catch {
+          /* polling / manual sync still available */
+        }
+      }
+
+      if (source === 'subscription') {
+        showToast('Payment received. Activating subscription…', 'info');
+        const ok = await syncSubscriptionStatus();
+        if (ok) {
+          showToast(`Subscription active${plan ? `: ${plan}` : ''}. Full dashboard unlocked.`, 'success');
+          setShowPaymentSyncCta(false);
+        } else {
+          showToast(
+            'Payment received. Subscription sync is still processing — tap “Sync payment” below or refresh.',
+            'info'
+          );
+          if (sessionId) setShowPaymentSyncCta(true);
+        }
+        if (sid) await fetchPaymentStatus(sid);
+        return;
+      }
+
+      if (!sid || !uid) {
+        showToast('Payment received. Open your audit to verify access.', 'info');
+        return;
+      }
+
+      showToast('Verifying your purchase with Stripe…', 'info');
+      setShowPaymentSyncCta(false);
+
+      let paid = false;
+      try {
+        const res = await fetch(
+          `/api/payment/status?uid=${encodeURIComponent(uid)}&solicitation_id=${encodeURIComponent(sid)}`
+        );
+        const data = await res.json();
+        paid = !!data.paid;
+      } catch {
+        paid = false;
+      }
+      if (paid) {
+        setIsPaid(true);
+        showToast('Audit unlocked — full analysis is yours.', 'success');
+        return;
+      }
+
+      setCheckingPayment(true);
+      const ok = await pollPaymentStatus(sid);
+      setCheckingPayment(false);
+      if (ok) {
+        showToast('Audit unlocked — full analysis is yours.', 'success');
+        setShowPaymentSyncCta(false);
+      } else if (pendingCheckoutSessionIdRef.current) {
+        setShowPaymentSyncCta(true);
+        showToast('Still confirming — use “Sync payment” if this doesn’t clear in a moment.', 'info');
+      } else {
+        showToast('We could not confirm access yet — refresh or contact support.', 'info');
+      }
+    })();
+  }, [billingUid, fetchPaymentStatus, pollPaymentStatus, syncSubscriptionStatus]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleSyncPayment = useCallback(async () => {
+    const sessionId = pendingCheckoutSessionIdRef.current;
+    const solId = pendingCheckoutSidRef.current;
+    if (!sessionId || !billingUid) {
+      showToast('Missing checkout session — refresh the page after payment.', 'error');
+      return;
+    }
+    setSyncPaymentBusy(true);
+    try {
+      const res = await fetch('/api/payment/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-user-id': billingUid },
+        body: JSON.stringify({ session_id: sessionId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) {
+        showToast(data.error || 'Sync failed — try again or contact support.', 'error');
+        return;
+      }
+      if (solId) await fetchPaymentStatus(solId);
+      await syncSubscriptionStatus();
+      setShowPaymentSyncCta(false);
+      showToast('Access synced.', 'success');
+    } catch {
+      showToast('Sync failed — try again.', 'error');
+    } finally {
+      setSyncPaymentBusy(false);
+    }
+  }, [billingUid, fetchPaymentStatus, syncSubscriptionStatus]);
 
   const handleSelectAudit = (historyEntry) => {
     const result = historyEntry.audit_result;
@@ -1216,11 +1396,6 @@ export default function BentoDashboard({ user = null, onBack }) {
     setAnalyzing(false);
     setDemoUnlocked(false);
     if (chatMode) resetChatMode();
-  };
-
-  const showToast = (msg, type = 'info') => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 4500);
   };
 
   // Step ticker: advances every ~8s to simulate 4-stage pipeline
@@ -1402,6 +1577,46 @@ export default function BentoDashboard({ user = null, onBack }) {
         </div>
       </header>
 
+      {showPaymentSyncCta && !accessUnlocked && (!auditResult || analyzing) && (
+        <div
+          style={{
+            margin: '0 28px 12px',
+            padding: '12px 16px',
+            background: 'rgba(59,130,246,0.08)',
+            border: '1px solid rgba(59,130,246,0.22)',
+            borderRadius: 12,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+            flexWrap: 'wrap',
+          }}
+        >
+          <span style={{ fontSize: 12, color: '#93c5fd', lineHeight: 1.5 }}>
+            Payment succeeded — we’re still linking it to your account. Tap sync or refresh.
+          </span>
+          <button
+            type="button"
+            onClick={handleSyncPayment}
+            disabled={syncPaymentBusy}
+            style={{
+              flexShrink: 0,
+              padding: '8px 14px',
+              borderRadius: 8,
+              border: '1px solid rgba(59,130,246,0.35)',
+              background: 'rgba(37,99,235,0.25)',
+              color: '#e0e7ff',
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: syncPaymentBusy ? 'wait' : 'pointer',
+              opacity: syncPaymentBusy ? 0.65 : 1,
+            }}
+          >
+            {syncPaymentBusy ? 'Syncing…' : 'Sync payment'}
+          </button>
+        </div>
+      )}
+
       {/* ── Page title ──────────────────────────────────────────────────── */}
       <div style={s.titleBlock}>
         <h1 style={s.pageTitle}>RFP Intelligence</h1>
@@ -1430,6 +1645,7 @@ export default function BentoDashboard({ user = null, onBack }) {
               onAuditResult={handleResult}
               onAuditStart={handleStart}
               user={user}
+              auditResult={auditResult}
             />
           ) : (
             <RfpUploadZone
@@ -1500,10 +1716,13 @@ export default function BentoDashboard({ user = null, onBack }) {
         hasAudit={!!auditResult && !analyzing}
         isPaid={accessUnlocked}
         checkingPayment={checkingPayment}
+        reconcileOffered={showPaymentSyncCta}
+        onSyncPayment={handleSyncPayment}
+        syncPaymentBusy={syncPaymentBusy}
         unlockReason={isSubscribed ? 'subscription' : demoUnlocked ? 'demo' : isPaid ? 'payment' : 'locked'}
         solicitationId={auditResult?.solicitation_number || auditResult?.opportunity_id || ''}
         opportunityTitle={auditResult?.title || ''}
-        uid={user?.id || 'anonymous'}
+        uid={billingUid || 'anonymous'}
       >
         <div style={{ padding: '0 28px' }}>
           <div style={{ background: '#0f0f0f', border: '1px solid #1a1a1a', borderRadius: 16, padding: '20px 20px 16px' }}>

@@ -60,7 +60,8 @@ export async function createDynamicCheckoutSession({ solicitationId, opportunity
       solicitation_id: solicitationId || "",
       opportunityTitle: opportunityTitle || "",
     },
-    success_url: `${baseUrl}/dashboard?checkout=success&sid=${encodeURIComponent(solicitationId || "")}`,
+    // Stripe replaces {CHECKOUT_SESSION_ID} — do not encode the placeholder
+    success_url: `${baseUrl}/dashboard?checkout=success&session_id={CHECKOUT_SESSION_ID}&sid=${encodeURIComponent(solicitationId || "")}`,
     cancel_url:  `${baseUrl}/dashboard?checkout=cancelled`,
   });
 
@@ -90,7 +91,7 @@ export async function createCheckoutSession({ plan, context, origin, successUrl,
           }],
         }),
     metadata: { plan, ...(context || {}) },
-    success_url: successUrl || `${baseUrl}/dashboard?checkout=success`,
+    success_url: successUrl || `${baseUrl}/dashboard?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url:  cancelUrl  || `${baseUrl}/pricing?checkout=cancelled`,
   });
 
