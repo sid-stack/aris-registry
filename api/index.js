@@ -52,6 +52,13 @@ const apiLimiter = rateLimit({
   message: { error: "Too many requests, please try again later." }
 });
 
+function isAdminAuthorized(req) {
+  const auth = req.headers.authorization || "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  const adminPassword = process.env.ADMIN_PASSWORD || "";
+  return Boolean(adminPassword) && token === adminPassword;
+}
+
 // Free-tier gate: 1 audit per IP per 24 h for unauthenticated / non-subscribed users.
 // Subscribed users pass via `x-subscribed: true` header (set by frontend from Clerk publicMetadata).
 const freeAuditLimiter = rateLimit({
@@ -779,11 +786,17 @@ app.get("/api/admin/stats", asyncHandler(async (req, res) => {
 }));
 
 app.get("/api/admin/traffic-brief", asyncHandler(async (_req, res) => {
+  if (!isAdminAuthorized(_req)) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
   const brief = await getTrafficBrief();
   res.json(brief);
 }));
 
 app.post("/api/admin/traffic-brief/send-now", asyncHandler(async (_req, res) => {
+  if (!isAdminAuthorized(_req)) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
   const result = await sendTrafficBriefNow("manual_endpoint");
   if (!result.success) {
     return res.status(502).json(result);
