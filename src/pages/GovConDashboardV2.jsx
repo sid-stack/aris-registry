@@ -405,6 +405,72 @@ function PaywallGate({ userId, children, label = "Full Intelligence" }) {
   );
 }
 
+// ─── Access status badge ──────────────────────────────────────────────────────
+function AccessBadge({ isSubscribed, userId }) {
+  const [loading, setLoading] = useState(false);
+
+  const handleUpgrade = async () => {
+    setLoading(true);
+    try {
+      const url = await createCheckoutSession({ plan: 'starter', uid: userId });
+      window.location.href = url;
+    } catch { setLoading(false); }
+  };
+
+  if (isSubscribed) {
+    return (
+      <div style={{
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        padding: '4px 10px 4px 8px',
+        background: 'rgba(22,163,74,0.07)',
+        border: '1px solid rgba(22,163,74,0.25)',
+        borderRadius: 99,
+        fontSize: 11, fontWeight: 700,
+        color: '#15803d',
+        letterSpacing: '0.02em',
+        alignSelf: 'flex-start',
+      }}>
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/>
+        </svg>
+        UNLOCKED · Subscriber Access
+      </div>
+    );
+  }
+
+  return (
+    <div style={{
+      display: 'inline-flex', alignItems: 'center', gap: 7,
+      padding: '4px 10px 4px 8px',
+      background: 'rgba(180,83,9,0.06)',
+      border: '1px solid rgba(180,83,9,0.2)',
+      borderRadius: 99,
+      fontSize: 11, fontWeight: 700,
+      color: '#92400e',
+      letterSpacing: '0.02em',
+      alignSelf: 'flex-start',
+    }}>
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+      </svg>
+      LOCKED · Full analysis requires subscription —
+      <button
+        onClick={handleUpgrade}
+        disabled={loading}
+        style={{
+          background: 'none', border: 'none', padding: 0, margin: 0,
+          cursor: loading ? 'not-allowed' : 'pointer',
+          color: '#0B3D91', fontWeight: 800, fontSize: 11,
+          textDecoration: 'underline', textUnderlineOffset: 2,
+          fontFamily: 'inherit', letterSpacing: '0.02em',
+        }}
+      >
+        {loading ? 'redirecting…' : 'Upgrade $99/mo →'}
+      </button>
+    </div>
+  );
+}
+
 // ─── Free limit hit — teaser CTA ─────────────────────────────────────────────
 function FreeLimitCard({ userId }) {
   const [loading, setLoading] = useState(false);
@@ -612,6 +678,7 @@ function MessageBubble({ msg, auditMode, isStreaming, isSubscribed, userId }) {
         ) : msg.type === 'audit_result' ? (
           <>
             <VerdictCard audit={msg.audit} auditMode={auditMode} />
+            <AccessBadge isSubscribed={isSubscribed} userId={userId} />
             {isSubscribed ? (
               <>
                 <RiskCard audit={msg.audit} auditMode={auditMode} />

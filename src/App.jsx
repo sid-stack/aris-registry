@@ -5,6 +5,7 @@ import Landing from "./pages/Landing";
 import ConsentBanner from "./components/ConsentBanner";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { trackEvent, trackPageView } from "./utils/analytics";
+import { BOFU_RESOURCES } from "./content/growthPlanData";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 
@@ -18,12 +19,50 @@ const GovConDashboardV2 = lazy(() => import("./pages/GovConDashboardV2"));
 const GovConGuide      = lazy(() => import("./pages/GovConGuide"));
 const Demo             = lazy(() => import("./pages/Demo"));
 const PricingGrid      = lazy(() => import("./pages/PricingGrid"));
+const GrowthPlaybook   = lazy(() => import("./pages/GrowthPlaybook"));
+const TrafficBrief     = lazy(() => import("./pages/TrafficBrief"));
 const RfpMatrixGenerator = lazy(() => import("./pages/seo/RfpMatrixGenerator"));
+const GrowthResourcePage = lazy(() => import("./pages/seo/GrowthResourcePage"));
 const AdminDashboard   = lazy(() => import("./pages/AdminDashboard"));
 const BentoDashboard   = lazy(() => import("./pages/BentoDashboard"));
 const Contact          = lazy(() => import("./pages/Contact"));
 
 const BASE_URL = "https://www.bidsmith.pro";
+
+function LoadingSpinner() {
+  return (
+    <div style={{
+      minHeight: "100vh",
+      background: "#0d0f14",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      flexDirection: "column",
+      gap: "12px",
+      color: "#94a3b8",
+      fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
+      fontSize: "14px",
+      letterSpacing: "0.01em",
+    }}>
+      <div
+        style={{
+          width: "28px",
+          height: "28px",
+          borderRadius: "50%",
+          border: "3px solid rgba(148, 163, 184, 0.22)",
+          borderTopColor: "#60a5fa",
+          animation: "bidsmith-spin 0.9s linear infinite",
+        }}
+      />
+      <span>Loading your workspace...</span>
+      <style>{`
+        @keyframes bidsmith-spin {
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+    </div>
+  );
+}
 
 const PAGE_META = {
   landing:      { title: "BidSmith | Federal RFP Compliance Audit Software for Government Contractors", description: "BidSmith audits SAM.gov solicitations in 90 seconds. Instant compliance matrix, FAR/DFARS risk flags, and bid/no-bid recommendation. Built for federal prime contractors and capture teams.", path: "/" },
@@ -39,6 +78,8 @@ const PAGE_META = {
   app:          { title: "BidSmith Command Center | Federal RFP Compliance Analysis", description: "Your BidSmith Command Center. Paste a SAM.gov URL or upload a PDF to begin.", path: "/dashboard" },
   dashboard:    { title: "BidSmith Command Center | Federal RFP Compliance Analysis", description: "Your BidSmith Command Center. Paste a SAM.gov URL or upload a PDF — bid/no-bid verdict in 90 seconds.", path: "/dashboard" },
   pricing:      { title: "BidSmith Pricing | Federal RFP Audit Plans — Free to $999/mo", description: "Start free with 3 audits per month. Upgrade for unlimited audits, full FAR/DFARS analysis, and deep-shred strategy. No hidden fees.", path: "/pricing" },
+  resources:    { title: "GovCon Growth Playbook | BidSmith", description: "Execution playbook for GovCon traffic growth: intent clusters, BOFU resources, founder distribution, partner outreach, and KPI tracking.", path: "/resources" },
+  "traffic-brief": { title: "Morning Traffic Brief | BidSmith", description: "Daily traffic pulse with yesterday metrics, qualified sessions, and seven-day trend.", path: "/traffic-brief" },
   "rfp-generator": { title: "Free RFP Compliance Matrix Generator | 90-Second FAR/DFARS Analysis — BidSmith", description: "Turn any government RFP into a structured compliance matrix in 90 seconds. Identify missing requirements and disqualification risks before you commit proposal resources.", path: "/rfp-compliance-matrix-generator" },
   admin:        { title: "Admin Portal | BidSmith", description: "Internal analytics portal.", path: "/admin" },
   bento:        { title: "Intelligence Dashboard | BidSmith", description: "RFP upload, live AI analysis with confidence scores, and inference regression eval status.", path: "/bento" },
@@ -48,7 +89,20 @@ const PAGE_META = {
 function usePageMeta(view) {
   useEffect(() => {
     const isCompliance = view === "compliance";
-    const meta = PAGE_META[view] || PAGE_META.landing;
+    const isResource = view === "resource";
+    const resourceSlug = isResource
+      ? window.location.pathname.replace("/resources/", "")
+      : "";
+    const resource = isResource
+      ? BOFU_RESOURCES.find((item) => item.slug === resourceSlug)
+      : null;
+    const meta = resource
+      ? {
+        title: `${resource.title} | BidSmith`,
+        description: resource.description,
+        path: `/resources/${resource.slug}`,
+      }
+      : PAGE_META[view] || PAGE_META.landing;
 
     document.title = meta.title;
 
@@ -59,7 +113,7 @@ function usePageMeta(view) {
     const od = document.querySelector('meta[property="og:description"]');
     if (od) od.setAttribute("content", meta.description);
 
-    const canonicalPath = isCompliance ? window.location.pathname : meta.path || "/";
+    const canonicalPath = (isCompliance || isResource) ? window.location.pathname : meta.path || "/";
     const canonicalUrl = `${BASE_URL}${canonicalPath}`;
     let canonical = document.querySelector('link[rel="canonical"]');
     if (!canonical) {
@@ -97,6 +151,9 @@ function resolveView(path) {
   if (path === "/chat" || path === "/aris") return "dashboard";
   if (path === "/templates") return "templates";
   if (path === "/pricing") return "pricing";
+  if (path === "/resources") return "resources";
+  if (path.startsWith("/resources/")) return "resource";
+  if (path === "/traffic-brief") return "traffic-brief";
   if (path === "/rfp-compliance-matrix-generator") return "rfp-generator";
   if (path === "/admin") return "admin";
   if (path === "/contact") return "contact";
@@ -115,15 +172,29 @@ function resolveView(path) {
 export default function App() {
   const path = window.location.pathname;
   const aliasSection = LANDING_SECTION_ALIASES[path] || null;
-  const { isSignedIn, isLoaded, userId } = useAuth();
-  const { user: clerkUser } = useUser();
-  const authenticated = isSignedIn;
-  const authLoading = !isLoaded;
-  const user = clerkUser ? {
+  const { isSignedIn, isLoaded: isAuthLoaded, userId } = useAuth();
+  const { user: clerkUser, isLoaded: isUserLoaded } = useUser();
+
+  // Guard: if Clerk 400s (production key on localhost) isAuthLoaded stays
+  // false forever. Time out after 6 s so the app renders instead of hanging.
+  const [authTimedOut, setAuthTimedOut] = useState(false);
+  useEffect(() => {
+    if (isAuthLoaded) return;
+    const t = setTimeout(() => setAuthTimedOut(true), 6000);
+    return () => clearTimeout(t);
+  }, [isAuthLoaded]);
+
+  // Still loading only if Clerk hasn't responded yet AND we haven't timed out.
+  // Once timed out (Clerk 400s / localhost mismatch), treat as unauthenticated.
+  const authLoading = (!isAuthLoaded && !authTimedOut)
+    || (isAuthLoaded && isSignedIn && !isUserLoaded);
+  const authenticated = isSignedIn && !authLoading;
+  const user = authenticated && clerkUser ? {
     id: userId,
     email: clerkUser.primaryEmailAddress?.emailAddress,
     isSubscribed: clerkUser.publicMetadata?.isSubscribed === true,
     plan: clerkUser.publicMetadata?.plan || null,
+    subscriptionUpdatedAt: clerkUser.publicMetadata?.subscriptionUpdatedAt || null,
   } : null;
 
   const [view, setView] = useState(() => resolveView(path));
@@ -145,6 +216,7 @@ export default function App() {
     const pathMap = {
       app: "/dashboard", dashboard: "/dashboard",
       templates: "/templates", pricing: "/pricing",
+      resources: "/resources", "traffic-brief": "/traffic-brief",
       admin: "/admin", bento: "/dashboard", contact: "/contact", "sam-rep": "/sam-rep",
       soc: "/soc", about: "/about", demo: "/demo",
       "govcon-guide": "/govcon-guide", "rfp-generator": "/rfp-compliance-matrix-generator",
@@ -153,6 +225,7 @@ export default function App() {
     const logicalPath =
       view === "privacy" || view === "terms" || view === "cookies" ? `/${view}` :
       view === "compliance" ? window.location.pathname :
+      view === "resource" ? window.location.pathname :
       view === "landing" ? (aliasSection ? `/#${aliasSection}` : "/") :
       pathMap[view] || "/";
     trackPageView(logicalPath);
@@ -234,7 +307,11 @@ export default function App() {
     </div>
   );
 
-  const loadingScreen = <div style={{ minHeight: "100vh", background: "#0d0f14" }} />;
+  const loadingScreen = <LoadingSpinner />;
+
+  if (authLoading) {
+    return loadingScreen;
+  }
 
   let content;
   switch (view) {
@@ -271,9 +348,38 @@ export default function App() {
         <PricingGrid
           onTryFree={() => setView("dashboard")}
           userId={user?.id}
+          user={user}
         />
       );
       break;
+    case "traffic-brief":
+      content = <TrafficBrief onBack={() => setView("landing")} />;
+      break;
+    case "resources":
+      content = (
+        <GrowthPlaybook
+          onBack={() => setView("landing")}
+          onOpenResource={(slug) => {
+            window.history.pushState({ view: "resource" }, "", `/resources/${slug}`);
+            setView("resource");
+          }}
+        />
+      );
+      break;
+    case "resource": {
+      const slug = window.location.pathname.replace("/resources/", "");
+      content = (
+        <GrowthResourcePage
+          slug={slug}
+          onBack={() => {
+            window.history.pushState({ view: "resources" }, "", "/resources");
+            setView("resources");
+          }}
+          onEnterApp={() => setView("dashboard")}
+        />
+      );
+      break;
+    }
     case "rfp-generator":
       content = <RfpMatrixGenerator onUpload={() => setView("dashboard")} />;
       break;

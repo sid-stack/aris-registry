@@ -1,11 +1,21 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Shield, CheckCircle, ArrowRight, Zap, Lock } from "lucide-react";
 import { GTM_PRICING_PLANS, FREE_TIER } from "../lib/pricing";
 import { createCheckoutSession } from "../lib/stripe";
 
-export default function PricingGrid({ onTryFree, userId }) {
+export default function PricingGrid({ onTryFree, userId, user = null }) {
   const [loading, setLoading] = useState(null);
   const [error, setError] = useState(null);
+  const [banner, setBanner] = useState(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const checkout = params.get("checkout");
+    if (checkout === "cancelled") {
+      setBanner("Checkout was cancelled. Your plan has not changed.");
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
 
   async function handlePlanClick(plan) {
     if (plan.key === "free") {
@@ -14,6 +24,15 @@ export default function PricingGrid({ onTryFree, userId }) {
     }
     if (plan.key === "enterprise") {
       window.location.href = "mailto:sid@bidsmith.pro?subject=Enterprise Plan — BidSmith";
+      return;
+    }
+    if (!userId) {
+      setError("Please sign in first, then choose a paid plan.");
+      onTryFree?.();
+      return;
+    }
+    if (user?.isSubscribed && user?.plan === plan.key) {
+      setBanner(`You are already on the ${plan.title} plan.`);
       return;
     }
     setLoading(plan.key);
@@ -41,12 +60,16 @@ export default function PricingGrid({ onTryFree, userId }) {
       {error && (
         <div style={styles.errorBanner}>{error}</div>
       )}
+      {banner && (
+        <div style={styles.infoBanner}>{banner}</div>
+      )}
 
       <section style={styles.pricingSection}>
         <div style={styles.grid}>
           {allTiers.map((tier) => {
             const isPro = tier.key === "pro";
             const isBusy = loading === tier.key;
+            const isCurrentPlan = user?.isSubscribed && user?.plan === tier.key;
             return (
               <div key={tier.key} style={{ ...styles.card, ...(isPro ? styles.proCard : {}) }}>
                 {isPro && <div style={styles.badge}>MOST POPULAR</div>}
@@ -71,10 +94,10 @@ export default function PricingGrid({ onTryFree, userId }) {
                     ...(isPro ? styles.proBtn : styles.freeBtn),
                     ...(isBusy ? styles.btnDisabled : {}),
                   }}
-                  disabled={isBusy}
+                  disabled={isBusy || isCurrentPlan}
                   onClick={() => handlePlanClick(tier)}
                 >
-                  {isBusy ? "Redirecting…" : tier.buttonLabel}
+                  {isCurrentPlan ? "Current Plan" : isBusy ? "Redirecting…" : tier.buttonLabel}
                 </button>
               </div>
             );
@@ -138,6 +161,17 @@ const styles = {
     background: "#fef2f2",
     border: "1px solid #fecaca",
     color: "#dc2626",
+    fontSize: "0.95rem",
+    textAlign: "center",
+  },
+  infoBanner: {
+    maxWidth: "700px",
+    margin: "0 auto 32px",
+    padding: "14px 16px",
+    borderRadius: "12px",
+    background: "#eff6ff",
+    border: "1px solid #bfdbfe",
+    color: "#1d4ed8",
     fontSize: "0.95rem",
     textAlign: "center",
   },

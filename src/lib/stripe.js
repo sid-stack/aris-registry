@@ -33,6 +33,8 @@ export async function createCheckoutSession(planOrOptions, successUrl, cancelUrl
   }
 
   const uid = options.uid || null;
+  const defaultSuccessUrl = `${window.location.origin}/dashboard?checkout=success&source=subscription&plan=${encodeURIComponent(plan)}`;
+  const defaultCancelUrl = `${window.location.origin}/pricing?checkout=cancelled&source=subscription&plan=${encodeURIComponent(plan)}`;
   const response = await fetch("/api/checkout/session", {
     method: "POST",
     headers: {
@@ -41,8 +43,8 @@ export async function createCheckoutSession(planOrOptions, successUrl, cancelUrl
     },
     body: JSON.stringify({
       plan,
-      successUrl: options.successUrl || `${window.location.origin}/dashboard?checkout=success`,
-      cancelUrl:  options.cancelUrl  || `${window.location.origin}/pricing?checkout=cancelled`,
+      successUrl: options.successUrl || defaultSuccessUrl,
+      cancelUrl:  options.cancelUrl  || defaultCancelUrl,
       context:    { ...(options.context || {}), ...(uid ? { uid } : {}) },
     }),
   });
