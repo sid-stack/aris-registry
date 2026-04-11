@@ -353,7 +353,7 @@ export default function App() {
       );
       break;
     case "traffic-brief":
-      content = <TrafficBrief onBack={() => setView("landing")} />;
+      content = authLoading ? loadingScreen : authenticated ? <TrafficBrief onBack={() => setView("landing")} /> : authWall;
       break;
     case "resources":
       content = (
