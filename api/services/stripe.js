@@ -2,12 +2,10 @@ import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-// ── Pricing ladder: $99 / $499 / $999 ─────────────────────────────────────────
-export const AUDIT_PRICE_CENTS = 9900; // $99 — single audit unlock
-
+// ── Pricing ladder: $99 / $299 / $999 (synced from live Stripe products) ──────
 export const STRIPE_PLANS = {
-  starter:    { priceId: process.env.STRIPE_PRICE_STARTER,    mode: "payment",      amountCents: 9900  },
-  pro:        { priceId: process.env.STRIPE_PRICE_PRO,        mode: "subscription", amountCents: 49900 },
+  starter:    { priceId: process.env.STRIPE_PRICE_STARTER,    mode: "subscription", amountCents: 9900  },
+  pro:        { priceId: process.env.STRIPE_PRICE_PRO,        mode: "subscription", amountCents: 29900 },
   enterprise: { priceId: process.env.STRIPE_PRICE_ENTERPRISE, mode: "subscription", amountCents: 99900 },
 };
 
@@ -50,7 +48,7 @@ export async function createDynamicCheckoutSession({ solicitationId, opportunity
   return session;
 }
 
-export async function createCheckoutSession({ plan, context, origin }) {
+export async function createCheckoutSession({ plan, context, origin, successUrl, cancelUrl }) {
   const planConfig = STRIPE_PLANS[plan];
   if (!planConfig) throw new Error(`Unsupported plan: ${plan}`);
 
@@ -73,8 +71,8 @@ export async function createCheckoutSession({ plan, context, origin }) {
           }],
         }),
     metadata: { plan, ...(context || {}) },
-    success_url: `${baseUrl}/dashboard?checkout=success`,
-    cancel_url:  `${baseUrl}/dashboard?checkout=cancelled`,
+    success_url: successUrl || `${baseUrl}/dashboard?checkout=success`,
+    cancel_url:  cancelUrl  || `${baseUrl}/pricing?checkout=cancelled`,
   });
 
   return session;

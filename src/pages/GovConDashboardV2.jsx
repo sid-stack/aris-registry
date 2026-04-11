@@ -26,6 +26,7 @@ import {
   EyeOff, Info, ExternalLink
 } from 'lucide-react';
 import { trackEvent } from '../utils/analytics';
+import { createCheckoutSession } from '../lib/stripe';
 
 // ─── Colors — dark sidebar + light main (ChatGPT style) ──────────────────────
 const C = {
@@ -141,11 +142,11 @@ function LeftSidebar({ activeAudit, history, onNewAudit, onSelectAudit, onBack, 
               <d.icon size={13} color={i === 0 ? C.accent : C.sbTextDim} />
               <span style={{ fontSize: 12, color: i === 0 ? C.sbText : C.sbTextDim, fontWeight: i === 0 ? 600 : 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
                 {d.name}
-              </span>
+        </span>
               {d.type === 'solicitation' && (
                 <span style={{ fontSize: 9, fontWeight: 800, color: C.accent, background: 'rgba(16,163,127,0.15)', padding: '2px 5px', borderRadius: 4 }}>
                   ACTIVE
-                </span>
+          </span>
               )}
             </div>
           ))}
@@ -181,7 +182,7 @@ function LeftSidebar({ activeAudit, history, onNewAudit, onSelectAudit, onBack, 
               <span style={{ fontSize: 10, color: C.sbTextDim }}>·</span>
               <span style={{ fontSize: 10, color: C.sbTextDim }}>{timeAgo(item.created_at)}</span>
             </div>
-          </button>
+    </button>
         ))}
       </div>
 
@@ -239,12 +240,12 @@ function AgentThinkingPanel({ steps, isRunning }) {
                     <div style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, marginBottom: 2 }}>{title}</div>
                     <div style={{ fontSize: 11, color: C.textDim, lineHeight: 1.5 }}>{desc}</div>
                   </div>
-                </div>
-              ))}
-            </div>
+          </div>
+        ))}
+      </div>
             <div style={{ marginTop: 20, padding: '10px 12px', background: 'rgba(16,163,127,0.05)', border: `1px solid rgba(16,163,127,0.15)`, borderRadius: 8, fontSize: 11, color: C.textDim, lineHeight: 1.6 }}>
               <span style={{ fontWeight: 700, color: C.accent }}>90 seconds</span> from URL to full compliance matrix.
-            </div>
+    </div>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -262,24 +263,24 @@ function AgentThinkingPanel({ steps, isRunning }) {
                   {step.status === 'active' && <Loader2 size={11} color={C.accent} style={{ animation: 'spin 1s linear infinite' }} />}
                   {step.status === 'pending' && <div style={{ width: 5, height: 5, borderRadius: '50%', background: C.textDim }} />}
                 </div>
-                <div>
+        <div>
                   <div style={{ fontSize: 12, color: step.status === 'done' ? C.textMuted : step.status === 'active' ? C.accent : C.textDim, fontWeight: step.status === 'active' ? 600 : 400, lineHeight: 1.4 }}>
                     {step.label}
-                  </div>
+        </div>
                   {step.status === 'active' && (
                     <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>Processing...</div>
                   )}
-                </div>
-              </div>
-            ))}
           </div>
+          </div>
+            ))}
+        </div>
         )}
       </div>
 
       <div style={{ padding: '10px 16px', borderTop: `1px solid ${C.border}` }}>
         <div style={{ fontSize: 10, color: C.textDim, fontFamily: 'monospace' }}>
           BIDSMITH AUDIT ENGINE v2
-        </div>
+      </div>
       </div>
     </aside>
   );
@@ -333,6 +334,138 @@ function NeedsReviewBadge() {
   );
 }
 
+// ─── Paywall gate — blurs content, shows upgrade CTA ─────────────────────────
+function PaywallGate({ userId, children, label = "Full Intelligence" }) {
+  const [loading, setLoading] = useState(false);
+
+  const handleUnlock = async () => {
+    setLoading(true);
+    try {
+      const url = await createCheckoutSession({ plan: "starter", uid: userId });
+      window.location.href = url;
+    } catch {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={{ position: 'relative', maxWidth: 540 }}>
+      {/* Blurred preview */}
+      <div style={{ filter: 'blur(4px)', userSelect: 'none', pointerEvents: 'none', opacity: 0.6 }}>
+        {children}
+      </div>
+
+      {/* Overlay CTA */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        background: 'rgba(255,255,255,0.82)',
+        backdropFilter: 'blur(2px)',
+        borderRadius: 10,
+        border: '1.5px solid #e5e7eb',
+        padding: '20px 24px',
+        textAlign: 'center',
+        gap: 10,
+      }}>
+        <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(11,61,145,0.08)', border: '1px solid rgba(11,61,145,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Shield size={16} color='#0B3D91' />
+        </div>
+        <div style={{ fontSize: 13, fontWeight: 800, color: '#0d0d0d', letterSpacing: '-0.01em' }}>
+          {label} requires a subscription
+        </div>
+        <div style={{ fontSize: 12, color: '#6b7280', lineHeight: 1.5 }}>
+          Unlock the compliance matrix, risk flags, and action plan.<br />
+          <strong style={{ color: '#0d0d0d' }}>Starter — $99/mo</strong>. Cancel any time.
+        </div>
+        <button
+          onClick={handleUnlock}
+          disabled={loading}
+          style={{
+            marginTop: 4,
+            padding: '10px 24px',
+            borderRadius: 8,
+            border: 'none',
+            background: loading ? '#9ca3af' : '#0B3D91',
+            color: '#fff',
+            fontSize: 13,
+            fontWeight: 800,
+            cursor: loading ? 'not-allowed' : 'pointer',
+            display: 'flex', alignItems: 'center', gap: 8,
+            transition: 'background 0.2s',
+          }}
+        >
+          {loading ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> : <Zap size={13} />}
+          {loading ? 'Redirecting…' : 'Unlock with Starter — $99/mo'}
+        </button>
+        <div style={{ fontSize: 10, color: '#9ca3af' }}>
+          Verdict &amp; win probability always free
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Free limit hit — teaser CTA ─────────────────────────────────────────────
+function FreeLimitCard({ userId }) {
+  const [loading, setLoading] = useState(false);
+
+  const handleUpgrade = async () => {
+    setLoading(true);
+    try {
+      const url = await createCheckoutSession({ plan: 'starter', uid: userId });
+      window.location.href = url;
+    } catch { setLoading(false); }
+  };
+
+  return (
+    <div style={{
+      maxWidth: 480,
+      background: 'linear-gradient(135deg, #0B3D91 0%, #1d4ed8 100%)',
+      borderRadius: 12, padding: '20px 22px',
+      border: '1px solid rgba(255,255,255,0.1)',
+      boxShadow: '0 8px 32px rgba(11,61,145,0.25)',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+        <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Zap size={15} color="#fff" />
+        </div>
+        <div style={{ fontSize: 13, fontWeight: 800, color: '#fff', letterSpacing: '-0.01em' }}>
+          You've used your 1 free audit
+        </div>
+      </div>
+      <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', lineHeight: 1.6, margin: '0 0 16px' }}>
+        Your free verdict is saved. To run <strong style={{ color: '#fff' }}>unlimited audits</strong> with full compliance matrices, risk flags, and action plans — upgrade to Starter.
+      </p>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+        {['Unlimited audits', 'Full compliance matrix', 'FAR/DFARS risk flags', 'Action plan'].map(f => (
+          <span key={f} style={{ fontSize: 11, fontWeight: 700, color: '#fff', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 99, padding: '3px 10px' }}>
+            ✓ {f}
+          </span>
+        ))}
+      </div>
+      <button
+        onClick={handleUpgrade}
+        disabled={loading}
+        style={{
+          width: '100%', padding: '12px', borderRadius: 8, border: 'none',
+          background: '#fff', color: '#0B3D91', fontSize: 14, fontWeight: 800,
+          cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+          transition: 'opacity 0.2s',
+        }}
+      >
+        {loading
+          ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+          : <Zap size={14} />}
+        {loading ? 'Redirecting to Stripe…' : 'Unlock Starter — $99/mo'}
+      </button>
+      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', textAlign: 'center', marginTop: 8 }}>
+        Cancel any time · 10 audits/month · No contracts
+      </div>
+    </div>
+  );
+}
+
 // ─── Inline result cards ──────────────────────────────────────────────────────
 function VerdictCard({ audit, auditMode }) {
   const rec = audit?.verdict?.recommendation || 'REVIEW';
@@ -359,7 +492,7 @@ function VerdictCard({ audit, auditMode }) {
           <div>
             <div style={{ fontSize: 10, color: C.textDim, fontWeight: 600 }}>WIN PROBABILITY</div>
             <div style={{ fontSize: 20, fontWeight: 800, color }}>{prob}%</div>
-          </div>
+      </div>
         )}
       </div>
       {audit?.verdict?.summary && (
@@ -464,7 +597,7 @@ function ComplianceCard({ audit, auditMode }) {
 }
 
 // ─── Message bubble ───────────────────────────────────────────────────────────
-function MessageBubble({ msg, auditMode, isStreaming }) {
+function MessageBubble({ msg, auditMode, isStreaming, isSubscribed, userId }) {
   const isUser = msg.role === 'user';
   return (
     <div style={{ display: 'flex', gap: 12, justifyContent: isUser ? 'flex-end' : 'flex-start', marginBottom: 20, alignItems: 'flex-start' }}>
@@ -474,11 +607,26 @@ function MessageBubble({ msg, auditMode, isStreaming }) {
         </div>
       )}
       <div style={{ maxWidth: '75%', display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {msg.type === 'audit_result' ? (
+        {msg.type === 'free_limit' ? (
+          <FreeLimitCard userId={userId} />
+        ) : msg.type === 'audit_result' ? (
           <>
             <VerdictCard audit={msg.audit} auditMode={auditMode} />
-            <RiskCard audit={msg.audit} auditMode={auditMode} />
-            <ComplianceCard audit={msg.audit} auditMode={auditMode} />
+            {isSubscribed ? (
+              <>
+                <RiskCard audit={msg.audit} auditMode={auditMode} />
+                <ComplianceCard audit={msg.audit} auditMode={auditMode} />
+              </>
+            ) : (
+              <>
+                <PaywallGate userId={userId} label="Risk Flags">
+                  <RiskCard audit={msg.audit} auditMode={auditMode} />
+                </PaywallGate>
+                <PaywallGate userId={userId} label="Compliance Matrix">
+                  <ComplianceCard audit={msg.audit} auditMode={auditMode} />
+                </PaywallGate>
+              </>
+            )}
           </>
         ) : msg.type === 'external_docs' ? (
           <div style={{ background: C.surfaceHi, border: `1px solid rgba(245,158,11,0.35)`, borderLeft: `3px solid #f59e0b`, borderRadius: 10, padding: '16px 18px', maxWidth: 480 }}>
@@ -562,7 +710,7 @@ function EmptyState({ onAuditUrl, onAuditFile, fileRef, onStartChat, userName })
           <Shield size={30} color={C.accent} />
         </div>
         <div style={{ position: 'absolute', bottom: 2, right: 2, width: 14, height: 14, borderRadius: '50%', background: C.green, border: `2px solid ${C.bg}`, boxShadow: '0 0 8px rgba(34,197,94,0.6)' }} />
-      </div>
+            </div>
 
       {/* Greeting */}
       <h2 style={{ fontSize: 24, fontWeight: 800, color: C.text, margin: '0 0 8px', letterSpacing: '-0.02em' }}>
@@ -582,7 +730,7 @@ function EmptyState({ onAuditUrl, onAuditFile, fileRef, onStartChat, userName })
               else if (action === 'question') onStartChat?.();
               else onStartChat?.('url');
             }}
-            style={{
+              style={{
               flex: '1 1 150px', maxWidth: 170,
               padding: '16px 14px', textAlign: 'left',
               background: C.surfaceHi, border: `1px solid ${C.border}`,
@@ -596,8 +744,8 @@ function EmptyState({ onAuditUrl, onAuditFile, fileRef, onStartChat, userName })
             <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 4 }}>{label}</div>
             <div style={{ fontSize: 11, color: C.textDim, lineHeight: 1.5 }}>{sub}</div>
           </button>
-        ))}
-      </div>
+          ))}
+        </div>
 
       {/* Starter prompts */}
       <div style={{ width: '100%', maxWidth: 520 }}>
@@ -621,7 +769,7 @@ function EmptyState({ onAuditUrl, onAuditFile, fileRef, onStartChat, userName })
               {q}
             </button>
           ))}
-        </div>
+            </div>
       </div>
     </div>
   );
@@ -714,7 +862,7 @@ function ChatInput({ onSend, onAuditUrl, onAuditFile, fileRef, loading, hasAudit
             onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.textDim; }}
           >
             <Paperclip size={13} /> PDF
-          </button>
+    </button>
           <button
             onClick={() => { const url = window.prompt('Paste SAM.gov URL:'); if (url?.trim()) onAuditUrl(url.trim()); }}
             title="Audit a SAM.gov URL"
@@ -836,14 +984,20 @@ export default function GovConDashboardV2({ onBack, user }) {
     try {
       const res = await fetch('/api/audit/link', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-user-id': user?.id || '' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': user?.id || '',
+          'x-subscribed': user?.isSubscribed ? 'true' : 'false',
+        },
         body: JSON.stringify({ url, userId: user?.id, userEmail: user?.email }),
       });
       const data = await res.json();
       finishThinking();
 
       if (!res.ok || data.error) {
-        if (data.code === 'EXTERNAL_DOCUMENTS' && data.externalLinks?.length) {
+        if (data.code === 'FREE_LIMIT_REACHED') {
+          addMessage({ role: 'assistant', type: 'free_limit', content: data.error });
+        } else if (data.code === 'EXTERNAL_DOCUMENTS' && data.externalLinks?.length) {
           addMessage({
             role: 'assistant',
             type: 'external_docs',
@@ -885,7 +1039,14 @@ export default function GovConDashboardV2({ onBack, user }) {
       if (user?.id) formData.append('userId', user.id);
       if (user?.email) formData.append('userEmail', user.email);
 
-      const res = await fetch('/api/audit/pdf', { method: 'POST', body: formData, headers: { 'x-user-id': user?.id || '' } });
+      const res = await fetch('/api/audit/pdf', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'x-user-id': user?.id || '',
+          'x-subscribed': user?.isSubscribed ? 'true' : 'false',
+        },
+      });
       const data = await res.json();
       finishThinking();
 
@@ -923,7 +1084,7 @@ export default function GovConDashboardV2({ onBack, user }) {
         addMessage({ role: 'assistant', content: 'What would you like to know about this solicitation?' });
         setThinkingSteps(THINKING_STEPS.map(s => ({ ...s, status: 'done' })));
       }, 50);
-      trackEvent('audit_history_opened', { audit_id: id });
+        trackEvent('audit_history_opened', { audit_id: id });
     } catch { /* silent */ }
   };
 
@@ -1036,18 +1197,18 @@ export default function GovConDashboardV2({ onBack, user }) {
 
         {/* Center — Chat */}
         <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: C.bg }}>
-          {/* Top bar */}
+      {/* Top bar */}
           <div style={{ height: 52, borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', padding: '0 20px', gap: 10, flexShrink: 0 }}>
             {activeAudit ? (
               <>
                 <FileText size={14} color={C.textDim} />
                 <span style={{ fontSize: 13, fontWeight: 600, color: C.textMuted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 300 }}>
                   {extractSolicitationName(activeAudit)}
-                </span>
+          </span>
                 {activeAudit?.verdict?.recommendation && (
                   <span style={{ fontSize: 11, fontWeight: 800, color: verdictColor(activeAudit.verdict.recommendation), background: `${verdictColor(activeAudit.verdict.recommendation)}18`, padding: '3px 8px', borderRadius: 6, border: `1px solid ${verdictColor(activeAudit.verdict.recommendation)}33`, flexShrink: 0 }}>
                     {activeAudit.verdict.recommendation.toUpperCase()}
-                  </span>
+          </span>
                 )}
               </>
             ) : (
@@ -1058,7 +1219,7 @@ export default function GovConDashboardV2({ onBack, user }) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: C.accent }}>
                   <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />
                   Analyzing solicitation...
-                </div>
+        </div>
               )}
               {/* Audit Mode toggle */}
               <button
@@ -1077,8 +1238,8 @@ export default function GovConDashboardV2({ onBack, user }) {
                 {auditMode ? <Eye size={11} /> : <EyeOff size={11} />}
                 AUDIT MODE {auditMode ? 'ON' : 'OFF'}
               </button>
-            </div>
-          </div>
+        </div>
+        </div>
 
           {/* Message thread */}
           <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}>
@@ -1092,7 +1253,16 @@ export default function GovConDashboardV2({ onBack, user }) {
               />
             ) : (
               <>
-                {messages.map(msg => <MessageBubble key={msg.id} msg={msg} auditMode={auditMode} isStreaming={msg.id === streamingId} />)}
+                {messages.map(msg => (
+                <MessageBubble
+                  key={msg.id}
+                  msg={msg}
+                  auditMode={auditMode}
+                  isStreaming={msg.id === streamingId}
+                  isSubscribed={user?.isSubscribed === true}
+                  userId={user?.id}
+                />
+              ))}
                 <div ref={bottomRef} />
               </>
             )}

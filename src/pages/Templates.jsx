@@ -15,8 +15,9 @@ What we can deliver in 30 days:
 - Full report with ROI (target >=30% win-rate lift)
 
 Pricing options:
-- Pro - $299/month
-- Enterprise - $999/month
+- Starter - $99/month (up to 10 audits)
+- Pro - $299/month (unlimited audits)
+- Enterprise - $999/month (team + consultant)
 
 If you are interested, just reply "Yes" and I will send over the short agreement and a Calendly link for a 15-minute kickoff call.
 
@@ -40,6 +41,7 @@ Bidsmith Ltd. (hereinafter "Provider")
 ## 2. Fees and Payment
 | Milestone | Amount (USD) | Due |
 |-----------|--------------|-----|
+| Starter | $99/month | Self-serve |
 | Pro | $299/month | Self-serve |
 | Enterprise | $999/month | Self-serve |
 

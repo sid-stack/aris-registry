@@ -119,7 +119,12 @@ export default function App() {
   const { user: clerkUser } = useUser();
   const authenticated = isSignedIn;
   const authLoading = !isLoaded;
-  const user = clerkUser ? { id: userId, email: clerkUser.primaryEmailAddress?.emailAddress } : null;
+  const user = clerkUser ? {
+    id: userId,
+    email: clerkUser.primaryEmailAddress?.emailAddress,
+    isSubscribed: clerkUser.publicMetadata?.isSubscribed === true,
+    plan: clerkUser.publicMetadata?.plan || null,
+  } : null;
 
   const [view, setView] = useState(() => resolveView(path));
   const [initialUrl, setInitialUrl] = useState("");
@@ -265,8 +270,7 @@ export default function App() {
       content = (
         <PricingGrid
           onTryFree={() => setView("dashboard")}
-          onGetPro={() => window.open("https://buy.stripe.com/3cIaEX66197ad9H9na2Fa00", "_blank")}
-          onGetEnterprise={() => window.open("https://buy.stripe.com/cNibJ19id8369XvfLy2Fa01", "_blank")}
+          userId={user?.id}
         />
       );
       break;

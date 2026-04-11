@@ -6,7 +6,6 @@ import {
 import { useEffect, useState, useRef } from "react";
 import FaqSection from "../components/FaqSection";
 import "./Landing.css";
-import PricingComparison from "../components/PricingComparison";
 import DemoSection from "../components/DemoSection";
 
 // ─── Color Palette ────────────────────────────────────────────────────────────
@@ -135,14 +134,6 @@ export default function Landing({
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
-
-  const handlePlanClick = (plan) => {
-    if (plan.buttonLink && (plan.buttonLink.startsWith("http") || plan.buttonLink.startsWith("mailto:"))) {
-      window.location.href = plan.buttonLink;
-    } else if (onEnterApp) {
-      onEnterApp();
-    }
-  };
 
   const processWithLogs = (callback) => {
     setIsProcessing(true);
@@ -732,18 +723,6 @@ export default function Landing({
               Generate My Compliance Matrix →
             </button>
           </div>
-        </div>
-      </section>
-
-      {/* ── Pricing ──────────────────────────────────────────────────────────── */}
-      <section id="pricing" style={{ background: C.white, padding: "100px 24px", borderTop: `1px solid ${C.paleSky}` }}>
-        <div style={S.container}>
-          <p style={S.eyebrow}>PRICING</p>
-          <h2 style={S.h2}>Start free. Scale when you win.</h2>
-          <p style={{ textAlign: "center", color: C.ashGrey, fontSize: 16, marginBottom: 56 }}>
-            A compliance consultant costs $15,000/year. BidSmith starts at $0.
-          </p>
-          <PricingComparison onPlanClick={handlePlanClick} />
         </div>
       </section>
 

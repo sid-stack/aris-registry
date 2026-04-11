@@ -17,7 +17,8 @@ import { traceLLM } from "./utils/tracing.js";
 import { callLLM, callLLMStream } from "./llm/openrouter.js";
 
 // Services
-import { createDynamicCheckoutSession, stripe } from "./services/stripe.js";
+import { createDynamicCheckoutSession, createCheckoutSession as createSubscriptionSession, stripe } from "./services/stripe.js";
+import { createClerkClient } from "@clerk/backend";
 import { recordAnalyticsEvent, getAdminStats, saveAudit, getAuditHistory, getAuditById, savePendingReport, getPendingReports, getPendingReportById, markReportSent, updateReportNotes, markAuditPaid, checkAuditPaid } from "./services/analytics.js";
 import { fetchSolicitationText } from "./services/samGov.js";
 import { runAudit } from "./agents/auditPipeline.js";
@@ -50,6 +51,28 @@ const apiLimiter = rateLimit({
   message: { error: "Too many requests, please try again later." }
 });
 
+// Free-tier gate: 1 audit per IP per 24 h for unauthenticated / non-subscribed users.
+// Subscribed users pass via `x-subscribed: true` header (set by frontend from Clerk publicMetadata).
+const freeAuditLimiter = rateLimit({
+  windowMs: 24 * 60 * 60 * 1000, // 24 hours
+  max: 1,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.ip,
+  skip: (req) => {
+    // Let subscribed users through unconditionally
+    return req.headers["x-subscribed"] === "true";
+  },
+  handler: (req, res) => {
+    res.status(429).json({
+      error: "You've used your 1 free audit for today.",
+      code: "FREE_LIMIT_REACHED",
+      hint: "Sign in and subscribe to run unlimited audits — from $99/mo.",
+      upgradeUrl: "/pricing",
+    });
+  },
+});
+
 // ── Stripe Webhook (raw body required — MUST be before express.json()) ──────────
 app.post(
   "/api/stripe/webhook",
@@ -73,20 +96,42 @@ app.post(
 
     logger.info("[STRIPE_WEBHOOK] received", { type: event.type, id: event.id });
 
+    // ── Initialise Clerk backend client (lazy, uses env var) ────────────────
+    const clerkClient = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+
+    // Helper: update Clerk user subscription metadata
+    const setSubscriptionMeta = async (uid, plan, active) => {
+      if (!uid || uid === "anonymous" || !process.env.CLERK_SECRET_KEY) return;
+      try {
+        await clerkClient.users.updateUserMetadata(uid, {
+          publicMetadata: {
+            isSubscribed: active,
+            plan: active ? plan : null,
+            subscriptionUpdatedAt: new Date().toISOString(),
+          },
+        });
+        logger.info("[WEBHOOK] clerk_metadata_updated", { uid, plan, active });
+      } catch (err) {
+        logger.error("[WEBHOOK] clerk_metadata_update_failed", { uid, error: err.message });
+      }
+    };
+
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
       const uid            = session.metadata?.uid            || "anonymous";
       const solicitationId = session.metadata?.solicitation_id || "";
       const amountCents    = session.amount_total             || 9900;
+      const plan           = session.metadata?.plan           || "starter";
 
+      // One-time audit unlock
       if (solicitationId) {
-        await markAuditPaid({
-          uid,
-          solicitationId,
-          stripeSessionId: session.id,
-          amountCents,
-        });
+        await markAuditPaid({ uid, solicitationId, stripeSessionId: session.id, amountCents });
         logger.info("[STRIPE_WEBHOOK] audit_unlocked", { uid, solicitationId });
+      }
+
+      // Subscription checkout — activate user immediately
+      if (session.mode === "subscription") {
+        await setSubscriptionMeta(uid, plan, true);
       }
 
       await recordAnalyticsEvent({
@@ -95,8 +140,24 @@ app.post(
         value: amountCents / 100,
         page: "checkout",
         path: "/api/stripe/webhook",
-        metadata: { session_id: session.id, solicitation_id: solicitationId },
+        metadata: { session_id: session.id, solicitation_id: solicitationId, plan },
       });
+    }
+
+    // Subscription renewed / reactivated
+    if (event.type === "customer.subscription.updated") {
+      const sub   = event.data.object;
+      const uid   = sub.metadata?.uid || "";
+      const plan  = sub.metadata?.plan || "starter";
+      const active = sub.status === "active" || sub.status === "trialing";
+      await setSubscriptionMeta(uid, plan, active);
+    }
+
+    // Subscription cancelled / expired
+    if (event.type === "customer.subscription.deleted") {
+      const sub  = event.data.object;
+      const uid  = sub.metadata?.uid || "";
+      await setSubscriptionMeta(uid, null, false);
     }
 
     if (event.type === "payment_intent.payment_failed") {
@@ -226,7 +287,7 @@ app.use(express.static(join(__dirname, "../dist")));
 const upload = multer({ storage: multer.memoryStorage() });
 
 // ─── /api/audit/pdf ───────────────────────────────────────────────────────────
-app.post("/api/audit/pdf", upload.single("file"), asyncHandler(async (req, res) => {
+app.post("/api/audit/pdf", freeAuditLimiter, upload.single("file"), asyncHandler(async (req, res) => {
   const rid = req.id || "?";
 
   // ── Input validation ──────────────────────────────────────────────────────
@@ -812,7 +873,7 @@ app.post("/api/waitlist/invite", asyncHandler(async (req, res) => {
 }));
 
 // ─── /api/audit/link ─────────────────────────────────────────────────────────
-app.post("/api/audit/link", apiLimiter, asyncHandler(async (req, res) => {
+app.post("/api/audit/link", freeAuditLimiter, apiLimiter, asyncHandler(async (req, res) => {
   const { url } = req.body;
   const userId    = req.headers["x-user-id"] || "anonymous";
   const userEmail = req.headers["x-user-email"] || "unknown";
@@ -990,6 +1051,23 @@ app.post("/api/create-dynamic-checkout-session", apiLimiter, asyncHandler(async 
   const { solicitationId, opportunityTitle, uid } = req.body;
   const origin = req.headers.origin || `https://${req.headers.host}` || "https://bidsmith.pro";
   const session = await createDynamicCheckoutSession({ solicitationId, opportunityTitle, uid, origin });
+  res.json({ url: session.url, sessionId: session.id });
+}));
+
+// ─── /api/checkout/session — subscription checkout ───────────────────────────
+app.post("/api/checkout/session", apiLimiter, asyncHandler(async (req, res) => {
+  const { plan, successUrl, cancelUrl, context } = req.body;
+  const uid = req.headers["x-user-id"] || context?.uid || "anonymous";
+  const origin = req.headers.origin || `https://${req.headers.host}` || "https://bidsmith.pro";
+
+  const session = await createSubscriptionSession({
+    plan,
+    context: { uid, plan, ...(context || {}) },
+    origin,
+    successUrl: successUrl || `${origin}/dashboard?checkout=success`,
+    cancelUrl:  cancelUrl  || `${origin}/pricing?checkout=cancelled`,
+  });
+
   res.json({ url: session.url, sessionId: session.id });
 }));
 
