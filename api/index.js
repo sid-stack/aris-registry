@@ -3,7 +3,7 @@ import "dotenv/config";
 
 import express from "express";
 import cors from "cors";
-import rateLimit from "express-rate-limit";
+import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import { requestId, requestLogger } from "./middleware/requestId.js";
@@ -58,7 +58,7 @@ const freeAuditLimiter = rateLimit({
   max: 1,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => req.ip,
+  keyGenerator: (req) => ipKeyGenerator(req),
   skip: (req) => {
     // Let subscribed users through unconditionally
     return req.headers["x-subscribed"] === "true";
