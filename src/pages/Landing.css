@@ -150,8 +150,8 @@
   pointer-events: none;
 }
 
-.feature-tag-risk { top: 30%; left: -40px; }
-.feature-tag-compliance { bottom: 20%; right: -20px; }
+.feature-tag-risk { top: 30%; left: -16px; }
+.feature-tag-compliance { bottom: 20%; right: -8px; }
 
 @keyframes slideIn {
   from { transform: translateX(20px); opacity: 0; }
@@ -567,4 +567,126 @@
   .landing-hero-layout {
     max-width: 1040px;
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FANG-LEVEL BUTTON SYSTEM
+   All transitions use Google Material easing: cubic-bezier(0.4, 0, 0.2, 1)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Primary CTA ─────────────────────────────────────────────────────────── */
+.btn-land-primary {
+  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+.btn-land-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 40px rgba(0, 34, 68, 0.26) !important;
+}
+.btn-land-primary:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 12px rgba(0, 34, 68, 0.16) !important;
+  transition-duration: 0.1s;
+}
+
+/* ── Book a Meeting — premium CTA ────────────────────────────────────────── */
+.btn-meeting {
+  background: linear-gradient(145deg, #002244 0%, #0a2e5c 100%) !important;
+  box-shadow: 0 4px 18px rgba(0, 34, 68, 0.22),
+              inset 0 1px 0 rgba(255, 255, 255, 0.07) !important;
+  transition: transform 0.24s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.24s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  letter-spacing: 0.01em;
+  will-change: transform;
+}
+.btn-meeting:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 22px 52px rgba(0, 34, 68, 0.34),
+              inset 0 1px 0 rgba(255, 255, 255, 0.07) !important;
+}
+.btn-meeting:active {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 22px rgba(0, 34, 68, 0.22) !important;
+  transition-duration: 0.08s;
+}
+
+/* ── Nav "Book a Meeting" ─────────────────────────────────────────────────── */
+.btn-nav-meeting {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              background 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  letter-spacing: 0.01em;
+  will-change: transform;
+}
+.btn-nav-meeting:hover {
+  background: #0B3D91 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(0, 34, 68, 0.22) !important;
+}
+.btn-nav-meeting:active {
+  transform: translateY(0);
+  transition-duration: 0.08s;
+}
+
+/* ── Secondary / ghost button ────────────────────────────────────────────── */
+.btn-land-secondary {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              background 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+.btn-land-secondary:hover {
+  transform: translateY(-1px);
+  background: rgba(196, 215, 242, 0.10) !important;
+}
+.btn-land-secondary:active {
+  transform: translateY(0);
+  transition-duration: 0.08s;
+}
+
+/* ── Nav links ───────────────────────────────────────────────────────────── */
+.landing-nav-link-item {
+  transition: color 0.15s ease, background 0.15s ease !important;
+}
+.landing-nav-link-item:hover {
+  color: #002244 !important;
+  background: rgba(196, 215, 242, 0.18) !important;
+}
+
+/* ── Tab buttons ─────────────────────────────────────────────────────────── */
+.landing-tab-btn {
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  will-change: transform;
+}
+.landing-tab-btn:hover:not([data-active="true"]) {
+  transform: translateY(-1px);
+  border-color: #91a8a4 !important;
+  color: #002244 !important;
+}
+
+/* ── Feature cards ───────────────────────────────────────────────────────── */
+.landing-feature-card {
+  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+.landing-feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 48px rgba(0, 34, 68, 0.09);
+}
+
+/* ── Story cards ─────────────────────────────────────────────────────────── */
+.landing-story-expand {
+  transition: color 0.15s ease;
+}
+.landing-story-expand:hover {
+  color: #002244 !important;
+}
+
+/* ── Smooth font rendering globally on landing ───────────────────────────── */
+.landing-root {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }

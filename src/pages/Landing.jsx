@@ -1,7 +1,6 @@
 import {
   Check, AlertTriangle, Zap, Loader2, Shield,
-  FileText, TrendingUp, Search, ChevronRight, Star,
-  ArrowRight, BarChart2, Link2, Play
+  Search, Star, Link2, Play
 } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import FaqSection from "../components/FaqSection";
@@ -164,34 +163,49 @@ export default function Landing({
 
   return (
     <>
-    <main style={{ background: C.mintCream, color: C.textPrimary, fontFamily: "Inter, system-ui, sans-serif", minHeight: "100vh" }}>
+    <main className="landing-root" style={{ background: C.mintCream, color: C.textPrimary, fontFamily: "Inter, system-ui, sans-serif", minHeight: "100vh", width: "100%", overflowX: "hidden" }}>
       <input type="file" ref={fileInputRef} style={{ display: "none" }} accept=".pdf" onChange={handleFileChange} />
 
       {/* ── Nav ──────────────────────────────────────────────────────────────── */}
       <header style={S.navbar}>
         <div style={S.navInner}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }} onClick={onGoHome}>
-            <img src="/logo.jpg" alt="BidSmith" style={{ height: 30, borderRadius: 4 }} />
-            <span style={S.navLogo}>BidSmith</span>
+          {/* Brand */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", flexShrink: 0 }} onClick={onGoHome}>
+            <img src="/logo.jpg" alt="BidSmith" style={{ height: 28, borderRadius: 4 }} />
+            <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+              <span style={S.navLogo}>BidSmith</span>
+              {!isMobile && (
+                <span style={{ fontSize: 9, fontWeight: 700, color: C.ashGrey, letterSpacing: "0.14em", textTransform: "uppercase", lineHeight: 1 }}>
+                  Federal Compliance Intelligence
+                </span>
+              )}
+            </div>
           </div>
-          <div style={{ fontSize: 11, fontWeight: 800, color: C.ashGrey, letterSpacing: "0.15em", textTransform: "uppercase" }}>
-            Federal Compliance Intelligence
-          </div>
-          <nav style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            {!isMobile && (
-              <>
-                <a href="/pricing" style={S.navLink}>Pricing</a>
-                <button style={S.navLink} onClick={() => onViewSample?.()}>Demo</button>
-                <a href="https://arislabs.mintlify.app/" target="_blank" rel="noopener noreferrer" style={S.navLink}>Docs</a>
-              </>
-            )}
+
+          {/* Nav links — desktop only */}
+          {!isMobile && (
+            <nav style={{ display: "flex", gap: 4, alignItems: "center" }}>
+              <a href="/pricing" style={S.navLink} className="landing-nav-link-item">Pricing</a>
+              <button style={S.navLink} className="landing-nav-link-item" onClick={() => onViewSample?.()}>Demo</button>
+              <a href="https://arislabs.mintlify.app/" target="_blank" rel="noopener noreferrer" style={S.navLink} className="landing-nav-link-item">Docs</a>
+            </nav>
+          )}
+
+          {/* Auth CTAs */}
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
             <button style={S.navSignIn} onClick={() => onEnterApp?.("nav_signin")}>
               {isAuthenticated ? `Hi, ${userHandle || "there"}` : "Sign In"}
             </button>
-            <button style={S.navCta} onClick={() => isAuthenticated ? onEnterApp?.("nav_primary_cta") : window.open(CALENDLY_URL, "_blank", "noopener")}>
-              {isAuthenticated ? "Open Dashboard →" : "Book a Meeting →"}
-            </button>
-          </nav>
+            {!isMobile && (
+              <button
+                className="btn-nav-meeting"
+                style={S.navCta}
+                onClick={() => isAuthenticated ? onEnterApp?.("nav_primary_cta") : window.open(CALENDLY_URL, "_blank", "noopener")}
+              >
+                {isAuthenticated ? "Dashboard" : "Book a Meeting"}
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
@@ -214,13 +228,18 @@ export default function Landing({
           </p>
 
           <div style={S.heroCtas}>
-            <button style={S.ctaPrimary} onClick={() => isAuthenticated ? onEnterApp?.("hero_primary_cta") : window.open(CALENDLY_URL, "_blank", "noopener")}>
-              {isAuthenticated ? "Go to My Dashboard →" : "Book a Meeting →"}
+            <button
+              className="btn-meeting"
+              style={S.ctaPrimary}
+              onClick={() => isAuthenticated ? onEnterApp?.("hero_primary_cta") : window.open(CALENDLY_URL, "_blank", "noopener")}
+            >
+              {isAuthenticated ? "Go to Dashboard" : "Book a Meeting"}
             </button>
-            <button style={S.ctaSecondary} onClick={() => onEnterApp?.("hero_secondary_cta")}>
+            <button className="btn-land-secondary" style={S.ctaSecondary} onClick={() => onEnterApp?.("hero_secondary_cta")}>
               {isAuthenticated ? "Run New Audit" : "Start Free Audit"}
             </button>
             <button
+              className="btn-land-secondary"
               style={{ ...S.ctaSecondary, display: "inline-flex", alignItems: "center", gap: 8, borderColor: C.navyMid, color: C.navyMid }}
               onClick={() => onViewSample?.()}
             >
@@ -268,10 +287,11 @@ export default function Landing({
                       Live demo available inside the app
                     </p>
                     <button
+                      className="btn-land-primary"
                       onClick={() => onEnterApp?.("hero_demo_fallback_cta")}
                       style={{ ...S.ctaPrimary, background: C.frostedBlue, color: C.navy }}
                     >
-                      Open Audit Engine →
+                      Open Audit Engine
                     </button>
                   </div>
                 </div>
@@ -369,7 +389,7 @@ export default function Landing({
                 desc: "Search active solicitations and award history across all federal agencies by keyword, NAICS code, or agency. Surfaces opportunities your pipeline hasn't found yet.",
               },
             ].map(f => (
-              <div key={f.title} style={S.featureCard}>
+              <div key={f.title} className="landing-feature-card" style={S.featureCard}>
                 <div style={S.featureIcon}>{f.icon}</div>
                 <h3 style={S.featureTitle}>{f.title}</h3>
                 <p style={S.featureDesc}>{f.desc}</p>
@@ -390,13 +410,14 @@ export default function Landing({
             {DEEP_DIVE_TABS.map(t => (
               <button
                 key={t.id}
+                className="landing-tab-btn"
+                data-active={activeTab === t.id ? "true" : "false"}
                 onClick={() => setActiveTab(t.id)}
                 style={{
                   padding: "10px 20px", borderRadius: 99, fontSize: 13, fontWeight: 700, cursor: "pointer",
                   border: `1.5px solid ${activeTab === t.id ? C.navyMid : C.paleSky}`,
                   background: activeTab === t.id ? C.navy : C.white,
                   color: activeTab === t.id ? "#fff" : C.dimGrey,
-                  transition: "all 0.15s",
                 }}
               >
                 {t.label}
@@ -412,8 +433,8 @@ export default function Landing({
                 {tab.headline}
               </h3>
               <p style={{ fontSize: 15, color: C.dimGrey, lineHeight: 1.75, marginBottom: 28 }}>{tab.body}</p>
-              <button style={S.ctaPrimary} onClick={() => onEnterApp?.(`deepdive_${activeTab}_cta`)}>
-                Try It Free →
+              <button className="btn-land-primary" style={S.ctaPrimary} onClick={() => onEnterApp?.(`deepdive_${activeTab}_cta`)}>
+                Try It Free
               </button>
             </div>
 
@@ -606,11 +627,11 @@ export default function Landing({
                     <h3 style={{ fontSize: 17, fontWeight: 800, color: C.navy, lineHeight: 1.35, margin: 0 }}>{s.headline}</h3>
                     <p style={{ fontSize: 14, color: C.dimGrey, lineHeight: 1.65, margin: 0 }}>{s.body}</p>
                     <button
+                      className="landing-story-expand"
                       onClick={() => setExpandedStory(isOpen ? null : s.tag)}
                       style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, color: C.navyMid, background: "none", border: "none", cursor: "pointer", padding: 0, marginTop: "auto" }}
                     >
                       {isOpen ? "Close story" : "Read the story"}
-                      <ArrowRight size={14} style={{ transform: isOpen ? "rotate(90deg)" : "none", transition: "transform 0.2s" }} />
                     </button>
                   </article>
 
@@ -719,8 +740,8 @@ export default function Landing({
             ))}
           </div>
           <div style={{ textAlign: "center", marginTop: 40 }}>
-            <button onClick={() => onEnterApp?.("matrix_preview_cta")} style={S.ctaPrimary}>
-              Generate My Compliance Matrix →
+            <button className="btn-land-primary" onClick={() => onEnterApp?.("matrix_preview_cta")} style={S.ctaPrimary}>
+              Generate Compliance Matrix
             </button>
           </div>
         </div>
@@ -744,10 +765,18 @@ export default function Landing({
             Start free — no credit card required.
           </p>
           <div style={{ display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" }}>
-            <button onClick={() => window.open(CALENDLY_URL, "_blank", "noopener")} style={{ ...S.ctaPrimary, background: C.frostedBlue, color: C.navy, fontSize: "1.1rem", padding: "18px 48px" }}>
-              Book a Meeting →
+            <button
+              className="btn-meeting"
+              onClick={() => window.open(CALENDLY_URL, "_blank", "noopener")}
+              style={{ ...S.ctaPrimary, background: C.frostedBlue, color: C.navy, fontSize: "1.1rem", padding: "18px 52px", letterSpacing: "0.01em" }}
+            >
+              Book a Meeting
             </button>
-            <button onClick={() => onEnterApp?.("final_secondary_cta")} style={{ ...S.ctaSecondary, borderColor: C.paleSky, color: C.paleSky, background: "transparent" }}>
+            <button
+              className="btn-land-secondary"
+              onClick={() => onEnterApp?.("final_secondary_cta")}
+              style={{ ...S.ctaSecondary, borderColor: C.paleSky, color: C.paleSky, background: "transparent" }}
+            >
               Start Free Audit
             </button>
           </div>
@@ -798,15 +827,15 @@ export default function Landing({
 const S = {
   container: { maxWidth: 1100, margin: "0 auto", padding: "0 20px" },
 
-  navbar: { height: 68, background: "rgba(240,247,238,0.92)", backdropFilter: "blur(12px)", borderBottom: `1px solid ${C.paleSky}`, position: "sticky", top: 0, zIndex: 100 },
-  navInner: { maxWidth: 1200, margin: "0 auto", height: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 24px" },
-  navLogo: { fontSize: 22, fontWeight: 900, color: C.navy, fontFamily: "'Playfair Display', serif", letterSpacing: "0.02em" },
-  navLink: { fontSize: 14, color: C.dimGrey, background: "none", border: "none", cursor: "pointer", fontWeight: 600, padding: "8px 12px", textDecoration: "none", display: "inline-block" },
-  navSignIn: { fontSize: 14, color: C.navyMid, background: "none", border: "none", cursor: "pointer", fontWeight: 700, padding: "8px 14px" },
-  navCta: { background: C.navy, color: "#fff", padding: "10px 20px", borderRadius: 8, border: "none", fontWeight: 700, cursor: "pointer", fontSize: 14 },
+  navbar: { height: 64, background: "rgba(240,247,238,0.95)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", borderBottom: `1px solid ${C.paleSky}`, position: "sticky", top: 0, zIndex: 100, width: "100%" },
+  navInner: { maxWidth: 1200, margin: "0 auto", height: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 24, padding: "0 24px" },
+  navLogo: { fontSize: 20, fontWeight: 900, color: C.navy, fontFamily: "'Playfair Display', serif", letterSpacing: "0.02em", lineHeight: 1 },
+  navLink: { fontSize: 14, color: C.dimGrey, background: "none", border: "none", cursor: "pointer", fontWeight: 600, padding: "8px 14px", textDecoration: "none", display: "inline-block", borderRadius: 6, whiteSpace: "nowrap" },
+  navSignIn: { fontSize: 14, color: C.navyMid, background: "none", border: `1.5px solid ${C.paleSky}`, cursor: "pointer", fontWeight: 700, padding: "8px 16px", borderRadius: 8, whiteSpace: "nowrap", transition: "all 0.18s cubic-bezier(0.4,0,0.2,1)" },
+  navCta: { background: C.navy, color: "#fff", padding: "9px 22px", borderRadius: 8, border: "none", fontWeight: 700, cursor: "pointer", fontSize: 14, whiteSpace: "nowrap" },
 
-  hero: { background: C.white, padding: "112px 24px 92px" },
-  heroInner: { maxWidth: 900, margin: "0 auto", textAlign: "center" },
+  hero: { background: `linear-gradient(180deg, ${C.white} 0%, ${C.mintCream} 100%)`, padding: "100px 24px 80px" },
+  heroInner: { maxWidth: 860, margin: "0 auto", textAlign: "center" },
   badge: { display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12, fontWeight: 700, color: C.navy, background: C.mintCream, border: `1px solid ${C.frostedBlue}`, padding: "6px 16px", borderRadius: 99, marginBottom: 28, letterSpacing: "0.02em" },
   h1: { fontSize: "clamp(2.4rem, 6vw, 4rem)", fontWeight: 900, color: C.navy, lineHeight: 1.1, marginBottom: 24, letterSpacing: "-0.03em" },
   heroSub: { fontSize: "1.12rem", color: C.dimGrey, lineHeight: 1.75, maxWidth: 700, margin: "0 auto 44px" },
@@ -827,6 +856,6 @@ const S = {
   featureTitle: { fontSize: 17, fontWeight: 800, color: C.navy, marginBottom: 10 },
   featureDesc: { fontSize: 14, color: C.dimGrey, lineHeight: 1.65 },
 
-  ctaPrimary: { background: C.navy, color: "#fff", padding: "14px 32px", borderRadius: 10, border: "none", fontWeight: 800, fontSize: "1rem", cursor: "pointer", boxShadow: "0 8px 20px rgba(0,34,68,0.18)", transition: "opacity 0.15s" },
+  ctaPrimary: { background: C.navy, color: "#fff", padding: "14px 32px", borderRadius: 10, border: "none", fontWeight: 800, fontSize: "1rem", cursor: "pointer", boxShadow: "0 6px 18px rgba(0,34,68,0.18)", letterSpacing: "0.01em" },
   ctaSecondary: { background: "transparent", color: C.navy, padding: "14px 28px", borderRadius: 10, border: `1.5px solid ${C.paleSky}`, fontWeight: 700, fontSize: "1rem", cursor: "pointer" },
 };
