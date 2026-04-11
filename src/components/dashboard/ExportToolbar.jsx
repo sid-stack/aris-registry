@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { devError } from '../../utils/devLog';
 import { FileText, FileCode, Loader } from 'lucide-react';
 
 const mdContent = () => `# BidSmith Intelligence Report
@@ -106,7 +107,7 @@ const ExportToolbar = () => {
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
-      console.error('MD export failed:', err);
+      devError('MD export failed:', err);
     } finally {
       setMdLoading(false);
     }

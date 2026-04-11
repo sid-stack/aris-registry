@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { devError, devWarn } from '../utils/devLog';
 import './AdSenseContainer.css';
 
 /**
@@ -37,9 +38,7 @@ const AdSenseContainer = ({
 
   useEffect(() => {
     if (!clientId) {
-      if (import.meta.env.DEV) {
-        console.warn('[AdSense] VITE_ADSENSE_CLIENT is not set. Ad will not render.');
-      }
+      devWarn('[AdSense] VITE_ADSENSE_CLIENT is not set. Ad will not render.');
       return;
     }
 
@@ -48,12 +47,9 @@ const AdSenseContainer = ({
     pushed.current = true;
 
     try {
-      // eslint-disable-next-line no-undef
       (window.adsbygoogle = window.adsbygoogle || []).push({});
     } catch (err) {
-      if (import.meta.env.DEV) {
-        console.error('[AdSense] push error:', err);
-      }
+      devError('[AdSense] push error:', err);
     }
 
     return () => {

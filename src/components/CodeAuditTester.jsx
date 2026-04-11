@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { trackEvent } from "../utils/analytics";
+import { devError } from "../utils/devLog";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
 
@@ -29,8 +30,8 @@ export default function CodeAuditTester() {
       const data = await resp.json();
       setResult(data);
     } catch (err) {
-      setError("Network or server error. Check console for details.");
-      console.error("[CodeAuditTester] request failed:", err);
+      setError("Network or server error. Try again in a moment.");
+      devError("[CodeAuditTester] request failed:", err);
     } finally {
       setLoading(false);
     }

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { devError } from '../../utils/devLog';
 import { FileText, Sparkles, Loader2, Download } from 'lucide-react';
 
 const ExecutiveSummary = () => {
@@ -21,7 +22,7 @@ const ExecutiveSummary = () => {
                 setDraft(data.draft);
             }
         } catch (err) {
-            console.error(err);
+            devError(err);
         } finally {
             setLoading(false);
         }

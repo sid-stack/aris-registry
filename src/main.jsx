@@ -6,6 +6,7 @@ import { initAnalytics, registerConsentListener } from "./utils/analytics";
 import { initServiceWorkerAfterConsent } from "./utils/pwa";
 import { initTheme } from "./lib/theme";
 import DevErrorPanel from "./components/DevErrorPanel.jsx";
+import { devWarn } from "./utils/devLog";
 
 // Must be the very first import-side-effect so the fetch patch is live
 // before any other code fires a request.
@@ -25,7 +26,7 @@ const IS_DEV = import.meta.env.DEV;
 const CLERK_KEY_MISMATCH = IS_DEV && clerkPubKey.startsWith('pk_live_');
 
 if (CLERK_KEY_MISMATCH) {
-  console.warn(
+  devWarn(
     '[BidSmith Dev] Clerk production key detected on localhost.\n' +
     'Auth will return 400 errors until you add a pk_test_ key.\n' +
     'Fix: create .env.development.local with:\n' +

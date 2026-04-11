@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { devWarn } from '../utils/devLog';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   AreaChart, Area, BarChart, Bar, Cell, PieChart, Pie
@@ -65,7 +66,7 @@ const AdminDashboard = ({ onBack }) => {
       const data = await res.json();
       setWaitlist(data.entries || []);
       setWaitlistStats(data.stats || {});
-    } catch (e) { console.warn('waitlist fetch failed', e); }
+    } catch (e) { devWarn('waitlist fetch failed', e); }
     finally { setWaitlistLoading(false); }
   };
 
@@ -82,7 +83,7 @@ const AdminDashboard = ({ onBack }) => {
       const notes = {};
       (data.reports || []).forEach(r => { notes[r.id] = r.admin_notes || ''; });
       setReportNotes(notes);
-    } catch (e) { console.warn('pending reports fetch failed', e); }
+    } catch (e) { devWarn('pending reports fetch failed', e); }
     finally { setPendingLoading(false); }
   };
 

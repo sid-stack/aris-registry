@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import FatalErrorBanner from './dashboard/FatalErrorBanner';
 import NotFound from '../pages/NotFound';
+import { devError } from '../utils/devLog';
 
 class ErrorBoundary extends Component {
   constructor(props) {
@@ -27,8 +28,7 @@ class ErrorBoundary extends Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    // Log the error to console and any error tracking service
-    console.error('Error Boundary caught an error:', error, errorInfo);
+    devError('Error Boundary caught an error:', error, errorInfo);
     
     this.setState({
       error: {

@@ -1,3 +1,5 @@
+import { devError } from "./devLog";
+
 let html2pdfLoaderPromise;
 
 async function loadHtml2Pdf() {
@@ -34,7 +36,7 @@ export async function triggerPDFExport() {
       .from(element)
       .save();
   } catch (error) {
-    console.error("PDF export failed:", error);
+    devError("PDF export failed:", error);
     window.print();
   } finally {
     element.style.background = previousBackground;

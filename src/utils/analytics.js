@@ -3,6 +3,7 @@ import {
   ANALYTICS_CONSENT_KEY,
 } from "./consent";
 import posthog from 'posthog-js';
+import { devDebug } from './devLog';
 
 const measurementId = import.meta.env.VITE_GA4_MEASUREMENT_ID;
 
@@ -57,7 +58,7 @@ export function initAnalytics() {
       anonymize_ip: true,
       send_page_view: false,
     });
-    console.debug('[Analytics] Google Analytics initialized');
+    devDebug('[Analytics] Google Analytics initialized');
   }
 
   // Initialize PostHog
@@ -69,7 +70,7 @@ export function initAnalytics() {
       autocapture: true,
       capture_pageview: false,
     });
-    console.debug('[Analytics] PostHog initialized');
+    devDebug('[Analytics] PostHog initialized');
   }
 
   initialized = true;

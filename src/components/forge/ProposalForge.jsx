@@ -20,6 +20,7 @@ import Highlight from '@tiptap/extension-highlight';
 import Underline from '@tiptap/extension-underline';
 import CharacterCount from '@tiptap/extension-character-count';
 import { useState, useCallback, useMemo, useEffect } from 'react';
+import { devError } from '../../utils/devLog';
 import {
   FileText, Zap, CheckCircle, Circle, ChevronDown,
   AlignLeft, Bold, Italic, List, Link, Download,
@@ -274,7 +275,7 @@ function ForgeCommand({ editor, auditData }) {
         editor.chain().focus().insertContent(data.result).run();
       }
     } catch (err) {
-      console.error('[FORGE] Command failed:', err);
+      devError('[FORGE] Command failed:', err);
     } finally {
       setLoading(false);
     }
@@ -551,9 +552,8 @@ export default function ProposalForge({ auditData, onBack }) {
         <ComplianceGutter
           requirements={requirements}
           coverage={coverage}
-          onRequirementClick={(req) => {
+          onRequirementClick={() => {
             // Future: scroll to or highlight the relevant section
-            console.log('[FORGE] Requirement clicked:', req.id);
           }}
         />
       </div>

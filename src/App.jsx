@@ -199,8 +199,6 @@ export default function App() {
   } : null;
 
   const [view, setView] = useState(() => resolveView(path));
-  const [initialUrl, setInitialUrl] = useState("");
-  const [initialFile, setInitialFile] = useState(null);
 
   usePageMeta(view);
 
@@ -274,16 +272,12 @@ export default function App() {
   };
 
   const handleAnalyze = (url) => {
-    trackEvent("landing_quick_audit_started", { entry: "url_bar" });
-    setInitialFile(null);
-    setInitialUrl(url);
+    trackEvent("landing_quick_audit_started", { entry: "url_bar", url: url?.slice?.(0, 120) });
     goWorkspace();
   };
 
-  const handleAnalyzeFile = (file) => {
+  const handleAnalyzeFile = (_file) => {
     trackEvent("landing_quick_audit_started", { entry: "pdf_upload" });
-    setInitialUrl("");
-    setInitialFile(file);
     goWorkspace();
   };
 

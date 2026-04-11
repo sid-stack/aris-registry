@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { devError } from '../utils/devLog';
 
 const useErrorBoundary = () => {
   const [error, setError] = useState(null);
@@ -10,7 +11,7 @@ const useErrorBoundary = () => {
   }, []);
 
   const captureError = useCallback((error, errorInfo = null) => {
-    console.error('Error captured by boundary:', error, errorInfo);
+    devError('Error captured by boundary:', error, errorInfo);
     
     const formattedError = {
       message: error?.message || 'An unknown error occurred',

@@ -524,7 +524,7 @@ const fs = {
 function SubmissionChecklist({ auditResult, loading = false }) {
   const checklist = auditResult?.submission_checklist || [];
   const incumbentSignals = auditResult?.incumbent_signals || [];
-  const [checked, setChecked] = React.useState({});
+  const [checked, setChecked] = useState({});
 
   const toggle = (i) => setChecked(prev => ({ ...prev, [i]: !prev[i] }));
   const doneCount = Object.values(checked).filter(Boolean).length;
