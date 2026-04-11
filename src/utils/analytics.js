@@ -9,6 +9,7 @@ const measurementId = import.meta.env.VITE_GA4_MEASUREMENT_ID;
 let initialized = false;
 let scriptRequested = false;
 let listenerRegistered = false;
+const QUALIFIED_SESSION_PREFIXES = ["/resources", "/govcon-guide", "/rfp-compliance-matrix-generator", "/templates"];
 
 // BidSmith UID (persistent cookie logic)
 const UID_KEY = "bs_uid";
@@ -56,7 +57,7 @@ export function initAnalytics() {
       anonymize_ip: true,
       send_page_view: false,
     });
-    console.log('[Analytics] Google Analytics initialized');
+    console.debug('[Analytics] Google Analytics initialized');
   }
 
   // Initialize PostHog
@@ -68,7 +69,7 @@ export function initAnalytics() {
       autocapture: true,
       capture_pageview: false,
     });
-    console.log('[Analytics] PostHog initialized');
+    console.debug('[Analytics] PostHog initialized');
   }
 
   initialized = true;
@@ -91,12 +92,25 @@ async function bsTrack(event, value = 0, metadata = {}) {
   } catch (e) { /* silent fail for analytics */ }
 }
 
+function isQualifiedPath(path) {
+  return QUALIFIED_SESSION_PREFIXES.some((prefix) => path.startsWith(prefix));
+}
+
+function trackQualifiedSession(path) {
+  if (!canTrack() || !isQualifiedPath(path)) return;
+  const key = `bs_qs_${path}`;
+  if (window.sessionStorage.getItem(key) === "1") return;
+  window.sessionStorage.setItem(key, "1");
+  trackEvent("qualified_session", { path, segment: "govcon_intent" });
+}
+
 export function trackPageView(path) {
   if (!canTrack()) return;
   
   // Track as 'demo_view' for report/audit paths, else 'page_view'
   const event = (path.includes('sam-rep') || path.includes('audit')) ? 'demo_view' : 'page_view';
   bsTrack(event, 0, { path });
+  trackQualifiedSession(path);
 
   // Track with Google Analytics
   if (initialized && window.gtag && measurementId) {
