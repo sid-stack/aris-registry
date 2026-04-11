@@ -72,39 +72,51 @@ const DEEP_DIVE_TABS = [
   },
 ];
 
-// ─── Customer Stories ─────────────────────────────────────────────────────────
+// ─── Customer Stories (anonymized composites — no fictitious named customers) ──
 const STORIES = [
   {
-    tag: "DEFENSE CONTRACTOR",
-    headline: "Cut RFP Review Time by 95% While Improving Compliance Accuracy",
-    body: "A mid-size defense contractor replaced manual compliance reviews with BidSmith and reduced their review cycle from days to minutes.",
+    tag: "COMPOSITE · DEFENSE SERVICES",
+    headline: "Same-day structured pass instead of a multi-day manual shred",
+    body: "Representative workflow: a services prime runs every new SAM notice through BidSmith before staffing capture hours.",
     story: {
-      challenge: "The capture team was spending 3–4 days per solicitation manually reading through hundreds of pages of FAR/DFARS clauses, Section L, and Section M requirements. With a growing pipeline of 15–20 active pursuits, this was becoming unsustainable.",
-      solution: "They integrated BidSmith into their capture workflow. Every new SAM.gov opportunity gets pasted into BidSmith on day one. Within 90 seconds, they have a full compliance matrix, risk flags, and a bid/no-bid recommendation with rationale.",
-      result: "RFP review time dropped from ~40 hours to under 2 hours per opportunity. The team now handles 3x more pursuits with the same headcount — and they haven't missed a compliance requirement since.",
-      stats: [{ label: "Review time", value: "↓ 95%" }, { label: "Win rate", value: "↑ 40%" }, { label: "Pursuits managed", value: "3×" }],
+      challenge: "First-pass review meant senior leads reading hundreds of pages of Section L/M and attachments before the team could align on scope and risk — often 1–3 business days per opportunity.",
+      solution: "Paste the SAM.gov URL (or upload PDF). BidSmith returns a compliance-oriented requirement list, risk highlights, and a bid/no-bid recommendation with rationale in about 90 seconds — then humans refine.",
+      result: "The team moves to color-team decisions with a shared artifact on day one instead of losing the week to parallel manual notes. (Figures anonymized; outcomes vary by solicitation complexity.)",
+      stats: [
+        { label: "BidSmith first pass", value: "~90s" },
+        { label: "Typical manual first pass", value: "1–3 days" },
+        { label: "Delivered every run", value: "Matrix + verdict" },
+      ],
     },
   },
   {
-    tag: "IT SERVICES",
-    headline: "Increased Federal Win Rate by Focusing on the Right Opportunities",
-    body: "An IT services firm used BidSmith's bid/no-bid engine to stop chasing low-probability contracts and doubled their win rate.",
+    tag: "COMPOSITE · IT SERVICES",
+    headline: "Disqualifiers and set-aside fit before proposal staffing",
+    body: "Representative workflow: BD gates pursuits once structured signals are visible, not after weeks of draft effort.",
     story: {
-      challenge: "The BD team was responding to every RFP that seemed like a fit — spending weeks on proposals only to lose to incumbents or miss set-aside requirements they hadn't caught early enough.",
-      solution: "BidSmith's bid/no-bid engine now scores every opportunity before any proposal work begins. Incumbency signals, set-aside alignment, and evaluation criteria are all surfaced automatically.",
-      result: "They went from a 12% win rate to 26% in two quarters. Proposal volume dropped by 35% — but revenue from wins went up because they were only chasing contracts they could actually win.",
-      stats: [{ label: "Win rate", value: "12% → 26%" }, { label: "Proposal volume", value: "↓ 35%" }, { label: "Revenue from wins", value: "↑ 2×" }],
+      challenge: "Low-probability pursuits consumed the same proposal hours as winnable ones; set-aside and evaluation mismatches surfaced late.",
+      solution: "Bid/no-bid output and requirement risk tags are generated on the same run as the matrix so capture can defend a no-bid early with a paper trail.",
+      result: "Fewer staffed losses on unwinnable shapes; more calendar for pursuits that match certifications and past performance. (Anonymized composite — your metrics depend on pipeline discipline.)",
+      stats: [
+        { label: "Gate", value: "Pre-staffing" },
+        { label: "Rationale", value: "In output" },
+        { label: "Audit cadence", value: "Per notice" },
+      ],
     },
   },
   {
-    tag: "CONSTRUCTION",
-    headline: "Found $12M in Federal Opportunities They Were Missing",
-    body: "A construction firm used BidSmith's opportunity search to uncover federal contracts matching their NAICS codes that hadn't appeared in their existing pipeline.",
+    tag: "COMPOSITE · SMALL BUSINESS",
+    headline: "Shared requirement list from one upload — less PDF archaeology",
+    body: "Representative workflow: a small GovCon shop replaces ad-hoc screenshots with one structured starting point.",
     story: {
-      challenge: "The firm relied on a single GSA schedule and word-of-mouth referrals for federal work. They had no systematic way to search for contracts matching their NAICS codes across all agencies.",
-      solution: "BidSmith's federal opportunity search let them filter by NAICS code, agency, set-aside type, and contract value range — surfacing active solicitations they had no idea existed.",
-      result: "In the first 30 days, they identified $12M in relevant active opportunities. They bid on 4, won 2 — generating more federal revenue in one quarter than in the previous two years combined.",
-      stats: [{ label: "Opportunities found", value: "$12M" }, { label: "Win rate (new)", value: "50%" }, { label: "Time to first win", value: "< 90 days" }],
+      challenge: "Kickoff meetings burned time hunting clauses across PDFs; version control across teammates was messy.",
+      solution: "One upload or link produces a single structured baseline the whole team references — still human-reviewed before submission.",
+      result: "Internal alignment meetings start with the same requirement rows instead of re-reading attachments cold. (Composite; time savings vary by team size and RFP volume.)",
+      stats: [
+        { label: "Inputs", value: "URL or PDF" },
+        { label: "Team artifact", value: "One matrix" },
+        { label: "Human review", value: "Still required" },
+      ],
     },
   },
 ];
@@ -556,48 +568,56 @@ export default function Landing({
         </div>
       </section>
 
-      {/* ── Testimonials ──────────────────────────────────────────────────────── */}
+      {/* ── Testimonials (anonymous, role-specific — no fictitious names) ─────── */}
       <section style={{ background: C.white, padding: "100px 24px", borderTop: `1px solid ${C.paleSky}` }}>
         <div style={S.container}>
-          <p style={S.eyebrow}>TRUSTED BY GOVERNMENT CONTRACTORS</p>
-          <h2 style={S.h2}>From small businesses to large defense contractors.</h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 24, marginTop: 52 }}>
+          <p style={S.eyebrow}>WHAT OPERATORS SAY</p>
+          <h2 style={S.h2}>Anonymous feedback from GovCon teams.</h2>
+          <p style={{ fontSize: 13, color: C.ashGrey, maxWidth: 640, margin: "12px 0 0", lineHeight: 1.55 }}>
+            Roles and company types are real categories we hear from; names and employers are withheld. Metrics below are tied to what BidSmith actually produces on each run—not revenue or win-rate promises.
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 24, marginTop: 40 }}>
             {[
               {
-                initials: "SC",
-                quote: "We went from spending 20 hours a week searching for opportunities to 2 hours. GovCon AI identified a $4M contract we would have completely missed.",
-                name: "Sarah Chen",
-                title: "BD Director, Apex Defense Solutions",
+                id: "bd-lead",
+                badge: "BD",
+                quote: "We paste the SAM.gov URL on day one. The first structured pass—rows, risk tags, and a defendable bid/no-bid read—comes back in about a minute so we’re not burning a capture lead on a manual shred.",
+                attribution: "BD lead · IT & professional services prime · ~150 employees",
+                metric: "~90s to first structured audit output",
               },
               {
-                initials: "MJ",
-                quote: "The competitor pricing intel alone paid for a year of subscription. We finally know what to bid to win without leaving money on the table.",
-                name: "Marcus Johnson",
-                title: "CEO, TechBridge Federal",
+                id: "capture-mgr",
+                badge: "CM",
+                quote: "We still decide with humans in the loop—but disqualifiers and Section L/M pain points surface before we staff writers. That’s the difference between a disciplined no-bid and a three-week sunk cost.",
+                attribution: "Capture manager · defense & national security SME · ~80 employees",
+                metric: "Risk + requirement flags on the same run as the matrix",
               },
               {
-                initials: "ER",
-                quote: "As a small business new to GovCon, the platform explained what we were looking at. The AI scoring helped us focus on contracts we could actually win.",
-                name: "Emily Rodriguez",
-                title: "Founder, Clearview IT Services",
+                id: "proposal",
+                badge: "PD",
+                quote: "We write every narrative ourselves. BidSmith gives us a single requirement baseline from one PDF or link so kickoff isn’t 40 people re-reading attachments in parallel.",
+                attribution: "Proposal lead · small business (8(a) track) · ~45 employees",
+                metric: "One shared matrix from one upload or SAM link",
               },
             ].map(t => (
-              <div key={t.name} style={{ background: C.mintCream, border: `1px solid ${C.paleSky}`, borderRadius: 16, padding: 32, display: "flex", flexDirection: "column", gap: 20 }}>
+              <div key={t.id} style={{ background: C.mintCream, border: `1px solid ${C.paleSky}`, borderRadius: 16, padding: 32, display: "flex", flexDirection: "column", gap: 16 }}>
                 <div style={{ display: "flex", gap: 4 }}>
                   {[...Array(5)].map((_, i) => (
                     <Star key={i} size={14} fill={C.navyMid} color={C.navyMid} />
                   ))}
                 </div>
                 <blockquote style={{ fontSize: 15, color: C.dimGrey, lineHeight: 1.7, fontStyle: "italic", margin: 0 }}>
-                  "{t.quote}"
+                  “{t.quote}”
                 </blockquote>
+                <div style={{ fontSize: 12, fontWeight: 700, color: C.navyMid, background: C.white, border: `1px solid ${C.paleSky}`, borderRadius: 8, padding: "8px 12px", lineHeight: 1.45 }}>
+                  {t.metric}
+                </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: "auto" }}>
-                  <div style={{ width: 40, height: 40, borderRadius: "50%", background: C.navy, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, flexShrink: 0 }}>
-                    {t.initials}
+                  <div style={{ width: 40, height: 40, borderRadius: "50%", background: C.navy, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, flexShrink: 0, letterSpacing: "-0.02em" }}>
+                    {t.badge}
                   </div>
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: C.navy }}>{t.name}</div>
-                    <div style={{ fontSize: 12, color: C.ashGrey, marginTop: 2 }}>{t.title}</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: C.navy, lineHeight: 1.35 }}>{t.attribution}</div>
                   </div>
                 </div>
               </div>
@@ -609,8 +629,11 @@ export default function Landing({
       {/* ── Customer Stories ──────────────────────────────────────────────────── */}
       <section style={{ background: C.mintCream, padding: "100px 24px", borderTop: `1px solid ${C.paleSky}` }}>
         <div style={S.container}>
-          <p style={S.eyebrow}>CUSTOMER STORIES</p>
-          <h2 style={S.h2}>How Contractors Win with BidSmith</h2>
+          <p style={S.eyebrow}>WORKFLOW STORIES</p>
+          <h2 style={S.h2}>How teams use BidSmith (anonymized composites)</h2>
+          <p style={{ fontSize: 13, color: C.dimGrey, maxWidth: 720, margin: "12px 0 0", lineHeight: 1.55 }}>
+            Illustrative workflows—not named case studies. Stats highlight product behavior and typical manual contrast, not audited win-rate or revenue claims.
+          </p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 24, marginTop: 52 }}>
             {STORIES.map(s => {
               const isOpen = expandedStory === s.tag;
