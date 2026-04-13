@@ -48,8 +48,11 @@ describe("complianceMatrixXlsx", () => {
     expect(buf.byteLength).toBeGreaterThan(2000);
   });
 
-  // Empty requirements: export path rejects with a stable error code (matches downloadComplianceMatrixXlsx).
-  it("throws NO_COMPLIANCE_ROWS when requirements array is empty", () => {
-    expect(() => buildComplianceMatrixWorkbook({ requirements: [] })).toThrowError(/NO_COMPLIANCE_ROWS/);
+  // Verifies empty requirements yield a valid header-only workbook (no throw, ZIP magic, non-zero size).
+  it("returns a non-empty buffer with PK bytes when requirements array is empty", () => {
+    expect(() => buildComplianceMatrixWorkbook({ requirements: [] })).not.toThrow();
+    const buf = complianceMatrixXlsxBuffer({ requirements: [] });
+    expect(buf.byteLength).toBeGreaterThan(0);
+    expect(pkPrefix(buf)).toBe("PK");
   });
 });

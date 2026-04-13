@@ -160,7 +160,8 @@ export function buildComplianceMatrixWorkbook(audit) {
       nextStep,
       riskFill: riskLevelFill(riskLevel),
     };
-  });
+  })
+    : [];
 
   const wb = XLSX.utils.book_new();
   const ws = {};
@@ -233,13 +234,15 @@ export function buildComplianceMatrixWorkbook(audit) {
     ws["!rows"].push({ hpt: estimateRowHeightPt(rows[ri].reqText) });
   }
 
-  ws["!freeze"] = {
-    xSplit: 0,
-    ySplit: 1,
-    topLeftCell: "A2",
-    activePane: "bottomLeft",
-    state: "frozen",
-  };
+  if (rows.length > 0) {
+    ws["!freeze"] = {
+      xSplit: 0,
+      ySplit: 1,
+      topLeftCell: "A2",
+      activePane: "bottomLeft",
+      state: "frozen",
+    };
+  }
 
   XLSX.utils.book_append_sheet(wb, ws, SHEET_NAME.slice(0, 31));
   return wb;

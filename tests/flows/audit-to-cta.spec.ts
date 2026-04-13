@@ -5,6 +5,7 @@ test.describe("Post-audit CTA harness", () => {
   // Verifies HumanWalkthroughCTA, Book a call (new tab), and export control are present after a completed-audit-style layout.
   test("shows walkthrough CTA, Book a call opens new tab, export visible", async ({ page, context }) => {
     await page.goto("/__e2e/bento-audit-cta");
+    await page.waitForSelector('[data-testid="e2e-harness-ready"]', { timeout: 30_000 });
 
     await expect(page.getByText(/Want a human walkthrough\?/i)).toBeVisible();
 

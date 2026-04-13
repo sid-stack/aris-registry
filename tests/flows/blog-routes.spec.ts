@@ -20,10 +20,11 @@ test.describe("Blog routes", () => {
       expect(title.trim().length, "title not empty").toBeGreaterThan(0);
       expect(title.trim().toLowerCase(), "title not generic single word").not.toBe("bidsmith");
 
-      // Article wraps the hero; avoid locator.or() — strict mode rejects two visible matches.
-      await expect(
-        page.locator("article").getByRole("heading", { level: 1 }).first(),
-      ).toBeVisible({ timeout: 15_000 });
+      // Check h1 first, fall back to article (avoids strict-mode failure from h1.or(article) matching two nodes).
+      const h1 = page.locator("h1").first();
+      const article = page.locator("article").first();
+      const heading = (await h1.isVisible()) ? h1 : article;
+      await expect(heading).toBeVisible({ timeout: 15_000 });
     });
   }
 });

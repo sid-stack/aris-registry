@@ -3,19 +3,12 @@ import { test, expect } from "@playwright/test";
 
 const API_BASE = process.env.E2E_API_BASE_URL || "http://127.0.0.1:8080";
 
-function redisQuotaConfigured() {
-  return Boolean(
-    process.env.UPSTASH_REDIS_REST_URL?.trim()
-      && process.env.UPSTASH_REDIS_REST_TOKEN?.trim(),
-  );
-}
-
 test.describe("Free audit quota API", () => {
   // Verifies three successful credit reservations then a 429 whose JSON mentions quota or limit for the same x-user-id.
   test("fourth signed-in credit check returns 429 with quota/limit messaging", async ({ request }) => {
     test.skip(
-      !redisQuotaConfigured(),
-      "Skipped: Upstash URL+token not both set — quota enforcement inactive (matches api/utils/upstash.js)",
+      !process.env.UPSTASH_REDIS_REST_URL,
+      "Skipped: Redis not configured — quota enforcement inactive",
     );
 
     const uid = `e2e-quota-${Date.now()}`;
