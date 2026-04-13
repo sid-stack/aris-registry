@@ -1,0 +1,264 @@
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import {
+  CallToolRequestSchema,
+  ListToolsRequestSchema,
+} from "@modelcontextprotocol/sdk/types.js";
+
+/**
+ * ARIS Procurement MCP Server
+ * Specialized toolset for SAM.gov data extraction and solicitation harvesting.
+ */
+
+const SAM_API_KEY = process.env.SAM_API_KEY || process.env.SAM_GOV_API_KEY;
+
+const server = new Server(
+  {
+    name: "aris-procurement",
+    version: "1.0.0",
+  },
+  {
+    capabilities: {
+      tools: {},
+    },
+  }
+);
+
+// ─── Utilities (Extracted from api/index.js) ───────────────────────────────
+
+function parseNoticeId(url) {
+  // Regex for 32-char UUID or similar hex ID in various positions
+  const uuidMatch = url.match(/\/opp\/([a-f0-9]{32})/i);
+  if (uuidMatch) return uuidMatch[1];
+
+  const pathMatch = url.match(/\/opp\/([a-f0-9]+)/i);
+  if (pathMatch) return pathMatch[1];
+
+  const qMatch = url.match(/[?&]noticeId=([^&]+)/i);
+  if (qMatch) return qMatch[1];
+
+  return null;
+}
+
+function requireSamKey() {
+  if (!SAM_API_KEY) {
+    throw new Error("SAM_API_KEY_MISSING");
+  }
+}
+
+function scoreByName(name) {
+  const n = name.toLowerCase();
+  let score = 0;
+  if (/solicitation|combined|rfp|sol_|sol-/.test(n)) score += 50;
+  if (/statement.of.work|sow/.test(n)) score += 40;
+  if (/performance.work.statement|pws/.test(n)) score += 30;
+  if (/amendment|amd|qa|questions/.test(n)) score -= 20;
+  if (/wage.determination|exhibit/.test(n)) score -= 60;
+  if (/attachment/.test(n)) score -= 10;
+  return score;
+}
+
+async function scoreAttachments(links, apiKey) {
+  const sample = links.slice(0, 15);
+  const results = await Promise.all(
+    sample.map(async (url) => {
+      try {
+        const sep = url.includes("?") ? "&" : "?";
+        const fullUrl = url.includes("api_key") ? url : `${url}${sep}api_key=${apiKey}`;
+        const res = await fetch(fullUrl, { method: "HEAD", redirect: "manual" });
+        const disp = res.headers.get("content-disposition") || "";
+        const loc = res.headers.get("location") || "";
+        const dispMatch = disp.match(/filename[^;=\n]*=["']?([^"'\n]+)["']?/i);
+        const locMatch = decodeURIComponent(loc).match(/filename=([^&]+)/);
+        const name = (dispMatch?.[1] || locMatch?.[1] || url.split("/").pop()).trim();
+        const score = scoreByName(name);
+        return { url, name, score };
+      } catch (e) {
+        return { url, name: url.split("/").pop(), score: 0 };
+      }
+    })
+  );
+  return results.sort((a, b) => b.score - a.score);
+}
+
+async function downloadWithRetry(url, retries = 3) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeout);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return Buffer.from(await res.arrayBuffer());
+    } catch (e) {
+      if (i === retries - 1) throw e;
+      await new Promise((r) => setTimeout(r, 1000 * Math.pow(2, i)));
+    }
+  }
+}
+
+// ─── Tool Definitions ───────────────────────────────────────────────────────
+
+server.setRequestHandler(ListToolsRequestSchema, async () => {
+  return {
+    tools: [
+      {
+        name: "get_opportunity",
+        description: "Fetch opportunity metadata and attachments from SAM.gov",
+        inputSchema: {
+          type: "object",
+          properties: {
+            url: { type: "string", description: "The SAM.gov opportunity URL" },
+          },
+          required: ["url"],
+        },
+      },
+      {
+        name: "download_solicitation",
+        description: "Download and score best-matching solicitation PDF from top links",
+        inputSchema: {
+          type: "object",
+          properties: {
+            links: { type: "array", items: { type: "string" } },
+            noticeId: { type: "string" },
+          },
+          required: ["links"],
+        },
+      },
+      {
+        name: "search_opportunities",
+        description: "Search for opportunities on SAM.gov using keywords",
+        inputSchema: {
+          type: "object",
+          properties: {
+            q: { type: "string", description: "Search query or keywords" },
+            limit: { type: "number", description: "Max results (default 10)", default: 10 },
+          },
+          required: ["q"],
+        },
+      },
+    ],
+  };
+});
+
+server.setRequestHandler(CallToolRequestSchema, async (request) => {
+  const { name, arguments: args } = request.params;
+
+  switch (name) {
+    case "get_opportunity": {
+      requireSamKey();
+      const noticeId = parseNoticeId(args.url);
+      if (!noticeId) throw new Error("Invalid SAM.gov URL");
+
+      try {
+        const samRes = await fetch(
+          `https://api.sam.gov/opportunities/v2/search?noticeid=${noticeId}&limit=1&api_key=${SAM_API_KEY}`
+        );
+        
+        if (samRes.status === 429) {
+          console.error("[SAM_MCP] API Rate Limit Hit (429). Triggering Scraper Fallback...");
+          throw new Error("RATE_LIMIT_FALLBACK");
+        }
+
+        if (!samRes.ok) throw new Error(`SAM.gov error: ${samRes.status}`);
+
+        const samData = await samRes.json();
+        const opportunity = samData?.opportunitiesData?.[0];
+        if (!opportunity) throw new Error("Opportunity not found");
+
+        return {
+          content: [{ type: "text", text: JSON.stringify(opportunity) }],
+        };
+      } catch (error) {
+        if (error.message === "RATE_LIMIT_FALLBACK" && process.env.FIRECRAWL_API_KEY) {
+          // Firecrawl Fallback: Scrape the page directly
+          const fcRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${process.env.FIRECRAWL_API_KEY}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ url: args.url, formats: ["markdown"] })
+          });
+          
+          if (fcRes.ok) {
+            const fcData = await fcRes.json();
+            return {
+              content: [{ 
+                type: "text", 
+                text: JSON.stringify({
+                  noticeId,
+                  description: fcData.data?.markdown || "Could not extract solicitation text.",
+                  source: "firecrawl_fallback"
+                }) 
+              }],
+            };
+          }
+        }
+        throw error;
+      }
+    }
+
+    case "search_opportunities": {
+      requireSamKey();
+      try {
+        const query = encodeURIComponent(args.q);
+        const limit = args.limit || 10;
+        const samRes = await fetch(
+          `https://api.sam.gov/opportunities/v2/search?q=${query}&limit=${limit}&api_key=${SAM_API_KEY}`
+        );
+        
+        if (samRes.status === 429) throw new Error("RATE_LIMIT_HIT");
+        if (!samRes.ok) throw new Error(`SAM.gov error: ${samRes.status}`);
+
+        const samData = await samRes.json();
+        const opportunities = samData?.opportunitiesData || [];
+
+        return {
+          content: [{ type: "text", text: JSON.stringify(opportunities) }],
+        };
+      } catch (error) {
+        throw error;
+      }
+    }
+
+    case "download_solicitation": {
+      requireSamKey();
+      const ranked = await scoreAttachments(args.links, SAM_API_KEY);
+      const target = ranked.find((r) => r.score >= -10 && /\.pdf$/i.test(r.name));
+      if (!target) throw new Error("No suitable PDF solicitation found");
+
+      const downloadUrl = target.url.includes("api_key")
+        ? target.url
+        : `${target.url}?api_key=${SAM_API_KEY}`;
+      const buffer = await downloadWithRetry(downloadUrl);
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({
+              name: target.name,
+              base64: buffer.toString("base64"),
+              score: target.score,
+            }),
+          },
+        ],
+      };
+    }
+
+    default:
+      throw new Error(`Unknown tool: ${name}`);
+  }
+});
+
+async function main() {
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+  console.error("ARIS Procurement MCP Server running on stdio");
+}
+
+main().catch((error) => {
+  console.error("Server error:", error);
+  process.exit(1);
+});

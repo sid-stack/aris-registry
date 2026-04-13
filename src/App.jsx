@@ -6,6 +6,7 @@ import ConsentBanner from "./components/ConsentBanner";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { trackEvent, trackPageView } from "./utils/analytics";
 import { BOFU_RESOURCES } from "./content/growthPlanData";
+import { getBlogPost } from "./content/blogManifest";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { pathForView, WORKSPACE_PATH } from "./lib/routes";
@@ -16,7 +17,6 @@ const SamRep           = lazy(() => import("./pages/SamRep"));
 const Security         = lazy(() => import("./pages/Security"));
 const About            = lazy(() => import("./pages/About"));
 const CompliancePage   = lazy(() => import("./pages/CompliancePage"));
-const GovConDashboardV2 = lazy(() => import("./pages/GovConDashboardV2"));
 const GovConGuide      = lazy(() => import("./pages/GovConGuide"));
 const Demo             = lazy(() => import("./pages/Demo"));
 const PricingGrid      = lazy(() => import("./pages/PricingGrid"));
@@ -24,11 +24,102 @@ const GrowthPlaybook   = lazy(() => import("./pages/GrowthPlaybook"));
 const TrafficBrief     = lazy(() => import("./pages/TrafficBrief"));
 const RfpMatrixGenerator = lazy(() => import("./pages/seo/RfpMatrixGenerator"));
 const GrowthResourcePage = lazy(() => import("./pages/seo/GrowthResourcePage"));
+const BlogArticle = lazy(() => import("./pages/seo/BlogArticle"));
 const AdminDashboard   = lazy(() => import("./pages/AdminDashboard"));
 const BentoDashboard   = lazy(() => import("./pages/BentoDashboard"));
 const Contact          = lazy(() => import("./pages/Contact"));
 
 const BASE_URL = "https://www.bidsmith.pro";
+
+/** Logged-out /dashboard (and traffic-brief) — context before Clerk so cold-email clicks convert. */
+function DashboardSignInShell({ onBackHome }) {
+  const backBtn = {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 22,
+    padding: "8px 0",
+    fontSize: 14,
+    fontWeight: 600,
+    color: "#94a3b8",
+    background: "transparent",
+    border: "none",
+    cursor: "pointer",
+    fontFamily: "inherit",
+  };
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "linear-gradient(145deg, #0c1220 0%, #111827 42%, #0f172a 100%)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontFamily: '"Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
+        padding: "28px 18px 48px",
+        boxSizing: "border-box",
+      }}
+    >
+      <div style={{ width: "100%", maxWidth: 440 }}>
+        <button type="button" style={backBtn} onClick={onBackHome}>
+          ← Back to BidSmith
+        </button>
+        <p
+          style={{
+            margin: "0 0 10px",
+            fontSize: 12,
+            fontWeight: 700,
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            color: "rgba(148, 163, 184, 0.9)",
+          }}
+        >
+          BidSmith · Command Center
+        </p>
+        <h1
+          style={{
+            margin: "0 0 14px",
+            fontSize: "clamp(1.35rem, 4vw, 1.6rem)",
+            fontWeight: 800,
+            lineHeight: 1.3,
+            color: "#f8fafc",
+          }}
+        >
+          Turn any SAM.gov solicitation into a compliance matrix, FAR/DFARS risk read, and bid/no-bid call — in about 90 seconds.
+        </h1>
+        <p style={{ margin: "0 0 18px", fontSize: 15, lineHeight: 1.65, color: "#cbd5e1" }}>
+          Sign in (or create a free account) to open the workspace. Then paste a notice URL or upload a PDF — no manual shred.
+        </p>
+        <ul
+          style={{
+            margin: "0 0 22px",
+            paddingLeft: 20,
+            color: "#e2e8f0",
+            fontSize: 14,
+            lineHeight: 1.65,
+          }}
+        >
+          <li>Structured compliance matrix from Section L/M-style requirements</li>
+          <li>Disqualifier and set-aside fit signals you can share with capture</li>
+          <li>Bid / no-bid recommendation with plain-English rationale</li>
+        </ul>
+        <p style={{ margin: "0 0 20px", fontSize: 13, color: "#94a3b8", lineHeight: 1.55 }}>
+          Free plan: <strong style={{ color: "#e2e8f0" }}>3 full audits per calendar month</strong> · No credit card required. Upgrade anytime for unlimited runs.
+        </p>
+        <div
+          style={{
+            borderRadius: 12,
+            border: "1px solid rgba(148, 163, 184, 0.25)",
+            background: "rgba(15, 23, 42, 0.55)",
+            padding: "18px 16px 20px",
+          }}
+        >
+          <SignIn routing="hash" />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function LoadingSpinner() {
   return (
@@ -91,19 +182,28 @@ function usePageMeta(view) {
   useEffect(() => {
     const isCompliance = view === "compliance";
     const isResource = view === "resource";
+    const isBlog = view === "blog";
     const resourceSlug = isResource
       ? window.location.pathname.replace("/resources/", "")
       : "";
     const resource = isResource
       ? BOFU_RESOURCES.find((item) => item.slug === resourceSlug)
       : null;
+    const blogSlug = isBlog ? window.location.pathname.replace("/blog/", "").replace(/\/$/, "") : "";
+    const blogPost = isBlog ? getBlogPost(blogSlug) : null;
     const meta = resource
       ? {
         title: `${resource.title} | BidSmith`,
         description: resource.description,
         path: `/resources/${resource.slug}`,
       }
-      : PAGE_META[view] || PAGE_META.landing;
+      : blogPost
+        ? {
+          title: `${blogPost.title} | BidSmith`,
+          description: blogPost.description,
+          path: `/blog/${blogPost.slug}`,
+        }
+        : PAGE_META[view] || PAGE_META.landing;
 
     document.title = meta.title;
 
@@ -114,7 +214,9 @@ function usePageMeta(view) {
     const od = document.querySelector('meta[property="og:description"]');
     if (od) od.setAttribute("content", meta.description);
 
-    const canonicalPath = (isCompliance || isResource) ? window.location.pathname : meta.path || "/";
+    const canonicalPath = (isCompliance || isResource || (isBlog && blogPost))
+      ? window.location.pathname
+      : meta.path || "/";
     const canonicalUrl = `${BASE_URL}${canonicalPath}`;
     let canonical = document.querySelector('link[rel="canonical"]');
     if (!canonical) {
@@ -154,6 +256,7 @@ function resolveView(path) {
   if (path === "/pricing") return "pricing";
   if (path === "/resources") return "resources";
   if (path.startsWith("/resources/")) return "resource";
+  if (path.startsWith("/blog/")) return "blog";
   if (path === "/traffic-brief") return "traffic-brief";
   if (path === "/rfp-compliance-matrix-generator") return "rfp-generator";
   if (path === "/admin") return "admin";
@@ -224,6 +327,7 @@ export default function App() {
       view === "privacy" || view === "terms" || view === "cookies" ? `/${view}` :
       view === "compliance" ? window.location.pathname :
       view === "resource" ? window.location.pathname :
+      view === "blog" ? window.location.pathname :
       view === "landing" ? (aliasSection ? `/#${aliasSection}` : "/") :
       pathMap[view] || "/";
     trackPageView(logicalPath);
@@ -286,43 +390,6 @@ export default function App() {
     goWorkspace();
   };
 
-  const authWall = (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "linear-gradient(145deg, #0c1220 0%, #111827 42%, #0f172a 100%)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontFamily: '"Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
-        padding: "28px 18px",
-        boxSizing: "border-box",
-      }}
-    >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: 432,
-        }}
-      >
-        <p
-          style={{
-            margin: "0 0 18px",
-            textAlign: "center",
-            fontSize: 13,
-            fontWeight: 600,
-            letterSpacing: "0.14em",
-            textTransform: "uppercase",
-            color: "rgba(148, 163, 184, 0.95)",
-          }}
-        >
-          BidSmith
-        </p>
-        <SignIn routing="hash" />
-      </div>
-    </div>
-  );
-
   const loadingScreen = <LoadingSpinner />;
 
   // Admin ops console: ADMIN_PASSWORD only (see AdminDashboard). No Clerk gate or wait.
@@ -370,7 +437,7 @@ export default function App() {
       );
       break;
     case "traffic-brief":
-      content = authLoading ? loadingScreen : authenticated ? <TrafficBrief onBack={goLanding} /> : authWall;
+      content = authLoading ? loadingScreen : authenticated ? <TrafficBrief onBack={goLanding} /> : <DashboardSignInShell onBackHome={goLanding} />;
       break;
     case "resources":
       content = (
@@ -400,6 +467,13 @@ export default function App() {
     case "rfp-generator":
       content = <RfpMatrixGenerator onUpload={goWorkspace} />;
       break;
+    case "blog": {
+      const slug = window.location.pathname.replace("/blog/", "").replace(/\/$/, "");
+      content = (
+        <BlogArticle slug={slug} onBack={goLanding} onEnterApp={handleEnterApp} />
+      );
+      break;
+    }
     case "admin":
       content = <AdminDashboard onBack={goLanding} />;
       break;
@@ -412,7 +486,7 @@ export default function App() {
     case "dashboard":
       content = authLoading ? loadingScreen : authenticated && user
         ? <BentoDashboard onBack={goLanding} user={user} />
-        : authWall;
+        : <DashboardSignInShell onBackHome={goLanding} />;
       break;
     case "landing":
       content = (

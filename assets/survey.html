@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAM.gov Scraper Pricing Survey</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .survey-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .survey-header {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .survey-header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .survey-header p {
+            opacity: 0.9;
+            line-height: 1.5;
+        }
+        
+        .survey-body {
+            padding: 30px;
+        }
+        
+        .value-proposition {
+            background: #f8fafc;
+            border-left: 4px solid #3b82f6;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-radius: 8px;
+        }
+        
+        .value-proposition h2 {
+            font-size: 1.1rem;
+            color: #1f2937;
+            margin-bottom: 15px;
+        }
+        
+        .feature-list {
+            list-style: none;
+        }
+        
+        .feature-list li {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 12px;
+            color: #374151;
+            line-height: 1.5;
+        }
+        
+        .feature-list li::before {
+            content: "✓";
+            color: #10b981;
+            font-weight: bold;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+        
+        .question {
+            margin-bottom: 25px;
+        }
+        
+        .question h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 12px;
+        }
+        
+        .radio-group, .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .radio-option, .checkbox-option {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .radio-option:hover, .checkbox-option:hover {
+            border-color: #3b82f6;
+            background: #f8fafc;
+        }
+        
+        .radio-option input, .checkbox-option input {
+            margin-right: 10px;
+        }
+        
+        .text-input, .textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            transition: border-color 0.2s ease;
+        }
+        
+        .text-input:focus, .textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+        
+        .textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        .submit-button {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .submit-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
+        }
+        
+        .submit-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .progress-bar {
+            height: 4px;
+            background: #e2e8f0;
+            position: relative;
+            margin-bottom: 30px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #10b981);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .error-message {
+            color: #ef4444;
+            font-size: 0.9rem;
+            margin-top: 5px;
+            display: none;
+        }
+        
+        .success-message {
+            background: #10b981;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        @media (max-width: 768px) {
+            .survey-container {
+                margin: 10px;
+                border-radius: 12px;
+            }
+            
+            .survey-header {
+                padding: 20px;
+            }
+            
+            .survey-body {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="survey-container">
+        <div class="survey-header">
+            <h1>SAM.gov Scraper Survey</h1>
+            <p>Help us build the perfect tool for government contractors</p>
+        </div>
+        
+        <div class="survey-body">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            
+            <div class="value-proposition">
+                <h2>Would you pay $99/month for a SaaS tool that:</h2>
+                <ul class="feature-list">
+                    <li>Automatically pulls latest contract opportunities from SAM.gov in real-time</li>
+                    <li>Cleans and normalises raw data (removes duplicates, standardises fields, adds searchable tags)</li>
+                    <li>Delivers a concise bid-fit score (e.g., "High", "Medium", "Low") for each opportunity</li>
+                    <li>Provides AI-generated analysis of RFP (key requirements, estimated effort, win-probability)</li>
+                </ul>
+            </div>
+            
+            <form id="surveyForm">
+                <!-- Question 1 -->
+                <div class="question">
+                    <h3>1. Would you subscribe at $99/month?</h3>
+                    <div class="radio-group">
+                        <label class="radio-option">
+                            <input type="radio" name="willingness" value="yes" required>
+                            <span>Yes</span>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="willingness" value="no" required>
+                            <span>No</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- Question 2 -->
+                <div class="question">
+                    <h3>2. Why or why not?</h3>
+                    <textarea 
+                        class="textarea" 
+                        name="reason" 
+                        placeholder="Explain the main factor influencing your decision (e.g., budget, perceived value, existing workflow)..."
+                        required
+                    ></textarea>
+                </div>
+                
+                <!-- Question 3 -->
+                <div class="question">
+                    <h3>3. What feature would make you more likely to pay? (Select up to 2)</h3>
+                    <div class="checkbox-group">
+                        <label class="checkbox-option">
+                            <input type="checkbox" name="features" value="realtime_alerts">
+                            <span>Real-time alerts via email/SMS</span>
+                        </label>
+                        <label class="checkbox-option">
+                            <input type="checkbox" name="features" value="export_csv">
+                            <span>Export to CSV/Excel with custom columns</span>
+                        </label>
+                        <label class="checkbox-option">
+                            <input type="checkbox" name="features" value="collaboration">
+                            <span>Collaboration workspace for teams</span>
+                        </label>
+                        <label class="checkbox-option">
+                            <input type="checkbox" name="features" value="crm_integration">
+                            <span>Integration with your existing CRM or project-management tool</span>
+                        </label>
+                        <label class="checkbox-option">
+                            <input type="checkbox" name="features" value="other">
+                            <input type="text" class="text-input" name="other_feature" placeholder="Other (please specify)" style="margin-left: 10px;">
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- Question 4 -->
+                <div class="question">
+                    <h3>4. How many contracts do you currently review per month?</h3>
+                    <input 
+                        type="number" 
+                        class="text-input" 
+                        name="contracts_per_month" 
+                        min="0" 
+                        max="1000"
+                        placeholder="Enter number of contracts..."
+                        required
+                    >
+                </div>
+                
+                <!-- Question 5 -->
+                <div class="question">
+                    <h3>5. What is the average time you spend manually searching & cleaning a single contract?</h3>
+                    <div class="radio-group">
+                        <label class="radio-option">
+                            <input type="radio" name="time_per_contract" value="less_15" required>
+                            <span>&lt; 15 min</span>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="time_per_contract" value="15_30" required>
+                            <span>15-30 min</span>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="time_per_contract" value="30_60" required>
+                            <span>30-60 min</span>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="time_per_contract" value="more_60" required>
+                            <span>&gt; 60 min</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- Question 6 -->
+                <div class="question">
+                    <h3>6. What is your budget for procurement-related software?</h3>
+                    <div class="radio-group">
+                        <label class="radio-option">
+                            <input type="radio" name="budget" value="less_50" required>
+                            <span>&lt; $50/month</span>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="budget" value="50_100" required>
+                            <span>$50-$100/month</span>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="budget" value="101_200" required>
+                            <span>$101-$200/month</span>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="budget" value="more_200" required>
+                            <span>&gt; $200/month</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <button type="submit" class="submit-button" id="submitBtn">
+                    Submit Survey
+                </button>
+                
+                <div class="error-message" id="errorMessage"></div>
+                <div class="success-message" id="successMessage">
+                    Thank you for your feedback! Your responses will help us build the perfect SAM.gov scraper tool.
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('surveyForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const progressFill = document.getElementById('progressFill');
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+        
+        // Update progress bar
+        function updateProgress() {
+            const totalQuestions = 6;
+            const answeredQuestions = document.querySelectorAll('input:checked, input:valid').length;
+            const progress = (answeredQuestions / totalQuestions) * 100;
+            progressFill.style.width = progress + '%';
+        }
+        
+        // Add event listeners to all inputs
+        form.querySelectorAll('input, textarea').forEach(input => {
+            input.addEventListener('change', updateProgress);
+            input.addEventListener('input', updateProgress);
+        });
+        
+        // Form submission
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Validate checkboxes (max 2)
+            const checkedFeatures = form.querySelectorAll('input[name="features"]:checked').length;
+            if (checkedFeatures > 2) {
+                errorMessage.textContent = 'Please select a maximum of 2 features.';
+                errorMessage.style.display = 'block';
+                return;
+            }
+            
+            // Collect form data
+            const formData = new FormData(form);
+            const data = {
+                willingness: formData.get('willingness'),
+                reason: formData.get('reason'),
+                features: Array.from(formData.getAll('features')),
+                other_feature: formData.get('other_feature'),
+                contracts_per_month: formData.get('contracts_per_month'),
+                time_per_contract: formData.get('time_per_contract'),
+                budget: formData.get('budget'),
+                timestamp: new Date().toISOString(),
+                user_agent: navigator.userAgent
+            };
+            
+            // Show loading state
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting...';
+            errorMessage.style.display = 'none';
+            
+            try {
+                // Store in localStorage (for demo purposes)
+                localStorage.setItem('sam_scraper_survey_' + Date.now(), JSON.stringify(data));
+                
+                // In production, send to your backend:
+                // const response = await fetch('/api/survey', {
+                //     method: 'POST',
+                //     headers: { 'Content-Type': 'application/json' },
+                //     body: JSON.stringify(data)
+                // });
+                
+                // Show success
+                successMessage.style.display = 'block';
+                form.style.display = 'none';
+                
+                // Log for analysis
+                console.log('Survey response:', data);
+                
+            } catch (error) {
+                errorMessage.textContent = 'Error submitting survey. Please try again.';
+                errorMessage.style.display = 'block';
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit Survey';
+            }
+        });
+        
+        // Initialize progress
+        updateProgress();
+    </script>
+</body>
+</html>

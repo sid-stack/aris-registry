@@ -28,7 +28,8 @@ import {
 } from "./chat/contextPack.js";
 import { selectGovconKb, GOVCON_KB_VERSION } from "./chat/kb.js";
 import { ARIS_JSON_RESPONSE_RULES, parseArisPlanJson } from "./chat/planning.js";
-import { getChatReplyCache, setChatReplyCache } from "./utils/upstash.js";
+import { getChatReplyCache, setChatReplyCache, logRedisStartupHealth } from "./utils/upstash.js";
+import { consumeFreeAuditCredit } from "./utils/freeAuditQuota.js";
 
 // Services
 import {
@@ -123,23 +124,24 @@ function buildFlowTestVerdict(text, solicitationId) {
   };
 }
 
-// Free-tier gate: 1 audit per IP per 24 h for unauthenticated / non-subscribed users.
-// Subscribed users pass via `x-subscribed: true` header (set by frontend from Clerk publicMetadata).
-const freeAuditLimiter = rateLimit({
-  windowMs: 24 * 60 * 60 * 1000, // 24 hours
+// Anonymous (no Clerk user id): 1 audit per IP per 24h. Signed-in free tier uses 3/calendar month in consumeFreeAuditCredit (after cache miss).
+// Subscribers pass via `x-subscribed: true` (frontend sets from Clerk publicMetadata).
+const anonymousFreeAuditLimiter = rateLimit({
+  windowMs: 24 * 60 * 60 * 1000,
   max: 1,
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => ipKeyGenerator(req),
   skip: (req) => {
-    // Let subscribed users through unconditionally
-    return req.headers["x-subscribed"] === "true";
+    if (req.headers["x-subscribed"] === "true") return true;
+    const uid = String(req.headers["x-user-id"] || "").trim();
+    return Boolean(uid && uid !== "anonymous");
   },
-  handler: (req, res) => {
+  handler: (_req, res) => {
     res.status(429).json({
-      error: "You've used your 1 free audit for today.",
-      code: "FREE_LIMIT_REACHED",
-      hint: "Sign in and subscribe to run unlimited audits — from $99/mo.",
+      error: "Unauthenticated limit: one audit per day from this network. Sign in for 3 full audits per month on the free plan.",
+      code: "ANON_AUDIT_LIMIT",
+      hint: "Create a free account at bidsmith.pro/dashboard",
       upgradeUrl: "/pricing",
     });
   },
@@ -655,7 +657,7 @@ app.all("/api/test-flow", asyncHandler(async (req, res) => {
 }));
 
 // ─── /api/audit/pdf ───────────────────────────────────────────────────────────
-app.post("/api/audit/pdf", freeAuditLimiter, upload.single("file"), asyncHandler(async (req, res) => {
+app.post("/api/audit/pdf", anonymousFreeAuditLimiter, upload.single("file"), asyncHandler(async (req, res) => {
   const rid = req.id || "?";
 
   // ── Input validation ──────────────────────────────────────────────────────
@@ -742,6 +744,11 @@ app.post("/api/audit/pdf", freeAuditLimiter, upload.single("file"), asyncHandler
     `,
   }).catch(() => {});
 
+  const credit = await consumeFreeAuditCredit(req);
+  if (!credit.ok) {
+    return res.status(credit.status).json(credit.body);
+  }
+
   // ── Stage 3: Inference (3-agent pipeline) ────────────────────────────────
   const t2 = Date.now();
   logger.info("audit_stage", requestMeta(req, {
@@ -789,7 +796,7 @@ app.post("/api/audit/pdf", freeAuditLimiter, upload.single("file"), asyncHandler
 }));
 
 // ─── /api/analyze-text ───────────────────────────────────────────────────────
-app.post("/api/audit/text", apiLimiter, asyncHandler(async (req, res) => {
+app.post("/api/audit/text", anonymousFreeAuditLimiter, apiLimiter, asyncHandler(async (req, res) => {
   const { text } = req.body;
   if (!text || text.trim().length < 100) {
     return res.status(400).json({ error: "Text too short — paste at least 200 characters of solicitation content." });
@@ -800,6 +807,12 @@ app.post("/api/audit/text", apiLimiter, asyncHandler(async (req, res) => {
     chars: text.length,
     user_email: userEmail,
   }));
+
+  const credit = await consumeFreeAuditCredit(req);
+  if (!credit.ok) {
+    return res.status(credit.status).json(credit.body);
+  }
+
   const rawResult = await runAuditOrchestrated(text.trim(), { id: "TEXT_AUDIT", title: "Pasted Solicitation", agency: "Unknown", value: "0" });
   const result = toMvpAuditResult(rawResult);
   savePendingReport({
@@ -1259,7 +1272,7 @@ app.post("/api/waitlist/invite", asyncHandler(async (req, res) => {
 }));
 
 // ─── /api/audit/link ─────────────────────────────────────────────────────────
-app.post("/api/audit/link", freeAuditLimiter, apiLimiter, asyncHandler(async (req, res) => {
+app.post("/api/audit/link", anonymousFreeAuditLimiter, apiLimiter, asyncHandler(async (req, res) => {
   const { url } = req.body;
   const userId    = req.headers["x-user-id"] || "anonymous";
   const userEmail = req.headers["x-user-email"] || "unknown";
@@ -1365,6 +1378,11 @@ app.post("/api/audit/link", freeAuditLimiter, apiLimiter, asyncHandler(async (re
       error: "Could not extract usable text from the provided URL.",
       code: 422,
     });
+  }
+
+  const credit = await consumeFreeAuditCredit(req);
+  if (!credit.ok) {
+    return res.status(credit.status).json(credit.body);
   }
 
   logger.info("audit_stage", requestMeta(req, {
@@ -1648,11 +1666,14 @@ app.use(notFoundHandler);
 app.use(errorHandler);
 
 app.listen(PORT, () => {
-  logger.info("api_started", {
-    service: "bidsmith-api",
-    port: PORT,
-    node_env: process.env.NODE_ENV || "development",
-    trust_proxy: trustProxySetting,
-  });
-  startTrafficBriefScheduler();
+  void (async () => {
+    await logRedisStartupHealth();
+    logger.info("api_started", {
+      service: "bidsmith-api",
+      port: PORT,
+      node_env: process.env.NODE_ENV || "development",
+      trust_proxy: trustProxySetting,
+    });
+    startTrafficBriefScheduler();
+  })();
 });

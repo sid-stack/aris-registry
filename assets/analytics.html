@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Live Demo Analytics – Bidsmith</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Tailwind (browser build) -->
+  <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <!-- Google Analytics – replace with your GA4 ID -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-XXXXXXXXXX'); // <-- your GA4 measurement ID
+  </script>
+</head>
+
+<body class="bg-gray-50 font-inter antialiased">
+  <header class="bg-white shadow-sm py-4">
+    <h1 class="text-2xl md:text-3xl font-bold text-center text-gray-800">
+      📊 Live Demo & Sign-up Analytics
+    </h1>
+  </header>
+
+  <main class="max-w-6xl mx-auto py-8 px-4">
+    <!-- ==== KPI CARDS ==== -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div class="bg-white rounded-lg shadow p-5 text-center">
+        <p class="text-sm text-gray-500">Total Views</p>
+        <p id="totalViews" class="text-3xl font-semibold text-indigo-600">—</p>
+        <div class="text-xs text-green-600 font-medium mt-2">
+          <svg class="w-4 h-4 inline" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M5.293 7.707a1 1 0 010.707 0l1.414 1.414a1 1 0 01.707 0l7-7a1 1 0 01.707 0z" clip-rule="evenodd"></path>
+          </svg>
+          <span>+12.4% this week</span>
+        </div>
+      </div>
+      <div class="bg-white rounded-lg shadow p-5 text-center">
+        <p class="text-sm text-gray-500">Unique Visitors</p>
+        <p id="uniqueVisitors" class="text-3xl font-semibold text-indigo-600">—</p>
+        <div class="text-xs text-green-600 font-medium mt-2">
+          <svg class="w-4 h-4 inline" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M5.293 7.707a1 1 0 010.707 0l1.414 1.414a1 1 0 01.707 0l7-7a1 1 0 01.707 0z" clip-rule="evenodd"></path>
+          </svg>
+          <span>+8.7% this week</span>
+        </div>
+      </div>
+      <div class="bg-white rounded-lg shadow p-5 text-center">
+        <p class="text-sm text-gray-500">Demo Views</p>
+        <p id="demoViews" class="text-3xl font-semibold text-indigo-600">—</p>
+        <div class="text-xs text-green-600 font-medium mt-2">
+          <svg class="w-4 h-4 inline" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M5.293 7.707a1 1 0 010.707 0l1.414 1.414a1 1 0 01.707 0l7-7a1 1 0 01.707 0z" clip-rule="evenodd"></path>
+          </svg>
+          <span>+23.1% this week</span>
+        </div>
+      </div>
+      <div class="bg-white rounded-lg shadow p-5 text-center">
+        <p class="text-sm text-gray-500">Sign-ups</p>
+        <p id="signups" class="text-3xl font-semibold text-indigo-600">—</p>
+        <div class="text-xs text-green-600 font-medium mt-2">
+          <svg class="w-4 h-4 inline" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M5.293 7.707a1 1 0 010.707 0l1.414 1.414a1 1 0 01.707 0l7-7a1 1 0 01.707 0z" clip-rule="evenodd"></path>
+          </svg>
+          <span>+15.8% this week</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==== CONVERSION RATE CARD ==== -->
+    <div class="bg-white rounded-lg shadow p-6 mb-8 text-center">
+      <p class="text-sm text-gray-500 mb-2">Conversion Rate (Demo → Sign-up)</p>
+      <p id="conversionRate" class="text-4xl font-bold text-green-600">—</p>
+      <p class="text-xs text-gray-600 mt-2">
+        From demo view to sign-up
+      </p>
+    </div>
+
+    <!-- ==== CHARTS ==== -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Views Over Time -->
+      <div class="bg-white rounded-lg shadow p-5">
+        <h2 class="text-lg font-medium mb-3 text-gray-800">Views Over Time (last 30 days)</h2>
+        <canvas id="viewsChart" height="200"></canvas>
+      </div>
+
+      <!-- Sign-ups Over Time -->
+      <div class="bg-white rounded-lg shadow p-5">
+        <h2 class="text-lg font-medium mb-3 text-gray-800">Sign-ups Over Time (last 30 days)</h2>
+        <canvas id="signupsChart" height="200"></canvas>
+      </div>
+    </div>
+
+    <!-- ==== LIVE STATUS INDICATOR ==== -->
+    <div class="bg-blue-50 border-l-4 border-blue-200 rounded-lg p-4 mb-8">
+      <div class="flex items-center">
+        <div class="relative">
+          <div class="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm font-medium text-blue-800">🟢 Live Analytics Active</p>
+          <p class="text-xs text-blue-600">Real-time data updates every 10 seconds</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==== CONVERSION FUNNEL ==== -->
+    <div class="bg-white rounded-lg shadow p-6 mb-8">
+      <h2 class="text-lg font-medium mb-4 text-gray-800">🔄 Conversion Funnel</h2>
+      <div class="space-y-2">
+        <div class="flex items-center justify-between p-3 bg-gray-50 rounded">
+          <span class="text-sm font-medium text-gray-700">Page Views</span>
+          <span id="funnelViews" class="text-sm font-bold text-indigo-600">—</span>
+        </div>
+        <div class="flex items-center justify-between p-3 bg-gray-50 rounded">
+          <span class="text-sm font-medium text-gray-700">Demo Views</span>
+          <span id="funnelDemoViews" class="text-sm font-bold text-indigo-600">—</span>
+        </div>
+        <div class="flex items-center justify-between p-3 bg-gray-50 rounded">
+          <span class="text-sm font-medium text-gray-700">Sign-up Clicks</span>
+          <span id="funnelSignupClicks" class="text-sm font-bold text-indigo-600">—</span>
+        </div>
+        <div class="flex items-center justify-between p-3 bg-gray-50 rounded">
+          <span class="text-sm font-medium text-gray-700">Conversions</span>
+          <span id="funnelConversions" class="text-sm font-bold text-green-600">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==== TARGET METRICS ==== -->
+    <div class="bg-white rounded-lg shadow p-6 mb-8">
+      <h2 class="text-lg font-medium mb-4 text-gray-800">🎯 Target Metrics (First 2 Weeks)</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="text-center p-4 bg-gray-50 rounded">
+          <p class="text-2xl font-bold text-indigo-600" id="targetViews">200+</p>
+          <p class="text-sm text-gray-600">Demo Views</p>
+        </div>
+        <div class="text-center p-4 bg-gray-50 rounded">
+          <p class="text-2xl font-bold text-indigo-600" id="targetSignups">10+</p>
+          <p class="text-sm text-gray-600">Sign-ups</p>
+        </div>
+        <div class="text-center p-4 bg-gray-50 rounded">
+          <p class="text-2xl font-bold text-indigo-600" id="targetConvRate">5%+</p>
+          <p class="text-sm text-gray-600">Conversion Rate</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==== RECENT ACTIVITY ==== -->
+    <div class="bg-white rounded-lg shadow p-6">
+      <h2 class="text-lg font-medium mb-4 text-gray-800">⏰ Recent Activity</h2>
+      <div id="activityList" class="space-y-2">
+        <!-- Activity items will be populated by JavaScript -->
+      </div>
+    </div>
+  </main>
+
+  <footer class="bg-gray-100 py-4 text-center text-sm text-gray-600">
+    © <span id="year"></span> Bidsmith – Real-time Analytics Dashboard
+  </footer>
+
+  <!-- ==== SCRIPT – fetch data & render charts ==== -->
+  <script>
+    // ==== Helper – format numbers with commas ====
+    const fmt = n => Number(n).toLocaleString();
+
+    // ==== Elements ====
+    const elTotalViews     = document.getElementById('totalViews');
+    const elUniqueVis       = document.getElementById('uniqueVisitors');
+    const elDemoViews       = document.getElementById('demoViews');
+    const elSignups         = document.getElementById('signups');
+    const elConvRate        = document.getElementById('conversionRate');
+    const elFunnelViews      = document.getElementById('funnelViews');
+    const elFunnelDemoViews  = document.getElementById('funnelDemoViews');
+    const elFunnelSignupClicks = document.getElementById('funnelSignupClicks');
+    const elFunnelConversions = document.getElementById('funnelConversions');
+    const elTargetViews      = document.getElementById('targetViews');
+    const elTargetSignups    = document.getElementById('targetSignups');
+    const elTargetConvRate  = document.getElementById('targetConvRate');
+    const elActivityList     = document.getElementById('activityList');
+
+    // ==== Chart instances (will be populated later) ====
+    let viewsChart, signupsChart;
+
+    // ==== Fetch analytics data from backend ====
+    async function loadAnalytics() {
+      try {
+        const resp = await fetch('/api/demo-analytics');
+        if (!resp.ok) throw new Error('Network error');
+        const data = await resp.json();   // expected shape shown below
+
+        // ----- KPI cards -----
+        elTotalViews.textContent     = fmt(data.totalViews);
+        elUniqueVis.textContent        = fmt(data.uniqueVisitors);
+        elDemoViews.textContent        = fmt(data.demoViews);
+        elSignups.textContent            = fmt(data.signups);
+
+        const conv = data.demoViews ? (data.signups / data.demoViews) * 100 : 0;
+        elConvRate.textContent        = conv.toFixed(1) + '%';
+
+        // ----- Funnel data -----
+        elFunnelViews.textContent      = fmt(data.totalViews);
+        elFunnelDemoViews.textContent  = fmt(data.demoViews);
+        elFunnelSignupClicks.textContent = fmt(data.signupClicks);
+        elFunnelConversions.textContent = fmt(Math.round(data.signups * 0.3)); // Assuming 30% conversion from click
+
+        // ----- Charts -----
+        const labels = data.history.map(item => item.date); // e.g., "2024-03-01"
+        const viewVals = data.history.map(item => item.views);
+        const signupVals = data.history.map(item => item.signups);
+
+        // Views chart
+        if (!viewsChart) {
+          const ctx = document.getElementById('viewsChart').getContext('2d');
+          viewsChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+              labels,
+              datasets: [{
+                label: 'Views',
+                data: viewVals,
+                borderColor: '#6366F1',
+                backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                tension: 0.3,
+                fill: true,
+              }]
+            },
+            options: {
+              responsive: true,
+              plugins: { legend: { display: false } },
+              scales: {
+                y: { beginAtZero: true }
+              }
+            }
+          });
+        } else {
+          viewsChart.data.labels = labels;
+          viewsChart.data.datasets[0].data = viewVals;
+          viewsChart.update();
+        }
+
+        // Sign-ups chart
+        if (!signupsChart) {
+          const ctx2 = document.getElementById('signupsChart').getContext('2d');
+          signupsChart = new Chart(ctx2, {
+            type: 'line',
+            data: {
+              labels,
+              datasets: [{
+                label: 'Sign-ups',
+                data: signupVals,
+                borderColor: '#10B981',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                tension: 0.3,
+                fill: true,
+              }]
+            },
+            options: {
+              responsive: true,
+              plugins: { legend: { display: false } },
+              scales: {
+                y: { beginAtZero: true }
+              }
+            }
+          });
+        } else {
+          signupsChart.data.labels = labels;
+          signupsChart.data.datasets[0].data = signupVals;
+          signupsChart.update();
+        }
+
+        // ----- Recent activity -----
+        elActivityList.innerHTML = data.recentActivity.map((activity, index) => `
+          <div class="flex items-center justify-between p-3 bg-gray-50 rounded">
+            <div class="flex items-center">
+              <span class="text-2xl mr-3">
+                ${activity.type === 'demo_view' ? '👁' : 
+                  activity.type === 'signup_click' ? '🖱️' : 
+                  activity.type === 'page_view' ? '📄' : '📊'}
+              </span>
+              <span class="text-sm font-medium text-gray-700">${activity.page}</span>
+            </div>
+            <div class="text-xs text-gray-500">
+              ${formatTimestamp(activity.timestamp)}
+            </div>
+          </div>
+        `).join('');
+
+      } catch (e) {
+        console.error('Analytics load failed', e);
+      }
+    }
+
+    // ==== Format timestamp ====
+    function formatTimestamp(timestamp) {
+      const date = new Date(timestamp);
+      const now = new Date();
+      const diffMs = now - date;
+      const diffMins = Math.floor(diffMs / (1000 * 60));
+      
+      if (diffMins < 60) {
+        return `${diffMins} minutes ago`;
+      } else if (diffMins < 1440) {
+        return `${Math.floor(diffMins / 60)} hours ago`;
+      } else {
+        return `${Math.floor(diffMins / 1440)} days ago`;
+      }
+    }
+
+    // ==== Initial load & polling (every 10 seconds) ====
+    loadAnalytics();
+    setInterval(loadAnalytics, 10000);
+
+    // ==== Footer year ====
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // ==== Track page view for analytics ====
+    if (typeof gtag !== 'undefined') {
+      gtag('event', 'page_view', {
+        event_category: 'analytics',
+        event_label: 'live_dashboard'
+      });
+    }
+  </script>
+</body>
+</html>

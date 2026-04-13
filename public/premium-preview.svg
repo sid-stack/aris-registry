@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">Premium memo preview</title>
+  <desc id="desc">Mock preview card for the premium risk memo PDF add-on.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#eef2ff"/>
+      <stop offset="100%" stop-color="#f8fafc"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="760" fill="url(#bg)"/>
+  <rect x="120" y="70" width="960" height="620" rx="18" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+  <rect x="160" y="112" width="460" height="26" rx="6" fill="#4f46e5" opacity="0.14"/>
+  <text x="168" y="130" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700" fill="#312e81">CONFIDENTIAL RISK MEMORANDUM</text>
+  <rect x="160" y="160" width="640" height="10" rx="4" fill="#e2e8f0"/>
+  <rect x="160" y="180" width="560" height="10" rx="4" fill="#e2e8f0"/>
+  <rect x="160" y="200" width="620" height="10" rx="4" fill="#e2e8f0"/>
+  <rect x="160" y="235" width="300" height="16" rx="5" fill="#fee2e2"/>
+  <text x="168" y="248" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" fill="#9f1239">BID-KILLER MATRIX (FAR/DFARS CITED)</text>
+  <rect x="160" y="266" width="880" height="252" rx="10" fill="#f8fafc" stroke="#e2e8f0"/>
+  <rect x="176" y="284" width="848" height="24" fill="#eef2ff"/>
+  <rect x="176" y="324" width="848" height="16" fill="#ffffff"/>
+  <rect x="176" y="350" width="848" height="16" fill="#ffffff"/>
+  <rect x="176" y="376" width="848" height="16" fill="#ffffff"/>
+  <rect x="176" y="402" width="848" height="16" fill="#ffffff"/>
+  <rect x="176" y="428" width="848" height="16" fill="#ffffff"/>
+  <rect x="176" y="454" width="848" height="16" fill="#ffffff"/>
+  <rect x="160" y="546" width="330" height="88" rx="10" fill="#ecfeff" stroke="#bae6fd"/>
+  <text x="178" y="572" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700" fill="#0c4a6e">Win Themes</text>
+  <rect x="178" y="586" width="275" height="8" rx="3" fill="#bae6fd"/>
+  <rect x="178" y="602" width="250" height="8" rx="3" fill="#bae6fd"/>
+  <rect x="520" y="546" width="520" height="88" rx="10" fill="#fff7ed" stroke="#fed7aa"/>
+  <text x="538" y="572" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700" fill="#9a3412">Risk Flags</text>
+  <rect x="538" y="586" width="460" height="8" rx="3" fill="#fdba74"/>
+  <rect x="538" y="602" width="410" height="8" rx="3" fill="#fdba74"/>
+  <text x="160" y="672" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#64748b">Preview: Premium PDF deliverable (layout sample)</text>
+</svg>

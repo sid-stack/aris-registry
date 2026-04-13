@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Hybrid RFP Audit Report",
+  "type": "object",
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "solicitation_id": {"type": "string"},
+        "agency": {"type": "string"},
+        "audit_timestamp": {"type": "string"}
+      },
+      "required": ["solicitation_id", "agency", "audit_timestamp"]
+    },
+    "compliance_matrix": {
+      "$ref": "requirements_schema.json"
+    },
+    "evaluation_criteria": {
+      "type": "object",
+      "properties": {
+        "factors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {"type": "string"},
+              "weight": {"type": "string"},
+              "is_mandatory": {"type": "boolean"}
+            }
+          }
+        }
+      }
+    },
+    "qualitative_analysis": {
+      "type": "object",
+      "properties": {
+        "executive_summary": {"type": "string"},
+        "win_strategy_narrative": {"type": "string"},
+        "risk_memorandum": {"type": "string"}
+      }
+    }
+  },
+  "required": ["metadata", "compliance_matrix", "evaluation_criteria", "qualitative_analysis"]
+}

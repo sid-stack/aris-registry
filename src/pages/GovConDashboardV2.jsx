@@ -24,12 +24,13 @@ import {
   Loader2, Upload, Link2, X, TrendingUp, BarChart2,
   ChevronDown, Paperclip, RefreshCw, BookOpen, Eye,
   EyeOff, Info, ExternalLink, Download, FileType2,
-  Menu,
+  Menu, Calendar,
 } from 'lucide-react';
 import { trackEvent } from '../utils/analytics';
 import { createCheckoutSession } from '../lib/stripe';
 import { parseArisPlanJson } from '../utils/arisChatPlan';
 import { downloadComplianceMatrixDocx } from '../utils/complianceMatrixDocx';
+import { downloadComplianceMatrixXlsx } from '../utils/complianceMatrixXlsx';
 import { downloadGovConAuditPdf } from '../utils/govconAuditPdf';
 import NextBestAction from '../components/govcon/NextBestAction';
 
@@ -58,6 +59,11 @@ const C = {
   sbTextDim: '#8e8ea0',
 };
 
+/** Free 20 min walkthrough — set `VITE_CALENDLY_AUDIT_WALKTHROUGH` in Vercel / .env, or replace the fallback once your Calendly slug exists. */
+const AUDIT_WALKTHROUGH_CALENDLY_URL =
+  (typeof import.meta !== 'undefined' && String(import.meta.env?.VITE_CALENDLY_AUDIT_WALKTHROUGH || '').trim())
+  || 'https://calendly.com/bidsmith-pro/audit-walkthrough';
+
 // ─── Agent thinking steps ─────────────────────────────────────────────────────
 const THINKING_STEPS = [
   { id: 'fetch',   label: 'Fetching solicitation from SAM.gov',   ms: 0    },
@@ -73,9 +79,10 @@ const THINKING_STEPS = [
 // ─── Small helpers ────────────────────────────────────────────────────────────
 function verdictColor(rec) {
   if (!rec) return C.textMuted;
-  const r = rec.toUpperCase();
-  if (r === 'BID' || r === 'GO') return C.green;
-  if (r === 'NO-BID' || r === 'NO_BID' || r === 'NO BID') return C.red;
+  const n = normalizePursuitRecommendation(rec);
+  if (n === 'BID') return C.green;
+  if (n === 'NO_BID') return C.red;
+  if (n === 'INSUFFICIENT') return C.yellow;
   return C.yellow;
 }
 
@@ -459,13 +466,13 @@ function AgentThinkingPanel({ steps, isRunning, embedded, onCloseDrawer }) {
 function ConfidenceBadge({ level }) {
   if (!level) return null;
   const map = {
-    HIGH:   { color: '#22c55e', bg: 'rgba(34,197,94,0.12)',  label: 'HIGH CONFIDENCE' },
-    MEDIUM: { color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', label: 'MED CONFIDENCE'  },
-    LOW:    { color: '#ef4444', bg: 'rgba(239,68,68,0.12)',  label: 'LOW CONFIDENCE'  },
+    HIGH:   { color: '#15803d', bg: 'rgba(34,197,94,0.12)',  label: 'High confidence in this call' },
+    MEDIUM: { color: '#b45309', bg: 'rgba(245,158,11,0.12)', label: 'Average confidence — double-check' },
+    LOW:    { color: '#b91c1c', bg: 'rgba(239,68,68,0.12)',  label: 'Low confidence — treat as draft' },
   };
   const s = map[level.toUpperCase()] || map.MEDIUM;
   return (
-    <span style={{ fontSize: 9, fontWeight: 800, color: s.color, background: s.bg, padding: '2px 7px', borderRadius: 4, letterSpacing: '0.08em', border: `1px solid ${s.color}33` }}>
+    <span style={{ fontSize: 10, fontWeight: 700, color: s.color, background: s.bg, padding: '4px 10px', borderRadius: 6, letterSpacing: '0.02em', border: `1px solid ${s.color}40`, maxWidth: 260, lineHeight: 1.3 }}>
       {s.label}
     </span>
   );
@@ -481,12 +488,12 @@ function SourceTag({ section, excerpt, auditMode }) {
         onClick={() => setOpen(v => !v)}
         style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 9, fontWeight: 700, color: C.accent, background: 'rgba(59,130,246,0.1)', border: `1px solid rgba(59,130,246,0.25)`, borderRadius: 4, padding: '2px 7px', cursor: 'pointer', fontFamily: 'monospace', letterSpacing: '0.04em' }}
       >
-        <BookOpen size={9} /> § {section}
+        <BookOpen size={9} /> Section {section}
         {excerpt && <ChevronDown size={9} style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />}
       </button>
       {open && excerpt && (
         <div style={{ marginTop: 6, padding: '8px 10px', background: 'rgba(59,130,246,0.06)', border: `1px solid rgba(59,130,246,0.15)`, borderRadius: 6, borderLeft: `2px solid ${C.accent}` }}>
-          <div style={{ fontSize: 9, fontWeight: 800, color: C.textDim, letterSpacing: '0.08em', marginBottom: 4 }}>SOURCE EXCERPT</div>
+          <div style={{ fontSize: 10, fontWeight: 700, color: C.textDim, marginBottom: 4 }}>Quoted from the solicitation</div>
           <p style={{ fontSize: 11, color: C.textMuted, lineHeight: 1.6, margin: 0, fontStyle: 'italic' }}>"{excerpt}"</p>
         </div>
       )}
@@ -497,9 +504,162 @@ function SourceTag({ section, excerpt, auditMode }) {
 // ─── Needs-review badge (Audit Mode) ─────────────────────────────────────────
 function NeedsReviewBadge() {
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 9, fontWeight: 800, color: '#f59e0b', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 4, padding: '2px 7px', letterSpacing: '0.06em' }}>
-      <AlertTriangle size={8} /> VERIFY
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 700, color: '#92400e', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 6, padding: '3px 8px', letterSpacing: '0.02em' }}>
+      <AlertTriangle size={9} /> Check this
     </span>
+  );
+}
+
+// ─── Plain-language contract risk (partner / GC audience) ────────────────────
+
+function normalizePursuitRecommendation(rec) {
+  const u = String(rec || '').toUpperCase().replace(/[\s-]+/g, '_');
+  if (u === 'BID' || u === 'GO') return 'BID';
+  if (u === 'NO_BID' || u === 'NOBID') return 'NO_BID';
+  if (u.includes('INSUFFICIENT')) return 'INSUFFICIENT';
+  return 'CONDITIONAL';
+}
+
+function pursuitPlainLanguage(recNorm) {
+  if (recNorm === 'BID') return 'On balance, this opportunity looks worth pursuing — if your firm fits what the government is asking for.';
+  if (recNorm === 'NO_BID') return 'We would not commit firm time to this one as written; the downside outweighs the upside.';
+  if (recNorm === 'INSUFFICIENT') return 'We do not have enough of the solicitation text here to give a confident read. Add sections or a full PDF.';
+  return 'You might still bid — but only after you close the gaps we flag below.';
+}
+
+function humanSeverityLabel(r) {
+  const R = String(r?.risk || '').toUpperCase();
+  if (r?.is_disqualifier) return 'Could disqualify you';
+  if (R === 'HIGH' || R === 'DISQUALIFIER') return 'Serious';
+  if (R === 'MED' || R === 'MEDIUM') return 'Needs attention';
+  if (R === 'LOW') return 'Lower concern';
+  return 'Unrated';
+}
+
+function buildRiskOutput(rawScore, counts) {
+  const score = Math.round(Math.max(4, Math.min(100, rawScore)));
+  const { dq, serious, watch, routine, reqsLen, recNorm } = counts;
+  let band = 'moderate';
+  let label = 'Moderate';
+  if (score <= 30) { band = 'low'; label = 'Low'; }
+  else if (score <= 54) { band = 'moderate'; label = 'Moderate'; }
+  else if (score <= 78) { band = 'elevated'; label = 'Elevated'; }
+  else { band = 'severe'; label = 'Severe'; }
+  const barColor = band === 'low' ? C.green : band === 'moderate' ? '#ca8a04' : band === 'elevated' ? '#ea580c' : C.red;
+
+  let explain = '';
+  if (reqsLen === 0) {
+    explain = 'We could not build a detailed checklist from this run, so this score leans on the headline recommendation. Treat it as preliminary and read the solicitation yourself.';
+  } else if (dq > 0) {
+    explain = `The score is driven mainly by ${dq} ${dq === 1 ? 'item that can disqualify' : 'items that can disqualify'} a proposal if it is not handled correctly — even strong technical work will not save a miss on those.`;
+  } else if (serious > 0) {
+    explain = `We did not see automatic disqualifiers in this slice, but ${serious} ${serious === 1 ? 'requirement reads as a heavy compliance lift' : 'requirements read as heavy compliance lifts'}. Budget extra time with your contracts and delivery leads.`;
+  } else if (watch > 0) {
+    explain = 'Mostly standard paperwork with a few spots that deserve a careful read before you sign up the team.';
+  } else {
+    explain = 'Compared with a typical federal solicitation, the flagged items here look manageable. You should still line Section L/M up against your own gaps.';
+  }
+
+  return {
+    score, label, band, barColor, explain, recNorm, dq, serious, watch, routine, reqsLen,
+  };
+}
+
+/** 0 = calmer, 100 = heavier exposure — heuristic from parsed requirements + headline verdict. */
+function computeContractRiskScore(audit) {
+  const reqs = Array.isArray(audit?.requirements) ? audit.requirements : [];
+  const recNorm = normalizePursuitRecommendation(audit?.verdict?.recommendation);
+  let dq = 0;
+  let serious = 0;
+  let watch = 0;
+  let routine = 0;
+  for (const r of reqs) {
+    if (r.is_disqualifier) dq += 1;
+    else if (String(r.risk || '').toUpperCase() === 'HIGH' || String(r.risk || '').toUpperCase() === 'DISQUALIFIER') serious += 1;
+    else if (String(r.risk || '').toUpperCase() === 'MED' || String(r.risk || '').toUpperCase() === 'MEDIUM') watch += 1;
+    else routine += 1;
+  }
+
+  if (reqs.length === 0) {
+    const s0 = recNorm === 'NO_BID' ? 68 : recNorm === 'INSUFFICIENT' ? 54 : 42;
+    return buildRiskOutput(s0, { dq: 0, serious: 0, watch: 0, routine: 0, reqsLen: 0, recNorm });
+  }
+
+  let score = 18;
+  score += Math.min(dq * 22, 70);
+  score += Math.min(serious * 6, 28);
+  score += Math.min(watch * 2, 12);
+  score -= Math.min(Math.floor(routine / 6) * 4, 10);
+  if (recNorm === 'NO_BID') score = Math.max(score, 62);
+  if (recNorm === 'BID') score -= 8;
+  if (recNorm === 'INSUFFICIENT') score += 6;
+
+  return buildRiskOutput(score, { dq, serious, watch, routine, reqsLen: reqs.length, recNorm });
+}
+
+function ContractRiskSummaryCard({ audit, auditMode }) {
+  const s = useMemo(() => computeContractRiskScore(audit), [audit]);
+  const chips = [
+    { n: s.dq, txt: 'Could kill the bid', color: C.red },
+    { n: s.serious, txt: 'Serious issues', color: '#c2410c' },
+    { n: s.watch, txt: 'Worth a close read', color: '#ca8a04' },
+    { n: s.routine, txt: 'Look routine', color: C.green },
+  ];
+
+  return (
+    <div style={{
+      maxWidth: 560,
+      background: '#ffffff',
+      border: `2px solid ${s.barColor}`,
+      borderRadius: 14,
+      padding: '22px 24px',
+      boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
+    }}>
+      <div style={{ fontSize: 14, fontWeight: 800, color: C.text, marginBottom: 6 }}>
+        Contract risk score
+      </div>
+      <p style={{ fontSize: 14, color: C.textMuted, margin: '0 0 18px', lineHeight: 1.55 }}>
+        A single 0–100 read on how demanding this solicitation looks from the clauses we scanned. Higher means more exposure for your firm — not legal advice, and not a substitute for reading the RFP.
+      </p>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: 16, marginBottom: 14 }}>
+        <span style={{ fontSize: 52, fontWeight: 900, color: s.barColor, letterSpacing: '-0.04em', lineHeight: 1 }}>{s.score}</span>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 22, fontWeight: 800, color: C.text, lineHeight: 1.2 }}>{s.label} overall risk</div>
+          <div style={{ fontSize: 14, color: C.textDim, marginTop: 4 }}>100 is the heaviest burden we commonly surface.</div>
+        </div>
+      </div>
+      <div style={{ height: 12, borderRadius: 999, background: C.surfaceHi, overflow: 'hidden', marginBottom: 18 }}>
+        <div style={{ width: `${s.score}%`, height: '100%', background: s.barColor, borderRadius: 999, transition: 'width 0.5s ease-out' }} />
+      </div>
+      <p style={{ margin: '0 0 18px', fontSize: 16, color: C.text, lineHeight: 1.55 }}>{s.explain}</p>
+      {s.reqsLen > 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(128px, 1fr))', gap: 10 }}>
+          {chips.map((c) => (
+            <div
+              key={c.txt}
+              style={{
+                textAlign: 'center',
+                padding: '12px 8px',
+                borderRadius: 10,
+                border: `1px solid ${C.border}`,
+                background: C.surfaceHi,
+              }}
+            >
+              <div style={{ fontSize: 28, fontWeight: 900, color: c.color, lineHeight: 1 }}>{c.n}</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: C.textMuted, marginTop: 6, lineHeight: 1.35 }}>{c.txt}</div>
+            </div>
+          ))}
+        </div>
+      )}
+      {auditMode && (
+        <div style={{ marginTop: 16, padding: '12px 14px', background: 'rgba(245,158,11,0.08)', borderRadius: 10, border: '1px solid rgba(245,158,11,0.22)', fontSize: 14, color: '#92400e', lineHeight: 1.55 }}>
+          <strong>Verification mode is on.</strong> Orange flags mean a human should confirm wording against the source PDF — especially anything touching eligibility or certifications.
+        </div>
+      )}
+      <p style={{ fontSize: 12, color: C.textDim, margin: '16px 0 0', lineHeight: 1.5 }}>
+        This score does not predict court outcomes. It reflects solicitation language we were able to analyze.
+      </p>
+    </div>
   );
 }
 
@@ -703,39 +863,41 @@ function FreeLimitCard({ userId }) {
 
 // ─── Inline result cards ──────────────────────────────────────────────────────
 function VerdictCard({ audit, auditMode }) {
-  const rec = audit?.verdict?.recommendation || 'REVIEW';
+  const rawRec = audit?.verdict?.recommendation || 'REVIEW';
+  const recNorm = normalizePursuitRecommendation(rawRec);
   const prob = audit?.verdict?.win_probability;
   const conf = audit?.verdict?.confidence;
-  const color = verdictColor(rec);
+  const color = verdictColor(rawRec);
   const isLowConf = conf === 'LOW' || conf === 'MEDIUM';
+  const headline = pursuitPlainLanguage(recNorm);
+  const recShort = recNorm === 'BID' ? 'Pursue' : recNorm === 'NO_BID' ? 'Do not pursue' : recNorm === 'INSUFFICIENT' ? 'Undecided — need more text' : 'Pursue only after fixes';
 
   return (
     <div style={{
       background: C.surfaceHi,
       border: `1px solid ${auditMode && isLowConf ? 'rgba(245,158,11,0.4)' : C.border}`,
-        borderLeft: `3px solid ${auditMode && isLowConf ? '#f59e0b' : color}`,
-        borderRadius: 10, padding: '16px 18px', maxWidth: 480,
+      borderLeft: `4px solid ${auditMode && isLowConf ? '#f59e0b' : color}`,
+      borderRadius: 12, padding: '20px 22px', maxWidth: 560,
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-        <span style={{ fontSize: 10, fontWeight: 800, color: C.textDim, letterSpacing: '0.1em' }}>BID / NO-BID VERDICT</span>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+        <span style={{ fontSize: 13, fontWeight: 800, color: C.text }}>Pursuit recommendation</span>
         <ConfidenceBadge level={conf} />
         {auditMode && isLowConf && <NeedsReviewBadge />}
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 10 }}>
-        <span style={{ fontSize: 28, fontWeight: 900, color }}>{rec.toUpperCase()}</span>
-        {prob != null && (
-          <div>
-            <div style={{ fontSize: 10, color: C.textDim, fontWeight: 600 }}>WIN PROBABILITY</div>
-            <div style={{ fontSize: 20, fontWeight: 800, color }}>{prob}%</div>
-      </div>
-        )}
-      </div>
+      <p style={{ fontSize: 17, color: C.text, lineHeight: 1.5, margin: '0 0 12px', fontWeight: 600 }}>{headline}</p>
+      <div style={{ fontSize: 15, fontWeight: 800, color, marginBottom: 14 }}>{recShort}</div>
+      {prob != null && Number.isFinite(Number(prob)) && (
+        <div style={{ marginBottom: 14, padding: '14px 16px', background: '#fff', borderRadius: 10, border: `1px solid ${C.border}` }}>
+          <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 6 }}>Rough chance of winning — if you bid and your résumé matches what evaluators asked for</div>
+          <div style={{ fontSize: 32, fontWeight: 900, color, lineHeight: 1 }}>{Math.round(Number(prob))}%</div>
+        </div>
+      )}
       {audit?.verdict?.summary && (
-        <p style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.6, margin: 0 }}>{audit.verdict.summary}</p>
+        <p style={{ fontSize: 15, color: C.textMuted, lineHeight: 1.65, margin: 0 }}>{audit.verdict.summary}</p>
       )}
       {auditMode && isLowConf && (
-        <div style={{ marginTop: 10, padding: '8px 10px', background: 'rgba(245,158,11,0.08)', borderRadius: 6, border: '1px solid rgba(245,158,11,0.2)', fontSize: 11, color: '#f59e0b', lineHeight: 1.5 }}>
-          AI confidence is {(conf || 'MEDIUM').toLowerCase()} on this verdict. Review the rationale and validate against Section M evaluation criteria before committing.
+        <div style={{ marginTop: 14, padding: '12px 14px', background: 'rgba(245,158,11,0.08)', borderRadius: 8, border: '1px solid rgba(245,158,11,0.22)', fontSize: 14, color: '#92400e', lineHeight: 1.55 }}>
+          The model is {(conf || 'medium').toLowerCase()} confidence here. Have a senior person read Section M (evaluation) against this write-up before you green-light capture time.
         </div>
       )}
     </div>
@@ -747,73 +909,83 @@ function RiskCard({ audit, auditMode }) {
   const highReqs = (audit?.requirements || []).filter(r => r.risk === 'HIGH' || r.is_disqualifier).slice(0, 4);
   const items = risks.length > 0 ? risks : highReqs;
   if (items.length === 0) return null;
+  const lineFor = (r) => {
+    if (typeof r === 'string') return r;
+    return r.description || r.requirement || r.risk || '';
+  };
   return (
-    <div style={{ background: C.surfaceHi, border: `1px solid ${C.border}`, borderRadius: 10, padding: '16px 18px', maxWidth: 480 }}>
-      <div style={{ fontSize: 10, fontWeight: 800, color: C.textDim, letterSpacing: '0.1em', marginBottom: 10 }}>TOP RISK FLAGS</div>
+    <div style={{ background: C.surfaceHi, border: `1px solid ${C.border}`, borderRadius: 12, padding: '20px 22px', maxWidth: 560 }}>
+      <div style={{ fontSize: 14, fontWeight: 800, color: C.text, marginBottom: 6 }}>What could go wrong</div>
+      <p style={{ fontSize: 14, color: C.textMuted, margin: '0 0 14px', lineHeight: 1.5 }}>Plain-English watch-outs. Read these alongside the solicitation — especially anything touching money, security, or past performance.</p>
       {items.map((r, i) => (
-        <div key={i} style={{ display: 'flex', gap: 9, alignItems: 'flex-start', marginBottom: 8 }}>
-          <AlertTriangle size={13} color={C.red} style={{ marginTop: 2, flexShrink: 0 }} />
-          <span style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.5 }}>
-            {typeof r === 'string' ? r : (r.risk || r.requirement || r.description || '')}
-          </span>
+        <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 12, paddingBottom: 12, borderBottom: i < items.length - 1 ? `1px solid ${C.border}` : 'none' }}>
+          <AlertTriangle size={16} color={C.red} style={{ marginTop: 3, flexShrink: 0 }} />
+          <span style={{ fontSize: 15, color: C.text, lineHeight: 1.55 }}>{lineFor(r)}</span>
         </div>
       ))}
     </div>
   );
 }
 
-function ComplianceCard({ audit, auditMode }) {
-  const reqs = (audit?.requirements || []).slice(0, 5);
-  if (reqs.length === 0) return null;
+function ComplianceCard({ audit, auditMode, onExportXlsx, exportXlsxLoading }) {
+  const allReqs = audit?.requirements || [];
+  const reqs = allReqs.slice(0, 5);
 
   const needsReview = (r) => auditMode && (r.risk === 'HIGH' || r.is_disqualifier || !r.source_excerpt);
 
   return (
-    <div style={{ background: C.surfaceHi, border: `1px solid ${C.border}`, borderRadius: 10, padding: '16px 18px', maxWidth: 540 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-        <span style={{ fontSize: 10, fontWeight: 800, color: C.textDim, letterSpacing: '0.1em' }}>COMPLIANCE MATRIX (PREVIEW)</span>
+    <div style={{ background: C.surfaceHi, border: `1px solid ${C.border}`, borderRadius: 12, padding: '20px 22px', maxWidth: 560 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+        <span style={{ fontSize: 14, fontWeight: 800, color: C.text }}>Requirements snapshot</span>
         {auditMode && (
-          <span style={{ fontSize: 9, fontWeight: 800, color: '#f59e0b', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 4, padding: '2px 6px', letterSpacing: '0.06em' }}>
-            AUDIT MODE
+          <span style={{ fontSize: 10, fontWeight: 700, color: '#92400e', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 6, padding: '3px 8px' }}>
+            Verification mode
           </span>
         )}
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <p style={{ fontSize: 14, color: C.textMuted, margin: '0 0 14px', lineHeight: 1.5 }}>
+        {allReqs.length === 0
+          ? 'When the engine parses Section L/M style requirements, they appear here with severity and suggested next steps.'
+          : 'First five rows from the compliance matrix. Severity is our read of how painful each item is — not a legal conclusion.'}
+      </p>
+      {allReqs.length > 0 && (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {reqs.map((r, i) => {
           const flagged = needsReview(r);
+          const sev = humanSeverityLabel(r);
+          const sevColor = r.is_disqualifier || String(r.risk).toUpperCase() === 'HIGH' ? C.red : String(r.risk).toUpperCase() === 'MED' || String(r.risk).toUpperCase() === 'MEDIUM' ? '#ca8a04' : C.green;
           return (
             <div key={r.id || i} style={{
-              padding: '10px 12px', borderRadius: 7,
-              background: flagged ? 'rgba(245,158,11,0.06)' : C.surface,
-              border: `1px solid ${flagged ? 'rgba(245,158,11,0.3)' : C.border}`,
-              borderLeft: `3px solid ${flagged ? '#f59e0b' : (r.risk === 'HIGH' || r.is_disqualifier) ? C.red : C.green}`,
+              padding: '12px 14px', borderRadius: 10,
+              background: flagged ? 'rgba(245,158,11,0.06)' : '#fff',
+              border: `1px solid ${flagged ? 'rgba(245,158,11,0.35)' : C.border}`,
+              borderLeft: `4px solid ${flagged ? '#f59e0b' : (r.risk === 'HIGH' || r.is_disqualifier) ? C.red : C.green}`,
             }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                 <div style={{ flexShrink: 0, marginTop: 2 }}>
                   {r.is_disqualifier
-                    ? <AlertTriangle size={12} color={flagged ? '#f59e0b' : C.red} />
+                    ? <AlertTriangle size={14} color={flagged ? '#f59e0b' : C.red} />
                     : r.risk === 'HIGH'
-                      ? <AlertTriangle size={12} color={flagged ? '#f59e0b' : C.red} />
-                      : <Check size={12} color={C.green} />}
+                      ? <AlertTriangle size={14} color={flagged ? '#f59e0b' : C.red} />
+                      : <Check size={14} color={C.green} />}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 3 }}>
-                    <span style={{ fontSize: 12, color: C.text, lineHeight: 1.45 }}>{r.requirement}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
+                    <span style={{ fontSize: 11, fontWeight: 800, color: sevColor, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{sev}</span>
                     {flagged && <NeedsReviewBadge />}
                   </div>
+                  <div style={{ fontSize: 15, color: C.text, lineHeight: 1.5, marginBottom: 6 }}>{r.requirement}</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 10, color: r.risk === 'HIGH' ? C.red : r.risk === 'MED' ? C.yellow : C.green, fontWeight: 700 }}>{r.risk}</span>
-                    {r.is_disqualifier && <span style={{ fontSize: 9, color: C.red, fontWeight: 800, background: 'rgba(239,68,68,0.1)', padding: '1px 5px', borderRadius: 3 }}>DISQUALIFIER</span>}
                     <SourceTag section={r.section} excerpt={r.source_excerpt} auditMode={auditMode} />
                   </div>
                   {r.action_required && (
-                    <div style={{ fontSize: 11, color: C.textDim, marginTop: 4, lineHeight: 1.5 }}>
-                      → {r.action_required}
+                    <div style={{ fontSize: 14, color: C.textMuted, marginTop: 8, lineHeight: 1.5 }}>
+                      <strong style={{ color: C.text }}>Suggested next step:</strong> {r.action_required}
                     </div>
                   )}
                   {flagged && !r.source_excerpt && (
-                    <div style={{ fontSize: 10, color: '#f59e0b', marginTop: 4, fontStyle: 'italic' }}>
-                      No source excerpt — AI inferred this requirement. Verify manually against original RFP.
+                    <div style={{ fontSize: 13, color: '#b45309', marginTop: 8, lineHeight: 1.45 }}>
+                      We did not capture a verbatim quote for this line. Confirm it in the source PDF before you rely on it.
                     </div>
                   )}
                 </div>
@@ -822,9 +994,36 @@ function ComplianceCard({ audit, auditMode }) {
           );
         })}
       </div>
-      {(audit?.requirements || []).length > 5 && (
-        <div style={{ fontSize: 11, color: C.textDim, marginTop: 8, textAlign: 'center' }}>
-          +{audit.requirements.length - 5} more requirements in full audit
+      )}
+      {allReqs.length > 5 && (
+        <div style={{ fontSize: 13, color: C.textDim, marginTop: 12, textAlign: 'center' }}>
+          +{allReqs.length - 5} more rows in the full matrix (with subscription)
+        </div>
+      )}
+      {onExportXlsx && (
+        <div style={{ marginTop: 16, paddingTop: 14, borderTop: `1px solid ${C.border}` }}>
+          <button
+            type="button"
+            onClick={() => onExportXlsx(audit)}
+            disabled={exportXlsxLoading}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '10px 16px',
+              borderRadius: 10,
+              border: `1px solid ${C.border}`,
+              background: '#fff',
+              color: C.text,
+              fontSize: 13,
+              fontWeight: 700,
+              cursor: exportXlsxLoading ? 'wait' : 'pointer',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+            }}
+          >
+            {exportXlsxLoading ? <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> : <Download size={15} />}
+            Export Compliance Matrix (.xlsx)
+          </button>
         </div>
       )}
     </div>
@@ -832,7 +1031,7 @@ function ComplianceCard({ audit, auditMode }) {
 }
 
 // ─── Message bubble ───────────────────────────────────────────────────────────
-function MessageBubble({ msg, auditMode, isStreaming, isSubscribed, userId }) {
+function MessageBubble({ msg, auditMode, isStreaming, isSubscribed, userId, onExportComplianceXlsx, exportXlsxLoading }) {
   const isUser = msg.role === 'user';
   return (
     <div style={{ display: 'flex', gap: 12, justifyContent: isUser ? 'flex-end' : 'flex-start', marginBottom: 20, alignItems: 'flex-start' }}>
@@ -841,24 +1040,30 @@ function MessageBubble({ msg, auditMode, isStreaming, isSubscribed, userId }) {
           <Shield size={13} color={C.accent} />
         </div>
       )}
-      <div style={{ maxWidth: 'min(75%, 720px)', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ maxWidth: 'min(75%, 720px)', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 14 }}>
         {msg.type === 'free_limit' ? (
           <FreeLimitCard userId={userId} />
         ) : msg.type === 'audit_result' ? (
           <>
+            <ContractRiskSummaryCard audit={msg.audit} auditMode={auditMode} />
             <VerdictCard audit={msg.audit} auditMode={auditMode} />
             <AccessBadge isSubscribed={isSubscribed} userId={userId} />
             {isSubscribed ? (
               <>
                 <RiskCard audit={msg.audit} auditMode={auditMode} />
-                <ComplianceCard audit={msg.audit} auditMode={auditMode} />
+                <ComplianceCard
+                  audit={msg.audit}
+                  auditMode={auditMode}
+                  onExportXlsx={onExportComplianceXlsx}
+                  exportXlsxLoading={exportXlsxLoading}
+                />
               </>
             ) : (
               <>
-                <PaywallGate userId={userId} label="Risk Flags">
+                <PaywallGate userId={userId} label="Issue list (full detail)">
                   <RiskCard audit={msg.audit} auditMode={auditMode} />
                 </PaywallGate>
-                <PaywallGate userId={userId} label="Compliance Matrix">
+                <PaywallGate userId={userId} label="Requirements list (full detail)">
                   <ComplianceCard audit={msg.audit} auditMode={auditMode} />
                 </PaywallGate>
               </>
@@ -1033,6 +1238,71 @@ function EmptyState({ onAuditUrl, onAuditFile, fileRef, onStartChat, userName })
   );
 }
 
+// ─── Human walkthrough CTA (Calendly) — one path, post-audit only ────────────
+function HumanWalkthroughCTA({ visible, solicitationId }) {
+  if (!visible) return null;
+  return (
+    <div
+      style={{
+        flexShrink: 0,
+        padding: '16px 20px 18px',
+        background: `linear-gradient(180deg, ${C.surfaceHi} 0%, ${C.bg} 45%)`,
+        borderTop: `1px solid ${C.border}`,
+        boxShadow: '0 -6px 20px rgba(0,0,0,0.04)',
+      }}
+    >
+      <div style={{ maxWidth: 560, margin: '0 auto' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+          <div style={{
+            width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+            background: 'rgba(16,163,127,0.1)', border: `1px solid rgba(16,163,127,0.25)`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+          >
+            <Calendar size={18} color={C.accent} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: C.text, letterSpacing: '-0.02em', marginBottom: 6 }}>
+              Want a human walkthrough?
+            </div>
+            <p style={{ margin: '0 0 14px', fontSize: 14, color: C.textMuted, lineHeight: 1.55 }}>
+              {"We'll review your audit results together and tell you exactly where you're exposed — free, 20 minutes."}
+            </p>
+            <a
+              href={AUDIT_WALKTHROUGH_CALENDLY_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => trackEvent('audit_walkthrough_calendly_click', {
+                category: 'conversion',
+                solicitation: solicitationId || null,
+              })}
+              style={{
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                padding: '11px 20px', borderRadius: 10,
+                background: C.navy, color: '#fff', fontSize: 14, fontWeight: 800,
+                textDecoration: 'none', border: `1px solid ${C.navy}`,
+                boxShadow: '0 2px 8px rgba(0,34,68,0.2)',
+                transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-1px)';
+                e.currentTarget.style.boxShadow = '0 4px 14px rgba(0,34,68,0.28)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'none';
+                e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,34,68,0.2)';
+              }}
+            >
+              Book a call
+              <ChevronRight size={16} style={{ opacity: 0.9 }} />
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Chat Input ───────────────────────────────────────────────────────────────
 function ChatInput({ onSend, onAuditUrl, onAuditFile, fileRef, loading, hasAudit }) {
   const [text, setText] = useState('');
@@ -1175,6 +1445,8 @@ export default function GovConDashboardV2({ onBack, user }) {
   const [auditMode, setAuditMode] = useState(false);
   const [exportDocxLoading, setExportDocxLoading] = useState(false);
   const [exportPdfLoading, setExportPdfLoading] = useState(false);
+  const [exportXlsxLoading, setExportXlsxLoading] = useState(false);
+  const [toast, setToast] = useState(null);
   const bottomRef = useRef(null);
   const fileRef = useRef(null);
   const thinkingTimers = useRef([]);
@@ -1210,6 +1482,12 @@ export default function GovConDashboardV2({ onBack, user }) {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isChatLoading]);
+
+  useEffect(() => {
+    if (!toast) return undefined;
+    const t = setTimeout(() => setToast(null), 4500);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   const loadHistory = async () => {
     try {
@@ -1503,6 +1781,30 @@ export default function GovConDashboardV2({ onBack, user }) {
     }
   };
 
+  const handleExportComplianceMatrixXlsx = async (audit) => {
+    const rows = Array.isArray(audit?.requirements) ? audit.requirements : [];
+    if (rows.length === 0) {
+      setToast({ msg: 'Not enough data to export — run a full audit first', type: 'warning' });
+      return;
+    }
+    if (exportXlsxLoading) return;
+    trackEvent('compliance_matrix_xlsx_download', {
+      format: 'xlsx',
+      solicitation: audit?.solicitation_number || audit?.id || null,
+      category: 'export',
+    });
+    setExportXlsxLoading(true);
+    try {
+      await downloadComplianceMatrixXlsx(audit);
+    } catch (e) {
+      if (e?.code !== 'NO_COMPLIANCE_ROWS') {
+        setToast({ msg: 'Export failed. Please try again.', type: 'error' });
+      }
+    } finally {
+      setExportXlsxLoading(false);
+    }
+  };
+
   const handleExportPdf = async () => {
     if (!activeAudit || exportPdfLoading) return;
     trackEvent("compliance_matrix_pdf_download", {
@@ -1523,42 +1825,134 @@ export default function GovConDashboardV2({ onBack, user }) {
   const isLoading = isAuditing || isChatLoading;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: C.bg, color: C.text, fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: C.bg, color: C.text, fontFamily: "'Inter', system-ui, sans-serif", position: 'relative' }}>
+      {toast && (
+        <div
+          role="status"
+          style={{
+            position: 'fixed',
+            bottom: 24,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 200,
+            maxWidth: 'min(420px, calc(100vw - 32px))',
+            padding: '12px 18px',
+            borderRadius: 12,
+            fontSize: 14,
+            fontWeight: 600,
+            lineHeight: 1.45,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+            border: `1px solid ${toast.type === 'error' ? '#fecaca' : toast.type === 'warning' ? '#fde68a' : C.border}`,
+            background: toast.type === 'error' ? '#fef2f2' : toast.type === 'warning' ? '#fffbeb' : '#f8fafc',
+            color: toast.type === 'error' ? '#991b1b' : toast.type === 'warning' ? '#92400e' : C.text,
+          }}
+        >
+          {toast.msg}
+        </div>
+      )}
       <input type="file" ref={fileRef} style={{ display: 'none' }} accept=".pdf" onChange={handleFileChange} />
 
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden', position: 'relative' }}>
 
-        {/* Left sidebar */}
-        <LeftSidebar
-          activeAudit={activeAudit}
-          history={history}
-          onNewAudit={() => { setMessages([]); setActiveAudit(null); setThinkingSteps([]); }}
-          onSelectAudit={loadAudit}
-          onBack={onBack}
-          user={user}
-          onLogout={handleLogout}
-        />
+        {dockLeft ? (
+          <LeftSidebar
+            activeAudit={activeAudit}
+            history={history}
+            onNewAudit={() => { setMessages([]); setActiveAudit(null); setThinkingSteps([]); }}
+            onSelectAudit={loadAudit}
+            onBack={onBack}
+            user={user}
+            onLogout={handleLogout}
+          />
+        ) : (
+          <>
+            {leftDrawerOpen && (
+              <button
+                type="button"
+                aria-label="Close navigation"
+                onClick={() => setLeftDrawerOpen(false)}
+                style={{
+                  position: 'fixed', inset: 0, zIndex: 90,
+                  background: 'rgba(15, 15, 18, 0.48)',
+                  backdropFilter: 'blur(4px)',
+                  WebkitBackdropFilter: 'blur(4px)',
+                  border: 'none', padding: 0, cursor: 'pointer',
+                }}
+              />
+            )}
+            <div
+              style={{
+                position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 100,
+                width: 'min(300px, calc(100vw - 20px))',
+                transform: leftDrawerOpen ? 'translateX(0)' : 'translateX(-105%)',
+                transition: 'transform 0.28s cubic-bezier(0.22, 1, 0.36, 1)',
+                boxShadow: leftDrawerOpen ? '12px 0 40px rgba(0,0,0,0.18)' : 'none',
+                pointerEvents: leftDrawerOpen ? 'auto' : 'none',
+              }}
+            >
+              <LeftSidebar
+                activeAudit={activeAudit}
+                history={history}
+                onNewAudit={() => { setMessages([]); setActiveAudit(null); setThinkingSteps([]); setLeftDrawerOpen(false); }}
+                onSelectAudit={(id) => { loadAudit(id); setLeftDrawerOpen(false); }}
+                onBack={() => { onBack?.(); setLeftDrawerOpen(false); }}
+                user={user}
+                onLogout={handleLogout}
+                embedded
+                onCloseDrawer={() => setLeftDrawerOpen(false)}
+              />
+            </div>
+          </>
+        )}
 
         {/* Center — Chat */}
-        <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: C.bg }}>
-      {/* Top bar */}
-          <div style={{ height: 52, borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', padding: '0 20px', gap: 10, flexShrink: 0 }}>
+        <main style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: C.bg }}>
+          <div style={{ height: 52, borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', padding: dockLeft ? '0 20px' : '0 12px 0 14px', gap: 10, flexShrink: 0 }}>
+            {!dockLeft && (
+              <button
+                type="button"
+                aria-label="Open menu"
+                onClick={() => setLeftDrawerOpen(true)}
+                style={{
+                  width: 40, height: 40, borderRadius: 10, border: `1px solid ${C.border}`, background: C.surfaceHi,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: C.textMuted, flexShrink: 0,
+                }}
+              >
+                <Menu size={18} />
+              </button>
+            )}
+            <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 10, overflow: 'hidden' }}>
             {activeAudit ? (
               <>
-                <FileText size={14} color={C.textDim} />
-                <span style={{ fontSize: 13, fontWeight: 600, color: C.textMuted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 300 }}>
+                <FileText size={14} color={C.textDim} style={{ flexShrink: 0 }} />
+                <span style={{ fontSize: 13, fontWeight: 600, color: C.textMuted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
                   {extractSolicitationName(activeAudit)}
-          </span>
+                </span>
                 {activeAudit?.verdict?.recommendation && (
                   <span style={{ fontSize: 11, fontWeight: 800, color: verdictColor(activeAudit.verdict.recommendation), background: `${verdictColor(activeAudit.verdict.recommendation)}18`, padding: '3px 8px', borderRadius: 6, border: `1px solid ${verdictColor(activeAudit.verdict.recommendation)}33`, flexShrink: 0 }}>
                     {activeAudit.verdict.recommendation.toUpperCase()}
-          </span>
+                  </span>
                 )}
               </>
             ) : (
               <span style={{ fontSize: 12, color: C.textDim }}>No active solicitation</span>
             )}
-            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
+            </div>
+            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+              {!dockRight && (
+                <button
+                  type="button"
+                  title="Agent thinking"
+                  aria-label="Open agent thinking"
+                  onClick={() => setRightDrawerOpen(true)}
+                  style={{
+                    width: 40, height: 40, borderRadius: 10, border: `1px solid ${C.border}`, background: C.surfaceHi,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: C.accent,
+                  }}
+                >
+                  <Brain size={18} />
+                </button>
+              )}
               {isAuditing && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: C.accent }}>
                   <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />
@@ -1637,7 +2031,7 @@ export default function GovConDashboardV2({ onBack, user }) {
           )}
 
           {/* Message thread */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}>
+          <div style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch', padding: dockLeft && dockRight ? '24px 28px' : '16px 14px' }}>
             {messages.length === 0 ? (
               <EmptyState
                 onAuditUrl={handleQuickQuestion}
@@ -1656,12 +2050,19 @@ export default function GovConDashboardV2({ onBack, user }) {
                   isStreaming={msg.id === streamingId}
                   isSubscribed={user?.isSubscribed === true}
                   userId={user?.id}
+                  onExportComplianceXlsx={handleExportComplianceMatrixXlsx}
+                  exportXlsxLoading={exportXlsxLoading}
                 />
               ))}
                 <div ref={bottomRef} />
               </>
             )}
           </div>
+
+          <HumanWalkthroughCTA
+            visible={!!(activeAudit && !isAuditing && activeAudit.verdict)}
+            solicitationId={activeAudit?.solicitation_number || activeAudit?.id || null}
+          />
 
           {/* Chat input */}
           <ChatInput
@@ -1674,8 +2075,43 @@ export default function GovConDashboardV2({ onBack, user }) {
           />
         </main>
 
-        {/* Right sidebar — Agent thinking */}
-        <AgentThinkingPanel steps={thinkingSteps} isRunning={isAuditing} />
+        {dockRight ? (
+          <AgentThinkingPanel steps={thinkingSteps} isRunning={isAuditing} />
+        ) : (
+          <>
+            {rightDrawerOpen && (
+              <button
+                type="button"
+                aria-label="Close agent panel"
+                onClick={() => setRightDrawerOpen(false)}
+                style={{
+                  position: 'fixed', inset: 0, zIndex: 90,
+                  background: 'rgba(15, 15, 18, 0.48)',
+                  backdropFilter: 'blur(4px)',
+                  WebkitBackdropFilter: 'blur(4px)',
+                  border: 'none', padding: 0, cursor: 'pointer',
+                }}
+              />
+            )}
+            <div
+              style={{
+                position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 100,
+                width: 'min(320px, calc(100vw - 20px))',
+                transform: rightDrawerOpen ? 'translateX(0)' : 'translateX(105%)',
+                transition: 'transform 0.28s cubic-bezier(0.22, 1, 0.36, 1)',
+                boxShadow: rightDrawerOpen ? '-12px 0 40px rgba(0,0,0,0.14)' : 'none',
+                pointerEvents: rightDrawerOpen ? 'auto' : 'none',
+              }}
+            >
+              <AgentThinkingPanel
+                steps={thinkingSteps}
+                isRunning={isAuditing}
+                embedded
+                onCloseDrawer={() => setRightDrawerOpen(false)}
+              />
+            </div>
+          </>
+        )}
       </div>
 
       <style dangerouslySetInnerHTML={{ __html: `
