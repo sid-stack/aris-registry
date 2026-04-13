@@ -15,8 +15,6 @@
  */
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import { useClerk } from '@clerk/clerk-react';
 import {
   Send, Plus, LogOut, Shield, FileText, Clock,
@@ -34,6 +32,7 @@ import { downloadComplianceMatrixXlsx } from '../utils/complianceMatrixXlsx';
 import { downloadGovConAuditPdf } from '../utils/govconAuditPdf';
 import NextBestAction from '../components/govcon/NextBestAction';
 import HumanWalkthroughCTA from '../components/HumanWalkthroughCTA.jsx';
+import { ChatMarkdown } from '../components/chat/ChatMarkdown.jsx';
 
 // ─── Colors — dark sidebar + light main (ChatGPT style) ──────────────────────
 const C = {
@@ -105,111 +104,6 @@ function useWindowWidth() {
     return () => window.removeEventListener('resize', fn);
   }, []);
   return w;
-}
-
-/** If the model wraps the whole answer in one ``` fence, unwrap so **bold** parses. */
-function normalizeEngineMarkdown(s) {
-  if (!s || typeof s !== 'string') return '';
-  const t = s.trim();
-  const m = t.match(/^```(?:markdown|md|txt)?\s*\n?([\s\S]*?)\n?```$/i);
-  if (m) return m[1].trim();
-  return s;
-}
-
-function govMarkdownComponents(variant) {
-  const isInline = variant === 'inline';
-  const text = () => (isInline ? { color: C.text, fontSize: 'inherit', lineHeight: 1.5 } : { color: C.text });
-  return {
-    p: ({ children }) => (isInline
-      ? <span style={{ ...text(), display: 'block', marginBottom: 4 }}>{children}</span>
-      : <p style={{ margin: '0 0 10px', color: C.text }}>{children}</p>),
-    ul: ({ children }) => (isInline
-      ? <span style={text()}>{children}</span>
-      : <ul style={{ margin: '0 0 10px', paddingLeft: 20 }}>{children}</ul>),
-    ol: ({ children }) => (isInline
-      ? <span style={text()}>{children}</span>
-      : <ol style={{ margin: '0 0 10px', paddingLeft: 20 }}>{children}</ol>),
-    li: ({ children }) => (isInline
-      ? <span style={{ ...text(), display: 'block', marginBottom: 4 }}>{children}</span>
-      : <li style={{ marginBottom: 5, color: C.text }}>{children}</li>),
-    strong: ({ children }) => <strong style={{ fontWeight: 700, color: C.text }}>{children}</strong>,
-    em: ({ children }) => <em style={{ fontStyle: 'italic', color: C.textMuted }}>{children}</em>,
-    a: ({ href, children }) => (
-      <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: C.accent, fontWeight: 600 }}>
-        {children}
-      </a>
-    ),
-    h1: ({ children }) => <h1 style={{ fontSize: isInline ? '1.05em' : 18, fontWeight: 800, margin: isInline ? '0 0 4px' : '12px 0 8px', color: C.text }}>{children}</h1>,
-    h2: ({ children }) => <h2 style={{ fontSize: isInline ? '1em' : 16, fontWeight: 800, margin: isInline ? '0 0 4px' : '12px 0 8px', color: C.text }}>{children}</h2>,
-    h3: ({ children }) => <h3 style={{ fontSize: isInline ? '1em' : 15, fontWeight: 700, margin: isInline ? '0 0 4px' : '10px 0 6px', color: C.text }}>{children}</h3>,
-    blockquote: ({ children }) => (
-      <blockquote style={{
-        margin: isInline ? '4px 0' : '0 0 10px',
-        paddingLeft: 12,
-        borderLeft: `3px solid ${C.borderHi}`,
-        color: C.textMuted,
-      }}
-      >{children}</blockquote>
-    ),
-    code: ({ inline, className, children, ...props }) => {
-      if (inline) {
-        return (
-          <code
-            style={{
-              background: C.surfaceHi,
-              border: `1px solid ${C.border}`,
-              borderRadius: 4,
-              padding: '2px 6px',
-              fontSize: '0.92em',
-              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-              color: '#0369a1',
-            }}
-            {...props}
-          >{children}</code>
-        );
-      }
-      return (
-        <code
-          className={className}
-          style={{
-            display: 'block',
-            fontSize: 13,
-            padding: 10,
-            borderRadius: 8,
-            background: C.surfaceHi,
-            border: `1px solid ${C.border}`,
-            overflowX: 'auto',
-            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-          }}
-          {...props}
-        >{children}</code>
-      );
-    },
-    pre: ({ children }) => <pre style={{ margin: '0 0 10px', overflow: 'auto' }}>{children}</pre>,
-    hr: () => <hr style={{ border: 'none', borderTop: `1px solid ${C.border}`, margin: '12px 0' }} />,
-    table: ({ children }) => (
-      <div style={{ overflowX: 'auto', margin: '0 0 10px' }}>
-        <table style={{ borderCollapse: 'collapse', fontSize: 13, width: '100%' }}>{children}</table>
-      </div>
-    ),
-    th: ({ children }) => (
-      <th style={{ border: `1px solid ${C.border}`, padding: '6px 8px', textAlign: 'left', background: C.surfaceHi }}>{children}</th>
-    ),
-    td: ({ children }) => (
-      <td style={{ border: `1px solid ${C.border}`, padding: '6px 8px' }}>{children}</td>
-    ),
-  };
-}
-
-function GovChatMarkdown({ content, variant = 'chat' }) {
-  const text = normalizeEngineMarkdown(content);
-  const components = useMemo(() => govMarkdownComponents(variant), [variant]);
-  if (!text) return null;
-  return (
-    <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
-      {text}
-    </ReactMarkdown>
-  );
 }
 
 // ─── Left Sidebar ─────────────────────────────────────────────────────────────
@@ -1104,7 +998,7 @@ function MessageBubble({ msg, auditMode, isStreaming, isSubscribed, userId, onEx
                       {msg.plan.steps.map((s) => (
                         <li key={s.id} style={{ marginBottom: 4 }}>
                           <span style={{ marginRight: 4 }}>{s.status === 'done' ? '✓' : '○'}</span>
-                          <GovChatMarkdown variant="inline" content={s.title || ''} />
+                          <ChatMarkdown variant="inline" content={s.title || ''} />
                         </li>
                       ))}
                     </ul>
@@ -1112,13 +1006,13 @@ function MessageBubble({ msg, auditMode, isStreaming, isSubscribed, userId, onEx
                 )}
                 {msg.plan.next_action ? (
                   <div style={{ margin: msg.plan.steps?.length ? '8px 0 0' : 0, fontSize: 13, color: C.accent, fontWeight: 600, lineHeight: 1.5 }}>
-                    Next: <GovChatMarkdown variant="inline" content={msg.plan.next_action} />
+                    Next: <ChatMarkdown variant="inline" content={msg.plan.next_action} />
                   </div>
                 ) : null}
               </div>
             )}
             {msg.role === 'assistant'
-              ? <GovChatMarkdown content={msg.content} />
+              ? <ChatMarkdown content={msg.content} />
               : <span style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</span>
             }
             {isStreaming && (

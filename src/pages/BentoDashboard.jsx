@@ -17,6 +17,7 @@ import LiveAnalysisCard from '../components/bento/LiveAnalysisCard';
 import EvalStatusCard  from '../components/bento/EvalStatusCard';
 import BidOutputCard   from '../components/bento/BidOutputCard';
 import HumanWalkthroughCTA from '../components/HumanWalkthroughCTA.jsx';
+import { ChatMarkdown, BENTO_WORKSPACE_CHAT_PALETTE } from '../components/chat/ChatMarkdown.jsx';
 import { downloadComplianceMatrixXlsx } from '../utils/complianceMatrixXlsx';
 import { trackEvent } from '../utils/analytics';
 
@@ -157,19 +158,28 @@ function WorkspaceChat({
                       <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 500, color: '#1967d2' }}>Plan</p>
                       <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: '#202124', lineHeight: 1.45 }}>
                         {msg.plan.steps.map((s) => (
-                          <li key={s.id} style={{ marginBottom: 2 }}>{s.status === 'done' ? '✓ ' : '○ '}{s.title}</li>
+                          <li key={s.id} style={{ marginBottom: 2 }}>
+                            <span style={{ marginRight: 4 }}>{s.status === 'done' ? '✓' : '○'}</span>
+                            <ChatMarkdown variant="inline" content={s.title || ''} palette={BENTO_WORKSPACE_CHAT_PALETTE} />
+                          </li>
                         ))}
                       </ul>
                     </>
                   )}
                   {msg.plan.next_action ? (
-                    <p style={{ margin: msg.plan.steps?.length ? '6px 0 0' : 0, fontSize: 13, color: '#1967d2', fontWeight: 500 }}>Next: {msg.plan.next_action}</p>
+                    <div style={{ margin: msg.plan.steps?.length ? '6px 0 0' : 0, fontSize: 13, color: '#1967d2', fontWeight: 500, lineHeight: 1.5 }}>
+                      Next: <ChatMarkdown variant="inline" content={msg.plan.next_action} palette={BENTO_WORKSPACE_CHAT_PALETTE} />
+                    </div>
                   ) : null}
                 </div>
               )}
-              {msg.text.split('\n').map((line, i) => (
-                <span key={i}>{line}{i < msg.text.split('\n').length - 1 && <br />}</span>
-              ))}
+              {msg.role === 'ai' ? (
+                <div style={{ fontSize: 14, lineHeight: 1.65, color: '#202124' }}>
+                  <ChatMarkdown content={msg.text || ''} palette={BENTO_WORKSPACE_CHAT_PALETTE} />
+                </div>
+              ) : (
+                <span style={{ whiteSpace: 'pre-wrap' }}>{msg.text}</span>
+              )}
               {msg.role === 'ai' && msg.externalLinks?.length > 0 && (
                 <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 5 }}>
                   {msg.externalLinks.map((link, i) => (
