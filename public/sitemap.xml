@@ -1,38 +1,51 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 
-  <!-- Core pages -->
-  <url><loc>https://www.bidsmith.pro/</loc><lastmod>2026-03-28</lastmod><changefreq>weekly</changefreq><priority>1.0</priority></url>
-  <url><loc>https://www.bidsmith.pro/demo</loc><lastmod>2026-03-28</lastmod><changefreq>monthly</changefreq><priority>0.95</priority></url>
-  <url><loc>https://www.bidsmith.pro/pricing</loc><lastmod>2026-03-28</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
-  <url><loc>https://www.bidsmith.pro/rfp-compliance-matrix-generator</loc><lastmod>2026-03-28</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
-  <url><loc>https://www.bidsmith.pro/govcon-guide</loc><lastmod>2026-03-28</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
-  <url><loc>https://www.bidsmith.pro/templates</loc><lastmod>2026-03-28</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://www.bidsmith.pro/about</loc><lastmod>2026-03-28</lastmod><changefreq>monthly</changefreq><priority>0.75</priority></url>
-  <url><loc>https://www.bidsmith.pro/contact</loc><lastmod>2026-03-28</lastmod><changefreq>monthly</changefreq><priority>0.75</priority></url>
-  <url><loc>https://www.bidsmith.pro/soc</loc><lastmod>2026-03-28</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://www.bidsmith.pro/sam-rep</loc><lastmod>2026-03-28</lastmod><changefreq>monthly</changefreq><priority>0.65</priority></url>
+  <!-- Core marketing -->
+  <url><loc>https://www.bidsmith.pro/</loc><lastmod>2026-04-13</lastmod><changefreq>weekly</changefreq><priority>1.0</priority></url>
+  <url><loc>https://www.bidsmith.pro/demo</loc><lastmod>2026-04-13</lastmod><changefreq>monthly</changefreq><priority>0.95</priority></url>
+  <url><loc>https://www.bidsmith.pro/pricing</loc><lastmod>2026-04-13</lastmod><changefreq>monthly</changefreq><priority>0.95</priority></url>
+  <url><loc>https://www.bidsmith.pro/rfp-compliance-matrix-generator</loc><lastmod>2026-04-13</lastmod><changefreq>monthly</changefreq><priority>0.95</priority></url>
+  <url><loc>https://www.bidsmith.pro/govcon-guide</loc><lastmod>2026-04-13</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.bidsmith.pro/templates</loc><lastmod>2026-04-13</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://www.bidsmith.pro/about</loc><lastmod>2026-04-13</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.bidsmith.pro/contact</loc><lastmod>2026-04-13</lastmod><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://www.bidsmith.pro/soc</loc><lastmod>2026-04-13</lastmod><changefreq>monthly</changefreq><priority>0.75</priority></url>
+  <url><loc>https://www.bidsmith.pro/sam-rep</loc><lastmod>2026-04-13</lastmod><changefreq>monthly</changefreq><priority>0.85</priority></url>
 
-  <!-- Blog — GovCon / RFP intent -->
-  <url><loc>https://www.bidsmith.pro/blog/bid-no-bid-decision-framework</loc><lastmod>2026-04-13</lastmod><changefreq>monthly</changefreq><priority>0.75</priority></url>
+  <!-- Landing section aliases (same shell as home; indexable paths) -->
+  <url><loc>https://www.bidsmith.pro/solutions</loc><lastmod>2026-04-13</lastmod><changefreq>monthly</changefreq><priority>0.75</priority></url>
+  <url><loc>https://www.bidsmith.pro/workflow</loc><lastmod>2026-04-13</lastmod><changefreq>monthly</changefreq><priority>0.75</priority></url>
+  <url><loc>https://www.bidsmith.pro/markets</loc><lastmod>2026-04-13</lastmod><changefreq>monthly</changefreq><priority>0.75</priority></url>
+
+  <!-- Growth playbook hub + BOFU resources (src/content/growthPlanData.js) -->
+  <url><loc>https://www.bidsmith.pro/resources</loc><lastmod>2026-04-13</lastmod><changefreq>weekly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://www.bidsmith.pro/resources/how-to-qualify-government-rfp</loc><lastmod>2026-04-13</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.bidsmith.pro/resources/federal-bid-no-bid-framework</loc><lastmod>2026-04-13</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.bidsmith.pro/resources/rfp-compliance-matrix-checklist</loc><lastmod>2026-04-13</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.bidsmith.pro/resources/section-l-m-review-process</loc><lastmod>2026-04-13</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.bidsmith.pro/resources/federal-proposal-timeline-template</loc><lastmod>2026-04-13</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.bidsmith.pro/resources/capture-plan-template-govcon</loc><lastmod>2026-04-13</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.bidsmith.pro/resources/govcon-partner-outreach-playbook</loc><lastmod>2026-04-13</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.bidsmith.pro/resources/qualified-traffic-kpi-dashboard</loc><lastmod>2026-04-13</lastmod><changefreq>monthly</changefreq><priority>0.75</priority></url>
+
+  <!-- Blog (src/content/blogManifest.js) -->
+  <url><loc>https://www.bidsmith.pro/blog/bid-no-bid-decision-framework</loc><lastmod>2026-04-13</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <url><loc>https://www.bidsmith.pro/blog/rfp-process-win-rate-signs</loc><lastmod>2026-04-13</lastmod><changefreq>monthly</changefreq><priority>0.75</priority></url>
   <url><loc>https://www.bidsmith.pro/blog/how-to-find-government-rfps-early</loc><lastmod>2026-04-13</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <url><loc>https://www.bidsmith.pro/blog/compliance-matrix-government-rfps</loc><lastmod>2026-04-13</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
 
-  <!-- FAR/DFARS Compliance Guides — high-intent SEO cluster -->
-  <url><loc>https://www.bidsmith.pro/compliance/far-52-212-1</loc><lastmod>2026-03-28</lastmod><changefreq>monthly</changefreq><priority>0.85</priority></url>
-  <url><loc>https://www.bidsmith.pro/compliance/far-52-212-2</loc><lastmod>2026-03-28</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://www.bidsmith.pro/compliance/section-l-analysis</loc><lastmod>2026-03-28</lastmod><changefreq>monthly</changefreq><priority>0.85</priority></url>
-  <url><loc>https://www.bidsmith.pro/compliance/section-m-evaluation</loc><lastmod>2026-03-28</lastmod><changefreq>monthly</changefreq><priority>0.85</priority></url>
-  <url><loc>https://www.bidsmith.pro/compliance/dfars-252-204-7012</loc><lastmod>2026-03-28</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://www.bidsmith.pro/compliance/cmmc-level-2</loc><lastmod>2026-03-28</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://www.bidsmith.pro/compliance/compliance-matrix-guide</loc><lastmod>2026-03-28</lastmod><changefreq>monthly</changefreq><priority>0.85</priority></url>
-  <url><loc>https://www.bidsmith.pro/compliance/bid-no-bid-framework</loc><lastmod>2026-03-28</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://www.bidsmith.pro/compliance/rtm-generator</loc><lastmod>2026-03-28</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <!-- Compliance guides (src/pages/CompliancePage.jsx GUIDES keys only) -->
+  <url><loc>https://www.bidsmith.pro/compliance/far-52-212-1</loc><lastmod>2026-04-13</lastmod><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://www.bidsmith.pro/compliance/section-l-analysis</loc><lastmod>2026-04-13</lastmod><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://www.bidsmith.pro/compliance/compliance-matrix-guide</loc><lastmod>2026-04-13</lastmod><changefreq>monthly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://www.bidsmith.pro/compliance/bid-no-bid-framework</loc><lastmod>2026-04-13</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.bidsmith.pro/compliance/dfars-252-204-7012</loc><lastmod>2026-04-13</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.bidsmith.pro/compliance/rtm-generator</loc><lastmod>2026-04-13</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
 
   <!-- Legal -->
-  <url><loc>https://www.bidsmith.pro/privacy</loc><lastmod>2026-03-28</lastmod><changefreq>yearly</changefreq><priority>0.3</priority></url>
-  <url><loc>https://www.bidsmith.pro/terms</loc><lastmod>2026-03-28</lastmod><changefreq>yearly</changefreq><priority>0.3</priority></url>
-  <url><loc>https://www.bidsmith.pro/cookies</loc><lastmod>2026-03-28</lastmod><changefreq>yearly</changefreq><priority>0.2</priority></url>
+  <url><loc>https://www.bidsmith.pro/privacy</loc><lastmod>2026-04-13</lastmod><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://www.bidsmith.pro/terms</loc><lastmod>2026-04-13</lastmod><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://www.bidsmith.pro/cookies</loc><lastmod>2026-04-13</lastmod><changefreq>yearly</changefreq><priority>0.2</priority></url>
 
 </urlset>
