@@ -78,7 +78,7 @@ Outreach Daily: 30+ cold emails per day
 - Stephen.Smith@cognosante.com — hard bounce (Cognosante absorbed by Accenture Federal)
 
 ### Do Not Contact (already in sequence)
-jennifer.serin@sev1tech.com, andrew.cohen@sev1tech.com, christa.carter@reisystems.com, erin.horrell@intelligentwaves.com, dennis.freeland@intelligentwaves.com, sales@xceleratesolutions.com, psahady@chevoconsulting.com, zsahady@chevoconsulting.com, ggodbout@fearless.tech, bchappell@alphaomega.com, acandreva@tantustech.com, gprice@akira-tech.com, mbowers@pragmatics.com, lbuckhout@corvus-consulting-llc.com, pdonlin@buchanan.com, Tyler.Sweatt@secondfront.com, mhopkins@electrosoft-inc.com, jvandemark@sabresystems.com
+Maintain the live DNC list in your **CRM, spreadsheet, or private doc** (not in this repo). Before each batch, export or copy-check against that source so addresses in active sequences are never re-contacted.
 
 ---
 

@@ -151,6 +151,14 @@ gtm/*.csv
 gtm/CLAUDE.md
 content/referral_partner_outreach_list.md
 
+# Lead lists & exports (PII — names, emails, domains). Generate locally; never commit.
+data/manus_*.json
+leads/*
+!leads/.gitkeep
+
+# Local / CI security scan output (may reference repo state; not for public mirror)
+security_audit_report.json
+
 # =========================
 # UPLOADED ASSETS (large binaries)
 # =========================
