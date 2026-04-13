@@ -124,6 +124,7 @@ const STORIES = [
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function Landing({
   onEnterApp,
+  onEnterDashboard,
   onViewSample,
   onAnalyze,
   onAnalyzeFile,
@@ -201,14 +202,14 @@ export default function Landing({
 
           {/* Auth CTAs */}
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
-            <button style={S.navSignIn} onClick={() => onEnterApp?.("nav_signin")}>
+            <button type="button" style={S.navSignIn} onClick={() => (isAuthenticated ? onEnterDashboard?.() : onEnterApp?.("nav_signin"))}>
               {isAuthenticated ? `Hi, ${userHandle || "there"}` : "Sign In"}
             </button>
             {!isMobile && (
               <button
                 className="btn-nav-meeting"
                 style={S.navCta}
-                onClick={() => isAuthenticated ? onEnterApp?.("nav_primary_cta") : window.open(CALENDLY_URL, "_blank", "noopener")}
+                onClick={() => (isAuthenticated ? onEnterDashboard?.() : window.open(CALENDLY_URL, "_blank", "noopener"))}
               >
                 {isAuthenticated ? "Dashboard" : "Book a Meeting"}
               </button>
@@ -226,34 +227,45 @@ export default function Landing({
           </div>
 
           <h1 style={S.h1}>
-            Win More Federal Contracts.<br />
-            <span style={{ color: C.navyMid }}>Bid with Confidence.</span>
+            Win more government contracts.<br />
+            <span style={{ color: C.navyMid }}>In half the time.</span>
           </h1>
 
           <p style={S.heroSub}>
-            BidSmith reads any SAM.gov solicitation and generates a compliance matrix, FAR/DFARS risk report,
-            and bid/no-bid recommendation in 90 seconds. Replace 18–40 hours of manual RFP review with one automated audit.
+            BidSmith analyzes RFPs instantly — bid/no-bid decision, compliance matrix, and export-ready in minutes.
           </p>
 
           <div style={S.heroCtas}>
             <button
-              className="btn-meeting"
+              className="btn-land-primary"
               style={S.ctaPrimary}
-              onClick={() => isAuthenticated ? onEnterApp?.("hero_primary_cta") : window.open(CALENDLY_URL, "_blank", "noopener")}
+              type="button"
+              onClick={() => onEnterDashboard?.()}
             >
-              {isAuthenticated ? "Go to Dashboard" : "Book a Meeting"}
-            </button>
-            <button className="btn-land-secondary" style={S.ctaSecondary} onClick={() => onEnterApp?.("hero_secondary_cta")}>
-              {isAuthenticated ? "Run New Audit" : "Start Free Audit"}
+              Start your free audit →
             </button>
             <button
               className="btn-land-secondary"
               style={{ ...S.ctaSecondary, display: "inline-flex", alignItems: "center", gap: 8, borderColor: C.navyMid, color: C.navyMid }}
+              type="button"
               onClick={() => onViewSample?.()}
             >
-              <Play size={15} fill={C.navyMid} strokeWidth={0} />
-              Watch Live Demo
+              <Play size={15} fill={C.navyMid} strokeWidth={0} aria-hidden />
+              Watch live demo
             </button>
+            <button
+              className="btn-meeting"
+              type="button"
+              style={{ ...S.ctaSecondary, background: C.white }}
+              onClick={() => window.open(CALENDLY_URL, "_blank", "noopener")}
+            >
+              Book a meeting
+            </button>
+            {isAuthenticated && (
+              <button className="btn-land-secondary" type="button" style={S.ctaSecondary} onClick={() => onEnterApp?.("hero_run_audit")}>
+                Run new audit
+              </button>
+            )}
           </div>
 
           <div style={S.trustBar}>
@@ -304,8 +316,13 @@ export default function Landing({
                   </div>
                 </div>
               ) : (
-                <video autoPlay muted loop playsInline
+                <video
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
                   poster="/assets/demo/video-poster.png"
+                  aria-label="BidSmith product demo: federal RFP audit workflow"
                   style={{ width: "100%", display: "block", maxHeight: 460, objectFit: "cover" }}
                   onError={() => setHeroVideoError(true)}
                 >
@@ -794,10 +811,11 @@ export default function Landing({
             </button>
             <button
               className="btn-land-secondary"
-              onClick={() => onEnterApp?.("final_secondary_cta")}
+              type="button"
+              onClick={() => onEnterDashboard?.()}
               style={{ ...S.ctaSecondary, borderColor: C.paleSky, color: C.paleSky, background: "transparent" }}
             >
-              Start Free Audit
+              Start your free audit →
             </button>
           </div>
         </div>

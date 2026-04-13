@@ -23,6 +23,7 @@ export function pathForView(view) {
     demo: "/demo",
     "govcon-guide": "/govcon-guide",
     "rfp-generator": "/rfp-compliance-matrix-generator",
+    "blog-hub": "/blog",
     "404": "/404",
     privacy: "/privacy",
     terms: "/terms",

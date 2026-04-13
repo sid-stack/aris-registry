@@ -33,9 +33,12 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         output: {
           manualChunks(id) {
+            if (id.includes('node_modules/@clerk/')) {
+              return 'clerk';
+            }
             // React core — tiny, loads first
             if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
-              return 'vendor-react';
+              return 'vendor';
             }
             // Markdown renderer — only used in Audit page
             if (id.includes('react-markdown') || id.includes('remark') || id.includes('micromark') || id.includes('mdast') || id.includes('unist')) {

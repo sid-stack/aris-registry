@@ -18,6 +18,7 @@ Disallow: /private/
 Disallow: /survey-analytics
 Disallow: /demo-analytics
 Disallow: /traffic-brief
+Disallow: /api/
 
 # Dev-only E2E harness (noindex in app; disallow for crawlers that ignore JS meta)
 Disallow: /__e2e/

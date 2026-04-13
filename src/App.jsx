@@ -10,6 +10,7 @@ import { getBlogPost } from "./content/blogManifest";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { pathForView, WORKSPACE_PATH } from "./lib/routes";
+import { getComplianceRouteMeta } from "./seo/complianceRouteMeta";
 
 const Templates        = lazy(() => import("./pages/Templates"));
 const Legal            = lazy(() => import("./pages/Legal"));
@@ -25,12 +26,14 @@ const TrafficBrief     = lazy(() => import("./pages/TrafficBrief"));
 const RfpMatrixGenerator = lazy(() => import("./pages/seo/RfpMatrixGenerator"));
 const GrowthResourcePage = lazy(() => import("./pages/seo/GrowthResourcePage"));
 const BlogArticle = lazy(() => import("./pages/seo/BlogArticle"));
+const BlogHub = lazy(() => import("./pages/seo/BlogHub"));
 const AdminDashboard   = lazy(() => import("./pages/AdminDashboard"));
 const BentoDashboard   = lazy(() => import("./pages/BentoDashboard"));
 const E2eBentoAuditCtaHarness = lazy(() => import("./e2e/E2eBentoAuditCtaHarness.jsx"));
 const Contact          = lazy(() => import("./pages/Contact"));
 
 const BASE_URL = "https://www.bidsmith.pro";
+const OG_IMAGE_URL = `${BASE_URL}/og-image.png`;
 
 /** Logged-out /dashboard (and traffic-brief) — context before Clerk so cold-email clicks convert. */
 function DashboardSignInShell({ onBackHome }) {
@@ -158,25 +161,26 @@ function LoadingSpinner() {
 }
 
 const PAGE_META = {
-  landing:      { title: "BidSmith | Federal RFP Compliance Audit Software for Government Contractors", description: "BidSmith audits SAM.gov solicitations in 90 seconds. Instant compliance matrix, FAR/DFARS risk flags, and bid/no-bid recommendation. Built for federal prime contractors and capture teams.", path: "/" },
-  templates:    { title: "Free Federal Proposal Templates | Compliance Matrix & RFP Worksheets — BidSmith", description: "Download free compliance matrix templates, proposal outlines, and RFP shred worksheets built for government contractors. Ready to use with any FAR/DFARS solicitation.", path: "/templates" },
-  about:        { title: "About BidSmith | AI-Powered Federal RFP Audit Software by ARIS Labs", description: "BidSmith is built by ARIS Labs to give government contractors instant compliance intelligence. Zero-knowledge architecture, direct SAM.gov integration, and AI-driven audit output.", path: "/about" },
-  soc:          { title: "BidSmith Security | Zero-Knowledge RFP Data Architecture", description: "BidSmith processes solicitation data in transient memory only. No data stored, indexed, or shared. Learn how our zero-knowledge architecture keeps your proposal strategy private.", path: "/soc" },
-  "sam-rep":    { title: "Sample Federal RFP Audit Report | BidSmith Compliance Matrix Demo", description: "See a real BidSmith audit output for a Defense Health Agency solicitation — compliance matrix, FAR/DFARS flags, risk score, and bid/no-bid verdict included.", path: "/sam-rep" },
-  demo:         { title: "BidSmith Live Demo | Watch a Federal RFP Audit in 90 Seconds", description: "Watch BidSmith audit a real $24.5M Army solicitation live — compliance matrix, FAR/DFARS disqualifier flags, risk score, and bid/no-bid verdict. No signup required.", path: "/demo" },
-  "govcon-guide": { title: "Federal Contracting Process Guide | How to Win Government Contracts — BidSmith", description: "The complete government contracting workflow for new and experienced contractors — SAM.gov registration, opportunity discovery, compliance review, and proposal development.", path: "/govcon-guide" },
-  privacy:      { title: "Privacy Policy | BidSmith", description: "How BidSmith collects, uses, and protects your data.", path: "/privacy" },
-  terms:        { title: "Terms of Service | BidSmith", description: "Terms and conditions governing your use of the BidSmith federal RFP audit platform.", path: "/terms" },
-  cookies:      { title: "Cookie Policy | BidSmith", description: "How BidSmith uses cookies and local storage.", path: "/cookies" },
-  app:          { title: "BidSmith Command Center | Federal RFP Compliance Analysis", description: "Your BidSmith Command Center. Paste a SAM.gov URL or upload a PDF to begin.", path: "/dashboard" },
-  dashboard:    { title: "BidSmith Command Center | Federal RFP Compliance Analysis", description: "Your BidSmith Command Center. Paste a SAM.gov URL or upload a PDF — bid/no-bid verdict in 90 seconds.", path: "/dashboard" },
-  pricing:      { title: "BidSmith Pricing | Federal RFP Audit Plans — Free to $999/mo", description: "Start free with 3 audits per month. Upgrade for unlimited audits, full FAR/DFARS analysis, and deep-shred strategy. No hidden fees.", path: "/pricing" },
+  landing:      { title: "BidSmith | Win more government contracts—RFP bid software", description: "BidSmith is AI-powered RFP and government contract bid management: instant bid/no-bid, compliance matrix, and export-ready output in minutes. Built for GovCon capture teams.", path: "/" },
+  templates:    { title: "BidSmith | Free federal proposal templates & RFP worksheets", description: "Download free compliance matrix templates, proposal outlines, and RFP shred worksheets built for government contractors. Ready to use with any FAR/DFARS solicitation.", path: "/templates" },
+  about:        { title: "BidSmith | About ARIS Labs & federal RFP audit software", description: "BidSmith is built by ARIS Labs to give government contractors instant compliance intelligence. Zero-knowledge architecture, direct SAM.gov integration, and AI-driven audit output.", path: "/about" },
+  soc:          { title: "BidSmith Security | Zero-knowledge RFP data architecture", description: "BidSmith processes solicitation data in transient memory only. No data stored, indexed, or shared. Learn how our zero-knowledge architecture keeps your proposal strategy private.", path: "/soc" },
+  "sam-rep":    { title: "BidSmith | Sample federal RFP audit report & matrix demo", description: "See a real BidSmith audit output for a Defense Health Agency solicitation — compliance matrix, FAR/DFARS flags, risk score, and bid/no-bid verdict included.", path: "/sam-rep" },
+  demo:         { title: "BidSmith Demo | Federal RFP audit in about 90 seconds", description: "Watch BidSmith audit a real $24.5M Army solicitation live — compliance matrix, FAR/DFARS disqualifier flags, risk score, and bid/no-bid verdict. No signup required.", path: "/demo" },
+  "govcon-guide": { title: "BidSmith | Federal contracting guide—win government bids", description: "The complete government contracting workflow for new and experienced contractors — SAM.gov registration, opportunity discovery, compliance review, and proposal development.", path: "/govcon-guide" },
+  privacy:      { title: "Privacy Policy | BidSmith", description: "How BidSmith collects, uses, and protects your data when you run RFP audits and manage government contract workflows. Plain-language policy for GovCon teams.", path: "/privacy" },
+  terms:        { title: "Terms of Service | BidSmith", description: "Terms and conditions governing your use of the BidSmith federal RFP audit platform, government contract bid tools, and related services.", path: "/terms" },
+  cookies:      { title: "Cookie Policy | BidSmith", description: "How BidSmith uses cookies and local storage for RFP audit sessions, preferences, and analytics. Manage consent anytime.", path: "/cookies" },
+  app:          { title: "BidSmith Command Center | RFP & government bid workspace", description: "Your BidSmith Command Center. Paste a SAM.gov URL or upload a PDF to begin.", path: "/dashboard" },
+  dashboard:    { title: "BidSmith Command Center | RFP & government bid workspace", description: "Your BidSmith Command Center. Paste a SAM.gov URL or upload a PDF — bid/no-bid verdict in about 90 seconds.", path: "/dashboard" },
+  pricing:      { title: "BidSmith Pricing | GovCon RFP audit plans—free to enterprise", description: "Start free with 3 audits per month. Upgrade for unlimited audits, full FAR/DFARS analysis, and deep-shred strategy. No hidden fees.", path: "/pricing" },
   resources:    { title: "GovCon Growth Playbook | BidSmith", description: "Execution playbook for GovCon traffic growth: intent clusters, BOFU resources, founder distribution, partner outreach, and KPI tracking.", path: "/resources" },
   "traffic-brief": { title: "Morning Traffic Brief | BidSmith", description: "Daily traffic pulse with yesterday metrics, qualified sessions, and seven-day trend.", path: "/traffic-brief" },
-  "rfp-generator": { title: "Free RFP Compliance Matrix Generator | 90-Second FAR/DFARS Analysis — BidSmith", description: "Turn any government RFP into a structured compliance matrix in 90 seconds. Identify missing requirements and disqualification risks before you commit proposal resources.", path: "/rfp-compliance-matrix-generator" },
+  "rfp-generator": { title: "BidSmith | Free RFP compliance matrix generator (90s)", description: "Turn any government RFP into a structured compliance matrix in 90 seconds. Identify missing requirements and disqualification risks before you commit proposal resources.", path: "/rfp-compliance-matrix-generator" },
   admin:        { title: "Admin Portal | BidSmith", description: "Internal analytics portal.", path: "/admin" },
   bento:        { title: "Intelligence Dashboard | BidSmith", description: "RFP upload, live AI analysis with confidence scores, and inference regression eval status.", path: "/bento" },
-  contact:      { title: "Contact BidSmith | Talk to a Federal Capture Specialist", description: "Get in touch with the BidSmith team. Request a demo, ask about pricing, or connect with a federal capture specialist for your next solicitation.", path: "/contact" },
+  contact:      { title: "Contact BidSmith | Federal capture & RFP audit questions", description: "Get in touch with the BidSmith team. Request a demo, ask about pricing, or connect with a federal capture specialist for your next solicitation.", path: "/contact" },
+  "blog-hub":   { title: "BidSmith Blog | GovCon RFP & compliance insights", description: "Guides on bid/no-bid discipline, federal RFP compliance matrices, and finding government contracts early. Written for capture, BD, and proposal teams.", path: "/blog" },
 };
 
 function usePageMeta(view) {
@@ -192,6 +196,10 @@ function usePageMeta(view) {
       : null;
     const blogSlug = isBlog ? window.location.pathname.replace("/blog/", "").replace(/\/$/, "") : "";
     const blogPost = isBlog ? getBlogPost(blogSlug) : null;
+    const complianceSlug = isCompliance
+      ? window.location.pathname.replace("/compliance/", "").replace(/\/$/, "")
+      : "";
+    const complianceMeta = isCompliance ? getComplianceRouteMeta(complianceSlug) : null;
     const meta = resource
       ? {
         title: `${resource.title} | BidSmith`,
@@ -204,7 +212,9 @@ function usePageMeta(view) {
           description: blogPost.description,
           path: `/blog/${blogPost.slug}`,
         }
-        : PAGE_META[view] || PAGE_META.landing;
+        : complianceMeta
+          ? { title: complianceMeta.title, description: complianceMeta.description, path: complianceMeta.path }
+          : PAGE_META[view] || PAGE_META.landing;
 
     document.title = meta.title;
 
@@ -214,6 +224,15 @@ function usePageMeta(view) {
     if (ot) ot.setAttribute("content", meta.title);
     const od = document.querySelector('meta[property="og:description"]');
     if (od) od.setAttribute("content", meta.description);
+    const oi = document.querySelector('meta[property="og:image"]');
+    if (oi) oi.setAttribute("content", OG_IMAGE_URL);
+
+    const twTitle = document.querySelector('meta[name="twitter:title"]');
+    if (twTitle) twTitle.setAttribute("content", meta.title);
+    const twDesc = document.querySelector('meta[name="twitter:description"]');
+    if (twDesc) twDesc.setAttribute("content", meta.description);
+    const twImg = document.querySelector('meta[name="twitter:image"]');
+    if (twImg) twImg.setAttribute("content", OG_IMAGE_URL);
 
     const canonicalPath = (isCompliance || isResource || (isBlog && blogPost))
       ? window.location.pathname
@@ -257,7 +276,9 @@ function resolveView(path) {
   if (path === "/pricing") return "pricing";
   if (path === "/resources") return "resources";
   if (path.startsWith("/resources/")) return "resource";
+  if (path === "/blog" || path === "/blog/") return "blog-hub";
   if (path.startsWith("/blog/")) return "blog";
+  if (path === "/audit" || path === "/audit/") return "dashboard";
   if (import.meta.env.DEV && path === "/__e2e/bento-audit-cta") return "e2e-bento-audit-cta";
   if (path === "/traffic-brief") return "traffic-brief";
   if (path === "/rfp-compliance-matrix-generator") return "rfp-generator";
@@ -323,6 +344,7 @@ export default function App() {
       admin: "/admin", bento: "/dashboard", contact: "/contact", "sam-rep": "/sam-rep",
       soc: "/soc", about: "/about", demo: "/demo",
       "govcon-guide": "/govcon-guide", "rfp-generator": "/rfp-compliance-matrix-generator",
+      "blog-hub": "/blog",
       "404": "/404",
     };
     const logicalPath =
@@ -330,6 +352,7 @@ export default function App() {
       view === "compliance" ? window.location.pathname :
       view === "resource" ? window.location.pathname :
       view === "blog" ? window.location.pathname :
+      view === "blog-hub" ? "/blog" :
       view === "landing" ? (aliasSection ? `/#${aliasSection}` : "/") :
       pathMap[view] || "/";
     trackPageView(logicalPath);
@@ -468,6 +491,9 @@ export default function App() {
     }
     case "rfp-generator":
       content = <RfpMatrixGenerator onUpload={goWorkspace} />;
+      break;
+    case "blog-hub":
+      content = <BlogHub onBack={goLanding} onEnterApp={handleEnterApp} />;
       break;
     case "blog": {
       const slug = window.location.pathname.replace("/blog/", "").replace(/\/$/, "");
