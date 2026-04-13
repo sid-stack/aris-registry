@@ -68,6 +68,13 @@ export default function BlogArticle({ slug, onBack, onEnterApp }) {
           )}
 
           <section style={s.cta}>
+            <p style={{ ...s.ctaText, marginBottom: 16, fontSize: 14 }}>
+              Get the same flavor by email:{" "}
+              <a href="/newsletter" style={{ color: "#1d4ed8", fontWeight: 700 }}>
+                The Bid Brief
+              </a>
+              {" "}(twice weekly, hosted signup).
+            </p>
             <h2 style={s.h2}>Run your next solicitation through BidSmith</h2>
             <p style={s.ctaText}>
               Paste a SAM.gov URL or upload a PDF — compliance matrix, FAR/DFARS risk flags, and bid/no-bid rationale in about 90 seconds.

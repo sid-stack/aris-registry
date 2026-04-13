@@ -28,6 +28,7 @@ const RfpMatrixGenerator = lazy(() => import("./pages/seo/RfpMatrixGenerator"));
 const GrowthResourcePage = lazy(() => import("./pages/seo/GrowthResourcePage"));
 const BlogArticle = lazy(() => import("./pages/seo/BlogArticle"));
 const BlogHub = lazy(() => import("./pages/seo/BlogHub"));
+const NewsletterPage = lazy(() => import("./pages/NewsletterPage"));
 const AdminDashboard   = lazy(() => import("./pages/AdminDashboard"));
 const BentoDashboard   = lazy(() => import("./pages/BentoDashboard"));
 const E2eBentoAuditCtaHarness = lazy(() => import("./e2e/E2eBentoAuditCtaHarness.jsx"));
@@ -182,6 +183,7 @@ const PAGE_META = {
   bento:        { title: "Intelligence Dashboard | BidSmith", description: "RFP upload, live AI analysis with confidence scores, and inference regression eval status.", path: "/bento" },
   contact:      { title: "Contact BidSmith | Federal capture & RFP audit questions", description: "Get in touch with the BidSmith team. Request a demo, ask about pricing, or connect with a federal capture specialist for your next solicitation.", path: "/contact" },
   "blog-hub":   { title: "BidSmith Blog | GovCon RFP & compliance insights", description: "Guides on bid/no-bid discipline, federal RFP compliance matrices, and finding government contracts early. Written for capture, BD, and proposal teams.", path: "/blog" },
+  newsletter:   { title: "The Bid Brief | GovCon newsletter by BidSmith", description: "Twice-weekly federal RFP intel: pipeline lens, compliance notes, and workflow tips for small GovCon teams. Subscribe via our hosted provider — no spam.", path: "/newsletter" },
 };
 
 function usePageMeta(view) {
@@ -279,6 +281,7 @@ function resolveView(path) {
   if (path.startsWith("/resources/")) return "resource";
   if (path === "/blog" || path === "/blog/") return "blog-hub";
   if (path.startsWith("/blog/")) return "blog";
+  if (path === "/newsletter" || path === "/newsletter/") return "newsletter";
   if (path === "/audit" || path === "/audit/") return "dashboard";
   if (import.meta.env.DEV && path === "/__e2e/bento-audit-cta") return "e2e-bento-audit-cta";
   if (path === "/traffic-brief") return "traffic-brief";
@@ -346,6 +349,7 @@ export default function App() {
       soc: "/soc", about: "/about", demo: "/demo",
       "govcon-guide": "/govcon-guide", "rfp-generator": "/rfp-compliance-matrix-generator",
       "blog-hub": "/blog",
+      newsletter: "/newsletter",
       "404": "/404",
     };
     const logicalPath =
@@ -354,6 +358,7 @@ export default function App() {
       view === "resource" ? window.location.pathname :
       view === "blog" ? window.location.pathname :
       view === "blog-hub" ? "/blog" :
+      view === "newsletter" ? "/newsletter" :
       view === "landing" ? (aliasSection ? `/#${aliasSection}` : "/") :
       pathMap[view] || "/";
     trackPageView(logicalPath);
@@ -499,6 +504,9 @@ export default function App() {
       break;
     case "blog-hub":
       content = <BlogHub onBack={goLanding} onEnterApp={handleEnterApp} />;
+      break;
+    case "newsletter":
+      content = <NewsletterPage onBack={goLanding} />;
       break;
     case "blog": {
       const slug = window.location.pathname.replace("/blog/", "").replace(/\/$/, "");

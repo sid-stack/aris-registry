@@ -1,10 +1,12 @@
 # The Bid Brief — Newsletter Setup Guide
 
+> **Tool-first (2026):** Subscriptions run on a **hosted ESP** (recommended: Beehiiv). We do not store list emails in our API. Wire the site with `VITE_NEWSLETTER_*` — see **`docs/NEWSLETTER_TOOL_SETUP.md`**. Content ideas: **`content/newsletter_content_bank.md`**.
+
 ## Overview
 
 **Name:** The Bid Brief
-**Tagline:** Federal contracting intelligence. One email. Every week.
-**Frequency:** Weekly (Wednesday morning, 8am EST)
+**Tagline:** Federal contracting intelligence — short reads you can use the same day.
+**Frequency:** **At least twice weekly** (e.g. Tuesday + Thursday, 8am ET) — adjust in your ESP schedule.
 **From:** Sid @ BidSmith <sid@bidsmith.pro>
 **Landing page:** bidsmith.pro/newsletter
 **Focus:** Practical, high-signal intel for government contractors and BD teams

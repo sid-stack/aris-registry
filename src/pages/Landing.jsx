@@ -180,6 +180,7 @@ export default function Landing({
               <a href="/pricing" style={S.navLink} className="landing-nav-link-item">Pricing</a>
               <button style={S.navLink} className="landing-nav-link-item" onClick={() => onViewSample?.()}>Demo</button>
               <a href="/resources" style={S.navLink} className="landing-nav-link-item">Resources</a>
+              <a href="/newsletter" style={S.navLink} className="landing-nav-link-item">Newsletter</a>
               <a href="/traffic-brief" style={S.navLink} className="landing-nav-link-item">Traffic Brief</a>
               <a href="https://arislabs.mintlify.app/" target="_blank" rel="noopener noreferrer" style={S.navLink} className="landing-nav-link-item">Docs</a>
             </nav>

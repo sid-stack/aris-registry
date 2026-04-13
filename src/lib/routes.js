@@ -24,6 +24,7 @@ export function pathForView(view) {
     "govcon-guide": "/govcon-guide",
     "rfp-generator": "/rfp-compliance-matrix-generator",
     "blog-hub": "/blog",
+    newsletter: "/newsletter",
     "404": "/404",
     privacy: "/privacy",
     terms: "/terms",

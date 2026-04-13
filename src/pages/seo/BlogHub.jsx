@@ -38,6 +38,13 @@ export default function BlogHub({ onBack, onEnterApp }) {
         <p style={s.lead}>
           Practical guides on bid/no-bid discipline, compliance matrices, and finding federal opportunities early.
         </p>
+        <p style={{ ...s.lead, marginTop: -28, marginBottom: 32, fontSize: 15 }}>
+          Prefer email?{" "}
+          <a href="/newsletter" style={{ color: "#93c5fd", fontWeight: 700 }}>
+            The Bid Brief
+          </a>
+          {" "}— twice-weekly GovCon notes (hosted signup).
+        </p>
         <ul style={s.list}>
           {BLOG_POSTS.map((post) => (
             <li key={post.slug}>
