@@ -241,7 +241,7 @@ export default function Landing({
             <button
               className="btn-meeting"
               type="button"
-              style={{ ...S.ctaSecondary, background: C.white }}
+              style={{ ...S.ctaPrimary, padding: "14px 28px" }}
               onClick={() => window.open(CALENDLY_URL, "_blank", "noopener")}
             >
               Book a meeting
@@ -773,8 +773,9 @@ export default function Landing({
           <div style={{ display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" }}>
             <button
               className="btn-meeting"
+              type="button"
               onClick={() => window.open(CALENDLY_URL, "_blank", "noopener")}
-              style={{ ...S.ctaPrimary, background: C.frostedBlue, color: C.navy, fontSize: "1.1rem", padding: "18px 52px", letterSpacing: "0.01em" }}
+              style={{ ...S.ctaPrimary, fontSize: "1.1rem", padding: "18px 52px", letterSpacing: "0.01em" }}
             >
               Book a Meeting
             </button>
@@ -797,30 +798,30 @@ export default function Landing({
             <span style={{ fontSize: 20, fontWeight: 900, color: C.frostedBlue, fontFamily: "'Playfair Display', serif", letterSpacing: "0.05em" }}>
               BidSmith
             </span>
-            <p style={{ fontSize: 13, color: C.ashGrey, marginTop: 8, maxWidth: 260, lineHeight: 1.6 }}>
+            <p style={{ fontSize: 13, color: "#cbd5e1", marginTop: 8, maxWidth: 260, lineHeight: 1.6 }}>
               Federal RFP compliance audit software by ARIS Labs. Built for government contractors who want to win.
             </p>
           </div>
           <div style={{ display: "flex", gap: 40, flexWrap: "wrap", alignItems: "flex-start" }}>
             <div>
-              <p style={{ fontSize: 11, fontWeight: 800, color: C.ashGrey, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 12 }}>Product</p>
+              <p style={{ fontSize: 11, fontWeight: 800, color: "#e2e8f0", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 12 }}>Product</p>
               {[["Open App", WORKSPACE_PATH], ["Pricing", "/pricing"], ["Resources", "/resources"], ["Docs", "https://arislabs.mintlify.app/"]].map(([label, href]) => (
-                <a key={label} href={href} target={href.startsWith("http") ? "_blank" : undefined} rel="noopener noreferrer" style={{ display: "block", fontSize: 13, color: C.dimGrey, marginBottom: 8, textDecoration: "none" }}>{label}</a>
+                <a key={label} href={href} target={href.startsWith("http") ? "_blank" : undefined} rel="noopener noreferrer" style={{ display: "block", fontSize: 13, color: "#e2e8f0", marginBottom: 8, textDecoration: "none" }}>{label}</a>
               ))}
             </div>
             <div>
-              <p style={{ fontSize: 11, fontWeight: 800, color: C.ashGrey, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 12 }}>Company</p>
+              <p style={{ fontSize: 11, fontWeight: 800, color: "#e2e8f0", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 12 }}>Company</p>
               {[["About", "/about"], ["Contact", "/contact"]].map(([label, href]) => (
-                <a key={label} href={href} style={{ display: "block", fontSize: 13, color: C.dimGrey, marginBottom: 8, textDecoration: "none" }}>{label}</a>
+                <a key={label} href={href} style={{ display: "block", fontSize: 13, color: "#e2e8f0", marginBottom: 8, textDecoration: "none" }}>{label}</a>
               ))}
             </div>
           </div>
         </div>
         <div style={{ maxWidth: 1200, margin: "40px auto 0", paddingTop: 24, borderTop: "1px solid rgba(255,255,255,0.06)", display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
-          <span style={{ fontSize: 11, color: C.dimGrey }}>© 2026 BidSmith · ARIS Labs. All rights reserved.</span>
+          <span style={{ fontSize: 11, color: "#cbd5e1" }}>© 2026 BidSmith · ARIS Labs. All rights reserved.</span>
           <div style={{ display: "flex", gap: 20 }}>
             {[["Privacy", "/privacy"], ["Terms", "/terms"], ["Cookies", "/cookies"]].map(([l, h]) => (
-              <a key={l} href={h} style={{ fontSize: 11, color: C.dimGrey, textDecoration: "none" }}>{l}</a>
+              <a key={l} href={h} style={{ fontSize: 11, color: "#cbd5e1", textDecoration: "none" }}>{l}</a>
             ))}
           </div>
         </div>

@@ -592,6 +592,9 @@
 
 /* ── Book a Meeting — premium CTA ────────────────────────────────────────── */
 .btn-meeting {
+  /* Dark / gradient fills must always pair with light label text (WCAG + brand). */
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff;
   background: linear-gradient(145deg, #002244 0%, #0a2e5c 100%) !important;
   box-shadow: 0 4px 18px rgba(0, 34, 68, 0.22),
               inset 0 1px 0 rgba(255, 255, 255, 0.07) !important;

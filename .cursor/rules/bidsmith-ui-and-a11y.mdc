@@ -1,0 +1,22 @@
+---
+description: BidSmith UI design system + accessibility (axe) gates for all UI work
+alwaysApply: true
+---
+
+# BidSmith — UI & accessibility rules for agents
+
+## Before any UI change
+
+1. **Read** `docs/DESIGN_SYSTEM.md` and follow it. Do not invent new gray ramps or button treatments that contradict it.
+2. **Dark backgrounds** (`#001529`, `#002244`, `#0f172a`, navy gradients, `.btn-meeting`): primary label text **must be white** (`#fff` / `#f8fafc`). Never ship navy or near-black text on those fills.
+3. **Light backgrounds** (mint cream, white cards): use defined slate/navy text; do not use “muted” grays lighter than `#6b7280` for body-sized text on white.
+
+## After UI changes (axe / contrast)
+
+1. Run **`npm run build`** then **`npm run preview`** (or `npm run dev`) and **`npm run audit:contrast`** (see `scripts/contrast-audit.mjs`). `AUDIT_BASE_URL` must point at the running server.
+2. **Goal:** axe **`color-contrast`** rule reports **no violations** on `/`, `/blog`, `/pricing`, `/dashboard` for the default audit list. If violations appear, fix contrast before merging.
+3. Do not “eyeball” contrast in place of the audit for marketing-critical pages.
+
+## Scope
+
+Applies to `src/pages/**`, `src/components/**`, and global styles (`index.html` inline theme, `src/styles/**`, `src/pages/*.css`). Keep changes minimal and aligned with `docs/DESIGN_SYSTEM.md`.
