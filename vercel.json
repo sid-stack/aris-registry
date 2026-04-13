@@ -1,6 +1,12 @@
 {
   "version": 2,
   "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "bidsmith.pro" }],
+      "destination": "https://www.bidsmith.pro/:path*",
+      "permanent": true
+    },
     { "source": "/app", "destination": "/dashboard", "permanent": true },
     { "source": "/app/:path*", "destination": "/dashboard", "permanent": true },
     { "source": "/bid-search", "destination": "/", "permanent": true },
