@@ -8,6 +8,7 @@
     "start": "node api/index.js",
     "build": "vite build",
     "test": "vitest run",
+    "test:ci": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "test:legacy": "node --test tests/*.test.js tests/v2_heuristics.js",

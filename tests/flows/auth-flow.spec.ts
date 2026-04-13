@@ -29,10 +29,10 @@ test.describe("Auth shell and landing", () => {
   });
 
   // Verifies the home page loads primary CTA copy and exposes "BidSmith" in the document title.
-  test("landing / loads Start Free Audit CTA and BidSmith in title", async ({ page }) => {
+  test("landing / loads free-audit CTA and BidSmith in title", async ({ page }) => {
     await page.goto("/");
 
-    await expect(page.getByRole("button", { name: /Start Free Audit/i }).first()).toBeVisible();
+    await expect(page.getByRole("button", { name: /Start your free audit/i }).first()).toBeVisible();
 
     await expect(page).toHaveTitle(/BidSmith/i);
   });
