@@ -43,7 +43,7 @@ const DEEP_DIVE_TABS = [
     id: "bidnobid",
     label: "Bid/No-Bid Engine",
     headline: "Go/No-Go Decision in Minutes",
-    body: "Scores win probability against evaluation criteria, set-aside type, incumbency signals, and past performance requirements. Delivers a structured rationale — not just a number — so your team can defend the decision.",
+    body: "Surfaces an estimated fit score against evaluation criteria, set-aside type, incumbency language, and past-performance requirements. The output is decision support with a structured rationale — your leadership still owns the go/no-go.",
     verdict: {
       rec: "BID",
       prob: 73,
@@ -208,16 +208,16 @@ export default function Landing({
         <div style={S.heroInner}>
           <div style={S.badge}>
             <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#22c55e", display: "inline-block" }} />
-            Federal Compliance Intelligence
+            Decision support · Small and growing GovCon
           </div>
 
           <h1 style={S.h1}>
-            Win more government contracts.<br />
-            <span style={{ color: C.navyMid }}>In half the time.</span>
+            A faster first read on federal pursuits.<br />
+            <span style={{ color: C.navyMid }}>Bid/no-bid guidance you can defend.</span>
           </h1>
 
           <p style={S.heroSub}>
-            BidSmith analyzes RFPs instantly — bid/no-bid decision, compliance matrix, and export-ready in minutes.
+            Paste a SAM.gov URL or upload a PDF — get a structured compliance-oriented pass, risk flags, and a bid/no-bid recommendation with rationale in minutes. Built for teams that cannot afford to misread Section L/M. We do not guarantee awards; we compress the first-pass grind so you decide with eyes open.
           </p>
 
           <div style={S.heroCtas}>
@@ -254,7 +254,7 @@ export default function Landing({
           </div>
 
           <div style={S.trustBar}>
-            {["No credit card required", "3 free audits/month", "FAR/DFARS coverage", "Audit history included"].map(t => (
+            {["No credit card required", "Fair-use limits (guest by IP)", "3/mo when signed in", "Audit history when signed in"].map(t => (
               <div key={t} style={S.trustItem}>
                 <Check size={13} color={C.frostedBlue} strokeWidth={2.5} />
                 {t}
