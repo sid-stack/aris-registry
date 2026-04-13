@@ -1,9 +1,15 @@
 User-agent: *
 Allow: /
 
-# Tool/session pages — not meaningful content for indexing
+# App / workspace / internal — not primary SEO landing content
 Disallow: /app
 Disallow: /app/
+Disallow: /bento
+Disallow: /bento-dashboard
+Disallow: /chat
+Disallow: /aris
+Disallow: /dashboard
+Disallow: /dashboard-v2
 Disallow: /sam-scraper
 Disallow: /admin
 Disallow: /admin/
@@ -11,10 +17,9 @@ Disallow: /outreach
 Disallow: /private/
 Disallow: /survey-analytics
 Disallow: /demo-analytics
-Disallow: /dashboard
 Disallow: /traffic-brief
 
-# Crawl-delay to be a good citizen
-Crawl-delay: 1
+# Dev-only E2E harness (noindex in app; disallow for crawlers that ignore JS meta)
+Disallow: /__e2e/
 
 Sitemap: https://www.bidsmith.pro/sitemap.xml

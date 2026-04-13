@@ -1,10 +1,10 @@
 {
-  "title": "ARIS | Federal RFP Compliance & Audit Software for Government Contractors",
-  "description": "ARIS analyzes SAM.gov solicitations in under 90 seconds. Instant compliance matrix, FAR/DFARS risk flags, and bid/no-bid recommendation. Trusted by federal prime contractors.",
-  "keywords": "government contracting, rfp audit, sam.gov, federal solicitation, compliance matrix, far dfars, capture management, govcon ai",
+  "title": "BidSmith | Federal RFP Compliance Audit Software for Government Contractors",
+  "description": "BidSmith audits SAM.gov solicitations in 90 seconds. Instant compliance matrix, FAR/DFARS risk flags, and bid/no-bid recommendation — built for federal prime contractors and capture teams.",
+  "keywords": "federal RFP compliance, compliance matrix, FAR DFARS audit, SAM.gov, government contractor software, bid no bid, CMMC, proposal management, govcon",
   "author": "BidSmith / ARIS Labs",
-  "theme_color": "#0d0f14",
+  "theme_color": "#0B3D91",
   "og:image": "https://www.bidsmith.pro/og-social.png",
-  "twitter:handle": "@bidsmith_pro",
+  "twitter:handle": "@arislabshq",
   "site_url": "https://www.bidsmith.pro"
 }

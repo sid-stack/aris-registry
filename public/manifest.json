@@ -1,15 +1,18 @@
 {
-  "short_name": "ARIS",
-  "name": "ARIS Core",
+  "short_name": "BidSmith",
+  "name": "BidSmith — Federal RFP compliance audits",
+  "description": "90-second SAM.gov solicitation audits, compliance matrix, and bid/no-bid recommendation for GovCon teams.",
   "icons": [
     {
-      "src": "favicon.png",
-      "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/png"
+      "src": "/assets/aris-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ],
-  "start_url": ".",
+  "start_url": "https://www.bidsmith.pro/",
+  "scope": "/",
   "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "theme_color": "#0B3D91",
+  "background_color": "#0d0f14"
 }
