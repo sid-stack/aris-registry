@@ -552,7 +552,10 @@ app.get(/\.env(\..*)?$|\.(git|htaccess|DS_Store)|wp-admin|phpinfo/i, (_req, res)
 app.get("/app-config.js", (_req, res) => {
   const isProductionRuntime = process.env.NODE_ENV === "production";
   const publicConfig = {
-    VITE_CLERK_PUBLISHABLE_KEY: process.env.VITE_CLERK_PUBLISHABLE_KEY || "",
+    VITE_CLERK_PUBLISHABLE_KEY:
+      process.env.VITE_CLERK_PUBLISHABLE_KEY
+      || process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+      || "",
     VITE_API_URL: isProductionRuntime
       ? (process.env.RAILWAY_URL || process.env.VITE_API_URL || "https://api.bidsmith.pro")
       : (process.env.VITE_API_URL || ""),
@@ -560,6 +563,8 @@ app.get("/app-config.js", (_req, res) => {
   };
 
   res.type("application/javascript");
+  // Avoid long-lived CDN/browser caches of empty or rotated keys after env changes.
+  res.setHeader("Cache-Control", "private, no-store, max-age=0");
   res.send(`window.__APP_CONFIG__ = Object.assign({}, window.__APP_CONFIG__ || {}, ${JSON.stringify(publicConfig)});`);
 });
 

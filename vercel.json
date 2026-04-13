@@ -23,6 +23,10 @@
   ],
   "rewrites": [
     {
+      "source": "/app-config.js",
+      "destination": "https://api.bidsmith.pro/app-config.js"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "https://api.bidsmith.pro/api/$1"
     },

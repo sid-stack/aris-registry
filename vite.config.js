@@ -4,6 +4,8 @@ import react from '@vitejs/plugin-react';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   return {
+    // Legacy Vercel env `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` — see `src/main.jsx`.
+    envPrefix: ['VITE_', 'NEXT_PUBLIC_'],
     plugins: [react()],
     server: {
       port: 5173,
@@ -16,11 +18,16 @@ export default defineConfig(({ mode }) => {
           target: env.VITE_API_URL || 'http://localhost:8080',
           changeOrigin: true,
         },
+        '/app-config.js': {
+          target: env.VITE_API_URL || 'http://localhost:8080',
+          changeOrigin: true,
+        },
       },
     },
     build: {
-      // Don't empty dist — mounted filesystem prevents deletion of existing files
-      emptyOutDir: false,
+      // Always clean dist so removed `public/*` files (e.g. app-config stub) cannot linger
+      // and shadow Vercel rewrites / Railway runtime config.
+      emptyOutDir: true,
       // Raise warning threshold — html2pdf is legitimately large and already lazy
       chunkSizeWarningLimit: 600,
       rollupOptions: {

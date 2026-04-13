@@ -18,11 +18,22 @@ initAnalytics();
 registerConsentListener();
 initServiceWorkerAfterConsent();
 
-const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
-  || window.__APP_CONFIG__?.VITE_CLERK_PUBLISHABLE_KEY
-  || '';
+/** Treat missing/placeholder env values as unset so we never mount Clerk with a bogus key. */
+function normalizeClerkPublishableKey(raw) {
+  const s = String(raw ?? '').trim();
+  if (!s || s === 'undefined' || s === 'null') return '';
+  if (!s.startsWith('pk_test_') && !s.startsWith('pk_live_')) return '';
+  return s;
+}
 
-const clerkConfigured = Boolean(String(clerkPubKey || '').trim());
+const clerkPubKey = normalizeClerkPublishableKey(
+  import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
+    || import.meta.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+    || window.__APP_CONFIG__?.VITE_CLERK_PUBLISHABLE_KEY
+    || window.__APP_CONFIG__?.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+);
+
+const clerkConfigured = Boolean(clerkPubKey);
 
 // Detect production key on localhost — Clerk will 400 on every request.
 const IS_DEV = import.meta.env.DEV;
@@ -65,12 +76,20 @@ function ClerkPublishableKeyMissing() {
           Sign-in is not configured
         </h1>
         <p style={{ fontSize: 15, lineHeight: 1.6, color: '#3f3f46', margin: '0 0 14px' }}>
-          This production build is missing{' '}
+          {import.meta.env.DEV
+            ? 'This dev server does not have a Clerk publishable key. Add '
+            : 'This deployment is missing a Clerk publishable key. Set '}
           <code style={{ background: '#f4f4f5', padding: '2px 7px', borderRadius: 6, fontSize: 13 }}>VITE_CLERK_PUBLISHABLE_KEY</code>
-          . Add it in your host&apos;s environment for <strong>Production</strong>, then redeploy so Vite can embed it at build time.
+          {' '}or legacy{' '}
+          <code style={{ background: '#f4f4f5', padding: '2px 7px', borderRadius: 6, fontSize: 13 }}>NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY</code>
+          {import.meta.env.DEV
+            ? ' to `.env.development.local` (see `.env.example`), then restart Vite.'
+            : ' for Production on Vercel and/or Railway (`/app-config.js`), then redeploy.'}
         </p>
         <p style={{ fontSize: 13, lineHeight: 1.55, color: '#71717a', margin: '0 0 18px' }}>
-          Vercel: Project → Settings → Environment Variables → Production → redeploy. See <code style={{ fontSize: 12 }}>.env.example</code> in the repo.
+          {import.meta.env.DEV
+            ? 'Without a `pk_test_` key, Clerk cannot initialize locally.'
+            : 'Vercel: Project → Settings → Environment Variables → Production. See `.env.example` in the repo.'}
         </p>
         <a
           href="https://dashboard.clerk.com"
@@ -87,7 +106,8 @@ function ClerkPublishableKeyMissing() {
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 
-if (import.meta.env.PROD && !clerkConfigured) {
+// Never mount Clerk with an empty/invalid key — @clerk/clerk-react throws and leaves #root blank.
+if (!clerkConfigured) {
   root.render(<ClerkPublishableKeyMissing />);
 } else {
   root.render(
