@@ -69,8 +69,8 @@ out/
 .turbo/
 
 # Playwright / contrast audit artifacts (regenerate locally)
-scripts/screenshots/*.png
-scripts/screenshots/*.json
+scripts/screenshots/*
+!scripts/screenshots/.gitkeep
 
 # =========================
 # LOGS & CACHE

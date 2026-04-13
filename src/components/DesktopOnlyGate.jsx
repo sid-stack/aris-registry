@@ -10,7 +10,8 @@ export default function DesktopOnlyGate({ children, onBackHome }) {
     <div className="desktop-only-gate-root">
       <div
         className="desktop-only-gate-mobile"
-        role="alertdialog"
+        role="dialog"
+        aria-modal="true"
         aria-labelledby="desktop-only-title"
         aria-describedby="desktop-only-desc"
       >
