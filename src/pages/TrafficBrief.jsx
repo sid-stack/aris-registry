@@ -57,6 +57,7 @@ export default function TrafficBrief({ onBack }) {
   const summary = data?.summary || {};
   const trend = useMemo(() => data?.trend_7d || [], [data]);
   const topPages = useMemo(() => data?.top_pages_yesterday || [], [data]);
+  const topPagesToday = useMemo(() => data?.top_pages_today || [], [data]);
 
   return (
     <main style={s.page}>
@@ -74,6 +75,10 @@ export default function TrafficBrief({ onBack }) {
         <h1 style={s.title}>Morning Traffic Brief</h1>
         <p style={s.subtitle}>
           Daily KPI snapshot you can check every morning. URL: <code>/traffic-brief</code>
+        </p>
+        <p style={s.tzNote}>
+          “Today” and “yesterday” use the database server calendar day (often UTC on Postgres). See{" "}
+          <code>filters.day_boundary_note</code> in the JSON response for the exact note.
         </p>
 
         {locked && (
@@ -122,12 +127,43 @@ export default function TrafficBrief({ onBack }) {
         {error && <div style={s.error}>{error}</div>}
 
         <section style={s.metricsGrid}>
+          <MetricCard label="Today Visitors" value={summary.visitors_today ?? 0} help="Unique visitors so far today (server calendar day)." />
+          <MetricCard label="Today Pageviews" value={summary.pageviews_today ?? 0} help="page_view events since midnight (DB TZ)." />
+          <MetricCard label="Today Qualified" value={summary.qualified_today ?? 0} help="High-intent sessions today." />
+          <MetricCard label="Today Audits" value={summary.audits_today ?? 0} help="Audit starts today." />
+          <MetricCard label="Today Q→A %" value={`${summary.qualified_to_audit_rate_today_pct ?? 0}%`} help="Audits / qualified today." />
           <MetricCard label="Yesterday Visitors" value={summary.visitors_yesterday ?? 0} help="Unique tracked users on page_view." />
           <MetricCard label="Yesterday Pageviews" value={summary.pageviews_yesterday ?? 0} help="Total page_view events." />
-          <MetricCard label="Qualified Sessions" value={summary.qualified_yesterday ?? 0} help="High-intent sessions from BOFU pages." />
-          <MetricCard label="Audits Started" value={summary.audits_yesterday ?? 0} help="Users who initiated audit flow." />
-          <MetricCard label="Qualified → Audit %" value={`${summary.qualified_to_audit_rate_pct ?? 0}%`} help="Conversion from qualified sessions to audit start." />
+          <MetricCard label="Qualified (Yesterday)" value={summary.qualified_yesterday ?? 0} help="High-intent sessions from BOFU pages." />
+          <MetricCard label="Audits (Yesterday)" value={summary.audits_yesterday ?? 0} help="Users who initiated audit flow." />
+          <MetricCard label="Qualified → Audit %" value={`${summary.qualified_to_audit_rate_pct ?? 0}%`} help="Conversion from qualified sessions to audit start (yesterday)." />
           <MetricCard label="7d Visitors" value={summary.visitors_7d ?? 0} help="Rolling seven-day unique visitors." />
+        </section>
+
+        <section style={s.card}>
+          <h2 style={s.cardTitle}>Top Pages (Today)</h2>
+          {topPagesToday.length === 0 ? (
+            <p style={s.empty}>No pageview data for today yet.</p>
+          ) : (
+            <table style={s.table}>
+              <thead>
+                <tr>
+                  <th style={s.th}>Path</th>
+                  <th style={s.th}>Pageviews</th>
+                  <th style={s.th}>Visitors</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topPagesToday.map((row) => (
+                  <tr key={`t-${row.path}`}>
+                    <td style={s.td}>{row.path}</td>
+                    <td style={s.td}>{row.pageviews}</td>
+                    <td style={s.td}>{row.visitors}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </section>
 
         <section style={s.card}>
@@ -231,6 +267,7 @@ const s = {
   },
   title: { margin: "14px 0 8px", fontSize: "2rem" },
   subtitle: { margin: 0, color: "#475569" },
+  tzNote: { margin: "8px 0 0", fontSize: 12, color: "#94a3b8", lineHeight: 1.5, maxWidth: 720 },
   error: { marginTop: 14, background: "#fee2e2", color: "#991b1b", border: "1px solid #fecaca", borderRadius: 8, padding: 10 },
   lockCard: {
     marginTop: 14,

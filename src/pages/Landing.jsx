@@ -309,6 +309,7 @@ export default function Landing({
                   style={{ width: "100%", display: "block", maxHeight: 460, objectFit: "cover" }}
                   onError={() => setHeroVideoError(true)}
                 >
+                  <source src="/assets/demo/aris-demo.mp4" type="video/mp4" />
                   <source src="/aris-demo.mp4" type="video/mp4" />
                 </video>
               )}

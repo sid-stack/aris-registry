@@ -111,9 +111,11 @@ export default function LiveAnalysisCard({ auditResult, loading = false, inquiry
     auditResult?.solicitation_number && { text: `Solicitation ${auditResult.solicitation_number}` },
     auditResult?.agency && { text: auditResult.agency },
     ...(Array.isArray(intel.top_risks)
-      ? intel.top_risks.slice(0, 2).map(r => ({
-          text: typeof r === 'string' ? r.slice(0, 48) + (r.length > 48 ? '…' : '') : 'Risk factor',
-        }))
+      ? intel.top_risks.slice(0, 2).map((r) => {
+          const raw = typeof r === 'string' ? r : (r.risk || r.text || '');
+          const text = raw.slice(0, 48) + (raw.length > 48 ? '…' : '');
+          return { text: text || 'Risk factor' };
+        })
       : []),
   ].filter(Boolean).slice(0, 4);
 

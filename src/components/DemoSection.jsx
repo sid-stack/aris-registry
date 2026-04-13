@@ -16,6 +16,14 @@ export default function DemoSection({ onTryDemo }) {
   return (
     <section style={styles.section}>
       <div style={styles.container}>
+        <div style={styles.header}>
+          <div style={styles.badge}>INSTITUTIONAL GRADE • BUILT FOR FEDERAL CAPTURE</div>
+          <h2 style={styles.title}>The Bid Acceleration Engine</h2>
+          <p style={styles.subtitle}>
+            Replace $5,000+ in proposal preparation with an institutional compliance matrix and risk assessment in 90 seconds.
+          </p>
+        </div>
+
         <div style={styles.demoWrapper}>
           <div style={styles.videoCard}>
             <div style={styles.videoHeader}>
@@ -55,6 +63,7 @@ export default function DemoSection({ onTryDemo }) {
                   style={styles.video}
                   onError={() => setVideoError(true)}
                 >
+                  <source src="/assets/demo/aris-demo.mp4" type="video/mp4" />
                   <source src="/aris-demo.mp4" type="video/mp4" />
                 </video>
               )}
@@ -62,13 +71,6 @@ export default function DemoSection({ onTryDemo }) {
           </div>
         </div>
 
-        <div style={styles.header}>
-          <div style={styles.badge}>INSTITUTIONAL GRADE • BUILT FOR FEDERAL CAPTURE</div>
-          <h2 style={styles.title}>The Bid Acceleration Engine</h2>
-          <p style={styles.subtitle}>
-            Replace $5,000+ in proposal preparation with an institutional compliance matrix and risk assessment in 90 seconds.
-          </p>
-        </div>
    {/* Floating High-Conversion Features */}
           <div style={styles.featuresGrid}>
             <div style={styles.featureItem}>

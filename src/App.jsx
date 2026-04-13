@@ -127,7 +127,7 @@ function usePageMeta(view) {
     const ogUrl = document.querySelector('meta[property="og:url"]');
     if (ogUrl) ogUrl.setAttribute("content", canonicalUrl);
 
-    const NOINDEX_VIEWS = new Set(["app", "dashboard", "admin", "bento"]);
+    const NOINDEX_VIEWS = new Set(["app", "dashboard", "admin", "bento", "traffic-brief", "404"]);
     let robotsMeta = document.querySelector('meta[name="robots"]');
     if (!robotsMeta) {
       robotsMeta = document.createElement("meta");

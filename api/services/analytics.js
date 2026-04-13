@@ -271,7 +271,7 @@ export async function getTrafficBrief() {
       ${uidClause}
     `;
 
-    const [summaryRes, trendRes, topPagesRes] = await Promise.all([
+    const [summaryRes, trendRes, topPagesRes, topPagesTodayRes] = await Promise.all([
       analyticsDb.query(
         `
           WITH yday AS (
@@ -279,6 +279,13 @@ export async function getTrafficBrief() {
             FROM analytics_events
             WHERE created_at >= date_trunc('day', now()) - interval '1 day'
               AND created_at < date_trunc('day', now())
+              AND ${filterClause}
+          ),
+          today_so_far AS (
+            SELECT *
+            FROM analytics_events
+            WHERE created_at >= date_trunc('day', now())
+              AND created_at <= now()
               AND ${filterClause}
           ),
           last7 AS (
@@ -292,6 +299,10 @@ export async function getTrafficBrief() {
             (SELECT COUNT(*) FROM yday WHERE event_type = 'page_view') AS pageviews_yesterday,
             (SELECT COUNT(*) FROM yday WHERE event_type = 'qualified_session') AS qualified_yesterday,
             (SELECT COUNT(*) FROM yday WHERE event_type IN ('audit_started', 'Audit Started')) AS audits_yesterday,
+            (SELECT COUNT(DISTINCT uid) FROM today_so_far WHERE event_type = 'page_view') AS visitors_today,
+            (SELECT COUNT(*) FROM today_so_far WHERE event_type = 'page_view') AS pageviews_today,
+            (SELECT COUNT(*) FROM today_so_far WHERE event_type = 'qualified_session') AS qualified_today,
+            (SELECT COUNT(*) FROM today_so_far WHERE event_type IN ('audit_started', 'Audit Started')) AS audits_today,
             (SELECT COUNT(DISTINCT uid) FROM last7 WHERE event_type = 'page_view') AS visitors_7d,
             (SELECT COUNT(*) FROM last7 WHERE event_type = 'page_view') AS pageviews_7d,
             (SELECT COUNT(*) FROM last7 WHERE event_type = 'qualified_session') AS qualified_7d,
@@ -329,15 +340,35 @@ export async function getTrafficBrief() {
         `,
         uidParams,
       ),
+      analyticsDb.query(
+        `
+          SELECT path, COUNT(*) AS pageviews, COUNT(DISTINCT uid) AS visitors
+          FROM analytics_events
+          WHERE created_at >= date_trunc('day', now())
+            AND created_at <= now()
+            AND event_type = 'page_view'
+            AND ${filterClause}
+          GROUP BY path
+          ORDER BY pageviews DESC
+          LIMIT 8
+        `,
+        uidParams,
+      ),
     ]);
 
     const summary = summaryRes.rows[0] || {};
     const visitorsYesterday = Number(summary.visitors_yesterday || 0);
     const qualifiedYesterday = Number(summary.qualified_yesterday || 0);
     const auditsYesterday = Number(summary.audits_yesterday || 0);
+    const qualifiedToday = Number(summary.qualified_today || 0);
+    const auditsToday = Number(summary.audits_today || 0);
 
     const qualifiedToAuditRate = qualifiedYesterday > 0
       ? Math.round((auditsYesterday / qualifiedYesterday) * 1000) / 10
+      : 0;
+
+    const qualifiedToAuditRateToday = qualifiedToday > 0
+      ? Math.round((auditsToday / qualifiedToday) * 1000) / 10
       : 0;
 
     return {
@@ -347,6 +378,11 @@ export async function getTrafficBrief() {
         qualified_yesterday: qualifiedYesterday,
         audits_yesterday: auditsYesterday,
         qualified_to_audit_rate_pct: qualifiedToAuditRate,
+        visitors_today: Number(summary.visitors_today || 0),
+        pageviews_today: Number(summary.pageviews_today || 0),
+        qualified_today: qualifiedToday,
+        audits_today: auditsToday,
+        qualified_to_audit_rate_today_pct: qualifiedToAuditRateToday,
         visitors_7d: Number(summary.visitors_7d || 0),
         pageviews_7d: Number(summary.pageviews_7d || 0),
         qualified_7d: Number(summary.qualified_7d || 0),
@@ -354,10 +390,13 @@ export async function getTrafficBrief() {
       },
       trend_7d: trendRes.rows,
       top_pages_yesterday: topPagesRes.rows,
+      top_pages_today: topPagesTodayRes.rows,
       generated_at: new Date().toISOString(),
       filters: {
         excluded_localhost: true,
         excluded_internal_uid_count: internalUids.length,
+        day_boundary_note:
+          "Today / yesterday use PostgreSQL date_trunc('day', now()) — typically UTC on hosted Postgres.",
       },
     };
   } catch (err) {

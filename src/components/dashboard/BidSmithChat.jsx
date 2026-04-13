@@ -59,7 +59,7 @@ function buildLocalGuidance(query, reportData) {
       `Based on this audit payload, current recommendation is **${verdict}**.`,
       `Estimated win probability: **${winProb}%**.`,
       topRisks.length
-        ? `Top blockers to resolve first:\n${topRisks.slice(0, 3).map((r) => `- ${r.risk}`).join("\n")}`
+        ? `Top blockers to resolve first:\n${topRisks.slice(0, 3).map((r) => `- ${typeof r === "string" ? r : (r.risk || "")}`).join("\n")}`
         : "- No explicit risk list found; validate Section L/M must-have requirements.",
     ].join("\n\n");
   }

@@ -2,7 +2,9 @@
   "version": 2,
   "redirects": [
     { "source": "/app", "destination": "/dashboard", "permanent": true },
-    { "source": "/app/:path*", "destination": "/dashboard", "permanent": true }
+    { "source": "/app/:path*", "destination": "/dashboard", "permanent": true },
+    { "source": "/bid-search", "destination": "/", "permanent": true },
+    { "source": "/discovery", "destination": "/", "permanent": true }
   ],
   "builds": [
     {

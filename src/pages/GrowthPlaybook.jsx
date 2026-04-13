@@ -1,6 +1,12 @@
 import { useMemo, useState } from "react";
 import { ArrowLeft, Copy } from "lucide-react";
-import { BOFU_RESOURCES, INTENT_CLUSTERS, TEMPLATE_ASSETS } from "../content/growthPlanData";
+import {
+  BOFU_RESOURCES,
+  EXECUTION_ARCHITECTURE_THREE_TRACK,
+  INTENT_CLUSTERS,
+  SALES_FUNNELS,
+  TEMPLATE_ASSETS,
+} from "../content/growthPlanData";
 import { trackEvent } from "../utils/analytics";
 
 const FOUNDER_CALENDAR = [
@@ -83,7 +89,7 @@ export default function GrowthPlaybook({ onBack, onOpenResource }) {
         </button>
         <h1 style={s.title}>GovCon Growth Operating Playbook</h1>
         <p style={s.subtitle}>
-          90-day execution assets: intent clusters, BOFU resources, founder distribution, partner loop, and KPI operating system.
+          90-day execution assets: intent clusters, BOFU resources, founder distribution, partner loop, conversion funnels, and KPI operating system.
         </p>
       </header>
 
@@ -182,6 +188,75 @@ export default function GrowthPlaybook({ onBack, onOpenResource }) {
           ))}
         </ul>
       </section>
+
+      <section style={s.card}>
+        <h2 style={s.sectionTitle}>7) Conversion Funnels ({SALES_FUNNELS.length} tracks)</h2>
+        <p style={s.helpText}>
+          Run all four in parallel at low volume; weekly review counts only the metrics in “Count this week.” Kill rules prevent
+          busy work.
+        </p>
+        <div style={{ display: "grid", gap: 16 }}>
+          {SALES_FUNNELS.map((funnel) => (
+            <article key={funnel.id} style={s.funnelCard}>
+              <div style={s.funnelHeader}>
+                <h3 style={{ ...s.clusterTitle, marginBottom: 4 }}>{funnel.name}</h3>
+                <p style={{ ...s.clusterAudience, marginBottom: 8 }}>{funnel.objective}</p>
+                <p style={s.funnelMotion}>
+                  <strong>Motion:</strong> {funnel.primaryMotion}
+                </p>
+              </div>
+              <ol style={s.funnelStageList}>
+                {funnel.stages.map((stage) => (
+                  <li key={stage.step} style={s.funnelStage}>
+                    <div style={s.funnelStageTitle}>
+                      {stage.step}. {stage.label}
+                    </div>
+                    <div style={s.funnelStageBody}>{stage.action}</div>
+                    <div style={s.funnelMeta}>
+                      <span>
+                        <strong>Signal:</strong> {stage.successSignal}
+                      </span>
+                      <span>
+                        <strong>Count this week:</strong> {stage.countThis}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+              <p style={s.funnelKill}>
+                <strong>Kill / pivot rule:</strong> {funnel.killRule}
+              </p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section style={s.card}>
+        <h2 style={s.sectionTitle}>8) Execution architecture (3 tracks)</h2>
+        <p style={s.helpText}>
+          Strategy that lives in Miro is homework. These three pipes are infrastructure: they run in parallel while you sleep.
+          Funnel math is only real after you measure <em>your</em> sends → replies → books → checkouts — plug in actual rates weekly.
+        </p>
+        <div style={s.grid}>
+          {EXECUTION_ARCHITECTURE_THREE_TRACK.map((track) => (
+            <article key={track.id} style={s.clusterCard}>
+              <h3 style={s.clusterTitle}>{track.name}</h3>
+              <p style={s.execLine}>
+                <strong>Source:</strong> {track.source}
+              </p>
+              <p style={s.execLine}>
+                <strong>Hook:</strong> {track.hook}
+              </p>
+              <p style={s.execLine}>
+                <strong>Conversion:</strong> {track.conversion}
+              </p>
+              <p style={{ ...s.execLine, marginBottom: 0 }}>
+                <strong>Ops rule:</strong> {track.opsRule}
+              </p>
+            </article>
+          ))}
+        </div>
+      </section>
     </main>
   );
 }
@@ -272,4 +347,38 @@ const s = {
     lineHeight: 1.5,
     fontFamily: "'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
   },
+  funnelCard: {
+    border: "1px solid #cbd5e1",
+    borderRadius: 10,
+    padding: 14,
+    background: "#fafafa",
+  },
+  funnelHeader: { marginBottom: 10 },
+  funnelMotion: { margin: 0, fontSize: 13, color: "#334155", lineHeight: 1.5 },
+  funnelStageList: {
+    margin: 0,
+    paddingLeft: 20,
+    display: "grid",
+    gap: 12,
+    listStyleType: "decimal",
+  },
+  funnelStage: { paddingLeft: 4 },
+  funnelStageTitle: { fontWeight: 700, fontSize: 14, marginBottom: 4, color: "#0f172a" },
+  funnelStageBody: { fontSize: 13, color: "#475569", lineHeight: 1.55, marginBottom: 6 },
+  funnelMeta: {
+    display: "grid",
+    gap: 4,
+    fontSize: 12,
+    color: "#64748b",
+    lineHeight: 1.45,
+  },
+  funnelKill: {
+    margin: "12px 0 0",
+    paddingTop: 10,
+    borderTop: "1px solid #e2e8f0",
+    fontSize: 12,
+    color: "#475569",
+    lineHeight: 1.5,
+  },
+  execLine: { margin: "0 0 8px", fontSize: 13, color: "#475569", lineHeight: 1.55 },
 };

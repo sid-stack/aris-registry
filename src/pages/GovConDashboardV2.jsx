@@ -14,7 +14,7 @@
  *   GET  /api/audits/:id       — load specific audit
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useClerk } from '@clerk/clerk-react';
@@ -24,6 +24,7 @@ import {
   Loader2, Upload, Link2, X, TrendingUp, BarChart2,
   ChevronDown, Paperclip, RefreshCw, BookOpen, Eye,
   EyeOff, Info, ExternalLink, Download, FileType2,
+  Menu,
 } from 'lucide-react';
 import { trackEvent } from '../utils/analytics';
 import { createCheckoutSession } from '../lib/stripe';
@@ -92,8 +93,124 @@ function extractSolicitationName(audit) {
   return audit?.title || audit?.solicitation_number || 'Untitled Solicitation';
 }
 
+// ─── Viewport + markdown (engine returns MD in JSON fields too) ───────────────
+function useWindowWidth() {
+  const [w, setW] = useState(() => (typeof window !== 'undefined' ? window.innerWidth : 1200));
+  useEffect(() => {
+    const fn = () => setW(window.innerWidth);
+    window.addEventListener('resize', fn);
+    return () => window.removeEventListener('resize', fn);
+  }, []);
+  return w;
+}
+
+/** If the model wraps the whole answer in one ``` fence, unwrap so **bold** parses. */
+function normalizeEngineMarkdown(s) {
+  if (!s || typeof s !== 'string') return '';
+  const t = s.trim();
+  const m = t.match(/^```(?:markdown|md|txt)?\s*\n?([\s\S]*?)\n?```$/i);
+  if (m) return m[1].trim();
+  return s;
+}
+
+function govMarkdownComponents(variant) {
+  const isInline = variant === 'inline';
+  const text = () => (isInline ? { color: C.text, fontSize: 'inherit', lineHeight: 1.5 } : { color: C.text });
+  return {
+    p: ({ children }) => (isInline
+      ? <span style={{ ...text(), display: 'block', marginBottom: 4 }}>{children}</span>
+      : <p style={{ margin: '0 0 10px', color: C.text }}>{children}</p>),
+    ul: ({ children }) => (isInline
+      ? <span style={text()}>{children}</span>
+      : <ul style={{ margin: '0 0 10px', paddingLeft: 20 }}>{children}</ul>),
+    ol: ({ children }) => (isInline
+      ? <span style={text()}>{children}</span>
+      : <ol style={{ margin: '0 0 10px', paddingLeft: 20 }}>{children}</ol>),
+    li: ({ children }) => (isInline
+      ? <span style={{ ...text(), display: 'block', marginBottom: 4 }}>{children}</span>
+      : <li style={{ marginBottom: 5, color: C.text }}>{children}</li>),
+    strong: ({ children }) => <strong style={{ fontWeight: 700, color: C.text }}>{children}</strong>,
+    em: ({ children }) => <em style={{ fontStyle: 'italic', color: C.textMuted }}>{children}</em>,
+    a: ({ href, children }) => (
+      <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: C.accent, fontWeight: 600 }}>
+        {children}
+      </a>
+    ),
+    h1: ({ children }) => <h1 style={{ fontSize: isInline ? '1.05em' : 18, fontWeight: 800, margin: isInline ? '0 0 4px' : '12px 0 8px', color: C.text }}>{children}</h1>,
+    h2: ({ children }) => <h2 style={{ fontSize: isInline ? '1em' : 16, fontWeight: 800, margin: isInline ? '0 0 4px' : '12px 0 8px', color: C.text }}>{children}</h2>,
+    h3: ({ children }) => <h3 style={{ fontSize: isInline ? '1em' : 15, fontWeight: 700, margin: isInline ? '0 0 4px' : '10px 0 6px', color: C.text }}>{children}</h3>,
+    blockquote: ({ children }) => (
+      <blockquote style={{
+        margin: isInline ? '4px 0' : '0 0 10px',
+        paddingLeft: 12,
+        borderLeft: `3px solid ${C.borderHi}`,
+        color: C.textMuted,
+      }}
+      >{children}</blockquote>
+    ),
+    code: ({ inline, className, children, ...props }) => {
+      if (inline) {
+        return (
+          <code
+            style={{
+              background: C.surfaceHi,
+              border: `1px solid ${C.border}`,
+              borderRadius: 4,
+              padding: '2px 6px',
+              fontSize: '0.92em',
+              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+              color: '#0369a1',
+            }}
+            {...props}
+          >{children}</code>
+        );
+      }
+      return (
+        <code
+          className={className}
+          style={{
+            display: 'block',
+            fontSize: 13,
+            padding: 10,
+            borderRadius: 8,
+            background: C.surfaceHi,
+            border: `1px solid ${C.border}`,
+            overflowX: 'auto',
+            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+          }}
+          {...props}
+        >{children}</code>
+      );
+    },
+    pre: ({ children }) => <pre style={{ margin: '0 0 10px', overflow: 'auto' }}>{children}</pre>,
+    hr: () => <hr style={{ border: 'none', borderTop: `1px solid ${C.border}`, margin: '12px 0' }} />,
+    table: ({ children }) => (
+      <div style={{ overflowX: 'auto', margin: '0 0 10px' }}>
+        <table style={{ borderCollapse: 'collapse', fontSize: 13, width: '100%' }}>{children}</table>
+      </div>
+    ),
+    th: ({ children }) => (
+      <th style={{ border: `1px solid ${C.border}`, padding: '6px 8px', textAlign: 'left', background: C.surfaceHi }}>{children}</th>
+    ),
+    td: ({ children }) => (
+      <td style={{ border: `1px solid ${C.border}`, padding: '6px 8px' }}>{children}</td>
+    ),
+  };
+}
+
+function GovChatMarkdown({ content, variant = 'chat' }) {
+  const text = normalizeEngineMarkdown(content);
+  const components = useMemo(() => govMarkdownComponents(variant), [variant]);
+  if (!text) return null;
+  return (
+    <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
+      {text}
+    </ReactMarkdown>
+  );
+}
+
 // ─── Left Sidebar ─────────────────────────────────────────────────────────────
-function LeftSidebar({ activeAudit, history, onNewAudit, onSelectAudit, onBack, user, onLogout }) {
+function LeftSidebar({ activeAudit, history, onNewAudit, onSelectAudit, onBack, user, onLogout, embedded, onCloseDrawer }) {
   const docs = activeAudit && activeAudit.id !== 'demo' ? [
     { name: extractSolicitationName(activeAudit), type: 'solicitation', icon: FileText },
     ...(activeAudit.attachments || []).map((a, i) => ({ name: a.name || `Attachment ${i + 1}`, type: 'attachment', icon: Paperclip })),
@@ -101,18 +218,45 @@ function LeftSidebar({ activeAudit, history, onNewAudit, onSelectAudit, onBack, 
 
   return (
     <aside style={{
-      width: 260, flexShrink: 0, display: 'flex', flexDirection: 'column',
+      width: embedded ? '100%' : 'clamp(228px, 24vw, 288px)',
+      height: embedded ? '100%' : undefined,
+      flexShrink: 0, display: 'flex', flexDirection: 'column',
       background: C.sbBg, borderRight: `1px solid ${C.sbBorder}`,
       overflow: 'hidden',
+      transition: 'width 0.2s ease, transform 0.28s cubic-bezier(0.22, 1, 0.36, 1)',
     }}>
       {/* Logo */}
-      <div style={{ padding: '16px 16px 12px', borderBottom: `1px solid ${C.sbBorder}`, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }} onClick={onBack}>
-        <div style={{ width: 26, height: 26, borderRadius: 7, background: 'rgba(16,163,127,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Shield size={14} color={C.accent} />
+      <div style={{ padding: '16px 16px 12px', borderBottom: `1px solid ${C.sbBorder}`, display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div
+          style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', flex: 1, minWidth: 0 }}
+          onClick={onBack}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onBack?.(); } }}
+          role="button"
+          tabIndex={0}
+        >
+          <div style={{ width: 26, height: 26, borderRadius: 7, background: 'rgba(16,163,127,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Shield size={14} color={C.accent} />
+          </div>
+          <span style={{ fontSize: 16, fontWeight: 900, color: C.sbText, letterSpacing: '0.04em', fontFamily: "'Playfair Display', serif" }}>
+            BidSmith
+          </span>
         </div>
-        <span style={{ fontSize: 16, fontWeight: 900, color: C.sbText, letterSpacing: '0.04em', fontFamily: "'Playfair Display', serif" }}>
-          BidSmith
-        </span>
+        {onCloseDrawer && (
+          <button
+            type="button"
+            aria-label="Close sidebar"
+            onClick={onCloseDrawer}
+            style={{
+              flexShrink: 0, width: 36, height: 36, borderRadius: 8, border: `1px solid ${C.sbBorder}`,
+              background: C.sbSurface, color: C.sbTextDim, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'background 0.15s, color 0.15s',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = C.sbBorder; e.currentTarget.style.color = C.sbText; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = C.sbSurface; e.currentTarget.style.color = C.sbTextDim; }}
+          >
+            <X size={16} />
+          </button>
+        )}
       </div>
 
       {/* New conversation */}
@@ -204,12 +348,15 @@ function LeftSidebar({ activeAudit, history, onNewAudit, onSelectAudit, onBack, 
 }
 
 // ─── Right Sidebar — Agent Thinking ──────────────────────────────────────────
-function AgentThinkingPanel({ steps, isRunning }) {
+function AgentThinkingPanel({ steps, isRunning, embedded, onCloseDrawer }) {
   return (
     <aside style={{
-      width: 280, flexShrink: 0, display: 'flex', flexDirection: 'column',
+      width: embedded ? '100%' : 'clamp(248px, 24vw, 304px)',
+      height: embedded ? '100%' : undefined,
+      flexShrink: 0, display: 'flex', flexDirection: 'column',
       background: C.surface, borderLeft: `1px solid ${C.border}`,
       overflow: 'hidden',
+      transition: 'width 0.2s ease, transform 0.28s cubic-bezier(0.22, 1, 0.36, 1)',
     }}>
       <div style={{ padding: '14px 16px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 8 }}>
         <Brain size={14} color={C.accent} />
@@ -217,8 +364,26 @@ function AgentThinkingPanel({ steps, isRunning }) {
           Agent Thinking
         </span>
         {isRunning && (
-          <div style={{ marginLeft: 'auto', width: 7, height: 7, borderRadius: '50%', background: C.green, animation: 'pulse 1.2s infinite' }} />
+          <div style={{ width: 7, height: 7, borderRadius: '50%', background: C.green, animation: 'pulse 1.2s infinite', flexShrink: 0 }} />
         )}
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
+          {onCloseDrawer && (
+            <button
+              type="button"
+              aria-label="Close panel"
+              onClick={onCloseDrawer}
+              style={{
+                width: 32, height: 32, borderRadius: 8, border: `1px solid ${C.border}`,
+                background: C.bg, color: C.textDim, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'background 0.15s',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = C.surfaceHi; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = C.bg; }}
+            >
+              <X size={15} />
+            </button>
+          )}
+        </div>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
@@ -589,7 +754,7 @@ function RiskCard({ audit, auditMode }) {
         <div key={i} style={{ display: 'flex', gap: 9, alignItems: 'flex-start', marginBottom: 8 }}>
           <AlertTriangle size={13} color={C.red} style={{ marginTop: 2, flexShrink: 0 }} />
           <span style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.5 }}>
-            {r.risk || r.requirement || r.description || JSON.stringify(r)}
+            {typeof r === 'string' ? r : (r.risk || r.requirement || r.description || '')}
           </span>
         </div>
       ))}
@@ -676,7 +841,7 @@ function MessageBubble({ msg, auditMode, isStreaming, isSubscribed, userId }) {
           <Shield size={13} color={C.accent} />
         </div>
       )}
-      <div style={{ maxWidth: '75%', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ maxWidth: 'min(75%, 720px)', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
         {msg.type === 'free_limit' ? (
           <FreeLimitCard userId={userId} />
         ) : msg.type === 'audit_result' ? (
@@ -736,18 +901,23 @@ function MessageBubble({ msg, auditMode, isStreaming, isSubscribed, userId }) {
                     <p style={{ margin: '0 0 6px', fontSize: 10, fontWeight: 700, color: C.textDim, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Plan</p>
                     <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: C.textMuted }}>
                       {msg.plan.steps.map((s) => (
-                        <li key={s.id} style={{ marginBottom: 4 }}>{s.status === 'done' ? '✓ ' : '○ '}{s.title}</li>
+                        <li key={s.id} style={{ marginBottom: 4 }}>
+                          <span style={{ marginRight: 4 }}>{s.status === 'done' ? '✓' : '○'}</span>
+                          <GovChatMarkdown variant="inline" content={s.title || ''} />
+                        </li>
                       ))}
                     </ul>
                   </>
                 )}
                 {msg.plan.next_action ? (
-                  <p style={{ margin: msg.plan.steps?.length ? '8px 0 0' : 0, fontSize: 13, color: C.accent, fontWeight: 600 }}>Next: {msg.plan.next_action}</p>
+                  <div style={{ margin: msg.plan.steps?.length ? '8px 0 0' : 0, fontSize: 13, color: C.accent, fontWeight: 600, lineHeight: 1.5 }}>
+                    Next: <GovChatMarkdown variant="inline" content={msg.plan.next_action} />
+                  </div>
                 ) : null}
               </div>
             )}
             {msg.role === 'assistant'
-              ? <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ p: ({children}) => <p style={{margin: '0 0 10px', color: C.text}}>{children}</p>, ul: ({children}) => <ul style={{margin: '0 0 10px', paddingLeft: 20}}>{children}</ul>, li: ({children}) => <li style={{marginBottom: 5, color: C.text}}>{children}</li>, strong: ({children}) => <strong style={{fontWeight: 700, color: C.text}}>{children}</strong> }}>{msg.content}</ReactMarkdown>
+              ? <GovChatMarkdown content={msg.content} />
               : <span style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</span>
             }
             {isStreaming && (
@@ -989,6 +1159,12 @@ function ChatInput({ onSend, onAuditUrl, onAuditFile, fileRef, loading, hasAudit
 // ─── Main dashboard ───────────────────────────────────────────────────────────
 export default function GovConDashboardV2({ onBack, user }) {
   const { signOut } = useClerk();
+  const winW = useWindowWidth();
+  const dockLeft = winW >= 800;
+  const dockRight = winW >= 1040;
+  const [leftDrawerOpen, setLeftDrawerOpen] = useState(false);
+  const [rightDrawerOpen, setRightDrawerOpen] = useState(false);
+
   const [messages, setMessages] = useState([]);
   const [history, setHistory] = useState([]);
   const [activeAudit, setActiveAudit] = useState(null);
@@ -1007,6 +1183,23 @@ export default function GovConDashboardV2({ onBack, user }) {
     document.body.style.background = C.bg;
     return () => { document.body.style.background = ''; };
   }, []);
+
+  useEffect(() => {
+    if (dockLeft) setLeftDrawerOpen(false);
+    if (dockRight) setRightDrawerOpen(false);
+  }, [dockLeft, dockRight]);
+
+  useEffect(() => {
+    if (!leftDrawerOpen && !rightDrawerOpen) return;
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        setLeftDrawerOpen(false);
+        setRightDrawerOpen(false);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [leftDrawerOpen, rightDrawerOpen]);
 
   // Load history on mount
   useEffect(() => {

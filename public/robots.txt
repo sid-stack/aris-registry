@@ -12,6 +12,7 @@ Disallow: /private/
 Disallow: /survey-analytics
 Disallow: /demo-analytics
 Disallow: /dashboard
+Disallow: /traffic-brief
 
 # Crawl-delay to be a good citizen
 Crawl-delay: 1

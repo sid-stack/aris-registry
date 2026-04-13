@@ -53,9 +53,9 @@ function renderTrendRows(rows = []) {
   `).join("");
 }
 
-function renderTopPageRows(rows = []) {
+function renderTopPageRows(rows = [], emptyMessage = "No page data for this period") {
   if (!rows.length) {
-    return `<tr><td colspan="3" style="padding:10px;border:1px solid #e2e8f0;color:#64748b">No page data for yesterday</td></tr>`;
+    return `<tr><td colspan="3" style="padding:10px;border:1px solid #e2e8f0;color:#64748b">${emptyMessage}</td></tr>`;
   }
   return rows.map((row) => `
     <tr>
@@ -113,10 +113,39 @@ function buildHtml(brief) {
         </div>
       </div>
 
+      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:16px">
+        <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px">
+          <div style="font-size:11px;color:#1d4ed8;text-transform:uppercase;font-weight:700">Today Visitors (so far)</div>
+          <div style="font-size:28px;font-weight:900;color:#1e3a8a">${summary.visitors_today ?? 0}</div>
+        </div>
+        <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px">
+          <div style="font-size:11px;color:#1d4ed8;text-transform:uppercase;font-weight:700">Today Pageviews</div>
+          <div style="font-size:28px;font-weight:900;color:#1e3a8a">${summary.pageviews_today ?? 0}</div>
+        </div>
+        <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px">
+          <div style="font-size:11px;color:#1d4ed8;text-transform:uppercase;font-weight:700">Today Audits</div>
+          <div style="font-size:28px;font-weight:900;color:#1e3a8a">${summary.audits_today ?? 0}</div>
+        </div>
+      </div>
+
       <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px;margin-bottom:16px">
         <h2 style="margin:0 0 8px;font-size:16px">Funnel Health</h2>
         <p style="margin:0;color:#334155">Qualified / Visitor: <strong>${health.qualifiedRate}</strong> | Audit / Qualified: <strong>${health.auditRate}</strong></p>
         <p style="margin:6px 0 0;color:#475569">${health.statusText}</p>
+      </div>
+
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px;margin-bottom:16px">
+        <h2 style="margin:0 0 10px;font-size:16px">Top Pages Today (so far)</h2>
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead>
+            <tr>
+              <th style="padding:10px;border:1px solid #e2e8f0;text-align:left;background:#f8fafc">Path</th>
+              <th style="padding:10px;border:1px solid #e2e8f0;text-align:left;background:#f8fafc">Pageviews</th>
+              <th style="padding:10px;border:1px solid #e2e8f0;text-align:left;background:#f8fafc">Visitors</th>
+            </tr>
+          </thead>
+          <tbody>${renderTopPageRows(brief.top_pages_today || [], "No page data for today yet")}</tbody>
+        </table>
       </div>
 
       <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px;margin-bottom:16px">
@@ -129,7 +158,7 @@ function buildHtml(brief) {
               <th style="padding:10px;border:1px solid #e2e8f0;text-align:left;background:#f8fafc">Visitors</th>
             </tr>
           </thead>
-          <tbody>${renderTopPageRows(brief.top_pages_yesterday)}</tbody>
+          <tbody>${renderTopPageRows(brief.top_pages_yesterday, "No page data for yesterday")}</tbody>
         </table>
       </div>
 

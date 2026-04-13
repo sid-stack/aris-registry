@@ -157,7 +157,7 @@ function AuditCard({ audit }) {
       {risks.slice(0, 3).map((r, i) => (
         <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
           <AlertTriangle size={12} color={M.amber} style={{ flexShrink: 0, marginTop: 2 }} />
-          <span style={{ fontSize: 12, color: M.textSub, lineHeight: 1.5 }}>{(typeof r === 'string' ? r : '').slice(0, 120)}</span>
+          <span style={{ fontSize: 12, color: M.textSub, lineHeight: 1.5 }}>{(typeof r === 'string' ? r : (r.risk || r.text || '')).slice(0, 120)}</span>
         </div>
       ))}
 

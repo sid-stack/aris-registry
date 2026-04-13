@@ -208,6 +208,55 @@ export default function IntelligenceBrief({ auditData }) {
         />
       </div>
 
+      {/* ── Key details (MVP / zip-style: Red Flag, Evaluation, Win Theme, Constraint) ── */}
+      {intelligence.key_details?.length > 0 && (
+        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: '16px 20px' }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: '#64748b', letterSpacing: '0.1em', marginBottom: 12 }}>
+            KEY DETAILS
+          </div>
+          <div style={{ fontSize: 12, color: '#64748b', marginBottom: 14, lineHeight: 1.5 }}>
+            Between-the-lines signals from the excerpt — same categories as a lightweight matrix + deep pass combined.
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {intelligence.key_details.map((k, i) => {
+              const typeColors = {
+                'Red Flag': { bg: 'rgba(220,38,38,0.08)', border: '#fecaca', pill: '#dc2626' },
+                'Evaluation Criteria': { bg: 'rgba(37,99,235,0.06)', border: '#bfdbfe', pill: '#2563eb' },
+                'Win Theme': { bg: 'rgba(22,163,74,0.08)', border: '#bbf7d0', pill: '#16a34a' },
+                'Constraint': { bg: 'rgba(217,119,6,0.08)', border: '#fde68a', pill: '#d97706' },
+              };
+              const tc = typeColors[k.type] || { bg: '#f8fafc', border: '#e2e8f0', pill: '#64748b' };
+              return (
+                <div
+                  key={k.id || i}
+                  style={{
+                    padding: '12px 14px',
+                    background: tc.bg,
+                    border: `1px solid ${tc.border}`,
+                    borderRadius: 10,
+                  }}
+                >
+                  <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                    <span style={{ fontSize: 10, fontWeight: 800, color: tc.pill, letterSpacing: '0.06em' }}>
+                      {(k.type || 'Insight').toUpperCase()}
+                    </span>
+                    {k.source && (
+                      <span style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600 }}>{k.source}</span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a', lineHeight: 1.45, marginBottom: 4 }}>
+                    {k.detail}
+                  </div>
+                  {k.impact && (
+                    <div style={{ fontSize: 12, color: '#475569', lineHeight: 1.5 }}>{k.impact}</div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* ── Top risks ───────────────────────────────────────────────────────── */}
       {intelligence.top_risks?.length > 0 && (
         <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: '16px 20px' }}>

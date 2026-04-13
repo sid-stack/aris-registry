@@ -42,6 +42,7 @@ import { recordAnalyticsEvent, getAdminStats, getTrafficBrief, saveAudit, getAud
 import { sendTrafficBriefNow, startTrafficBriefScheduler } from "./services/trafficBriefScheduler.js";
 import { fetchSolicitationText } from "./services/samGov.js";
 import { runAudit } from "./agents/auditPipeline.js";
+import { runMvpAudit, mvpAuditEnabled } from "./agents/mvpAudit.js";
 import { addToWaitlist, getWaitlist, getWaitlistStats, markInvited } from "./services/waitlist.js";
 import { getAuditCache, setAuditCache, auditCacheStats } from "./services/auditCache.js";
 
@@ -295,7 +296,14 @@ app.use(requestLogger);
 
 
 // Increment with each breaking change to the audit schema / logic-gate prompt.
-const LOGIC_GATE_VERSION = "v2.2";
+const LOGIC_GATE_VERSION = "v2.4";
+
+async function runAuditOrchestrated(text, meta = {}) {
+  if (mvpAuditEnabled()) {
+    return runMvpAudit(text, meta);
+  }
+  return runAudit(text, meta);
+}
 
 function toMvpAuditResult(raw = {}) {
   const verdict = raw.verdict || {};
@@ -320,9 +328,27 @@ function toMvpAuditResult(raw = {}) {
       summary: verdict.summary || "",
     },
     intelligence: {
-      top_risks: Array.isArray(intelligence.top_risks) ? intelligence.top_risks : [],
+      top_risks: (Array.isArray(intelligence.top_risks) ? intelligence.top_risks : []).map((r) => {
+        if (typeof r === "string") return { risk: r, action: "", severity: "MED" };
+        return {
+          risk: r.risk || r.text || "",
+          action: r.action || "",
+          severity: r.severity || "MED",
+        };
+      }),
       timeline_pressure: intelligence.timeline_pressure || { detected: false, days_to_respond: null, explanation: "" },
-      hidden_requirements: Array.isArray(intelligence.hidden_requirements) ? intelligence.hidden_requirements : [],
+      hidden_requirements: (Array.isArray(intelligence.hidden_requirements) ? intelligence.hidden_requirements : []).map((h) => {
+        if (typeof h === "string") return { found_in: "Solicitation", text: h, implication: "" };
+        return {
+          found_in: h.found_in || h.source || "Other",
+          text: h.text || h.detail || "",
+          implication: h.implication || h.impact || "",
+        };
+      }),
+      evaluation_type: intelligence.evaluation_type || "",
+      evaluation_reality: intelligence.evaluation_reality || "",
+      key_details: Array.isArray(intelligence.key_details) ? intelligence.key_details : [],
+      key_discriminators: Array.isArray(intelligence.key_discriminators) ? intelligence.key_discriminators : [],
     },
     requirements: requirements.map((item, idx) => ({
       id: item.id || `REQ-${idx + 1}`,
@@ -333,6 +359,9 @@ function toMvpAuditResult(raw = {}) {
       is_disqualifier: Boolean(item.is_disqualifier),
       action_required: item.action_required || "",
       source_excerpt: item.source_excerpt || "",
+      status: item.status || "unknown",
+      strategy: item.strategy || "",
+      matrix_source: item.source || item.matrix_source || item.section || null,
     })),
     proposal_roadmap: roadmap.map((step) => ({
       section: step.section || "Proposal Section",
@@ -346,6 +375,13 @@ function toMvpAuditResult(raw = {}) {
       logic_gate_version: LOGIC_GATE_VERSION,
       cache_hit: false,
       cache_served_at: null,
+      ...(raw.meta?.mvp_pipeline
+        ? {
+            mvp_pipeline: true,
+            mvp_char_budget: raw.meta.mvp_char_budget,
+            mvp_input_chars: raw.meta.mvp_input_chars,
+          }
+        : {}),
     },
   };
 }
@@ -461,6 +497,7 @@ app.get("/api/health", (_req, res) => {
       gemini: Boolean(process.env.GEMINI_API_KEY),
       openrouter: Boolean(process.env.OPENROUTER_API_KEY || process.env.OPEN_ROUTER_KEY),
     },
+    mvp_audit_enabled: mvpAuditEnabled(),
     audit_cache: auditCacheStats(),
   });
 });
@@ -708,11 +745,11 @@ app.post("/api/audit/pdf", freeAuditLimiter, upload.single("file"), asyncHandler
   // ── Stage 3: Inference (3-agent pipeline) ────────────────────────────────
   const t2 = Date.now();
   logger.info("audit_stage", requestMeta(req, {
-    stage: "3_inference", model: "coordinator", filename, req_id: rid,
+    stage: "3_inference", model: mvpAuditEnabled() ? "mvp_single_call" : "coordinator", filename, req_id: rid,
   }));
 
   try {
-    const rawResult = await runAudit(rfpText, meta);
+    const rawResult = await runAuditOrchestrated(rfpText, meta);
     const result    = toMvpAuditResult(rawResult);
 
     logger.info("audit_stage", requestMeta(req, {
@@ -763,7 +800,7 @@ app.post("/api/audit/text", apiLimiter, asyncHandler(async (req, res) => {
     chars: text.length,
     user_email: userEmail,
   }));
-  const rawResult = await runAudit(text.trim(), { id: "TEXT_AUDIT", title: "Pasted Solicitation", agency: "Unknown", value: "0" });
+  const rawResult = await runAuditOrchestrated(text.trim(), { id: "TEXT_AUDIT", title: "Pasted Solicitation", agency: "Unknown", value: "0" });
   const result = toMvpAuditResult(rawResult);
   savePendingReport({
     uid: userId,
@@ -1350,12 +1387,12 @@ app.post("/api/audit/link", freeAuditLimiter, apiLimiter, asyncHandler(async (re
   // ── Stage 3: Inference ────────────────────────────────────────────────────
   const t2 = Date.now();
   logger.info("audit_stage", requestMeta(req, {
-    stage: "3_inference", model: "coordinator",
+    stage: "3_inference", model: mvpAuditEnabled() ? "mvp_single_call" : "coordinator",
     solicitation_id: meta.id, source: "link",
   }));
 
   try {
-    const rawResult = await runAudit(solicitationText, meta);
+    const rawResult = await runAuditOrchestrated(solicitationText, meta);
     const result    = toMvpAuditResult(rawResult);
 
     logger.info("audit_stage", requestMeta(req, {

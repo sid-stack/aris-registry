@@ -278,8 +278,10 @@ export async function callLLMStream(system, user, opts = {}, onChunk, onDone) {
 
 export async function callLLM(system, user, opts = {}) {
   // 1. Mercury 2 direct (fastest — diffusion model, generous credits)
-  const mercury = await tryMercury(system, user, opts);
-  if (mercury) return mercury;
+  if (!opts.skipMercury) {
+    const mercury = await tryMercury(system, user, opts);
+    if (mercury) return mercury;
+  }
 
   // 2. Gemini 2.0 Flash direct (free tier, 1M context)
   const gemini = await tryGemini(system, user, opts);

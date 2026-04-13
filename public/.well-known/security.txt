@@ -1,5 +1,0 @@
-Contact: mailto:security@bidsmith.pro
-Expires: 2027-03-21T00:00:00Z
-Preferred-Languages: en
-Canonical: https://www.bidsmith.pro/.well-known/security.txt
-Policy: https://www.bidsmith.pro/soc
