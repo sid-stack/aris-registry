@@ -10,12 +10,15 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Shield, ArrowUpRight, Send, RotateCcw,
          Loader2, ExternalLink, AlertTriangle,
          Clock, ChevronRight, LogOut, Plus, LayoutDashboard,
-         PanelLeftClose, PanelLeft, PanelRightClose, PanelRight, Cpu } from 'lucide-react';
+         PanelLeftClose, PanelLeft, PanelRightClose, PanelRight, Cpu, Download } from 'lucide-react';
 import { useClerk, useUser } from '@clerk/clerk-react';
 import RfpUploadZone   from '../components/bento/RfpUploadZone';
 import LiveAnalysisCard from '../components/bento/LiveAnalysisCard';
 import EvalStatusCard  from '../components/bento/EvalStatusCard';
 import BidOutputCard   from '../components/bento/BidOutputCard';
+import HumanWalkthroughCTA from '../components/HumanWalkthroughCTA.jsx';
+import { downloadComplianceMatrixXlsx } from '../utils/complianceMatrixXlsx';
+import { trackEvent } from '../utils/analytics';
 
 // ── Error code → intelligent AI opening message ───────────────────────────────
 const CHAT_CONTEXTS = {
@@ -1586,6 +1589,33 @@ export default function BentoDashboard({ user = null, onBack }) {
   const accessUnlocked = isSubscribed || isPaid || demoUnlocked;
   const billingStatus = isSubscribed ? `${activePlan || "active"}` : null;
 
+  const [exportMatrixXlsxLoading, setExportMatrixXlsxLoading] = useState(false);
+  const exportMatrixBusyRef = useRef(false);
+  const handleExportComplianceMatrixXlsx = useCallback(async () => {
+    if (!auditResult || exportMatrixBusyRef.current) return;
+    const rows = Array.isArray(auditResult?.requirements) ? auditResult.requirements : [];
+    if (rows.length === 0) {
+      setToast({ msg: 'Not enough data to export — run a full audit first', type: 'warning' });
+      return;
+    }
+    trackEvent('export_compliance_matrix_xlsx', {
+      category: 'conversion',
+      solicitation: auditResult?.solicitation_number || auditResult?.id || null,
+    });
+    exportMatrixBusyRef.current = true;
+    setExportMatrixXlsxLoading(true);
+    try {
+      await downloadComplianceMatrixXlsx(auditResult);
+    } catch (e) {
+      if (e?.code !== 'NO_COMPLIANCE_ROWS') {
+        setToast({ msg: 'Export failed. Please try again.', type: 'error' });
+      }
+    } finally {
+      exportMatrixBusyRef.current = false;
+      setExportMatrixXlsxLoading(false);
+    }
+  }, [auditResult]);
+
   // Health probe
   useEffect(() => {
     fetch('/api/health')
@@ -2178,15 +2208,44 @@ export default function BentoDashboard({ user = null, onBack }) {
               <div style={{ padding: 0 }}>
                 <div style={{ background: '#fff', border: '1px solid #dadce0', borderRadius: 8, padding: '16px 18px' }}>
                   <p style={{ margin: '0 0 12px', fontSize: 12, fontWeight: 500, color: '#5f6368' }}>Compliance matrix</p>
-                  {(auditResult?.requirements || []).slice(0, 3).map((req, i) => (
+                  {(accessUnlocked ? (auditResult?.requirements || []) : (auditResult?.requirements || []).slice(0, 3)).map((req, i) => (
                     <div key={i} style={{ padding: '10px 0', borderBottom: '1px solid #e8eaed', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
                       <span style={{ fontSize: 11, fontWeight: 600, color: req.risk === 'HIGH' ? '#d93025' : req.risk === 'LOW' ? '#1e8e3e' : '#f9ab00', width: 40, flexShrink: 0, paddingTop: 2 }}>{req.risk}</span>
                       <p style={{ margin: 0, fontSize: 13, color: '#202124', lineHeight: 1.45 }}>{req.requirement}</p>
                     </div>
                   ))}
+                  {accessUnlocked && (
+                    <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #e8eaed' }}>
+                      <button
+                        type="button"
+                        onClick={handleExportComplianceMatrixXlsx}
+                        disabled={exportMatrixXlsxLoading}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 8,
+                          padding: 0,
+                          border: 'none',
+                          background: 'transparent',
+                          color: '#1a73e8',
+                          fontSize: 13,
+                          fontWeight: 600,
+                          cursor: exportMatrixXlsxLoading ? 'wait' : 'pointer',
+                          fontFamily: 'inherit',
+                        }}
+                      >
+                        {exportMatrixXlsxLoading ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Download size={14} />}
+                        Export Compliance Matrix (.xlsx)
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </PaywallGate>
+            <HumanWalkthroughCTA
+              visible={!!(auditResult && !analyzing && auditResult.verdict)}
+              solicitationId={auditResult?.solicitation_number || auditResult?.id || auditResult?.opportunity_id || null}
+            />
           </div>
           {!rightRailOpen && (
             <button

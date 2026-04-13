@@ -24,7 +24,7 @@ import {
   Loader2, Upload, Link2, X, TrendingUp, BarChart2,
   ChevronDown, Paperclip, RefreshCw, BookOpen, Eye,
   EyeOff, Info, ExternalLink, Download, FileType2,
-  Menu, Calendar,
+  Menu,
 } from 'lucide-react';
 import { trackEvent } from '../utils/analytics';
 import { createCheckoutSession } from '../lib/stripe';
@@ -33,6 +33,7 @@ import { downloadComplianceMatrixDocx } from '../utils/complianceMatrixDocx';
 import { downloadComplianceMatrixXlsx } from '../utils/complianceMatrixXlsx';
 import { downloadGovConAuditPdf } from '../utils/govconAuditPdf';
 import NextBestAction from '../components/govcon/NextBestAction';
+import HumanWalkthroughCTA from '../components/HumanWalkthroughCTA.jsx';
 
 // ─── Colors — dark sidebar + light main (ChatGPT style) ──────────────────────
 const C = {
@@ -58,11 +59,6 @@ const C = {
   sbText:    '#ececec',
   sbTextDim: '#8e8ea0',
 };
-
-/** Free 20 min walkthrough — set `VITE_CALENDLY_AUDIT_WALKTHROUGH` in Vercel / .env, or replace the fallback once your Calendly slug exists. */
-const AUDIT_WALKTHROUGH_CALENDLY_URL =
-  (typeof import.meta !== 'undefined' && String(import.meta.env?.VITE_CALENDLY_AUDIT_WALKTHROUGH || '').trim())
-  || 'https://calendly.com/bidsmith-pro/audit-walkthrough';
 
 // ─── Agent thinking steps ─────────────────────────────────────────────────────
 const THINKING_STEPS = [
@@ -1238,71 +1234,6 @@ function EmptyState({ onAuditUrl, onAuditFile, fileRef, onStartChat, userName })
   );
 }
 
-// ─── Human walkthrough CTA (Calendly) — one path, post-audit only ────────────
-function HumanWalkthroughCTA({ visible, solicitationId }) {
-  if (!visible) return null;
-  return (
-    <div
-      style={{
-        flexShrink: 0,
-        padding: '16px 20px 18px',
-        background: `linear-gradient(180deg, ${C.surfaceHi} 0%, ${C.bg} 45%)`,
-        borderTop: `1px solid ${C.border}`,
-        boxShadow: '0 -6px 20px rgba(0,0,0,0.04)',
-      }}
-    >
-      <div style={{ maxWidth: 560, margin: '0 auto' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-          <div style={{
-            width: 40, height: 40, borderRadius: 10, flexShrink: 0,
-            background: 'rgba(16,163,127,0.1)', border: `1px solid rgba(16,163,127,0.25)`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}
-          >
-            <Calendar size={18} color={C.accent} />
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 16, fontWeight: 800, color: C.text, letterSpacing: '-0.02em', marginBottom: 6 }}>
-              Want a human walkthrough?
-            </div>
-            <p style={{ margin: '0 0 14px', fontSize: 14, color: C.textMuted, lineHeight: 1.55 }}>
-              {"We'll review your audit results together and tell you exactly where you're exposed — free, 20 minutes."}
-            </p>
-            <a
-              href={AUDIT_WALKTHROUGH_CALENDLY_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => trackEvent('audit_walkthrough_calendly_click', {
-                category: 'conversion',
-                solicitation: solicitationId || null,
-              })}
-              style={{
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                padding: '11px 20px', borderRadius: 10,
-                background: C.navy, color: '#fff', fontSize: 14, fontWeight: 800,
-                textDecoration: 'none', border: `1px solid ${C.navy}`,
-                boxShadow: '0 2px 8px rgba(0,34,68,0.2)',
-                transition: 'transform 0.15s ease, box-shadow 0.15s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-1px)';
-                e.currentTarget.style.boxShadow = '0 4px 14px rgba(0,34,68,0.28)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'none';
-                e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,34,68,0.2)';
-              }}
-            >
-              Book a call
-              <ChevronRight size={16} style={{ opacity: 0.9 }} />
-            </a>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ─── Chat Input ───────────────────────────────────────────────────────────────
 function ChatInput({ onSend, onAuditUrl, onAuditFile, fileRef, loading, hasAudit }) {
   const [text, setText] = useState('');
@@ -1788,10 +1719,9 @@ export default function GovConDashboardV2({ onBack, user }) {
       return;
     }
     if (exportXlsxLoading) return;
-    trackEvent('compliance_matrix_xlsx_download', {
-      format: 'xlsx',
+    trackEvent('export_compliance_matrix_xlsx', {
+      category: 'conversion',
       solicitation: audit?.solicitation_number || audit?.id || null,
-      category: 'export',
     });
     setExportXlsxLoading(true);
     try {
