@@ -30,13 +30,13 @@ jobs:
       - name: Check for console statements
         run: |
           echo "🔍 Checking for console statements in production code..."
-          CONSOLES=$(grep -r "console\." src/ --include="*.js" --include="*.jsx" --exclude="devLog.js" | wc -l || true)
+          CONSOLES=$(grep -rH "console\." src/ --include="*.js" --include="*.jsx" | grep -vF "src/utils/devLog.js:" | wc -l || true)
           if [ "$CONSOLES" -gt 0 ]; then
             echo "❌ Found $CONSOLES console statements that need to be removed:"
-            grep -r "console\." src/ --include="*.js" --include="*.jsx" --exclude="devLog.js"
+            grep -rH "console\." src/ --include="*.js" --include="*.jsx" | grep -vF "src/utils/devLog.js:" || true
             exit 1
           else
-            echo "✅ No console statements found"
+            echo "✅ No console statements found (src/utils/devLog.js excluded)"
           fi
 
       - name: Check for hardcoded secrets
