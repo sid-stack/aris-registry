@@ -1,5 +1,6 @@
 // ⚡ ARIS_SOVEREIGN_HEARTBEAT: 2026-03-26T21:20:00Z
 import "dotenv/config";
+import "./ensureNodeEnv.js";
 
 import express from "express";
 import cors from "cors";

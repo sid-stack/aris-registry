@@ -30,6 +30,9 @@ ENV VITE_API_URL=$VITE_API_URL
 # Copy source code (respecting .dockerignore)
 COPY . .
 
+# Vite production optimizations (devDependencies already installed above)
+ENV NODE_ENV=production
+
 # Build the React frontend
 RUN npm run build
 
