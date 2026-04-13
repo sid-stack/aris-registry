@@ -5,13 +5,15 @@
  *   1. Captured with the full response body
  *   2. Formatted in Python requests.HTTPError style
  *   3. Stored in module state for the DevErrorPanel component
- *   4. Re-logged to console.error with the body (not just the useless "status 400")
+ *   4. Re-logged via devError with the body (not just the useless "status 400")
  *
  * Also intercepts window.onerror + unhandledrejection so resource-load
  * failures (scripts, images) from third-party tags show up the same way.
  *
  * Tree-shaken in production (import.meta.env.DEV guard).
  */
+
+import { devError } from "./devLog";
 
 const IS_DEV = import.meta.env.DEV;
 
@@ -124,7 +126,7 @@ if (IS_DEV && typeof window !== 'undefined') {
           thirdParty,
         });
         // Re-log with full body — replaces the cryptic "Failed to load resource"
-        console.error(`[HTTP ${res.status}]\n${message}`);
+        devError(`[HTTP ${res.status}]\n${message}`);
       }).catch(() => {});
     }
 
