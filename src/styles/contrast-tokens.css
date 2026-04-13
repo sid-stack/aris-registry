@@ -1,0 +1,20 @@
+/**
+ * WCAG-oriented semantic tokens for light surfaces.
+ * Prefer these over Tailwind-style grays in new CSS; pages can migrate incrementally.
+ */
+:root {
+  --text-primary: #111827;
+  --text-secondary: #374151;
+  --text-muted: #6b7280;
+  --text-placeholder: #9ca3af;
+  --text-on-dark: #f9fafb;
+  --bg-surface: #f9fafb;
+  --border-strong: #d1d5db;
+}
+
+[data-theme="light"] {
+  --text-primary: #111827;
+  --text-secondary: #374151;
+  --text-muted: #6b7280;
+  --text-placeholder: #9ca3af;
+}

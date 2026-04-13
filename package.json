@@ -19,7 +19,9 @@
     "preview": "vite preview",
     "cypress:open": "cypress open",
     "leads": "node scripts/lead_gen_auto.js",
-    "leads:dry": "node scripts/lead_gen_auto.js --dry-run"
+    "leads:dry": "node scripts/lead_gen_auto.js --dry-run",
+    "audit:contrast": "node scripts/contrast-audit.mjs",
+    "screenshot:audit": "node scripts/screenshot-audit.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-kms": "^3.1019.0",
@@ -71,6 +73,7 @@
     "xlsx-js-style": "^1.2.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.1",
     "@clerk/testing": "^1.14.4",
     "@eslint/js": "^9.5.0",
     "@playwright/test": "^1.59.1",

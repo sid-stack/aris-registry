@@ -82,11 +82,6 @@ const STORIES = [
       challenge: "First-pass review meant senior leads reading hundreds of pages of Section L/M and attachments before the team could align on scope and risk — often 1–3 business days per opportunity.",
       solution: "Paste the SAM.gov URL (or upload PDF). BidSmith returns a compliance-oriented requirement list, risk highlights, and a bid/no-bid recommendation with rationale in about 90 seconds — then humans refine.",
       result: "The team moves to color-team decisions with a shared artifact on day one instead of losing the week to parallel manual notes. (Figures anonymized; outcomes vary by solicitation complexity.)",
-      stats: [
-        { label: "BidSmith first pass", value: "~90s" },
-        { label: "Typical manual first pass", value: "1–3 days" },
-        { label: "Delivered every run", value: "Matrix + verdict" },
-      ],
     },
   },
   {
@@ -97,11 +92,6 @@ const STORIES = [
       challenge: "Low-probability pursuits consumed the same proposal hours as winnable ones; set-aside and evaluation mismatches surfaced late.",
       solution: "Bid/no-bid output and requirement risk tags are generated on the same run as the matrix so capture can defend a no-bid early with a paper trail.",
       result: "Fewer staffed losses on unwinnable shapes; more calendar for pursuits that match certifications and past performance. (Anonymized composite — your metrics depend on pipeline discipline.)",
-      stats: [
-        { label: "Gate", value: "Pre-staffing" },
-        { label: "Rationale", value: "In output" },
-        { label: "Audit cadence", value: "Per notice" },
-      ],
     },
   },
   {
@@ -112,11 +102,6 @@ const STORIES = [
       challenge: "Kickoff meetings burned time hunting clauses across PDFs; version control across teammates was messy.",
       solution: "One upload or link produces a single structured baseline the whole team references — still human-reviewed before submission.",
       result: "Internal alignment meetings start with the same requirement rows instead of re-reading attachments cold. (Composite; time savings vary by team size and RFP volume.)",
-      stats: [
-        { label: "Inputs", value: "URL or PDF" },
-        { label: "Team artifact", value: "One matrix" },
-        { label: "Human review", value: "Still required" },
-      ],
     },
   },
 ];
@@ -650,52 +635,36 @@ export default function Landing({
           <p style={S.eyebrow}>WORKFLOW STORIES</p>
           <h2 style={S.h2}>How teams use BidSmith (anonymized composites)</h2>
           <p style={{ fontSize: 13, color: C.dimGrey, maxWidth: 720, margin: "12px 0 0", lineHeight: 1.55 }}>
-            Illustrative workflows—not named case studies. Stats highlight product behavior and typical manual contrast, not audited win-rate or revenue claims.
+            Illustrative workflows—not named case studies. Narratives describe typical patterns, not audited win-rate or revenue claims.
           </p>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 24, marginTop: 52 }}>
+          <div className="landing-story-grid">
             {STORIES.map(s => {
               const isOpen = expandedStory === s.tag;
               return (
-                <div key={s.tag} style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-                  <article style={{ background: C.white, border: `1px solid ${C.paleSky}`, borderRadius: isOpen ? "16px 16px 0 0" : 16, padding: 32, display: "flex", flexDirection: "column", gap: 16, transition: "border-radius 0.2s", WebkitTransition: "border-radius 0.2s" }}>
-                    <span style={{ fontSize: 10, fontWeight: 800, color: C.navyMid, letterSpacing: "0.12em", textTransform: "uppercase", background: C.mintCream, padding: "4px 10px", borderRadius: 6, width: "fit-content", border: `1px solid ${C.paleSky}` }}>
-                      {s.tag}
-                    </span>
-                    <h3 style={{ fontSize: 17, fontWeight: 800, color: C.navy, lineHeight: 1.35, margin: 0 }}>{s.headline}</h3>
-                    <p style={{ fontSize: 14, color: C.dimGrey, lineHeight: 1.65, margin: 0 }}>{s.body}</p>
+                <div key={s.tag} className="landing-story-stack">
+                  <article className={`landing-story-surface${isOpen ? " landing-story-surface--expanded" : ""}`}>
+                    <span className="landing-story-pill">{s.tag}</span>
+                    <h3 className="landing-story-title">{s.headline}</h3>
+                    <p className="landing-story-lead">{s.body}</p>
                     <button
-                      className="landing-story-expand"
+                      type="button"
+                      className={`landing-story-expand${isOpen ? " landing-story-expand--open" : ""}`}
                       onClick={() => setExpandedStory(isOpen ? null : s.tag)}
-                      style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, color: C.navyMid, background: "none", border: "none", cursor: "pointer", padding: 0, marginTop: "auto" }}
                     >
                       {isOpen ? "Close story" : "Read the story"}
                     </button>
                   </article>
 
-                  {/* Collapsible story card */}
                   {isOpen && (
-                    <div style={{ background: C.navy, borderRadius: "0 0 16px 16px", padding: 28, display: "flex", flexDirection: "column", gap: 20, animation: "storySlide 0.22s ease" }}>
-                      <style>{`@keyframes storySlide { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }`}</style>
-
-                      {/* Stats row */}
-                      <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-                        {s.story.stats.map(stat => (
-                          <div key={stat.label} style={{ flex: 1, minWidth: 80, background: "rgba(255,255,255,0.07)", borderRadius: 10, padding: "12px 16px", textAlign: "center" }}>
-                            <div style={{ fontSize: 18, fontWeight: 900, color: "#afdedc" }}>{stat.value}</div>
-                            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", marginTop: 3 }}>{stat.label}</div>
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Story sections */}
+                    <div className="landing-story-detail">
                       {[
                         { label: "The Challenge", text: s.story.challenge },
                         { label: "The Solution", text: s.story.solution },
                         { label: "The Result", text: s.story.result },
                       ].map(({ label, text }) => (
-                        <div key={label}>
-                          <p style={{ fontSize: 10, fontWeight: 800, color: "#afdedc", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 6 }}>{label}</p>
-                          <p style={{ fontSize: 14, color: "rgba(255,255,255,0.78)", lineHeight: 1.7, margin: 0 }}>{text}</p>
+                        <div key={label} className="landing-story-detail-block">
+                          <p className="landing-story-detail-label">{label}</p>
+                          <p className="landing-story-detail-body">{text}</p>
                         </div>
                       ))}
                     </div>

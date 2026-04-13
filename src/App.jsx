@@ -11,6 +11,7 @@ import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { pathForView, WORKSPACE_PATH } from "./lib/routes";
 import { getComplianceRouteMeta } from "./seo/complianceRouteMeta";
+import DesktopOnlyGate from "./components/DesktopOnlyGate.jsx";
 
 const Templates        = lazy(() => import("./pages/Templates"));
 const Legal            = lazy(() => import("./pages/Legal"));
@@ -45,7 +46,7 @@ function DashboardSignInShell({ onBackHome }) {
     padding: "8px 0",
     fontSize: 14,
     fontWeight: 600,
-    color: "#94a3b8",
+    color: "#cbd5e1",
     background: "transparent",
     border: "none",
     cursor: "pointer",
@@ -75,7 +76,7 @@ function DashboardSignInShell({ onBackHome }) {
             fontWeight: 700,
             letterSpacing: "0.12em",
             textTransform: "uppercase",
-            color: "rgba(148, 163, 184, 0.9)",
+            color: "#e2e8f0",
           }}
         >
           BidSmith · Command Center
@@ -107,7 +108,7 @@ function DashboardSignInShell({ onBackHome }) {
           <li>Disqualifier and set-aside fit signals you can share with capture</li>
           <li>Bid / no-bid recommendation with plain-English rationale</li>
         </ul>
-        <p style={{ margin: "0 0 20px", fontSize: 13, color: "#94a3b8", lineHeight: 1.55 }}>
+        <p style={{ margin: "0 0 20px", fontSize: 13, color: "#cbd5e1", lineHeight: 1.55 }}>
           Free plan: <strong style={{ color: "#e2e8f0" }}>3 full audits per calendar month</strong> · No credit card required. Upgrade anytime for unlimited runs.
         </p>
         <div
@@ -135,7 +136,7 @@ function LoadingSpinner() {
       justifyContent: "center",
       flexDirection: "column",
       gap: "12px",
-      color: "#94a3b8",
+      color: "#cbd5e1",
       fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, sans-serif',
       fontSize: "14px",
       letterSpacing: "0.01em",
@@ -462,7 +463,11 @@ export default function App() {
       );
       break;
     case "traffic-brief":
-      content = authLoading ? loadingScreen : authenticated ? <TrafficBrief onBack={goLanding} /> : <DashboardSignInShell onBackHome={goLanding} />;
+      content = authLoading ? loadingScreen : (
+        <DesktopOnlyGate onBackHome={goLanding}>
+          {authenticated ? <TrafficBrief onBack={goLanding} /> : <DashboardSignInShell onBackHome={goLanding} />}
+        </DesktopOnlyGate>
+      );
       break;
     case "resources":
       content = (
@@ -517,9 +522,13 @@ export default function App() {
     case "bento":
     case "app":
     case "dashboard":
-      content = authLoading ? loadingScreen : authenticated && user
-        ? <BentoDashboard onBack={goLanding} user={user} />
-        : <DashboardSignInShell onBackHome={goLanding} />;
+      content = authLoading ? loadingScreen : (
+        <DesktopOnlyGate onBackHome={goLanding}>
+          {authenticated && user
+            ? <BentoDashboard onBack={goLanding} user={user} />
+            : <DashboardSignInShell onBackHome={goLanding} />}
+        </DesktopOnlyGate>
+      );
       break;
     case "landing":
       content = (

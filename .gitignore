@@ -68,6 +68,10 @@ out/
 *.tsbuildinfo
 .turbo/
 
+# Playwright / contrast audit artifacts (regenerate locally)
+scripts/screenshots/*.png
+scripts/screenshots/*.json
+
 # =========================
 # LOGS & CACHE
 # =========================

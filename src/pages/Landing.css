@@ -676,12 +676,185 @@
   box-shadow: 0 20px 48px rgba(0, 34, 68, 0.09);
 }
 
-/* ── Story cards ─────────────────────────────────────────────────────────── */
-.landing-story-expand {
-  transition: color 0.15s ease;
+/* ── Workflow story cards (anonymized composites) ───────────────────────── */
+.landing-story-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-top: 3.25rem;
 }
+
+.landing-story-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+}
+
+.landing-story-surface {
+  background: #fff;
+  border: 1px solid rgba(196, 215, 242, 0.85);
+  border-radius: 18px;
+  padding: 1.75rem 1.75rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 14px 40px -18px rgba(0, 34, 68, 0.12),
+    0 4px 16px -8px rgba(0, 34, 68, 0.06);
+  transition:
+    transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.22s ease,
+    border-radius 0.22s ease;
+  will-change: transform;
+}
+
+.landing-story-surface:hover {
+  transform: translateY(-3px);
+  border-color: rgba(11, 61, 145, 0.22);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.95) inset,
+    0 22px 50px -20px rgba(0, 34, 68, 0.14),
+    0 8px 24px -10px rgba(11, 61, 145, 0.08);
+}
+
+.landing-story-surface--expanded {
+  border-radius: 18px 18px 0 0;
+  border-bottom-color: transparent;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.85) inset,
+    0 10px 32px -16px rgba(0, 34, 68, 0.1);
+}
+
+.landing-story-surface--expanded:hover {
+  transform: none;
+}
+
+.landing-story-pill {
+  font-size: 0.625rem;
+  font-weight: 800;
+  color: #0b3d91;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: linear-gradient(180deg, #f0f7ee 0%, #e8f2ea 100%);
+  padding: 0.35rem 0.65rem;
+  border-radius: 7px;
+  width: fit-content;
+  border: 1px solid rgba(196, 215, 242, 0.9);
+}
+
+.landing-story-title {
+  font-size: 1.0625rem;
+  font-weight: 800;
+  color: #002244;
+  line-height: 1.35;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.landing-story-lead {
+  font-size: 0.875rem;
+  color: #776871;
+  line-height: 1.65;
+  margin: 0;
+}
+
+.landing-story-expand {
+  align-self: flex-start;
+  margin-top: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #0b3d91;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem 0;
+  letter-spacing: 0.01em;
+  transition: color 0.18s ease, transform 0.18s ease;
+}
+
+.landing-story-expand::after {
+  content: "→";
+  font-size: 0.9em;
+  opacity: 0.65;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
 .landing-story-expand:hover {
-  color: #002244 !important;
+  color: #002244;
+}
+
+.landing-story-expand:hover::after {
+  transform: translateX(3px);
+  opacity: 1;
+}
+
+.landing-story-expand--open::after {
+  content: none;
+}
+
+.landing-story-detail {
+  background: linear-gradient(165deg, #001a33 0%, #002244 48%, #031a30 100%);
+  border: 1px solid rgba(175, 222, 220, 0.12);
+  border-top: 1px solid rgba(175, 222, 220, 0.2);
+  border-radius: 0 0 18px 18px;
+  padding: 1.5rem 1.75rem 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.35rem;
+  box-shadow: 0 20px 48px -24px rgba(0, 0, 0, 0.35);
+  animation: landing-story-detail-in 0.32s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+@keyframes landing-story-detail-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.landing-story-detail-block + .landing-story-detail-block {
+  padding-top: 0.15rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.landing-story-detail-label {
+  font-size: 0.625rem;
+  font-weight: 800;
+  color: #afdedc;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin: 0 0 0.4rem;
+  opacity: 0.92;
+}
+
+.landing-story-detail-body {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.82);
+  line-height: 1.72;
+  margin: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-story-surface,
+  .landing-story-expand::after {
+    transition: none;
+  }
+  .landing-story-surface:hover {
+    transform: none;
+  }
+  .landing-story-detail {
+    animation: none;
+  }
 }
 
 /* ── Smooth font rendering globally on landing ───────────────────────────── */

@@ -12,6 +12,7 @@ import { devWarn } from "./utils/devLog";
 // Must be the very first import-side-effect so the fetch patch is live
 // before any other code fires a request.
 import "./utils/httpDebug.js";
+import "./styles/contrast-tokens.css";
 
 initTheme();
 initAnalytics();

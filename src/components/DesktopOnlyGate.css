@@ -1,0 +1,98 @@
+/* Command Center: phones / small tablets — show desktop-only message (no JS flash). */
+.desktop-only-gate-root {
+  min-height: 100vh;
+}
+
+.desktop-only-gate-mobile {
+  display: none;
+  box-sizing: border-box;
+  min-height: 100vh;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 22px 40px;
+  text-align: center;
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  background: linear-gradient(165deg, #0f172a 0%, #111827 45%, #0b1120 100%);
+  color: #f9fafb;
+}
+
+.desktop-only-gate-mobile h1 {
+  margin: 0 0 12px;
+  font-size: clamp(1.35rem, 4.5vw, 1.65rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  color: #f9fafb;
+}
+
+.desktop-only-gate-mobile p {
+  margin: 0 0 22px;
+  max-width: 420px;
+  font-size: 15px;
+  line-height: 1.65;
+  color: #e5e7eb;
+}
+
+.desktop-only-gate-mobile .desktop-only-gate-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 320px;
+}
+
+.desktop-only-gate-mobile button,
+.desktop-only-gate-mobile a.desktop-only-gate-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 18px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+}
+
+.desktop-only-gate-mobile a.desktop-only-gate-btn--primary {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.desktop-only-gate-mobile button.desktop-only-gate-btn--ghost {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f9fafb;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.desktop-only-gate-desktop {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 100vh;
+  min-width: 0;
+}
+
+@media (max-width: 1023px) {
+  .desktop-only-gate-mobile {
+    display: flex;
+  }
+
+  .desktop-only-gate-desktop {
+    display: none !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .desktop-only-gate-mobile {
+    display: none !important;
+  }
+
+  .desktop-only-gate-desktop {
+    display: flex;
+  }
+}
