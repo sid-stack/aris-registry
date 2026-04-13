@@ -8,7 +8,8 @@ const onHostedRailway = Boolean(
   process.env.RAILWAY_PROJECT_ID?.trim()
     || process.env.RAILWAY_SERVICE_ID?.trim()
     || process.env.RAILWAY_ENVIRONMENT_NAME?.trim()
-    || process.env.RAILWAY_ENVIRONMENT?.trim(),
+    || process.env.RAILWAY_ENVIRONMENT?.trim()
+    || process.env.RAILWAY_PUBLIC_DOMAIN?.trim(),
 );
 
 const raw = process.env.NODE_ENV;
