@@ -15,11 +15,20 @@ export default defineConfig({
     screenshot: "only-on-failure",
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
-  webServer: {
-    command: "npm run dev",
-    url: "http://localhost:5173",
-    reuseExistingServer: process.env.CI !== "true",
-    stdout: "pipe",
-    stderr: "pipe",
-  },
+  webServer: [
+    {
+      command: "npm run dev",
+      url: "http://localhost:5173",
+      reuseExistingServer: process.env.CI !== "true",
+      stdout: "pipe",
+      stderr: "pipe",
+    },
+    {
+      command: "E2E_DEV_ROUTES=1 node api/index.js",
+      url: "http://localhost:8080/api/health",
+      reuseExistingServer: process.env.CI !== "true",
+      stdout: "pipe",
+      stderr: "pipe",
+    },
+  ],
 });

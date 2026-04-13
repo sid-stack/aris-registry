@@ -27,6 +27,7 @@ export function pathForView(view) {
     privacy: "/privacy",
     terms: "/terms",
     cookies: "/cookies",
+    "e2e-bento-audit-cta": "/__e2e/bento-audit-cta",
   };
   return Object.prototype.hasOwnProperty.call(map, view) ? map[view] : null;
 }

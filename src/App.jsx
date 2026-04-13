@@ -27,6 +27,7 @@ const GrowthResourcePage = lazy(() => import("./pages/seo/GrowthResourcePage"));
 const BlogArticle = lazy(() => import("./pages/seo/BlogArticle"));
 const AdminDashboard   = lazy(() => import("./pages/AdminDashboard"));
 const BentoDashboard   = lazy(() => import("./pages/BentoDashboard"));
+const E2eBentoAuditCtaHarness = lazy(() => import("./e2e/E2eBentoAuditCtaHarness.jsx"));
 const Contact          = lazy(() => import("./pages/Contact"));
 
 const BASE_URL = "https://www.bidsmith.pro";
@@ -229,7 +230,7 @@ function usePageMeta(view) {
     const ogUrl = document.querySelector('meta[property="og:url"]');
     if (ogUrl) ogUrl.setAttribute("content", canonicalUrl);
 
-    const NOINDEX_VIEWS = new Set(["app", "dashboard", "admin", "bento", "traffic-brief", "404"]);
+    const NOINDEX_VIEWS = new Set(["app", "dashboard", "admin", "bento", "traffic-brief", "404", "e2e-bento-audit-cta"]);
     let robotsMeta = document.querySelector('meta[name="robots"]');
     if (!robotsMeta) {
       robotsMeta = document.createElement("meta");
@@ -257,6 +258,7 @@ function resolveView(path) {
   if (path === "/resources") return "resources";
   if (path.startsWith("/resources/")) return "resource";
   if (path.startsWith("/blog/")) return "blog";
+  if (import.meta.env.DEV && path === "/__e2e/bento-audit-cta") return "e2e-bento-audit-cta";
   if (path === "/traffic-brief") return "traffic-brief";
   if (path === "/rfp-compliance-matrix-generator") return "rfp-generator";
   if (path === "/admin") return "admin";
@@ -393,7 +395,7 @@ export default function App() {
   const loadingScreen = <LoadingSpinner />;
 
   // Admin ops console: ADMIN_PASSWORD only (see AdminDashboard). No Clerk gate or wait.
-  if (authLoading && view !== "admin") {
+  if (authLoading && view !== "admin" && view !== "e2e-bento-audit-cta") {
     return loadingScreen;
   }
 
@@ -479,6 +481,11 @@ export default function App() {
       break;
     case "contact":
       content = <Contact onBack={goLanding} />;
+      break;
+    case "e2e-bento-audit-cta":
+      content = import.meta.env.DEV
+        ? <E2eBentoAuditCtaHarness />
+        : <NotFound onBack={goLanding} />;
       break;
     // /app, /bento, /chat all resolve here — single Command Center
     case "bento":

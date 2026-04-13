@@ -504,6 +504,17 @@ app.get("/api/health", (_req, res) => {
   });
 });
 
+/** E2E / Playwright: exercises `consumeFreeAuditCredit` without running the audit LLM (set E2E_DEV_ROUTES=1). */
+if (process.env.E2E_DEV_ROUTES === "1") {
+  app.post("/api/dev/free-audit-credit", asyncHandler(async (req, res) => {
+    const credit = await consumeFreeAuditCredit(req);
+    if (!credit.ok) {
+      return res.status(credit.status).json(credit.body);
+    }
+    return res.json({ ok: true, used: credit.used, skipped: credit.skipped ?? null });
+  }));
+}
+
 app.get("/api/featured/:demoId", asyncHandler(async (req, res) => {
   const demoId = String(req.params.demoId || "").toLowerCase();
   const demoPayload = FEATURED_DEMO_AUDITS[demoId];

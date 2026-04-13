@@ -139,18 +139,13 @@ const HEADERS = [
 
 /**
  * @param {Record<string, unknown>} audit
- * @returns {Promise<void>}
+ * @returns {import("xlsx-js-style").WorkBook}
  */
-export async function downloadComplianceMatrixXlsx(audit) {
+export function buildComplianceMatrixWorkbook(audit) {
   const reqs = Array.isArray(audit?.requirements) ? audit.requirements : [];
-  if (reqs.length === 0) {
-    const err = new Error("NO_COMPLIANCE_ROWS");
-    err.code = "NO_COMPLIANCE_ROWS";
-    throw err;
-  }
-
   const heroScore = computeHeroRiskScore(audit);
-  const rows = reqs.map((r, i) => {
+  const rows = reqs.length
+    ? reqs.map((r, i) => {
     const reqText = truncateRequirementText(r.requirement || r.text || "");
     const riskLevel = riskLevelExportLabel(r);
     const pursuit = pursuitImpactLabel(r);
@@ -247,7 +242,24 @@ export async function downloadComplianceMatrixXlsx(audit) {
   };
 
   XLSX.utils.book_append_sheet(wb, ws, SHEET_NAME.slice(0, 31));
+  return wb;
+}
 
+/**
+ * @param {Record<string, unknown>} audit
+ * @returns {Buffer}
+ */
+export function complianceMatrixXlsxBuffer(audit) {
+  const wb = buildComplianceMatrixWorkbook(audit);
+  return XLSX.write(wb, { type: "buffer", bookType: "xlsx", cellStyles: true });
+}
+
+/**
+ * @param {Record<string, unknown>} audit
+ * @returns {Promise<void>}
+ */
+export async function downloadComplianceMatrixXlsx(audit) {
+  const wb = buildComplianceMatrixWorkbook(audit);
   const name = `BidSmith_ComplianceMatrix_${safeFileSlug(audit)}.xlsx`;
   try {
     XLSX.writeFile(wb, name, { cellStyles: true });
