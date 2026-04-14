@@ -5,6 +5,7 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: "node",
-    include: ["src/__tests__/**/*.test.ts", "tests/**/*.test.{js,ts}"],
+    // tests/*.test.js may use node:test (npm run test:legacy) — do not glob all of tests/
+    include: ["src/__tests__/**/*.test.ts", "tests/analyticsEventTaxonomy.test.js"],
   },
 });
