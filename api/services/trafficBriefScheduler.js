@@ -1,7 +1,8 @@
 import { sendEmail } from "../utils/mailer.js";
 import { claimDailyJobRun, getTrafficBrief } from "./analytics.js";
 
-const DEFAULT_TIMEZONE = process.env.TRAFFIC_BRIEF_TIMEZONE || "America/New_York";
+/** Default 08:00 India time — override with TRAFFIC_BRIEF_TIMEZONE / HOUR / MINUTE. */
+const DEFAULT_TIMEZONE = process.env.TRAFFIC_BRIEF_TIMEZONE || "Asia/Kolkata";
 const DEFAULT_HOUR = Number(process.env.TRAFFIC_BRIEF_HOUR || 8);
 const DEFAULT_MINUTE = Number(process.env.TRAFFIC_BRIEF_MINUTE || 0);
 const DASHBOARD_URL = process.env.TRAFFIC_BRIEF_URL || "https://www.bidsmith.pro/traffic-brief";
@@ -189,7 +190,7 @@ export async function sendTrafficBriefNow(trigger = "manual") {
   if (brief.error) return { success: false, error: brief.error };
   const health = buildHealthSummary(brief.summary);
 
-  const subject = `BidSmith Daily Traffic Brief — ${brief.summary?.visitors_yesterday || 0} visitors, ${brief.summary?.audits_yesterday || 0} audits`;
+  const subject = `[BidSmith ${DEFAULT_TIMEZONE}] Daily brief — ${brief.summary?.visitors_yesterday || 0} visitors, ${brief.summary?.audits_yesterday || 0} audits`;
   const html = buildHtml(brief);
   const ok = await sendEmail({
     to: recipients.join(","),

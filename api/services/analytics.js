@@ -1,5 +1,9 @@
 import pg from "pg";
+import { auditEngagementTypesSqlIn } from "../analyticsEventTaxonomy.js";
+
 const { Pool } = pg;
+
+const AUDIT_IN_SQL = auditEngagementTypesSqlIn();
 
 export const analyticsDb = process.env.DATABASE_URL
   ? new Pool({
@@ -298,15 +302,15 @@ export async function getTrafficBrief() {
             (SELECT COUNT(DISTINCT uid) FROM yday WHERE event_type = 'page_view') AS visitors_yesterday,
             (SELECT COUNT(*) FROM yday WHERE event_type = 'page_view') AS pageviews_yesterday,
             (SELECT COUNT(*) FROM yday WHERE event_type = 'qualified_session') AS qualified_yesterday,
-            (SELECT COUNT(*) FROM yday WHERE event_type IN ('audit_started', 'Audit Started')) AS audits_yesterday,
+            (SELECT COUNT(*) FROM yday WHERE event_type IN (${AUDIT_IN_SQL})) AS audits_yesterday,
             (SELECT COUNT(DISTINCT uid) FROM today_so_far WHERE event_type = 'page_view') AS visitors_today,
             (SELECT COUNT(*) FROM today_so_far WHERE event_type = 'page_view') AS pageviews_today,
             (SELECT COUNT(*) FROM today_so_far WHERE event_type = 'qualified_session') AS qualified_today,
-            (SELECT COUNT(*) FROM today_so_far WHERE event_type IN ('audit_started', 'Audit Started')) AS audits_today,
+            (SELECT COUNT(*) FROM today_so_far WHERE event_type IN (${AUDIT_IN_SQL})) AS audits_today,
             (SELECT COUNT(DISTINCT uid) FROM last7 WHERE event_type = 'page_view') AS visitors_7d,
             (SELECT COUNT(*) FROM last7 WHERE event_type = 'page_view') AS pageviews_7d,
             (SELECT COUNT(*) FROM last7 WHERE event_type = 'qualified_session') AS qualified_7d,
-            (SELECT COUNT(*) FROM last7 WHERE event_type IN ('audit_started', 'Audit Started')) AS audits_7d
+            (SELECT COUNT(*) FROM last7 WHERE event_type IN (${AUDIT_IN_SQL})) AS audits_7d
         `,
         uidParams,
       ),
@@ -317,7 +321,7 @@ export async function getTrafficBrief() {
             COUNT(DISTINCT uid) FILTER (WHERE event_type = 'page_view') AS visitors,
             COUNT(*) FILTER (WHERE event_type = 'page_view') AS pageviews,
             COUNT(*) FILTER (WHERE event_type = 'qualified_session') AS qualified,
-            COUNT(*) FILTER (WHERE event_type IN ('audit_started', 'Audit Started')) AS audits
+            COUNT(*) FILTER (WHERE event_type IN (${AUDIT_IN_SQL})) AS audits
           FROM analytics_events
           WHERE created_at >= now() - interval '7 days'
             AND ${filterClause}
@@ -435,6 +439,7 @@ export async function getAdminStats() {
       topEvents, 
       recentEvents, 
       dailyTraffic, 
+      trafficSummary,
       featureUsage, 
       logicLibrary,
       stripeStats,
@@ -459,11 +464,21 @@ export async function getAdminStats() {
         SELECT
           TO_CHAR(DATE_TRUNC('day', created_at), 'Dy') AS day,
           COUNT(DISTINCT uid) AS visitors,
-          COUNT(*) FILTER (WHERE event_type IN ('audit_started','checkout_initiated','trial_started')) AS conversions
+          COUNT(*) FILTER (WHERE event_type IN (${AUDIT_IN_SQL},'checkout_initiated','trial_started','checkout_started')) AS conversions
         FROM analytics_events
         WHERE created_at >= NOW() - INTERVAL '7 days'
         GROUP BY DATE_TRUNC('day', created_at)
         ORDER BY DATE_TRUNC('day', created_at)
+      `),
+      analyticsDb.query(`
+        SELECT
+          (SELECT COUNT(DISTINCT uid) FROM analytics_events
+            WHERE created_at >= NOW() - INTERVAL '7 days' AND event_type = 'page_view') AS unique_visitors_7d,
+          (SELECT COUNT(*) FROM analytics_events WHERE created_at >= NOW() - INTERVAL '24 hours') AS events_24h,
+          (SELECT COUNT(*) FROM analytics_events
+            WHERE created_at >= NOW() - INTERVAL '7 days' AND event_type = 'page_view') AS page_views_7d,
+          (SELECT COUNT(*) FROM analytics_events
+            WHERE created_at >= NOW() - INTERVAL '30 days' AND event_type IN (${AUDIT_IN_SQL})) AS audit_engagement_30d
       `),
       analyticsDb.query(`
         SELECT
@@ -485,6 +500,14 @@ export async function getAdminStats() {
       getStripeLogs()
     ]);
 
+    const ts = trafficSummary.rows[0] || {};
+    const auditRows = (topEvents.rows || []).filter((r) =>
+      String(r.event_type || "").toLowerCase().includes("audit")
+      || String(r.event_type || "").includes("audit_submitted")
+      || String(r.event_type || "").includes("audit_success"),
+    );
+    const audit_funnel_total = auditRows.reduce((acc, r) => acc + Number(r.count || 0), 0);
+
     return {
       beta_signups: {
         total: parseInt(signupCount.rows[0].count),
@@ -494,6 +517,13 @@ export async function getAdminStats() {
         by_type: topEvents.rows,
         rows: recentEvents.rows,
       },
+      traffic_summary: {
+        unique_visitors_7d: Number(ts.unique_visitors_7d || 0),
+        events_24h: Number(ts.events_24h || 0),
+        page_views_7d: Number(ts.page_views_7d || 0),
+        audit_engagement_30d: Number(ts.audit_engagement_30d || 0),
+      },
+      audit_funnel: { total_events: audit_funnel_total },
       logic_library: logicLibrary.rows,
       daily_traffic: dailyTraffic.rows,
       feature_usage: featureUsage.rows,

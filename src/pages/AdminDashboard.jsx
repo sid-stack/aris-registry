@@ -56,8 +56,12 @@ const AdminDashboard = ({ onBack }) => {
       const res = await fetch('/api/admin/stats', { headers: adminAuthHeaders() });
       const data = await res.json();
       if (res.status === 401) throw new Error('Unauthorized — check ADMIN_PASSWORD.');
-      if (data.error) throw new Error(data.error);
-      setStats(data);
+      if (data.error) {
+        setStats({ error: data.error, traffic_summary: null, beta_signups: { total: 0, rows: [] } });
+        setError(null);
+      } else {
+        setStats(data);
+      }
       setLastFetched(new Date().toLocaleTimeString());
     } catch (err) {
       setError(err.message);
@@ -177,7 +181,8 @@ const AdminDashboard = ({ onBack }) => {
   };
 
   const dailyTraffic = stats?.daily_traffic || [];
-  const totalAudits = stats?.events?.by_type?.find(e => e.event_type?.includes('audit'))?.count || 0;
+  const traffic = stats?.traffic_summary || {};
+  const totalAudits = stats?.audit_funnel?.total_events ?? 0;
   
   // Real Stripe Data
   const realRevenue30d = stats?.stripe?.total_30d || 0;
@@ -262,7 +267,7 @@ const AdminDashboard = ({ onBack }) => {
         
         <nav style={sh.sideNav}>
           <NavBtn icon={<Activity size={18}/>} label="Executive Overview" active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} />
-          <NavBtn icon={<Users size={18}/>} label="Identified Leads" active={activeTab === 'leads'} onClick={() => setActiveTab('leads')} />
+          <NavBtn icon={<Users size={18}/>} label="Beta signups" active={activeTab === 'leads'} onClick={() => setActiveTab('leads')} />
           <NavBtn icon={<MousePointer2 size={18}/>} label="Anonymous Events" active={activeTab === 'events'} onClick={() => setActiveTab('events')} />
           <NavBtn icon={<Cpu size={18}/>} label="Logic Library" active={activeTab === 'logic'} onClick={() => setActiveTab('logic')} />
           <NavBtn icon={<Wallet size={18}/>} label="Stripe Transactions" active={activeTab === 'stripe_logs'} onClick={() => setActiveTab('stripe_logs')} />
@@ -311,12 +316,33 @@ const AdminDashboard = ({ onBack }) => {
           </div>
         </header>
 
+        {stats?.error && (
+          <div style={{
+            margin: '0 0 12px', padding: '12px 14px', borderRadius: 8, background: '#451a1a',
+            border: '1px solid #7f1d1d', color: '#fecaca', fontSize: 13, lineHeight: 1.5,
+          }}>
+            <strong>Postgres analytics:</strong> {stats.error}. This board only reads first-party events from{' '}
+            <code style={{ color: '#fda4af' }}>DATABASE_URL</code> on the API (Railway). Plausible, Vercel Analytics, and GA4 still collect separately.
+          </div>
+        )}
+        {!stats?.error && stats?.traffic_summary && (
+          <div style={{
+            margin: '0 0 12px', padding: '10px 14px', borderRadius: 8, background: '#0f172a',
+            border: '1px solid #334155', color: '#cbd5e1', fontSize: 13, lineHeight: 1.55,
+          }}>
+            <strong>Site visitors (distinct cookie UIDs, 7d):</strong> {traffic.unique_visitors_7d}
+            {' · '}<strong>All events (24h):</strong> {traffic.events_24h}
+            {' · '}<strong>Page views (7d):</strong> {traffic.page_views_7d}
+            {' · '}<strong>Audit engagement (30d):</strong> {traffic.audit_engagement_30d}
+          </div>
+        )}
+
         {/* Real Revenue Row */}
         <div style={sh.metricRow}>
           <MetricCard title="Stripe 30d Revenue" value={`$${realRevenue30d.toLocaleString()}`} trend="+ Verified" icon={<DollarSign size={20} color="#10B981" />} />
           <MetricCard title="Available Balance" value={`$${availableBalance.toLocaleString()}`} trend="Payout Ready" icon={<Wallet size={20} color="#3B82F6" />} />
-          <MetricCard title="Identified Leads" value={stats?.beta_signups?.total || '0'} trend="High Intent" icon={<Users size={20} color="#F59E0B" />} />
-          <MetricCard title="Total Protocol Audits" value={totalAudits} trend="Stateless" icon={<Activity size={20} color="#8B5CF6" />} />
+          <MetricCard title="Beta emails (waitlist)" value={stats?.beta_signups?.total || '0'} trend="Not unique visitors" icon={<Users size={20} color="#F59E0B" />} />
+          <MetricCard title="Audit funnel (first-party)" value={totalAudits} trend="submitted + success + legacy" icon={<Activity size={20} color="#8B5CF6" />} />
         </div>
 
         {activeTab === 'overview' && (

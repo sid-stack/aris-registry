@@ -167,7 +167,17 @@ export function buildComplianceMatrixWorkbook(audit) {
   const ws = {};
 
   const colCount = HEADERS.length;
-  const rowCount = 1 + rows.length;
+  const exportDate = new Date().toISOString().slice(0, 10);
+  const footerLines = [
+    "",
+    "—",
+    "Generated with BidSmith — https://bidsmith.pro",
+    "SAM.gov RFP audits, compliance matrices, and bid / no-bid decisions for GovCon teams.",
+    `Exported ${exportDate} · ARIS Labs`,
+  ];
+  const dataRowCount = rows.length;
+  const footerRowCount = footerLines.length;
+  const rowCount = 1 + dataRowCount + footerRowCount;
 
   for (let c = 0; c < colCount; c++) {
     const addr = cellAddr(0, c);
@@ -189,7 +199,7 @@ export function buildComplianceMatrixWorkbook(audit) {
   }
 
   const wch = HEADERS.map((h) => Math.max(MIN_WCH, String(h).length + 2));
-  for (let ri = 0; ri < rows.length; ri++) {
+  for (let ri = 0; ri < dataRowCount; ri++) {
     const row = rows[ri];
     const vals = [
       row.id,
@@ -227,11 +237,38 @@ export function buildComplianceMatrixWorkbook(audit) {
     }
   }
 
+  for (let fi = 0; fi < footerRowCount; fi++) {
+    const ri = 1 + dataRowCount + fi;
+    const text = footerLines[fi];
+    const addr = cellAddr(ri, 0);
+    ws[addr] = {
+      v: String(text),
+      t: "s",
+      s: {
+        alignment: { vertical: "top", horizontal: "left", wrapText: true },
+        font: { sz: 11, color: { rgb: "FF475569" }, italic: fi >= 2 },
+        fill: fi >= 2 ? { patternType: "solid", fgColor: { rgb: "FFF8FAFC" } } : undefined,
+        border: {
+          top: { style: "thin", color: { rgb: "FFE2E8F0" } },
+          bottom: { style: "thin", color: { rgb: "FFE2E8F0" } },
+          left: { style: "thin", color: { rgb: "FFE2E8F0" } },
+          right: { style: "thin", color: { rgb: "FFE2E8F0" } },
+        },
+      },
+    };
+    if (text) {
+      wch[0] = Math.max(wch[0] ?? MIN_WCH, text.length + 2, MIN_WCH);
+    }
+  }
+
   ws["!ref"] = `A1:${cellAddr(rowCount - 1, colCount - 1)}`;
   ws["!cols"] = wch.map((w) => ({ wch: Math.min(90, w) }));
   ws["!rows"] = [{ hpt: 22 }];
-  for (let ri = 0; ri < rows.length; ri++) {
+  for (let ri = 0; ri < dataRowCount; ri++) {
     ws["!rows"].push({ hpt: estimateRowHeightPt(rows[ri].reqText) });
+  }
+  for (let fi = 0; fi < footerRowCount; fi++) {
+    ws["!rows"].push({ hpt: fi === 0 ? 6 : fi === 1 ? 8 : 18 });
   }
 
   if (rows.length > 0) {
