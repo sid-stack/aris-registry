@@ -1,6 +1,12 @@
 # Railway sets NODE_ENV=production during build; plain `npm install` skips
 # devDependencies, so Vite is missing and `npm run build` fails. Always
 # install dev deps for the image build, then Vite still emits production assets.
+#
+# Large client bundles (e.g. @clerk/clerk-js) can exceed the default V8 heap on
+# Nixpacks builders (~512MB–1GB) and crash Vite with "JavaScript heap out of memory".
+[variables]
+NODE_OPTIONS = "--max-old-space-size=4096"
+
 [phases.build]
 cmds = ["npm install --legacy-peer-deps --include=dev", "npm run build"]
 

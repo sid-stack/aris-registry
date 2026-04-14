@@ -32,6 +32,8 @@ COPY . .
 
 # Vite production optimizations (devDependencies already installed above)
 ENV NODE_ENV=production
+# Avoid OOM when bundling large client deps (Clerk, etc.) on memory-constrained builders
+ENV NODE_OPTIONS=--max-old-space-size=4096
 
 # Build the React frontend
 RUN npm run build
