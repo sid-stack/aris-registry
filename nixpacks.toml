@@ -1,5 +1,8 @@
+# Railway sets NODE_ENV=production during build; plain `npm install` skips
+# devDependencies, so Vite is missing and `npm run build` fails. Always
+# install dev deps for the image build, then Vite still emits production assets.
 [phases.build]
-cmds = ["npm install --legacy-peer-deps", "npm run build"]
+cmds = ["npm install --legacy-peer-deps --include=dev", "npm run build"]
 
 [start]
 cmd = "node api/index.js"
