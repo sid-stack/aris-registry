@@ -25,6 +25,7 @@ const routes = [
   { path: "/blog", name: "blog" },
   { path: "/pricing", name: "pricing" },
   { path: "/dashboard", name: "dashboard" },
+  { path: "/__e2e/bento-audit-cta", name: "e2e-bento-audit-cta" },
 ];
 
 const outDir = path.join(__dirname, "screenshots");

@@ -1,6 +1,8 @@
+import "./utils/clerkStaticPreviewFetchShim.js";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App.jsx";
+import { Clerk } from "@clerk/clerk-js";
 import { ClerkProvider } from "@clerk/clerk-react";
 import { initAnalytics, registerConsentListener } from "./utils/analytics";
 import { initServiceWorkerAfterConsent } from "./utils/pwa";
@@ -164,6 +166,7 @@ async function bootstrap() {
       )}
 
       <ClerkProvider
+        Clerk={Clerk}
         publishableKey={clerkPubKey}
         fallbackRedirectUrl="/dashboard"
         appearance={clerkAppearance}

@@ -2,9 +2,11 @@
  * Dev-only Playwright harness: mirrors post-audit Command Center strip (compliance card + HumanWalkthroughCTA).
  */
 import { Download, Loader2 } from "lucide-react";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import HumanWalkthroughCTA from "../components/HumanWalkthroughCTA.jsx";
+import WorkspaceChat from "../components/bento/WorkspaceChat.jsx";
 import { downloadComplianceMatrixXlsx } from "../utils/complianceMatrixXlsx";
+import { BENTO_WORKSPACE_WELCOME_MARKDOWN } from "../content/bentoWorkspaceWelcome.js";
 
 const MOCK_AUDIT = {
   id: "e2e-bento-harness",
@@ -40,6 +42,14 @@ export default function E2eBentoAuditCtaHarness() {
   const [busy, setBusy] = useState(false);
   const [harnessReady, setHarnessReady] = useState(false);
 
+  const chatPreviewMessages = useMemo(
+    () => [
+      { id: "e2e-welcome", role: "ai", text: BENTO_WORKSPACE_WELCOME_MARKDOWN },
+      { id: "e2e-user", role: "user", text: "Walk me through past performance for this solicitation." },
+    ],
+    [],
+  );
+
   useEffect(() => {
     setHarnessReady(true);
   }, []);
@@ -56,6 +66,8 @@ export default function E2eBentoAuditCtaHarness() {
   return (
     <div
       data-testid={harnessReady ? "e2e-harness-ready" : undefined}
+      role="region"
+      aria-label="E2E audit CTA harness"
       style={{ minHeight: "100vh", background: "#f8f9fa", padding: 24, fontFamily: "system-ui, sans-serif" }}
     >
       <p style={{ margin: "0 0 16px", fontSize: 13, color: "#5f6368" }}>
@@ -79,7 +91,7 @@ export default function E2eBentoAuditCtaHarness() {
                 style={{
                   fontSize: 11,
                   fontWeight: 600,
-                  color: req.risk === "HIGH" ? "#d93025" : req.risk === "LOW" ? "#1e8e3e" : "#f9ab00",
+                  color: req.risk === "HIGH" ? "#b91c1c" : req.risk === "LOW" ? "#047857" : "#b45309",
                   width: 40,
                   flexShrink: 0,
                   paddingTop: 2,
@@ -116,6 +128,17 @@ export default function E2eBentoAuditCtaHarness() {
           </div>
         </div>
         <HumanWalkthroughCTA visible solicitationId={MOCK_AUDIT.solicitation_number} />
+        <div style={{ marginTop: 28, maxWidth: 560, minHeight: 380 }}>
+          <WorkspaceChat
+            messages={chatPreviewMessages}
+            loading={false}
+            onSend={() => {}}
+            placeholder="Ask about this contract…"
+            headerBadge="Preview"
+            headerBadgeColor="#334155"
+            headerTitle="Workspace chat (harness)"
+          />
+        </div>
       </div>
       <style>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }

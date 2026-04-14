@@ -27,6 +27,7 @@
     "@aws-sdk/client-kms": "^3.1019.0",
     "@aws-sdk/client-textract": "^3.1019.0",
     "@clerk/backend": "^3.2.8",
+    "@clerk/clerk-js": "^5.125.7",
     "@clerk/clerk-react": "^5.61.4",
     "@google/generative-ai": "^0.24.1",
     "@modelcontextprotocol/sdk": "^1.0.1",

@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useState, useRef } from "react";
-import { ensureAdsbygoogleScript } from "./utils/adsbygoogleLoader.js";
+import { ensureAdsbygoogleScript, isBidSmithProductionSurfaceHost } from "./utils/adsbygoogleLoader.js";
 import { useAuth, useUser, SignIn } from "@clerk/clerk-react";
 import NotFound from "./pages/NotFound";
 import Landing from "./pages/Landing";
@@ -611,8 +611,12 @@ export default function App() {
         {content}
       </Suspense>
       <ConsentBanner />
-      <Analytics />
-      <SpeedInsights />
+      {isBidSmithProductionSurfaceHost() ? (
+        <>
+          <Analytics />
+          <SpeedInsights />
+        </>
+      ) : null}
     </ErrorBoundary>
   );
 }

@@ -50,7 +50,7 @@ jobs:
           CI: true
           UPSTASH_REDIS_REST_URL: ""
           UPSTASH_REDIS_REST_TOKEN: ""
-        run: npx playwright test tests/flows/auth-flow.spec.ts tests/flows/blog-routes.spec.ts tests/flows/audit-to-cta.spec.ts tests/flows/audit-quota.spec.ts tests/flows/compliance-matrix-xlsx-export.spec.ts --reporter=list
+        run: npx playwright test tests/flows/auth-flow.spec.ts tests/flows/blog-routes.spec.ts tests/flows/audit-to-cta.spec.ts tests/flows/audit-quota.spec.ts tests/flows/compliance-matrix-xlsx-export.spec.ts tests/flows/dashboard-a11y.spec.ts --reporter=list
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
