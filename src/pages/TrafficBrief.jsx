@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, RefreshCw } from "lucide-react";
 import { ADMIN_API_KEY_STORAGE } from "../utils/adminAuthHeader";
+import { track } from "../utils/analytics";
 
 function MetricCard({ label, value, help }) {
   return (
@@ -22,6 +23,10 @@ export default function TrafficBrief({ onBack }) {
   });
   const [draftKey, setDraftKey] = useState("");
   const [locked, setLocked] = useState(false);
+
+  useEffect(() => {
+    track("traffic_brief_view", { path: "/traffic-brief" });
+  }, []);
 
   const fetchBrief = async () => {
     if (!adminKey) {

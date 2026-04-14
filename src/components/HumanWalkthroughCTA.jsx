@@ -2,8 +2,9 @@
  * Post-audit Calendly CTA — shared by GovConDashboardV2 and BentoDashboard.
  * URL: VITE_CALENDLY_AUDIT_WALKTHROUGH, with a public fallback slug.
  */
+import { useEffect } from "react";
 import { Calendar, ChevronRight } from "lucide-react";
-import { trackEvent } from "../utils/analytics";
+import { track, trackEvent } from "../utils/analytics";
 
 const surfaceHi = "#f3f4f6";
 const bg = "#ffffff";
@@ -18,6 +19,11 @@ const AUDIT_WALKTHROUGH_CALENDLY_URL =
   || "https://calendly.com/bidsmith-pro/audit-walkthrough";
 
 export default function HumanWalkthroughCTA({ visible, solicitationId }) {
+  useEffect(() => {
+    if (!visible) return;
+    track("walkthrough_cta_shown", { trigger: "post_audit" });
+  }, [visible]);
+
   if (!visible) return null;
   return (
     <div
@@ -57,10 +63,13 @@ export default function HumanWalkthroughCTA({ visible, solicitationId }) {
               href={AUDIT_WALKTHROUGH_CALENDLY_URL}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={() => trackEvent("audit_walkthrough_calendly_click", {
-                category: "conversion",
-                solicitation: solicitationId || null,
-              })}
+              onClick={() => {
+                track("walkthrough_booked", { solicitation_id: solicitationId || null });
+                trackEvent("audit_walkthrough_calendly_click", {
+                  category: "conversion",
+                  solicitation: solicitationId || null,
+                });
+              }}
               style={{
                 display: "inline-flex",
                 alignItems: "center",

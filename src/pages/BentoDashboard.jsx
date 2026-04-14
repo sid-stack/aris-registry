@@ -7,8 +7,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Shield, ArrowUpRight, Send, RotateCcw,
-         Loader2, ExternalLink, AlertTriangle,
+import { ArrowUpRight, Loader2, AlertTriangle,
          Clock, ChevronRight, LogOut, Plus, LayoutDashboard,
          PanelLeftClose, PanelLeft, PanelRightClose, PanelRight, Cpu, Download } from 'lucide-react';
 import { useClerk, useUser } from '@clerk/clerk-react';
@@ -17,9 +16,10 @@ import LiveAnalysisCard from '../components/bento/LiveAnalysisCard';
 import EvalStatusCard  from '../components/bento/EvalStatusCard';
 import BidOutputCard   from '../components/bento/BidOutputCard';
 import HumanWalkthroughCTA from '../components/HumanWalkthroughCTA.jsx';
-import { ChatMarkdown, BENTO_WORKSPACE_CHAT_PALETTE } from '../components/chat/ChatMarkdown.jsx';
-import { downloadComplianceMatrixXlsx } from '../utils/complianceMatrixXlsx';
-import { trackEvent } from '../utils/analytics';
+import WorkspaceChat from '../components/bento/WorkspaceChat.jsx';
+import { downloadComplianceMatrixXlsx, complianceMatrixXlsxBuffer } from '../utils/complianceMatrixXlsx';
+import { track, trackEvent } from '../utils/analytics';
+import { BENTO_WORKSPACE_WELCOME_MARKDOWN } from '../content/bentoWorkspaceWelcome.js';
 
 // ── Error code → intelligent AI opening message ───────────────────────────────
 const CHAT_CONTEXTS = {
@@ -65,9 +65,6 @@ const CHAT_CONTEXTS = {
   }),
 };
 
-const DEFAULT_CHAT_WELCOME =
-  "I'm ARIS — your GovCon advisor inside BidSmith.\n\nPaste a **SAM.gov opportunity URL** here, upload a **PDF** from the **Files** tab on the left, or ask a federal contracting question. I'll use your loaded audit when you have one.";
-
 const RAIL_W = 300;
 
 function classifyError(err) {
@@ -80,287 +77,6 @@ function classifyError(err) {
   if (msg.includes('set-aside') || msg.includes('8(a)') || msg.includes('hubzone') || msg.includes('wosb')) return 'SET_ASIDE_MISMATCH';
   return '_DEFAULT';
 }
-
-// ── Center column: conversational ARIS (messages driven by parent) ────────────
-function WorkspaceChat({
-  messages,
-  loading,
-  onSend,
-  placeholder,
-  headerBadge,
-  headerBadgeColor,
-  headerTitle = 'Conversation',
-  onClearThread,
-}) {
-  const [input, setInput] = useState('');
-  const bottomRef = useRef(null);
-  const textareaRef = useRef(null);
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, loading]);
-
-  useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 120) + 'px';
-    }
-  }, [input]);
-
-  const submit = () => {
-    const text = input.trim();
-    if (!text || loading) return;
-    setInput('');
-    onSend(text);
-  };
-
-  return (
-    <div style={cs.shell}>
-      <div style={cs.header}>
-        <div style={cs.headerLeft}>
-          <span style={{
-            ...cs.badge,
-            color: headerBadgeColor,
-            borderColor: `${headerBadgeColor}44`,
-            background: `${headerBadgeColor}14`,
-          }}>
-            {headerBadge}
-          </span>
-          <span style={cs.headerTitle}>{headerTitle}</span>
-        </div>
-        {onClearThread && (
-          <button type="button" onClick={onClearThread} style={cs.resetBtn} title="Reset conversation">
-            <RotateCcw size={12} style={{ marginRight: 5 }} /> Clear chat
-          </button>
-        )}
-      </div>
-
-      <div style={cs.thread} className="workspace-chat-thread">
-        {messages.map(msg => (
-          <div key={msg.id} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
-            {msg.role === 'ai' && (
-              <div style={cs.aiAvatar}>
-                <Shield size={10} color="#1a73e8" />
-              </div>
-            )}
-            <div style={{
-              ...cs.bubble,
-              background: msg.role === 'user' ? '#e8f0fe' : '#f8f9fa',
-              borderColor: msg.role === 'user' ? '#d2e3fc' : '#e8eaed',
-              color: '#202124',
-              maxWidth: msg.role === 'user' ? '82%' : '92%',
-              borderRadius: 8,
-            }}>
-              {msg.role === 'ai' && (msg.plan?.steps?.length > 0 || msg.plan?.next_action) && (
-                <div style={{ marginBottom: 10, padding: '8px 10px', borderRadius: 8, background: '#e8f0fe', border: '1px solid #d2e3fc' }}>
-                  {msg.plan.steps?.length > 0 && (
-                    <>
-                      <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 500, color: '#1967d2' }}>Plan</p>
-                      <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: '#202124', lineHeight: 1.45 }}>
-                        {msg.plan.steps.map((s) => (
-                          <li key={s.id} style={{ marginBottom: 2 }}>
-                            <span style={{ marginRight: 4 }}>{s.status === 'done' ? '✓' : '○'}</span>
-                            <ChatMarkdown variant="inline" content={s.title || ''} palette={BENTO_WORKSPACE_CHAT_PALETTE} />
-                          </li>
-                        ))}
-                      </ul>
-                    </>
-                  )}
-                  {msg.plan.next_action ? (
-                    <div style={{ margin: msg.plan.steps?.length ? '6px 0 0' : 0, fontSize: 13, color: '#1967d2', fontWeight: 500, lineHeight: 1.5 }}>
-                      Next: <ChatMarkdown variant="inline" content={msg.plan.next_action} palette={BENTO_WORKSPACE_CHAT_PALETTE} />
-                    </div>
-                  ) : null}
-                </div>
-              )}
-              {msg.role === 'ai' ? (
-                <div style={{ fontSize: 14, lineHeight: 1.65, color: '#202124' }}>
-                  <ChatMarkdown content={msg.text || ''} palette={BENTO_WORKSPACE_CHAT_PALETTE} />
-                </div>
-              ) : (
-                <span style={{ whiteSpace: 'pre-wrap' }}>{msg.text}</span>
-              )}
-              {msg.role === 'ai' && msg.externalLinks?.length > 0 && (
-                <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 5 }}>
-                  {msg.externalLinks.map((link, i) => (
-                    <a key={i} href={link} target="_blank" rel="noopener noreferrer" style={cs.extLink}>
-                      <ExternalLink size={10} /> {link.replace(/^https?:\/\//, '')}
-                    </a>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-        {loading && (
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <div style={cs.aiAvatar}><Shield size={10} color="#1a73e8" /></div>
-            <div style={{ ...cs.bubble, background: '#f1f3f4', borderColor: '#e8eaed' }}>
-              <span style={{ display: 'flex', gap: 4 }}>
-                {[0, 1, 2].map(i => (
-                  <span key={i} style={{ width: 5, height: 5, borderRadius: '50%', background: '#80868b', animation: `bounce 1.2s ${i * 0.2}s infinite`, display: 'inline-block' }} />
-                ))}
-              </span>
-            </div>
-          </div>
-        )}
-        <div ref={bottomRef} />
-      </div>
-
-      <div style={cs.inputWrap}>
-        <textarea
-          ref={textareaRef}
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(); } }}
-          placeholder={placeholder}
-          rows={1}
-          style={cs.textarea}
-        />
-        <button
-          type="button"
-          onClick={submit}
-          disabled={!input.trim() || loading}
-          style={{ ...cs.sendBtn, opacity: !input.trim() || loading ? 0.4 : 1 }}
-        >
-          {loading ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> : <Send size={13} />}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-const cs = {
-  shell: {
-    background: '#fff',
-    border: '1px solid #dadce0',
-    borderRadius: 8,
-    display: 'flex',
-    flexDirection: 'column',
-    height: '100%',
-    minHeight: 0,
-    flex: 1,
-    boxSizing: 'border-box',
-    overflow: 'hidden',
-  },
-  header: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '12px 14px',
-    borderBottom: '1px solid #e8eaed',
-    flexShrink: 0,
-  },
-  headerLeft: { display: 'flex', alignItems: 'center', gap: 8 },
-  headerTitle: { fontSize: 13, fontWeight: 500, color: '#5f6368' },
-  badge: {
-    fontSize: 10,
-    fontWeight: 600,
-    letterSpacing: '0.04em',
-    padding: '2px 8px',
-    borderRadius: 4,
-    border: '1px solid',
-    textTransform: 'uppercase',
-  },
-  resetBtn: {
-    display: 'flex',
-    alignItems: 'center',
-    fontSize: 12,
-    fontWeight: 500,
-    color: '#1a73e8',
-    background: 'transparent',
-    border: 'none',
-    borderRadius: 4,
-    padding: '6px 8px',
-    cursor: 'pointer',
-  },
-  thread: {
-    flex: 1,
-    minHeight: 0,
-    overflowY: 'auto',
-    padding: '12px 14px 8px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 12,
-    scrollbarWidth: 'thin',
-  },
-  aiAvatar: {
-    width: 22,
-    height: 22,
-    borderRadius: '50%',
-    flexShrink: 0,
-    background: '#e8f0fe',
-    border: 'none',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 2,
-  },
-  bubble: {
-    fontSize: 14,
-    lineHeight: 1.55,
-    color: '#202124',
-    padding: '10px 14px',
-    border: '1px solid #e8eaed',
-    wordBreak: 'break-word',
-    borderRadius: 8,
-    background: '#f8f9fa',
-  },
-  extLink: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 5,
-    fontSize: 12,
-    color: '#1967d2',
-    background: '#e8f0fe',
-    border: '1px solid #d2e3fc',
-    borderRadius: 4,
-    padding: '4px 8px',
-    textDecoration: 'none',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-    maxWidth: '100%',
-  },
-  inputWrap: {
-    display: 'flex',
-    gap: 8,
-    alignItems: 'flex-end',
-    padding: '10px 12px 12px',
-    borderTop: '1px solid #e8eaed',
-    flexShrink: 0,
-    background: '#fff',
-  },
-  textarea: {
-    flex: 1,
-    background: '#f8f9fa',
-    border: '1px solid #dadce0',
-    borderRadius: 8,
-    padding: '10px 12px',
-    color: '#202124',
-    fontSize: 14,
-    fontFamily: 'inherit',
-    outline: 'none',
-    resize: 'none',
-    lineHeight: 1.45,
-    maxHeight: 100,
-    overflowY: 'auto',
-  },
-  sendBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    flexShrink: 0,
-    background: '#1a73e8',
-    border: 'none',
-    color: '#fff',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    transition: 'opacity 0.15s',
-  },
-};
 
 const rail = {
   outer: (open) => ({
@@ -1148,6 +864,10 @@ function PaywallGate({
 
   const handleUnlock = async () => {
     setUnlocking(true);
+    track('checkout_started', {
+      plan_name: 'audit_unlock_99',
+      billing_cycle: 'one_time',
+    });
     try {
       const res = await fetch('/api/create-dynamic-checkout-session', {
         method: 'POST',
@@ -1566,7 +1286,7 @@ export default function BentoDashboard({ user = null, onBack }) {
   const [rightRailTab, setRightRailTab]   = useState('agents');
 
   const [workspaceMessages, setWorkspaceMessages] = useState(() => [
-    { role: 'ai', text: DEFAULT_CHAT_WELCOME, id: Date.now() },
+    { role: 'ai', text: BENTO_WORKSPACE_WELCOME_MARKDOWN, id: Date.now() },
   ]);
   const [workspaceLoading, setWorkspaceLoading] = useState(false);
   const [sessionApiContext, setSessionApiContext] = useState(null);
@@ -1578,6 +1298,11 @@ export default function BentoDashboard({ user = null, onBack }) {
   const wsMessagesRef = useRef(workspaceMessages);
   useEffect(() => { wsMessagesRef.current = workspaceMessages; }, [workspaceMessages]);
 
+  const dashboardLoadFiredRef = useRef(false);
+  const successfulAuditCountRef = useRef(0);
+  const firstAuditSuccessAtRef = useRef(null);
+  const checkoutSuccessTrackedRef = useRef(new Set());
+
   const requestHeaders = useMemo(() => ({
     'Content-Type': 'application/json',
     ...(user?.id ? { 'x-user-id': user.id } : {}),
@@ -1586,7 +1311,7 @@ export default function BentoDashboard({ user = null, onBack }) {
   }), [user?.id, user?.email, user?.isSubscribed]);
 
   const resetWorkspaceChat = useCallback(() => {
-    setWorkspaceMessages([{ role: 'ai', text: DEFAULT_CHAT_WELCOME, id: Date.now() }]);
+    setWorkspaceMessages([{ role: 'ai', text: BENTO_WORKSPACE_WELCOME_MARKDOWN, id: Date.now() }]);
     setSessionApiContext(null);
     setChatHeaderBadge('ARIS');
     setChatHeaderBadgeColor('#1a73e8');
@@ -1608,6 +1333,8 @@ export default function BentoDashboard({ user = null, onBack }) {
       setToast({ msg: 'Not enough data to export — run a full audit first', type: 'warning' });
       return;
     }
+    const plan = isSubscribed ? (activePlan || "pro") : "free";
+    track("export_matrix_clicked", { requirement_count: rows.length, plan });
     trackEvent('export_compliance_matrix_xlsx', {
       category: 'conversion',
       solicitation: auditResult?.solicitation_number || auditResult?.id || null,
@@ -1616,6 +1343,14 @@ export default function BentoDashboard({ user = null, onBack }) {
     setExportMatrixXlsxLoading(true);
     try {
       await downloadComplianceMatrixXlsx(auditResult);
+      let file_size_kb = null;
+      try {
+        const buf = complianceMatrixXlsxBuffer(auditResult);
+        file_size_kb = Math.round(buf.byteLength / 1024);
+      } catch {
+        /* optional size */
+      }
+      track("export_matrix_success", file_size_kb != null ? { file_size_kb } : {});
     } catch (e) {
       if (e?.code !== 'NO_COMPLIANCE_ROWS') {
         setToast({ msg: 'Export failed. Please try again.', type: 'error' });
@@ -1624,7 +1359,7 @@ export default function BentoDashboard({ user = null, onBack }) {
       exportMatrixBusyRef.current = false;
       setExportMatrixXlsxLoading(false);
     }
-  }, [auditResult]);
+  }, [auditResult, isSubscribed, activePlan]);
 
   // Health probe
   useEffect(() => {
@@ -1646,6 +1381,40 @@ export default function BentoDashboard({ user = null, onBack }) {
   }, [user?.id]);
 
   useEffect(() => { fetchHistory(); }, [fetchHistory]);
+
+  useEffect(() => {
+    dashboardLoadFiredRef.current = false;
+    successfulAuditCountRef.current = 0;
+    firstAuditSuccessAtRef.current = null;
+  }, [billingUid]);
+
+  useEffect(() => {
+    const uid = user?.id || clerkUser?.id;
+    if (!uid || dashboardLoadFiredRef.current) return;
+    if (loadingHistory) return;
+    dashboardLoadFiredRef.current = true;
+    const plan = isSubscribed ? (activePlan || "pro") : "free";
+    track("dashboard_load", { plan, audit_count: auditHistory.length });
+  }, [user?.id, clerkUser?.id, loadingHistory, isSubscribed, activePlan, auditHistory.length]);
+
+  useEffect(() => {
+    const v = auditResult?.verdict;
+    if (!v) return;
+    const rec = String(v.recommendation || "").toUpperCase().replace(/[\s-]+/g, "_");
+    let decision = "conditional";
+    if (rec === "NO_BID" || rec === "NOBID") decision = "no_bid";
+    else if (rec === "BID" || rec === "GO") decision = "bid";
+    track("bid_no_bid_shown", {
+      decision,
+      score: v.win_probability ?? null,
+    });
+  }, [auditResult?.verdict, auditResult?.solicitation_number, auditResult?.opportunity_id]);
+
+  useEffect(() => {
+    const n = auditResult?.requirements?.length;
+    if (!n) return;
+    track("compliance_matrix_shown", { requirement_count: n });
+  }, [auditResult?.requirements?.length, auditResult?.solicitation_number, auditResult?.opportunity_id]);
 
   // ── Payment status helper ──────────────────────────────────────────────────
   const fetchPaymentStatus = useCallback(async (solId) => {
@@ -1729,6 +1498,9 @@ export default function BentoDashboard({ user = null, onBack }) {
     if (checkoutStatus !== 'success' && checkoutStatus !== 'cancelled') return;
 
     if (checkoutStatus === 'cancelled') {
+      track("checkout_abandoned", {
+        plan_name: plan || (source === "subscription" ? "subscription" : "audit_unlock_99"),
+      });
       showToast('Payment cancelled. Your audit preview is still available.', 'info');
       window.history.replaceState({}, '', window.location.pathname);
       return;
@@ -1736,6 +1508,13 @@ export default function BentoDashboard({ user = null, onBack }) {
 
     const uid = billingUid;
     window.history.replaceState({}, '', window.location.pathname);
+
+    const markCheckoutCompleted = (payload) => {
+      const key = sessionId || (source === "subscription" ? `sub:${plan || "pro"}` : sid ? `sol:${sid}` : "checkout");
+      if (checkoutSuccessTrackedRef.current.has(key)) return;
+      checkoutSuccessTrackedRef.current.add(key);
+      track("checkout_completed", payload);
+    };
 
     (async () => {
       pendingCheckoutSessionIdRef.current = sessionId || null;
@@ -1758,6 +1537,11 @@ export default function BentoDashboard({ user = null, onBack }) {
         showToast('Payment received. Activating subscription…', 'info');
         const ok = await syncSubscriptionStatus();
         if (ok) {
+          markCheckoutCompleted({
+            plan_name: plan || "pro",
+            amount_usd: null,
+            billing_cycle: "monthly",
+          });
           showToast(`Subscription active${plan ? `: ${plan}` : ''}. Full dashboard unlocked.`, 'success');
           setShowPaymentSyncCta(false);
         } else {
@@ -1772,6 +1556,13 @@ export default function BentoDashboard({ user = null, onBack }) {
       }
 
       if (!sid || !uid) {
+        if (sessionId) {
+          markCheckoutCompleted({
+            plan_name: plan || "unknown",
+            amount_usd: null,
+            billing_cycle: source === "subscription" ? "monthly" : "one_time",
+          });
+        }
         showToast('Payment received. Open your audit to verify access.', 'info');
         return;
       }
@@ -1791,6 +1582,11 @@ export default function BentoDashboard({ user = null, onBack }) {
       }
       if (paid) {
         setIsPaid(true);
+        markCheckoutCompleted({
+          plan_name: "audit_unlock_99",
+          amount_usd: 99,
+          billing_cycle: "one_time",
+        });
         showToast('Audit unlocked — full analysis is yours.', 'success');
         return;
       }
@@ -1799,6 +1595,11 @@ export default function BentoDashboard({ user = null, onBack }) {
       const ok = await pollPaymentStatus(sid);
       setCheckingPayment(false);
       if (ok) {
+        markCheckoutCompleted({
+          plan_name: "audit_unlock_99",
+          amount_usd: 99,
+          billing_cycle: "one_time",
+        });
         showToast('Audit unlocked — full analysis is yours.', 'success');
         setShowPaymentSyncCta(false);
       } else if (pendingCheckoutSessionIdRef.current) {
@@ -1892,6 +1693,20 @@ export default function BentoDashboard({ user = null, onBack }) {
     (stepTimerRef.current || []).forEach(clearTimeout);
     stepTimerRef.current = [];
     setAnalysisStep(ANALYSIS_STEPS.length);
+    const inputGuess = data?.meta?.cache_hit != null || data?.solicitation_number
+      ? 'url'
+      : 'pdf';
+    track('audit_success', { input_type: inputGuess, latency_ms: null });
+    successfulAuditCountRef.current += 1;
+    if (!firstAuditSuccessAtRef.current) firstAuditSuccessAtRef.current = Date.now();
+    if (successfulAuditCountRef.current >= 2) {
+      track("audit_repeat", {
+        audit_count: successfulAuditCountRef.current,
+        days_since_first: Math.floor(
+          (Date.now() - firstAuditSuccessAtRef.current) / 86400000
+        ),
+      });
+    }
     setAuditResult(data);
     setActiveAuditId(null); // fresh audit, not from history
     setAnalyzing(false);
@@ -1963,6 +1778,22 @@ export default function BentoDashboard({ user = null, onBack }) {
       return;
     }
 
+    if (
+      errObj?.code === "FREE_MONTHLY_LIMIT"
+      || errObj?.status === 429
+      || String(errObj?.code) === "429"
+    ) {
+      track("upgrade_prompt_shown", {
+        quota_limit: errObj?.quota_limit ?? errObj?.limit ?? null,
+        audits_used: errObj?.audits_used ?? errObj?.used ?? null,
+      });
+    } else {
+      track("audit_error", {
+        error_code: String(errObj?.code || errObj?.message || "unknown").slice(0, 80),
+        input_type: errObj?.input_type || "unknown",
+      });
+    }
+
     // Classify → get intelligent prompt context
     const errorClass = classifyError(errObj);
     const ctxFn = CHAT_CONTEXTS[errorClass] || CHAT_CONTEXTS._DEFAULT;
@@ -1991,11 +1822,16 @@ export default function BentoDashboard({ user = null, onBack }) {
     wsMessagesRef.current = threadAfterUser;
     setWorkspaceLoading(true);
 
+    const userMsgIndex = prior.filter((m) => m.role === "user").length;
+    const hasCtx = !!(auditResult && typeof auditResult === "object");
+    track("chat_message_sent", { message_index: userMsgIndex, has_context: hasCtx });
+
     try {
       const isUrl = trimmed.startsWith('http') || trimmed.includes('sam.gov');
 
       if (isUrl) {
         handleStart();
+        track("audit_submitted", { input_type: "url", source: "sam" });
         try {
           const res = await fetch('/api/audit/link', {
             method: 'POST',
@@ -2015,6 +1851,17 @@ export default function BentoDashboard({ user = null, onBack }) {
           if (res.ok && !data.error) {
             handleResult(normalized);
           } else {
+            if (res.status === 429 || data?.code === "FREE_MONTHLY_LIMIT") {
+              track("upgrade_prompt_shown", {
+                quota_limit: data?.quota_limit ?? data?.limit ?? null,
+                audits_used: data?.audits_used ?? data?.used ?? null,
+              });
+            } else {
+              track("audit_error", {
+                error_code: String(data?.code || res.status || "audit_failed").slice(0, 80),
+                input_type: "url",
+              });
+            }
             const nextClass = classifyError(data);
             const nextCtx = (CHAT_CONTEXTS[nextClass] || CHAT_CONTEXTS._DEFAULT)(data);
             setSessionApiContext(nextCtx.apiContext);
@@ -2029,9 +1876,11 @@ export default function BentoDashboard({ user = null, onBack }) {
             }]);
           }
         } catch {
+          track("audit_error", { error_code: "network", input_type: "url" });
           setWorkspaceMessages(m => [...m, { role: 'ai', text: 'Connection error. Check your network and try again.', id: Date.now() }]);
         }
       } else {
+        const chatStarted = Date.now();
         try {
           const hist = prior
             .filter(m => m.role === 'user' || m.role === 'ai')
@@ -2049,6 +1898,9 @@ export default function BentoDashboard({ user = null, onBack }) {
           });
           const data = await res.json();
           const plan = data.plan && typeof data.plan === 'object' ? data.plan : null;
+          if (res.ok) {
+            track("chat_reply_received", { latency_ms: Date.now() - chatStarted });
+          }
           setWorkspaceMessages(m => [...m, {
             role: 'ai',
             text: data.text || data.response || 'No response received.',
@@ -2307,6 +2159,10 @@ export default function BentoDashboard({ user = null, onBack }) {
         a:hover { opacity: 0.75; }
         .mini-thread::-webkit-scrollbar { display: none; }
         .bs-sidebar::-webkit-scrollbar { display: none; }
+        .workspace-chat-md p { margin-bottom: 8px; }
+        .workspace-chat-md p:last-child { margin-bottom: 0; }
+        .workspace-chat-md ul, .workspace-chat-md ol { margin-top: 4px; margin-bottom: 8px; }
+        .workspace-chat-md a { word-break: break-word; }
       `}</style>
       </div>
     </div>

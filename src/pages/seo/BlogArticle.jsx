@@ -3,11 +3,21 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { getBlogPost } from "../../content/blogManifest";
+import { track } from "../../utils/analytics";
 
 export default function BlogArticle({ slug, onBack, onEnterApp }) {
   const meta = getBlogPost(slug);
   const [md, setMd] = useState("");
   const [err, setErr] = useState(null);
+
+  useEffect(() => {
+    if (!meta) return;
+    track("blog_post_view", {
+      slug: meta.slug,
+      title: meta.title,
+      category: meta.category || "blog",
+    });
+  }, [meta]);
 
   useEffect(() => {
     if (!meta) return;

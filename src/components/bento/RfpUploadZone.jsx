@@ -5,6 +5,7 @@
  */
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Upload, Link2, FileText, X, Loader2, CheckCircle2, Send } from 'lucide-react';
+import { track } from '../../utils/analytics';
 
 const ACCEPTED_MIME = ['application/pdf'];
 
@@ -72,6 +73,11 @@ export default function RfpUploadZone({
     setLoading(true);
     setSuccess(false);
     onStart?.();
+    const t0 = Date.now();
+    track('audit_submitted', {
+      input_type: 'url',
+      source: trimmed.toLowerCase().includes('sam.gov') ? 'sam' : 'upload',
+    });
     try {
       const res = await fetch('/api/audit/link', {
         method: 'POST',
@@ -89,12 +95,24 @@ export default function RfpUploadZone({
         },
       } : data;
       if (!res.ok) {
+        if (res.status === 429 || data?.code === 'FREE_MONTHLY_LIMIT') {
+          track('upgrade_prompt_shown', {
+            quota_limit: data?.limit ?? 3,
+            audits_used: data?.limit ?? 3,
+          });
+        }
+        track('audit_error', {
+          error_code: data?.code || String(res.status),
+          input_type: 'url',
+          latency_ms: Date.now() - t0,
+        });
         onError?.({ message: data?.error || `Request failed (${res.status})`, hint: data?.hint || null, code: data?.code || String(res.status), externalLinks: data?.externalLinks || [], failedUrl: trimmed, rawData: data });
         return;
       }
       setSuccess(true);
       onResult?.(normalized);
     } catch (err) {
+      track('audit_error', { error_code: 'NETWORK_ERROR', input_type: 'url', latency_ms: Date.now() - t0 });
       onError?.({ message: err.message, code: 'NETWORK_ERROR', failedUrl: trimmed });
     } finally {
       setLoading(false);
@@ -108,6 +126,8 @@ export default function RfpUploadZone({
       setLoading(true);
       setSuccess(false);
       onStart?.();
+      const t0 = Date.now();
+      track('audit_submitted', { input_type: 'pdf', source: 'upload' });
       try {
         const form = new FormData();
         form.append('file', file);
@@ -121,12 +141,24 @@ export default function RfpUploadZone({
           },
         } : data;
         if (!res.ok) {
+          if (res.status === 429 || data?.code === 'FREE_MONTHLY_LIMIT') {
+            track('upgrade_prompt_shown', {
+              quota_limit: data?.limit ?? 3,
+              audits_used: data?.limit ?? 3,
+            });
+          }
+          track('audit_error', {
+            error_code: data?.code || String(res.status),
+            input_type: 'pdf',
+            latency_ms: Date.now() - t0,
+          });
           onError?.({ message: data?.error || `Request failed (${res.status})`, hint: data?.hint || null, code: data?.code || String(res.status), externalLinks: [], failedUrl: null, rawData: data });
           return;
         }
         setSuccess(true);
         onResult?.(normalized);
       } catch (err) {
+        track('audit_error', { error_code: 'NETWORK_ERROR', input_type: 'pdf', latency_ms: Date.now() - t0 });
         onError?.({ message: err.message, code: 'NETWORK_ERROR', failedUrl: null });
       } finally {
         setLoading(false);

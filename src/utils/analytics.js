@@ -79,6 +79,15 @@ export function initAnalytics() {
 // BidSmith Track (Private Database)
 async function bsTrack(event, value = 0, metadata = {}) {
   try {
+    // Production bundle on localhost (e.g. `serve dist`, Lighthouse) has no API — avoid 404 console noise.
+    if (
+      import.meta.env.PROD
+      && typeof window !== "undefined"
+      && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
+    ) {
+      return;
+    }
+
     fetch('/api/track', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
@@ -105,35 +114,66 @@ function trackQualifiedSession(path) {
   trackEvent("qualified_session", { path, segment: "govcon_intent" });
 }
 
-export function trackPageView(path) {
-  if (!canTrack()) return;
-  
-  // Track as 'demo_view' for report/audit paths, else 'page_view'
-  const event = (path.includes('sam-rep') || path.includes('audit')) ? 'demo_view' : 'page_view';
-  bsTrack(event, 0, { path });
-  trackQualifiedSession(path);
+let funnelUserId = null;
+let funnelPlan = "free";
 
-  // Track with Google Analytics
-  if (initialized && window.gtag && measurementId) {
-    window.gtag("event", "page_view", {
-      page_path: path,
-      page_location: window.location.href,
-      page_title: document.title,
-    });
+/** Clerk / workspace context for funnel events (userId + plan snake_case per spec). */
+export function setFunnelUser({ userId = null, plan = "free" } = {}) {
+  funnelUserId = userId || null;
+  funnelPlan = plan || "free";
+}
+
+export function utmPropsFromSearch() {
+  if (!canTrack()) return {};
+  const q = new URLSearchParams(window.location.search);
+  const out = {};
+  for (const k of ["utm_source", "utm_medium", "utm_campaign"]) {
+    const v = q.get(k);
+    if (v) out[k] = v;
   }
+  return out;
+}
 
-  // Track with PostHog
-  if (initialized && posthog.__loaded) {
-    posthog.capture('$pageview', {
-      path,
-      title: document.title,
-    });
+function funnelDefaults() {
+  const o = { plan: funnelPlan };
+  if (funnelUserId) o.userId = funnelUserId;
+  return o;
+}
+
+/**
+ * Funnel events — Plausible custom goals + existing trackEvent (GA / PostHog / /api/track).
+ * Never throws.
+ */
+export function track(event, props = {}) {
+  try {
+    const merged = { ...funnelDefaults(), ...props };
+    if (import.meta.env.DEV) {
+      devDebug("[analytics]", event, merged);
+    }
+    if (typeof window !== "undefined" && typeof window.plausible === "function") {
+      window.plausible(event, { props: merged });
+    }
+  } catch (_) {
+    /* ignore */
+  }
+  trackEvent(event, { ...funnelDefaults(), ...props });
+}
+
+export function identify(userId, traits = {}) {
+  try {
+    if (import.meta.env.DEV) {
+      devDebug("[analytics:identify]", userId, traits);
+    }
+    if (!initialized || !posthog.__loaded || !userId) return;
+    posthog.identify(userId, traits);
+  } catch (_) {
+    /* ignore */
   }
 }
 
 export function trackEvent(name, params = {}) {
   if (!canTrack()) return;
-  
+
   bsTrack(name, params.value || 0, params);
 
   // Track with Google Analytics
@@ -141,10 +181,28 @@ export function trackEvent(name, params = {}) {
     window.gtag("event", name, params);
   }
 
-  // Track with PostHog
+  // Track with PostHog — keep $pageview for SPA dashboards when name is page_view
   if (initialized && posthog.__loaded) {
-    posthog.capture(name, params);
+    if (name === "page_view") {
+      posthog.capture("$pageview", {
+        path: params.path,
+        title: typeof document !== "undefined" ? document.title : "",
+        ...params,
+      });
+    } else {
+      posthog.capture(name, params);
+    }
   }
+}
+
+export function trackPageView(path) {
+  if (!canTrack()) return;
+  trackQualifiedSession(path);
+  track("page_view", {
+    path,
+    referrer: typeof document !== "undefined" ? (document.referrer || "") : "",
+    ...utmPropsFromSearch(),
+  });
 }
 
 // Enhanced tracking functions for ARIS-specific events

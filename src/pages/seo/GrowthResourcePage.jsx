@@ -1,6 +1,7 @@
+import { useEffect } from "react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { BOFU_RESOURCES } from "../../content/growthPlanData";
-import { trackEvent } from "../../utils/analytics";
+import { track, trackEvent } from "../../utils/analytics";
 
 export function getGrowthResourceBySlug(slug) {
   return BOFU_RESOURCES.find((item) => item.slug === slug) || null;
@@ -8,6 +9,15 @@ export function getGrowthResourceBySlug(slug) {
 
 export default function GrowthResourcePage({ slug, onBack, onEnterApp }) {
   const resource = getGrowthResourceBySlug(slug);
+
+  useEffect(() => {
+    const r = getGrowthResourceBySlug(slug);
+    if (!r) return;
+    track("tool_page_view", {
+      tool_name: `growth_resource:${r.slug}`,
+      path: `/resources/${r.slug}`,
+    });
+  }, [slug]);
 
   if (!resource) {
     return (

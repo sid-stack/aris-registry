@@ -5,6 +5,7 @@
  */
 import { useEffect, useState } from "react";
 import { ArrowLeft, ArrowRight, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
+import { track } from "../utils/analytics";
 
 const PHASES = [
   {
@@ -205,6 +206,7 @@ export default function GovConGuide({ onBack, onEnterApp }) {
   useEffect(() => {
     document.title = "Federal Contracting Process Guide | BidSmith";
     window.scrollTo(0, 0);
+    track("tool_page_view", { tool_name: "govcon_guide", path: "/govcon-guide" });
   }, []);
 
   return (
@@ -218,7 +220,14 @@ export default function GovConGuide({ onBack, onEnterApp }) {
             </button>
             <span style={s.brand}>BidSmith</span>
           </div>
-          <button onClick={onEnterApp} style={s.ctaBtn}>
+          <button
+            type="button"
+            onClick={() => {
+              track("hero_cta_click", { cta_label: "Try BidSmith Free", position: "govcon_guide_header" });
+              onEnterApp?.();
+            }}
+            style={s.ctaBtn}
+          >
             Try BidSmith Free <ArrowRight size={14} />
           </button>
         </div>

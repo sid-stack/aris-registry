@@ -1,10 +1,11 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState, useRef } from "react";
+import { ensureAdsbygoogleScript } from "./utils/adsbygoogleLoader.js";
 import { useAuth, useUser, SignIn } from "@clerk/clerk-react";
 import NotFound from "./pages/NotFound";
 import Landing from "./pages/Landing";
 import ConsentBanner from "./components/ConsentBanner";
 import ErrorBoundary from "./components/ErrorBoundary";
-import { trackEvent, trackPageView } from "./utils/analytics";
+import { track, trackEvent, trackPageView, setFunnelUser, identify } from "./utils/analytics";
 import { BOFU_RESOURCES } from "./content/growthPlanData";
 import { getBlogPost } from "./content/blogManifest";
 import { Analytics } from "@vercel/analytics/react";
@@ -39,6 +40,17 @@ const OG_IMAGE_URL = `${BASE_URL}/og-image.png`;
 
 /** Logged-out /dashboard (and traffic-brief) — context before Clerk so cold-email clicks convert. */
 function DashboardSignInShell({ onBackHome }) {
+  const signupStartOnce = useRef(false);
+  const onSignInInteract = () => {
+    if (signupStartOnce.current) return;
+    signupStartOnce.current = true;
+    track("signup_start", { method: "unknown" });
+  };
+
+  useEffect(() => {
+    track("signin_view", {});
+  }, []);
+
   const backBtn = {
     display: "inline-flex",
     alignItems: "center",
@@ -119,6 +131,7 @@ function DashboardSignInShell({ onBackHome }) {
             background: "rgba(15, 23, 42, 0.55)",
             padding: "18px 16px 20px",
           }}
+          onPointerDownCapture={onSignInInteract}
         >
           <SignIn routing="hash" />
         </div>
@@ -303,6 +316,12 @@ function resolveView(path) {
 export default function App() {
   const path = window.location.pathname;
   const aliasSection = LANDING_SECTION_ALIASES[path] || null;
+
+  useEffect(() => {
+    const client = import.meta.env.VITE_ADSENSE_CLIENT || "ca-pub-1777022448474054";
+    ensureAdsbygoogleScript(client);
+  }, []);
+
   const { isSignedIn, isLoaded: isAuthLoaded, userId } = useAuth();
   const { user: clerkUser, isLoaded: isUserLoaded } = useUser();
 
@@ -328,6 +347,26 @@ export default function App() {
     subscriptionUpdatedAt: clerkUser.publicMetadata?.subscriptionUpdatedAt || null,
   } : null;
 
+  useEffect(() => {
+    const plan = user?.isSubscribed ? (user.plan || "pro") : "free";
+    setFunnelUser({ userId: user?.id || null, plan });
+    if (user?.id && clerkUser) {
+      identify(user.id, { email: user.email || "", plan: user.plan || plan });
+    }
+  }, [user, clerkUser]);
+
+  useEffect(() => {
+    if (!authenticated || !user?.id || !clerkUser) return;
+    const created = clerkUser.createdAt ? new Date(clerkUser.createdAt).getTime() : 0;
+    const fresh = created && Date.now() - created < 5 * 60 * 1000;
+    const key = `bs_signup_complete_${user.id}`;
+    if (fresh && !sessionStorage.getItem(key)) {
+      const method = clerkUser.externalAccounts?.length ? "oauth" : "email";
+      track("signup_complete", { method });
+      sessionStorage.setItem(key, "1");
+    }
+  }, [authenticated, user?.id, clerkUser]);
+
   const [view, setView] = useState(() => resolveView(path));
 
   usePageMeta(view);
@@ -339,6 +378,14 @@ export default function App() {
     }, 120);
     return () => clearTimeout(timer);
   }, [aliasSection, view]);
+
+  useEffect(() => {
+    if (view === "dashboard") {
+      track("app_open", {
+        auth_state: authenticated && user ? "signed_in" : "signed_out",
+      });
+    }
+  }, [view, authenticated, user]);
 
   useEffect(() => {
     const pathMap = {
@@ -418,6 +465,8 @@ export default function App() {
 
   const handleEnterApp = (entry = "generic") => {
     trackEvent("landing_cta_clicked", { entry, authenticated: Boolean(authenticated && user) });
+    const pos = String(entry).startsWith("nav") ? "nav" : String(entry).includes("footer") ? "footer" : "hero";
+    track("hero_cta_click", { cta_label: String(entry), position: pos });
     goWorkspace();
   };
 

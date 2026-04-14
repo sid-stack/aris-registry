@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Shield, CheckCircle, ArrowRight, Zap, Lock } from "lucide-react";
 import { GTM_PRICING_PLANS, FREE_TIER } from "../lib/pricing";
 import { createCheckoutSession } from "../lib/stripe";
+import { track } from "../utils/analytics";
 
 export default function PricingGrid({ onTryFree, userId, user = null }) {
   const [loading, setLoading] = useState(null);
@@ -9,9 +10,15 @@ export default function PricingGrid({ onTryFree, userId, user = null }) {
   const [banner, setBanner] = useState(null);
 
   useEffect(() => {
+    track("pricing_view", { plan_highlighted: "all" });
+  }, []);
+
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const checkout = params.get("checkout");
+    const plan = params.get("plan") || "unknown";
     if (checkout === "cancelled") {
+      track("checkout_abandoned", { plan_name: plan });
       setBanner("Checkout was cancelled. Your plan has not changed.");
       window.history.replaceState({}, "", window.location.pathname);
     }
@@ -19,15 +26,18 @@ export default function PricingGrid({ onTryFree, userId, user = null }) {
 
   async function handlePlanClick(plan) {
     if (plan.key === "free") {
+      track("pricing_plan_click", { plan_name: plan.key, billing_cycle: "free" });
       onTryFree?.();
       return;
     }
     if (plan.key === "enterprise") {
+      track("pricing_plan_click", { plan_name: plan.key, billing_cycle: "contact" });
       window.location.href = "mailto:sid@bidsmith.pro?subject=Enterprise Plan — BidSmith";
       return;
     }
     if (!userId) {
       setError("Please sign in first, then choose a paid plan.");
+      track("upgrade_clicked", { source: "pricing_page", plan_target: plan.key });
       onTryFree?.();
       return;
     }
@@ -35,9 +45,17 @@ export default function PricingGrid({ onTryFree, userId, user = null }) {
       setBanner(`You are already on the ${plan.title} plan.`);
       return;
     }
+    track("pricing_plan_click", {
+      plan_name: plan.key,
+      billing_cycle: plan.annualNote ? "annual" : "monthly",
+    });
     setLoading(plan.key);
     setError(null);
     try {
+      track("checkout_started", {
+        plan_name: plan.key,
+        billing_cycle: plan.annualNote ? "annual" : "monthly",
+      });
       const url = await createCheckoutSession({ plan: plan.key, uid: userId || undefined });
       window.location.href = url;
     } catch (err) {

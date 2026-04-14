@@ -1,8 +1,16 @@
-import React from 'react';
-import { Shield, CheckCircle, ArrowRight, Zap, FileText, Search } from 'lucide-react';
+import React, { useEffect } from "react";
+import { Shield, CheckCircle, ArrowRight, Zap, FileText, Search } from "lucide-react";
+import { track } from "../../utils/analytics";
 
 export default function RfpMatrixGenerator({ onUpload }) {
   const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+
+  useEffect(() => {
+    track("tool_page_view", {
+      tool_name: "rfp_compliance_matrix_generator",
+      path: "/rfp-compliance-matrix-generator",
+    });
+  }, []);
 
   return (
     <main style={styles.page}>

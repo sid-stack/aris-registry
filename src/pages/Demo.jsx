@@ -4,6 +4,7 @@
  * Zero-knowledge architecture demonstration.
  */
 import { useState, useEffect, useRef } from "react";
+import { track } from "../utils/analytics";
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -83,6 +84,10 @@ export default function Demo({ onBack, onEnterApp }) {
   const [progress, setProgress] = useState(0);
   const [expanded, setExpanded] = useState(0);
   const logsRef = useRef(null);
+
+  useEffect(() => {
+    track("demo_view", { path: "/demo" });
+  }, []);
 
   const startDemo = () => {
     setPhase("running");
