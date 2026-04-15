@@ -1,4 +1,5 @@
-import { ArrowLeft, Mail } from "lucide-react";
+import { useState } from "react";
+import { ArrowLeft, Loader2, Mail } from "lucide-react";
 import { trackEvent } from "../utils/analytics";
 
 const s = {
@@ -31,10 +32,48 @@ const s = {
     marginTop: 24, padding: 16, borderRadius: 10,
     background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.25)", color: "#fcd34d", fontSize: 13, lineHeight: 1.55,
   },
+  form: { marginBottom: 28 },
+  label: { display: "block", fontSize: 13, fontWeight: 600, color: "#cbd5e1", marginBottom: 8 },
+  inputRow: { display: "flex", gap: 10, flexWrap: "wrap", alignItems: "stretch" },
+  input: {
+    flex: "1 1 220px",
+    minWidth: 0,
+    padding: "14px 16px",
+    fontSize: 16,
+    borderRadius: 10,
+    border: "1px solid #334155",
+    background: "#111827",
+    color: "#f8fafc",
+    outline: "none",
+    boxSizing: "border-box",
+  },
+  submit: {
+    flex: "0 0 auto",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    padding: "14px 22px",
+    fontSize: 15,
+    fontWeight: 700,
+    border: "none",
+    borderRadius: 10,
+    background: "#2563eb",
+    color: "#ffffff",
+    cursor: "pointer",
+    minWidth: 140,
+  },
+  formMsg: { marginTop: 12, fontSize: 14, lineHeight: 1.5 },
+  formErr: { color: "#fca5a5" },
+  formOk: { color: "#86efac" },
 };
 
 /** Hosted newsletter (Beehiiv, ConvertKit, etc.) — URLs from Vite env at build time. */
 export default function NewsletterPage({ onBack }) {
+  const [email, setEmail] = useState("");
+  const [formStatus, setFormStatus] = useState("idle");
+  const [formMessage, setFormMessage] = useState("");
+
   const embedSrc = (import.meta.env.VITE_NEWSLETTER_EMBED_SRC || "").trim();
   const signupUrl = (import.meta.env.VITE_NEWSLETTER_SIGNUP_URL || "").trim();
   const configured = Boolean(embedSrc || signupUrl);
@@ -43,6 +82,39 @@ export default function NewsletterPage({ onBack }) {
     if (!signupUrl) return;
     trackEvent("newsletter_outbound_click", { destination: "hosted_signup" });
     window.open(signupUrl, "_blank", "noopener,noreferrer");
+  };
+
+  const submitLocal = async (e) => {
+    e.preventDefault();
+    const trimmed = email.trim();
+    if (!trimmed) {
+      setFormMessage("Enter your email address.");
+      setFormStatus("error");
+      return;
+    }
+    setFormStatus("loading");
+    setFormMessage("");
+    trackEvent("newsletter_subscribe_attempt", {});
+    try {
+      const res = await fetch("/api/newsletter/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: trimmed, source: "bid_brief_page" }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setFormStatus("error");
+        setFormMessage(data.error || "Something went wrong. Try again or email sid@bidsmith.pro.");
+        return;
+      }
+      setFormStatus("success");
+      setFormMessage(data.message || "You're on the list.");
+      trackEvent("newsletter_subscribe_success", { already: data.alreadySubscribed === true });
+      if (!data.alreadySubscribed) setEmail("");
+    } catch {
+      setFormStatus("error");
+      setFormMessage("Network error. Check your connection and try again.");
+    }
   };
 
   return (
@@ -54,13 +126,60 @@ export default function NewsletterPage({ onBack }) {
         <p style={s.kicker}>The Bid Brief</p>
         <h1 style={s.h1}>Federal RFP intel — short, actionable, in your inbox</h1>
         <p style={s.lead}>
-          Twice a week: one read on bid/no-bid discipline, compliance traps, or pipeline focus — built for small GovCon and capture teams. No custom signup code here; we use a hosted provider so subscribe, deliver, and compliance stay simple.
+          Twice a week: one read on bid/no-bid discipline, compliance traps, or pipeline focus — built for small GovCon and capture teams. Add your email below; we store it securely so we can send The Bid Brief. You can also use a hosted form if you prefer.
         </p>
         <ul style={s.list}>
           <li>One opportunity lens or agency pulse you can use the same day</li>
           <li>One FAR / solicitation pattern worth a second look before you staff</li>
           <li>One workflow note (SAM.gov, matrices, reviews)</li>
         </ul>
+
+        <form style={s.form} onSubmit={submitLocal} noValidate>
+          <label htmlFor="newsletter-email" style={s.label}>
+            Email address
+          </label>
+          <div style={s.inputRow}>
+            <input
+              id="newsletter-email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              inputMode="email"
+              placeholder="you@company.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={formStatus === "loading"}
+              style={s.input}
+              aria-describedby={formMessage ? "newsletter-form-msg" : undefined}
+            />
+            <button type="submit" style={s.submit} disabled={formStatus === "loading"}>
+              {formStatus === "loading" ? (
+                <>
+                  <Loader2 size={18} style={{ animation: "spin 0.9s linear infinite" }} aria-hidden />
+                  Sending…
+                </>
+              ) : (
+                <>
+                  <Mail size={18} aria-hidden />
+                  Join the list
+                </>
+              )}
+            </button>
+          </div>
+          {formMessage ? (
+            <p
+              id="newsletter-form-msg"
+              role={formStatus === "error" ? "alert" : "status"}
+              style={{
+                ...s.formMsg,
+                ...(formStatus === "error" ? s.formErr : s.formOk),
+              }}
+            >
+              {formMessage}
+            </p>
+          ) : null}
+        </form>
+        <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
 
         {embedSrc ? (
           <div style={s.embedWrap}>

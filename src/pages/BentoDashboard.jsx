@@ -20,6 +20,7 @@ import WorkspaceChat from '../components/bento/WorkspaceChat.jsx';
 import { downloadComplianceMatrixXlsx, complianceMatrixXlsxBuffer } from '../utils/complianceMatrixXlsx';
 import { track, trackEvent } from '../utils/analytics';
 import { BENTO_WORKSPACE_WELCOME_MARKDOWN } from '../content/bentoWorkspaceWelcome.js';
+import '../styles/bento-dashboard.css';
 
 // ── Error code → intelligent AI opening message ───────────────────────────────
 const CHAT_CONTEXTS = {
@@ -83,25 +84,27 @@ const rail = {
     width: open ? RAIL_W : 0,
     minWidth: open ? RAIL_W : 0,
     flexShrink: 0,
-    borderRight: '1px solid #dadce0',
-    background: '#fff',
+    borderRight: '1px solid #e2e8f0',
+    background: 'linear-gradient(180deg, #fafbfc 0%, #ffffff 12%)',
+    boxShadow: open ? '4px 0 24px rgba(15, 23, 42, 0.04)' : 'none',
     display: 'flex',
     flexDirection: 'column',
     minHeight: 0,
     overflow: 'hidden',
-    transition: 'width 0.2s ease, min-width 0.2s ease',
+    transition: 'width 0.2s ease, min-width 0.2s ease, box-shadow 0.2s ease',
   }),
   outerRight: (open) => ({
     width: open ? RAIL_W : 0,
     minWidth: open ? RAIL_W : 0,
     flexShrink: 0,
-    borderLeft: '1px solid #dadce0',
-    background: '#fff',
+    borderLeft: '1px solid #e2e8f0',
+    background: 'linear-gradient(180deg, #fafbfc 0%, #ffffff 12%)',
+    boxShadow: open ? '-4px 0 24px rgba(15, 23, 42, 0.04)' : 'none',
     display: 'flex',
     flexDirection: 'column',
     minHeight: 0,
     overflow: 'hidden',
-    transition: 'width 0.2s ease, min-width 0.2s ease',
+    transition: 'width 0.2s ease, min-width 0.2s ease, box-shadow 0.2s ease',
   }),
   inner: {
     width: RAIL_W,
@@ -115,41 +118,51 @@ const rail = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: '10px 12px',
-    borderBottom: '1px solid #e8eaed',
+    padding: '12px 14px',
+    borderBottom: '1px solid #e2e8f0',
     flexShrink: 0,
-  },
-  headTitle: { fontSize: 13, fontWeight: 500, color: '#202124' },
-  iconBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    border: '1px solid #dadce0',
     background: '#fff',
+  },
+  headTitle: { fontSize: 13, fontWeight: 700, color: '#0f172a', letterSpacing: '-0.02em' },
+  iconBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    border: '1px solid #e2e8f0',
+    background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     cursor: 'pointer',
-    color: '#5f6368',
+    color: '#475569',
+    boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
   },
   tabs: {
     display: 'flex',
-    gap: 0,
-    borderBottom: '1px solid #e8eaed',
+    gap: 6,
+    borderBottom: 'none',
     flexShrink: 0,
-    padding: '0 6px',
+    padding: '8px 10px',
+    background: '#f1f5f9',
+    margin: '0 8px 8px',
+    borderRadius: 12,
   },
   tab: (on) => ({
     flex: 1,
-    padding: '8px 4px',
-    fontSize: 11,
-    fontWeight: on ? 600 : 400,
-    color: on ? '#1967d2' : '#5f6368',
-    background: 'transparent',
+    minWidth: 0,
+    padding: '7px 4px',
+    fontSize: 10,
+    fontWeight: on ? 700 : 600,
+    letterSpacing: '0.04em',
+    textTransform: 'uppercase',
+    color: on ? '#fff' : '#64748b',
+    background: on ? 'linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%)' : 'transparent',
     border: 'none',
-    borderBottom: on ? '2px solid #1a73e8' : '2px solid transparent',
+    borderRadius: 8,
+    boxShadow: on ? '0 2px 6px rgba(37, 99, 235, 0.25)' : 'none',
     cursor: 'pointer',
-    marginBottom: -1,
+    marginBottom: 0,
+    transition: 'color 0.15s, background 0.15s, box-shadow 0.15s',
   }),
   body: {
     flex: 1,
@@ -183,17 +196,18 @@ const rail = {
     transform: 'translateY(-50%)',
     [side]: 0,
     zIndex: 20,
-    width: 22,
-    height: 48,
-    border: '1px solid #dadce0',
-    background: '#fff',
-    borderRadius: side === 'left' ? '0 8px 8px 0' : '8px 0 0 8px',
+    width: 26,
+    height: 52,
+    border: '1px solid #e2e8f0',
+    background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
+    borderRadius: side === 'left' ? '0 10px 10px 0' : '10px 0 0 10px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     cursor: 'pointer',
-    color: '#5f6368',
-    boxShadow: '0 1px 2px rgba(60,64,67,0.12)',
+    color: '#475569',
+    boxShadow:
+      '0 2px 8px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(255, 255, 255, 0.8) inset',
   }),
 };
 
@@ -224,7 +238,7 @@ function LeftWorkspaceRail({
       <div style={rail.inner}>
         <div style={rail.head}>
           <span style={rail.headTitle}>Workspace</span>
-          <button type="button" style={rail.iconBtn} onClick={onToggle} title="Collapse panel">
+          <button type="button" className="bento-focus" style={rail.iconBtn} onClick={onToggle} title="Collapse panel">
             <PanelLeftClose size={16} />
           </button>
         </div>
@@ -353,7 +367,7 @@ function RightWorkspaceRail({
       <div style={rail.inner}>
         <div style={rail.head}>
           <span style={rail.headTitle}>Analysis</span>
-          <button type="button" style={rail.iconBtn} onClick={onToggle} title="Collapse panel">
+          <button type="button" className="bento-focus" style={rail.iconBtn} onClick={onToggle} title="Collapse panel">
             <PanelRightClose size={16} />
           </button>
         </div>
@@ -496,6 +510,7 @@ function FeaturedSolicitations({ onSelect, dock = false }) {
     <button
       key={rfp.id}
       type="button"
+      className="bento-featured-card bento-focus"
       onClick={() => onSelect(rfp)}
       style={dock ? fs.cardDock : fs.card}
     >
@@ -544,15 +559,21 @@ function FeaturedSolicitations({ onSelect, dock = false }) {
   );
 }
 
+/** Hot RFP strip — Inter-first to match global fonts in index.html. */
+const FS_UI_FONT =
+  'Inter, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+
 const fs = {
   wrap: {
     padding: '0 0 24px',
+    fontFamily: FS_UI_FONT,
   },
   dockWrap: {
     width: '100%',
     maxWidth: 768,
     margin: '0 auto',
     paddingTop: 4,
+    fontFamily: FS_UI_FONT,
   },
   dockHeader: {
     display: 'flex',
@@ -565,12 +586,13 @@ const fs = {
     fontSize: 11,
     fontWeight: 700,
     letterSpacing: '0.06em',
-    color: '#a3a3a3',
+    color: '#475569',
     textTransform: 'uppercase',
   },
   dockSub: {
     fontSize: 12,
-    color: '#737373',
+    fontWeight: 500,
+    color: '#64748b',
   },
   scrollDock: {
     display: 'flex',
@@ -578,36 +600,42 @@ const fs = {
     overflowX: 'auto',
     paddingBottom: 2,
     scrollbarWidth: 'thin',
+    fontFamily: FS_UI_FONT,
   },
   header: {
     display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 12,
   },
   eyebrow: {
     fontSize: 11,
-    fontWeight: 500,
-    letterSpacing: '0.02em',
-    color: '#5f6368',
-    textTransform: 'none',
+    fontWeight: 600,
+    letterSpacing: '0.04em',
+    color: '#475569',
+    textTransform: 'uppercase',
+    fontFamily: FS_UI_FONT,
   },
   sub: {
     fontSize: 13,
-    color: '#80868b',
+    fontWeight: 500,
+    color: '#64748b',
+    fontFamily: FS_UI_FONT,
   },
   scroll: {
     display: 'flex', gap: 10, overflowX: 'auto',
     paddingBottom: 4, scrollbarWidth: 'none',
+    fontFamily: FS_UI_FONT,
   },
   card: {
     flexShrink: 0,
     width: 200,
     background: '#fff',
-    border: '1px solid #dadce0',
-    borderRadius: 8,
+    border: '1px solid #e2e8f0',
+    borderRadius: 12,
     padding: '12px 14px',
     cursor: 'pointer',
     textAlign: 'left',
     display: 'flex', flexDirection: 'column', gap: 6,
-    transition: 'border-color 0.15s, background 0.15s, transform 0.12s',
+    boxShadow: '0 1px 3px rgba(15, 23, 42, 0.05)',
+    fontFamily: FS_UI_FONT,
   },
   cardTop: {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -618,26 +646,31 @@ const fs = {
     whiteSpace: 'nowrap',
   },
   naics: {
-    fontSize: '9px', color: '#374151', fontFamily: 'monospace',
+    fontSize: 10,
+    color: '#334155',
+    fontFamily: 'ui-monospace, "Cascadia Code", "Segoe UI Mono", monospace',
+    fontWeight: 600,
+    letterSpacing: '0.02em',
   },
   cardDock: {
     flexShrink: 0,
     width: 168,
     background: '#fff',
-    border: '1px solid #dadce0',
-    borderRadius: 8,
+    border: '1px solid #e2e8f0',
+    borderRadius: 12,
     padding: '10px 12px',
     cursor: 'pointer',
     textAlign: 'left',
     display: 'flex',
     flexDirection: 'column',
     gap: 4,
-    transition: 'border-color 0.15s, background 0.15s',
+    boxShadow: '0 1px 3px rgba(15, 23, 42, 0.05)',
+    fontFamily: FS_UI_FONT,
   },
   title: {
     margin: 0,
     fontSize: 13,
-    fontWeight: 400,
+    fontWeight: 500,
     color: '#202124',
     lineHeight: 1.35,
     display: '-webkit-box', WebkitLineClamp: 2,
@@ -647,7 +680,7 @@ const fs = {
     margin: 0,
     fontSize: 12,
     fontWeight: 600,
-    color: '#ececec',
+    color: '#202124',
     lineHeight: 1.35,
     display: '-webkit-box',
     WebkitLineClamp: 2,
@@ -657,13 +690,13 @@ const fs = {
   agency: {
     margin: 0,
     fontSize: 12,
-    color: '#5f6368',
+    color: '#475569',
     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
   },
   agencyDock: {
     margin: 0,
-    fontSize: 10,
-    color: '#a3a3a3',
+    fontSize: 11,
+    color: '#64748b',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
@@ -673,14 +706,14 @@ const fs = {
   },
   value: {
     fontSize: 13,
-    fontWeight: 500,
+    fontWeight: 600,
     color: '#137333',
     letterSpacing: '-0.02em',
   },
   setAside: {
     fontSize: 11,
-    fontWeight: 500,
-    color: '#5f6368',
+    fontWeight: 600,
+    color: '#475569',
     background: '#f1f3f4',
     border: 'none',
     borderRadius: 4,
@@ -1147,17 +1180,17 @@ const sb = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    padding: '10px 0',
-    background: '#fff',
-    border: '1px solid #dadce0',
-    borderRadius: 24,
-    color: '#1a73e8',
+    gap: 8,
+    padding: '11px 14px',
+    background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
+    border: '1px solid #c7d2fe',
+    borderRadius: 12,
+    color: '#1e3a8a',
     fontSize: 13,
-    fontWeight: 500,
+    fontWeight: 600,
     cursor: 'pointer',
-    transition: 'background 0.15s, box-shadow 0.15s',
     letterSpacing: '-0.01em',
+    boxShadow: '0 1px 3px rgba(30, 58, 138, 0.08), 0 0 0 1px rgba(255, 255, 255, 0.9) inset',
   },
   historyList: { flex: 1, overflowY: 'auto', padding: '0 8px', scrollbarWidth: 'thin' },
   historyEmpty: { fontSize: 13, color: '#80868b', padding: '12px 8px', textAlign: 'center' },
@@ -1917,16 +1950,16 @@ export default function BentoDashboard({ user = null, onBack }) {
   }, [workspaceLoading, sessionApiContext, auditResult, requestHeaders, handleStart, handleResult]);
 
   return (
-    <div style={s.shell}>
+    <div style={s.shell} className="bento-app">
       <div style={s.page}>
       <header style={s.topBar}>
         <div style={s.topBarLeft}>
-          <LayoutDashboard size={16} color="#5f6368" />
-          <span style={s.logoSub}>BidSmith</span>
+          <LayoutDashboard size={18} color="#0f172a" strokeWidth={2} />
+          <span style={s.logoBrand}>BidSmith</span>
           {auditResult && (
             <>
               <span style={s.logoSep}>·</span>
-              <span style={{ ...s.logoSub, color: '#80868b', maxWidth: 320, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <span style={s.logoCrumb}>
                 {auditResult.title?.slice(0, 56) || auditResult.solicitation_number || 'Audit'}
               </span>
             </>
@@ -2034,6 +2067,7 @@ export default function BentoDashboard({ user = null, onBack }) {
           {!leftRailOpen && (
             <button
               type="button"
+              className="bento-focus"
               aria-label="Open workspace panel"
               style={rail.edgeToggle('left')}
               onClick={() => setLeftRailOpen(true)}
@@ -2043,7 +2077,9 @@ export default function BentoDashboard({ user = null, onBack }) {
           )}
           <div style={s.centerColumn}>
             <div style={s.featuredStrip}>
-              <FeaturedSolicitations onSelect={handleFeaturedSelect} dock />
+              <div style={s.featuredPanel}>
+                <FeaturedSolicitations onSelect={handleFeaturedSelect} dock />
+              </div>
             </div>
             <WorkspaceChat
               messages={workspaceMessages}
@@ -2068,8 +2104,8 @@ export default function BentoDashboard({ user = null, onBack }) {
               uid={billingUid || 'anonymous'}
             >
               <div style={{ padding: 0 }}>
-                <div style={{ background: '#fff', border: '1px solid #dadce0', borderRadius: 8, padding: '16px 18px' }}>
-                  <p style={{ margin: '0 0 12px', fontSize: 12, fontWeight: 500, color: '#5f6368' }}>Compliance matrix</p>
+                <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, padding: '18px 20px', boxShadow: '0 4px 20px rgba(15, 23, 42, 0.05)' }}>
+                  <p style={{ margin: '0 0 12px', fontSize: 12, fontWeight: 700, color: '#334155', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Compliance matrix</p>
                   {(accessUnlocked ? (auditResult?.requirements || []) : (auditResult?.requirements || []).slice(0, 3)).map((req, i) => (
                     <div key={i} style={{ padding: '10px 0', borderBottom: '1px solid #e8eaed', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
                       <span style={{ fontSize: 11, fontWeight: 600, color: req.risk === 'HIGH' ? '#d93025' : req.risk === 'LOW' ? '#1e8e3e' : '#f9ab00', width: 40, flexShrink: 0, paddingTop: 2 }}>{req.risk}</span>
@@ -2112,6 +2148,7 @@ export default function BentoDashboard({ user = null, onBack }) {
           {!rightRailOpen && (
             <button
               type="button"
+              className="bento-focus"
               aria-label="Open analysis panel"
               style={rail.edgeToggle('right')}
               onClick={() => setRightRailOpen(true)}
@@ -2176,10 +2213,10 @@ const s = {
     flexDirection: 'column',
     minHeight: '100vh',
     width: '100%',
-    background: '#f8f9fa',
+    background: 'linear-gradient(165deg, #eef2f7 0%, #f8fafc 38%, #f1f5f9 100%)',
     fontFamily:
-      'system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-    color: '#202124',
+      'Inter, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+    color: '#0f172a',
     WebkitFontSmoothing: 'antialiased',
     MozOsxFontSmoothing: 'grayscale',
   },
@@ -2191,7 +2228,7 @@ const s = {
     flexDirection: 'column',
     overflow: 'hidden',
     padding: 0,
-    background: '#f8f9fa',
+    background: 'transparent',
   },
   workspaceRow: {
     flex: 1,
@@ -2206,7 +2243,7 @@ const s = {
     display: 'flex',
     minWidth: 0,
     minHeight: 0,
-    background: '#f8f9fa',
+    background: 'transparent',
   },
   centerColumn: {
     flex: 1,
@@ -2215,12 +2252,22 @@ const s = {
     minWidth: 0,
     minHeight: 0,
     padding: '0 16px 20px',
-    gap: 12,
+    gap: 14,
     overflow: 'hidden',
   },
   featuredStrip: {
     flexShrink: 0,
-    paddingTop: 8,
+    paddingTop: 4,
+  },
+  featuredPanel: {
+    background: 'rgba(255, 255, 255, 0.72)',
+    border: '1px solid rgba(226, 232, 240, 0.95)',
+    borderRadius: 16,
+    padding: '14px 14px 12px',
+    boxShadow:
+      '0 4px 24px rgba(15, 23, 42, 0.06), 0 0 0 1px rgba(255, 255, 255, 0.8) inset',
+    backdropFilter: 'blur(8px)',
+    WebkitBackdropFilter: 'blur(8px)',
   },
 
   // ── Top bar ──
@@ -2228,11 +2275,12 @@ const s = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: '12px 24px',
-    borderBottom: '1px solid #dadce0',
+    padding: '14px 22px',
+    borderBottom: '1px solid #e2e8f0',
     position: 'sticky',
     top: 0,
-    background: '#fff',
+    background: 'linear-gradient(180deg, #ffffff 0%, #fafbfc 100%)',
+    boxShadow: '0 4px 24px rgba(15, 23, 42, 0.05), 0 1px 0 rgba(255, 255, 255, 0.9) inset',
     zIndex: 50,
   },
   topBarLeft: {
@@ -2256,14 +2304,30 @@ const s = {
     letterSpacing: '-0.02em',
   },
   logoSep: {
-    color: '#dadce0',
+    color: '#cbd5e1',
     fontSize: 14,
     padding: '0 2px',
+    fontWeight: 300,
   },
   logoSub: {
     fontSize: 14,
     color: '#5f6368',
     fontWeight: 400,
+  },
+  logoBrand: {
+    fontSize: 15,
+    fontWeight: 800,
+    color: '#0f172a',
+    letterSpacing: '-0.03em',
+  },
+  logoCrumb: {
+    fontSize: 13,
+    color: '#64748b',
+    fontWeight: 500,
+    maxWidth: 320,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
   },
   topBarRight: {
     display: 'flex',
@@ -2274,20 +2338,24 @@ const s = {
     display: 'flex',
     alignItems: 'center',
     gap: 6,
-    background: '#f1f3f4',
-    border: '1px solid #dadce0',
-    borderRadius: 16,
-    padding: '4px 12px',
+    background: '#f8fafc',
+    border: '1px solid #e2e8f0',
+    borderRadius: 999,
+    padding: '6px 14px',
+    boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
   },
   healthDot: {
-    width: 6,
-    height: 6,
+    width: 7,
+    height: 7,
     borderRadius: '50%',
-    background: '#1e8e3e',
+    background: '#16a34a',
+    boxShadow: '0 0 0 2px rgba(22, 163, 74, 0.2)',
   },
   healthLabel: {
     fontSize: 12,
-    color: '#5f6368',
+    fontWeight: 600,
+    color: '#475569',
+    letterSpacing: '0.01em',
   },
   openApp: {
     display: 'flex',

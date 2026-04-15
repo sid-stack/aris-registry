@@ -49,6 +49,7 @@ import { fetchSolicitationText } from "./services/samGov.js";
 import { runAudit } from "./agents/auditPipeline.js";
 import { runMvpAudit, mvpAuditEnabled } from "./agents/mvpAudit.js";
 import { addToWaitlist, getWaitlist, getWaitlistStats, markInvited } from "./services/waitlist.js";
+import { subscribeNewsletter } from "./services/newsletterSubscribers.js";
 import { getAuditCache, setAuditCache, auditCacheStats } from "./services/auditCache.js";
 
 import multer from "multer";
@@ -1182,6 +1183,46 @@ app.post("/api/admin/pending-reports/:id/send", asyncHandler(async (req, res) =>
     res.json({ success: true, sent_to: report.user_email });
   } else {
     res.status(502).json({ error: "Email delivery failed — check SMTP configuration" });
+  }
+}));
+
+// ─── /api/newsletter/subscribe — Bid Brief email capture ─────────────────────────
+app.post("/api/newsletter/subscribe", apiLimiter, asyncHandler(async (req, res) => {
+  const raw = String(req.body?.email || "").trim();
+  const source = String(req.body?.source || "bid_brief_page").slice(0, 64);
+  if (!raw) {
+    return res.status(400).json({ error: "Email is required." });
+  }
+  if (raw.length > 320) {
+    return res.status(400).json({ error: "Email is too long." });
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)) {
+    return res.status(400).json({ error: "Invalid email address." });
+  }
+
+  try {
+    const result = await subscribeNewsletter(raw, { source });
+    logger.info("newsletter_subscribe", requestMeta(req, { email: raw.toLowerCase(), already: result.alreadySubscribed }));
+    res.json({
+      success: true,
+      alreadySubscribed: result.alreadySubscribed,
+      message: result.alreadySubscribed
+        ? "You're already on the list — thanks for your interest."
+        : "You're on the list. We'll send The Bid Brief to your inbox.",
+    });
+  } catch (e) {
+    const msg = String(e.message || "");
+    if (
+      msg.includes("Database not configured")
+      || /getaddrinfo|ECONNREFUSED|ETIMEDOUT|ENOTFOUND/i.test(msg)
+    ) {
+      logger.warn("newsletter_subscribe_db_unreachable", requestMeta(req, { detail: msg.slice(0, 120) }));
+      return res.status(503).json({
+        error:
+          "Can't reach the database from this environment. On local dev, point DATABASE_URL at a reachable Postgres (or test on Railway / staging).",
+      });
+    }
+    throw e;
   }
 }));
 

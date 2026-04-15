@@ -15,8 +15,8 @@ const AI_MARKDOWN_PALETTE = {
 const cs = {
   shell: {
     background: "#fff",
-    border: "1px solid #dadce0",
-    borderRadius: 8,
+    border: "1px solid #e2e8f0",
+    borderRadius: 14,
     display: "flex",
     flexDirection: "column",
     height: "100%",
@@ -24,17 +24,25 @@ const cs = {
     flex: 1,
     boxSizing: "border-box",
     overflow: "hidden",
+    boxShadow:
+      "0 4px 24px rgba(15, 23, 42, 0.06), 0 0 0 1px rgba(255, 255, 255, 0.9) inset",
   },
   header: {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: "12px 14px",
-    borderBottom: "1px solid #e8eaed",
+    padding: "14px 16px",
+    borderBottom: "1px solid #e2e8f0",
     flexShrink: 0,
+    background: "linear-gradient(180deg, #fafbfc 0%, #ffffff 100%)",
   },
-  headerLeft: { display: "flex", alignItems: "center", gap: 8 },
-  headerTitle: { fontSize: 13, fontWeight: 500, color: "#5f6368" },
+  headerLeft: { display: "flex", alignItems: "center", gap: 10 },
+  headerTitle: {
+    fontSize: 14,
+    fontWeight: 700,
+    color: "#334155",
+    letterSpacing: "-0.02em",
+  },
   badge: {
     fontSize: 10,
     fontWeight: 600,
@@ -129,11 +137,11 @@ const cs = {
   },
   textarea: {
     flex: 1,
-    background: "#f8f9fa",
-    border: "1px solid #dadce0",
-    borderRadius: 8,
-    padding: "10px 12px",
-    color: "#202124",
+    background: "#f8fafc",
+    border: "1px solid #e2e8f0",
+    borderRadius: 10,
+    padding: "11px 14px",
+    color: "#0f172a",
     fontSize: 14,
     fontFamily: "inherit",
     outline: "none",
@@ -141,20 +149,22 @@ const cs = {
     lineHeight: 1.45,
     maxHeight: 100,
     overflowY: "auto",
+    boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04) inset",
   },
   sendBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 10,
     flexShrink: 0,
-    background: "#1a73e8",
+    background: "linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%)",
     border: "none",
     color: "#fff",
     cursor: "pointer",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    transition: "opacity 0.15s",
+    transition: "opacity 0.15s, transform 0.12s",
+    boxShadow: "0 2px 8px rgba(37, 99, 235, 0.35)",
   },
 };
 
@@ -194,7 +204,7 @@ export default function WorkspaceChat({
   };
 
   return (
-    <div style={cs.shell}>
+    <div style={cs.shell} className="bento-app">
       <div style={cs.header}>
         <div style={cs.headerLeft}>
           <span
