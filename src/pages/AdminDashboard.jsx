@@ -9,8 +9,9 @@ import {
   Users, MousePointer2, TrendingUp, ShieldCheck,
   ArrowUpRight, Activity, Filter, RefreshCw, DollarSign,
   Globe, Zap, Database, Server, LogOut, Search, ChevronRight, Wallet,
-  FileText, Cpu, Layers, Terminal, Star, Mail, Send, CheckCircle
+  FileText, Cpu, Layers, Terminal, Star, Mail, Send, CheckCircle, Radio
 } from 'lucide-react';
+import { OutboundAbPanel } from '../components/OutboundAbPanel.jsx';
 
 const COLORS = ['#2563EB', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
 
@@ -274,6 +275,7 @@ const AdminDashboard = ({ onBack }) => {
           <NavBtn icon={<Layers size={18}/>} label="Redis Mesh Cache" active={activeTab === 'mesh'} onClick={() => setActiveTab('mesh')} />
           <NavBtn icon={<Star size={18}/>} label="Early Access List" active={activeTab === 'waitlist'} onClick={() => setActiveTab('waitlist')} />
           <NavBtn icon={<FileText size={18}/>} label="Pending Reports" active={activeTab === 'pending_reports'} onClick={() => setActiveTab('pending_reports')} />
+          <NavBtn icon={<Radio size={18}/>} label="Outbound A/B" active={activeTab === 'outbound'} onClick={() => setActiveTab('outbound')} />
 
           <div style={sh.navSeparator} />
           <NavBtn icon={<TrendingUp size={18}/>} label="Monetization HQ" onClick={() => window.open('https://dashboard.stripe.com', '_blank')} />
@@ -407,7 +409,7 @@ const AdminDashboard = ({ onBack }) => {
         )}
 
         {/* --- DYNAMIC TABLES --- */}
-        {activeTab !== 'overview' && activeTab !== 'waitlist' && activeTab !== 'pending_reports' && (
+        {activeTab !== 'overview' && activeTab !== 'waitlist' && activeTab !== 'pending_reports' && activeTab !== 'outbound' && (
           <div style={sh.tableContainer}>
              <div style={sh.tableHeader}>
                 <div style={sh.searchBox}>
@@ -747,6 +749,12 @@ const AdminDashboard = ({ onBack }) => {
                 )}
               </div>
             ))}
+          </div>
+        )}
+
+        {activeTab === 'outbound' && adminKey && (
+          <div style={{ padding: '0 32px 32px' }}>
+            <OutboundAbPanel />
           </div>
         )}
 

@@ -11,6 +11,7 @@ import { getBlogPost } from "./content/blogManifest";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { pathForView, WORKSPACE_PATH } from "./lib/routes";
+import { isAppOwner } from "./lib/appOwner.js";
 import { getComplianceRouteMeta } from "./seo/complianceRouteMeta";
 import DesktopOnlyGate from "./components/DesktopOnlyGate.jsx";
 
@@ -518,9 +519,13 @@ export default function App() {
       break;
     case "traffic-brief":
       content = authLoading ? loadingScreen : (
-        <DesktopOnlyGate onBackHome={goLanding}>
-          {authenticated ? <TrafficBrief onBack={goLanding} /> : <DashboardSignInShell onBackHome={goLanding} />}
-        </DesktopOnlyGate>
+        user && isAppOwner(user) ? (
+          <DesktopOnlyGate onBackHome={goLanding}>
+            <TrafficBrief onBack={goLanding} />
+          </DesktopOnlyGate>
+        ) : (
+          <NotFound onBack={goLanding} />
+        )
       );
       break;
     case "resources":
@@ -598,6 +603,7 @@ export default function App() {
           onGoHome={goLanding}
           isAuthenticated={Boolean(authenticated && user)}
           userEmail={user?.email || ""}
+          isAppOwner={Boolean(user && isAppOwner(user))}
         />
       );
       break;

@@ -116,6 +116,8 @@ export default function Landing({
   onGoHome,
   isAuthenticated = false,
   userEmail = "",
+  /** Clerk user matches VITE_APP_OWNER_* — show internal nav (Resources, Traffic Brief). */
+  isAppOwner = false,
 }) {
   const [isMobile, setIsMobile] = useState(typeof window !== "undefined" && window.innerWidth < 768);
   const [heroVideoError, setHeroVideoError] = useState(false);
@@ -179,9 +181,13 @@ export default function Landing({
             <nav style={{ display: "flex", gap: 4, alignItems: "center" }}>
               <a href="/pricing" style={S.navLink} className="landing-nav-link-item">Pricing</a>
               <button style={S.navLink} className="landing-nav-link-item" onClick={() => onViewSample?.()}>Demo</button>
-              <a href="/resources" style={S.navLink} className="landing-nav-link-item">Resources</a>
+              {isAppOwner && (
+                <a href="/resources" style={S.navLink} className="landing-nav-link-item">Resources</a>
+              )}
               <a href="/newsletter" style={S.navLink} className="landing-nav-link-item">Newsletter</a>
-              <a href="/traffic-brief" style={S.navLink} className="landing-nav-link-item">Traffic Brief</a>
+              {isAppOwner && (
+                <a href="/traffic-brief" style={S.navLink} className="landing-nav-link-item">Traffic Brief</a>
+              )}
               <a href="https://arislabs.mintlify.app/" target="_blank" rel="noopener noreferrer" style={S.navLink} className="landing-nav-link-item">Docs</a>
             </nav>
           )}
@@ -806,7 +812,12 @@ export default function Landing({
           <div style={{ display: "flex", gap: 40, flexWrap: "wrap", alignItems: "flex-start" }}>
             <div>
               <p style={{ fontSize: 11, fontWeight: 800, color: "#e2e8f0", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 12 }}>Product</p>
-              {[["Open App", WORKSPACE_PATH], ["Pricing", "/pricing"], ["Resources", "/resources"], ["Docs", "https://arislabs.mintlify.app/"]].map(([label, href]) => (
+              {[
+                ["Open App", WORKSPACE_PATH],
+                ["Pricing", "/pricing"],
+                ...(isAppOwner ? [["Resources", "/resources"]] : []),
+                ["Docs", "https://arislabs.mintlify.app/"],
+              ].map(([label, href]) => (
                 <a key={label} href={href} target={href.startsWith("http") ? "_blank" : undefined} rel="noopener noreferrer" style={{ display: "block", fontSize: 13, color: "#e2e8f0", marginBottom: 8, textDecoration: "none" }}>{label}</a>
               ))}
             </div>

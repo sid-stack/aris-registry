@@ -1,0 +1,34 @@
+---
+description: BidSmith GTM — positioning vs Sweetspot, PLG wedge, personas, channels, 90-day plan
+alwaysApply: true
+---
+
+# BidSmith Marketing Blueprint (rule)
+
+**Canonical doc:** `bidsmith-marketing-blueprint.md` at repo root — read it for full templates, SEO table, 90-day checklist, and anti-Sweetspot copy.
+
+## Spine (always align work to this)
+
+- **Position:** GovCon tool for firms Sweetspot priced out — 10k firms below enterprise; matrices still in Word.
+- **Wedge:** Free tool, no demo, **~60s to value**; PLG CAC Sweetspot cannot match at $99-style ARPA.
+- **Voice:** Direct, blunt, founder-led; cite specifics; never generic enterprise SaaS tone.
+- **ICP order:** Overwhelmed BD Manager → Founder doing BD → Proposal Manager (champion).
+- **Conversion thesis:** Lead with **Free**; highest intent at **export / XLSX paywall** — optimize that wall.
+
+## When editing product or site
+
+- Pricing/positioning copy should not contradict the blueprint without explicit product decision; live Stripe tiers live in `src/lib/pricing.js` — reconcile naming (Solo/Team/Growth vs Starter/Pro/Enterprise) if marketing doc and code diverge.
+
+## Weekly metrics (from blueprint)
+
+1. Free tool activations  
+2. Free → paid % (target 4–6%)  
+3. Invites per paying customer (viral coefficient)
+
+## Immediate execution order (when user asks for GTM)
+
+1. Cold email cadence (30+/day)  
+2. Founder LinkedIn (3x/week)  
+3. Ship free-tool wall (e.g. 3-row teaser → signup)  
+4. Pricing page leads with Free  
+5. Pull one user quote for social proof

@@ -42,6 +42,9 @@ import {
 import { createClerkClient } from "@clerk/backend";
 import { recordAnalyticsEvent, getAdminStats, getTrafficBrief, saveAudit, getAuditHistory, getAuditById, savePendingReport, getPendingReports, getPendingReportById, markReportSent, updateReportNotes, markAuditPaid, checkAuditPaid } from "./services/analytics.js";
 import { sendTrafficBriefNow, startTrafficBriefScheduler } from "./services/trafficBriefScheduler.js";
+import { getAbResultsSnapshot } from "./services/outboundAb.js";
+import { instantlyWebhookRouter } from "./routes/instantlyWebhook.js";
+import { startOutboundScheduler } from "./jobs/outboundScheduler.js";
 import { fetchSolicitationText } from "./services/samGov.js";
 import { runAudit } from "./agents/auditPipeline.js";
 import { runMvpAudit, mvpAuditEnabled } from "./agents/mvpAudit.js";
@@ -294,6 +297,7 @@ app.post(
 
 app.use(express.json());
 app.use(cors());
+app.use("/api/webhooks/instantly", instantlyWebhookRouter);
 app.use(requestId);
 app.use(requestLogger);
 
@@ -1081,6 +1085,12 @@ app.get("/api/admin/traffic-brief", asyncHandler(async (req, res) => {
   res.json(brief);
 }));
 
+app.get("/api/admin/ab-results", asyncHandler(async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  const snap = await getAbResultsSnapshot();
+  res.json({ variants: snap.variants, summary: snap.summary });
+}));
+
 app.post("/api/admin/traffic-brief/send-now", asyncHandler(async (req, res) => {
   if (!requireAdmin(req, res)) return;
   const result = await sendTrafficBriefNow("manual_endpoint");
@@ -1692,5 +1702,6 @@ app.listen(PORT, () => {
       trust_proxy: trustProxySetting,
     });
     startTrafficBriefScheduler();
+    startOutboundScheduler();
   })();
 });

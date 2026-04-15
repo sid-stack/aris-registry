@@ -20,6 +20,8 @@
     "cypress:open": "cypress open",
     "leads": "node scripts/lead_gen_auto.js",
     "leads:dry": "node scripts/lead_gen_auto.js --dry-run",
+    "instantly:activate": "node --import dotenv/config scripts/instantly-campaign.mjs activate",
+    "instantly:pause": "node --import dotenv/config scripts/instantly-campaign.mjs pause",
     "audit:contrast": "node scripts/contrast-audit.mjs",
     "screenshot:audit": "node scripts/screenshot-audit.mjs"
   },

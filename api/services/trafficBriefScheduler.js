@@ -1,5 +1,6 @@
 import { sendEmail } from "../utils/mailer.js";
 import { claimDailyJobRun, getTrafficBrief } from "./analytics.js";
+import { getAbResultsSnapshot, renderOutboundAbBriefHtml } from "./outboundAb.js";
 
 /** Default 08:00 India time — override with TRAFFIC_BRIEF_TIMEZONE / HOUR / MINUTE. */
 const DEFAULT_TIMEZONE = process.env.TRAFFIC_BRIEF_TIMEZONE || "Asia/Kolkata";
@@ -87,7 +88,7 @@ function buildHealthSummary(summary = {}) {
   };
 }
 
-function buildHtml(brief) {
+function buildHtml(brief, outboundHtml = "") {
   const summary = brief.summary || {};
   const health = buildHealthSummary(summary);
   const generatedAt = brief.generated_at
@@ -179,6 +180,8 @@ function buildHtml(brief) {
         </table>
       </div>
 
+      ${outboundHtml}
+
       <p style="margin:0;color:#475569">Open dashboards: <a href="${DASHBOARD_URL}">${DASHBOARD_URL}</a> | <a href="${ADMIN_URL}">${ADMIN_URL}</a></p>
     </div>
   `;
@@ -190,8 +193,16 @@ export async function sendTrafficBriefNow(trigger = "manual") {
   if (brief.error) return { success: false, error: brief.error };
   const health = buildHealthSummary(brief.summary);
 
+  let outboundSection = "";
+  try {
+    const ab = await getAbResultsSnapshot();
+    outboundSection = renderOutboundAbBriefHtml(ab.variants || []);
+  } catch {
+    outboundSection = "";
+  }
+
   const subject = `[BidSmith ${DEFAULT_TIMEZONE}] Daily brief — ${brief.summary?.visitors_yesterday || 0} visitors, ${brief.summary?.audits_yesterday || 0} audits`;
-  const html = buildHtml(brief);
+  const html = buildHtml(brief, outboundSection);
   const ok = await sendEmail({
     to: recipients.join(","),
     subject,
