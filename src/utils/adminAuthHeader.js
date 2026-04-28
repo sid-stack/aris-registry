@@ -6,6 +6,13 @@ export function getStoredAdminPassword() {
   return window.localStorage.getItem(ADMIN_API_KEY_STORAGE) || "";
 }
 
+/** Clear stored admin token (e.g. after 401 or password rotation). */
+export function clearStoredAdminPassword() {
+  if (typeof window !== "undefined") {
+    window.localStorage.removeItem(ADMIN_API_KEY_STORAGE);
+  }
+}
+
 /** Headers for authenticated admin API calls. */
 export function adminAuthHeaders(extra = {}) {
   const token = getStoredAdminPassword();

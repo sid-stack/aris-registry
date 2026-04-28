@@ -5,15 +5,18 @@ export function isBidSmithProductionSurfaceHost() {
   return h === "www.bidsmith.pro" || h === "bidsmith.pro";
 }
 
+const ADSBYGOOGLE_SCRIPT_ID = "bidsmith-adsbygoogle-script";
+
 /** Injects the global adsbygoogle script once when a slot may render (AdSenseContainer). */
 export function ensureAdsbygoogleScript(clientId) {
   if (!clientId || !isBidSmithProductionSurfaceHost()) return;
-  if (document.querySelector("script[data-bidsmith-adsbygoogle=\"1\"]")) return;
+  // AdSense validates the loader script tag — custom data-* attributes cause a console error.
+  if (document.getElementById(ADSBYGOOGLE_SCRIPT_ID)) return;
 
   const s = document.createElement("script");
+  s.id = ADSBYGOOGLE_SCRIPT_ID;
   s.async = true;
   s.crossOrigin = "anonymous";
-  s.dataset.bidsmithAdsbygoogle = "1";
   s.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${encodeURIComponent(clientId)}`;
   document.head.appendChild(s);
 }

@@ -1,5 +1,5 @@
 import pg from "pg";
-import { auditEngagementTypesSqlIn } from "../analyticsEventTaxonomy.js";
+import { auditEngagementTypesSqlIn, INGEST_SERVER_TRUTH } from "../analyticsEventTaxonomy.js";
 
 const { Pool } = pg;
 
@@ -250,6 +250,86 @@ export async function recordAnalyticsEvent(event) {
   } catch (err) {
     console.error("[ANALYTICS] record_failed", err.message);
     return false;
+  }
+}
+
+/**
+ * Server-side funnel events (bypasses ad-blockers; use as source of truth in /api/admin/observability).
+ */
+export async function emitServerTruthEvent({
+  uid,
+  eventType,
+  value = 0,
+  page = "",
+  path = "/api",
+  metadata = {},
+}) {
+  return recordAnalyticsEvent({
+    uid: uid || "anonymous",
+    eventType: eventType || "unknown",
+    value,
+    page,
+    path,
+    metadata: { ...metadata, ingest: INGEST_SERVER_TRUTH },
+  });
+}
+
+/** 14-day (default) observability rollup: server truth vs client /api/track shadow. */
+export async function getObservabilityReport({ days = 14 } = {}) {
+  if (!analyticsDb) return { error: "Database not configured" };
+  try {
+    await ensureAnalyticsSchema();
+    const d = Math.max(1, Math.min(90, Number(days) || 14));
+
+    const [serverTruth, clientShadow, topClientEvents] = await Promise.all([
+      analyticsDb.query(
+        `SELECT event_type, COUNT(*)::int AS count
+         FROM analytics_events
+         WHERE created_at >= NOW() - ($1::int * INTERVAL '1 day')
+           AND metadata->>'ingest' = $2
+         GROUP BY event_type
+         ORDER BY count DESC`,
+        [d, INGEST_SERVER_TRUTH],
+      ),
+      analyticsDb.query(
+        `SELECT COUNT(*)::int AS count
+         FROM analytics_events
+         WHERE created_at >= NOW() - ($1::int * INTERVAL '1 day')
+           AND event_type = 'audit_submitted'
+           AND (metadata->>'ingest' IS DISTINCT FROM $2)`,
+        [d, INGEST_SERVER_TRUTH],
+      ),
+      analyticsDb.query(
+        `SELECT event_type, COUNT(*)::int AS count
+         FROM analytics_events
+         WHERE created_at >= NOW() - ($1::int * INTERVAL '1 day')
+           AND (metadata->>'ingest' IS DISTINCT FROM $2 OR metadata->>'ingest' IS NULL)
+         GROUP BY event_type
+         ORDER BY count DESC
+         LIMIT 25`,
+        [d, INGEST_SERVER_TRUTH],
+      ),
+    ]);
+
+    const stRows = serverTruth.rows || [];
+    const serverAuditSuccess = stRows.find((r) => r.event_type === "audit_success");
+    const clientSubmitted = clientShadow.rows[0]?.count ?? 0;
+
+    return {
+      window_days: d,
+      ingest_key: INGEST_SERVER_TRUTH,
+      server_truth_by_event: stRows,
+      primary_funnel_hint: {
+        server_audit_success: serverAuditSuccess?.count ?? 0,
+        client_audit_submitted_shadow: clientSubmitted,
+        note:
+          "Trust server_truth audit_success for completed audits. Client audit_submitted may be blocked or duplicated.",
+      },
+      client_shadow_top_events: topClientEvents.rows || [],
+    };
+  } catch (err) {
+    console.error("[OBSERVABILITY] report_failed", err.message);
+    return { error: err.message };
   }
 }
 
@@ -535,6 +615,12 @@ export async function getAdminStats() {
       analyticsDb.query(`
         SELECT
           (SELECT COUNT(DISTINCT uid) FROM analytics_events
+            WHERE created_at >= date_trunc('day', now()) AND created_at <= now()
+              AND event_type = 'page_view') AS visitors_today,
+          (SELECT COUNT(*) FROM analytics_events
+            WHERE created_at >= date_trunc('day', now()) AND created_at <= now()
+              AND event_type = 'page_view') AS pageviews_today,
+          (SELECT COUNT(DISTINCT uid) FROM analytics_events
             WHERE created_at >= NOW() - INTERVAL '7 days' AND event_type = 'page_view') AS unique_visitors_7d,
           (SELECT COUNT(*) FROM analytics_events WHERE created_at >= NOW() - INTERVAL '24 hours') AS events_24h,
           (SELECT COUNT(*) FROM analytics_events
@@ -580,6 +666,8 @@ export async function getAdminStats() {
         rows: recentEvents.rows,
       },
       traffic_summary: {
+        visitors_today: Number(ts.visitors_today || 0),
+        pageviews_today: Number(ts.pageviews_today || 0),
         unique_visitors_7d: Number(ts.unique_visitors_7d || 0),
         events_24h: Number(ts.events_24h || 0),
         page_views_7d: Number(ts.page_views_7d || 0),

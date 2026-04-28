@@ -3,8 +3,9 @@ import { adminAuthHeaders } from "../utils/adminAuthHeader";
 
 /**
  * Admin-only outbound A/B snapshot (reads `ab_results` written by API scheduler).
+ * @param {{ onUnauthorized?: () => void }} props
  */
-export function OutboundAbPanel() {
+export function OutboundAbPanel({ onUnauthorized } = {}) {
   const [results, setResults] = useState([]);
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -18,6 +19,10 @@ export function OutboundAbPanel() {
       try {
         const res = await fetch("/api/admin/ab-results", { headers: adminAuthHeaders() });
         const data = await res.json();
+        if (res.status === 401) {
+          onUnauthorized?.();
+          return;
+        }
         if (!res.ok) throw new Error(data.error || res.statusText);
         if (!cancelled) {
           setResults(data.variants || []);
@@ -30,7 +35,7 @@ export function OutboundAbPanel() {
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [onUnauthorized]);
 
   if (loading) {
     return <p style={{ color: "#94a3b8", margin: 0 }}>Loading outbound A/B…</p>;

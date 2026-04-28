@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { devWarn } from '../utils/devLog';
-import { ADMIN_API_KEY_STORAGE, adminAuthHeaders, getStoredAdminPassword } from '../utils/adminAuthHeader';
+import { ADMIN_API_KEY_STORAGE, adminAuthHeaders, clearStoredAdminPassword, getStoredAdminPassword } from '../utils/adminAuthHeader';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   AreaChart, Area, BarChart, Bar, Cell, PieChart, Pie
@@ -9,7 +9,7 @@ import {
   Users, MousePointer2, TrendingUp, ShieldCheck,
   ArrowUpRight, Activity, Filter, RefreshCw, DollarSign,
   Globe, Zap, Database, Server, LogOut, Search, ChevronRight, Wallet,
-  FileText, Cpu, Layers, Terminal, Star, Mail, Send, CheckCircle, Radio
+  FileText, Cpu, Layers, Terminal, Star, Mail, Send, CheckCircle, Radio, Eye
 } from 'lucide-react';
 import { OutboundAbPanel } from '../components/OutboundAbPanel.jsx';
 
@@ -44,6 +44,47 @@ const AdminDashboard = ({ onBack }) => {
   const [sendingReport, setSendingReport] = useState(null);
   const [sendResult, setSendResult] = useState({});
 
+  const [observability, setObservability] = useState(null);
+  const [observabilityLoading, setObservabilityLoading] = useState(false);
+  const [observabilityDays, setObservabilityDays] = useState(14);
+
+  const invalidateAdminSession = useCallback((message) => {
+    clearStoredAdminPassword();
+    setAdminKey('');
+    setStats(null);
+    setObservability(null);
+    setWaitlist([]);
+    setWaitlistStats(null);
+    setPendingReports([]);
+    setLoading(false);
+    setObservabilityLoading(false);
+    setWaitlistLoading(false);
+    setPendingLoading(false);
+    setError(
+      message ||
+        'That admin secret was rejected by the server. Re-enter the same value as ADMIN_PASSWORD on the API (no extra spaces).',
+    );
+  }, []);
+
+  const fetchObservability = useCallback(async () => {
+    if (!adminKey) return;
+    setObservabilityLoading(true);
+    try {
+      const res = await fetch(`/api/admin/observability?days=${observabilityDays}`, { headers: adminAuthHeaders() });
+      const data = await res.json();
+      if (res.status === 401) {
+        invalidateAdminSession();
+        return;
+      }
+      setObservability(data);
+    } catch (e) {
+      devWarn('observability fetch failed', e);
+      setObservability({ error: e.message || 'fetch failed' });
+    } finally {
+      setObservabilityLoading(false);
+    }
+  }, [adminKey, observabilityDays, invalidateAdminSession]);
+
   const fetchStats = useCallback(async () => {
     if (!adminKey) {
       setLoading(false);
@@ -56,7 +97,10 @@ const AdminDashboard = ({ onBack }) => {
     try {
       const res = await fetch('/api/admin/stats', { headers: adminAuthHeaders() });
       const data = await res.json();
-      if (res.status === 401) throw new Error('Unauthorized — check ADMIN_PASSWORD.');
+      if (res.status === 401) {
+        invalidateAdminSession();
+        return;
+      }
       if (data.error) {
         setStats({ error: data.error, traffic_summary: null, beta_signups: { total: 0, rows: [] } });
         setError(null);
@@ -70,9 +114,13 @@ const AdminDashboard = ({ onBack }) => {
     } finally {
       setLoading(false);
     }
-  }, [adminKey]);
+  }, [adminKey, invalidateAdminSession]);
 
   useEffect(() => { fetchStats(); }, [fetchStats]);
+
+  useEffect(() => {
+    if (activeTab === 'observability' && adminKey) fetchObservability();
+  }, [activeTab, adminKey, fetchObservability]);
 
   const fetchWaitlist = async () => {
     if (!adminKey) return;
@@ -80,6 +128,10 @@ const AdminDashboard = ({ onBack }) => {
     try {
       const res = await fetch('/api/waitlist/list', { headers: adminAuthHeaders() });
       const data = await res.json();
+      if (res.status === 401) {
+        invalidateAdminSession();
+        return;
+      }
       setWaitlist(data.entries || []);
       setWaitlistStats(data.stats || {});
     } catch (e) { devWarn('waitlist fetch failed', e); }
@@ -96,6 +148,10 @@ const AdminDashboard = ({ onBack }) => {
     try {
       const res = await fetch('/api/admin/pending-reports', { headers: adminAuthHeaders() });
       const data = await res.json();
+      if (res.status === 401) {
+        invalidateAdminSession();
+        return;
+      }
       setPendingReports(data.reports || []);
       const notes = {};
       (data.reports || []).forEach(r => { notes[r.id] = r.admin_notes || ''; });
@@ -109,11 +165,12 @@ const AdminDashboard = ({ onBack }) => {
   }, [activeTab, adminKey]);
 
   const saveNotes = async (id) => {
-    await fetch(`/api/admin/pending-reports/${id}/notes`, {
+    const res = await fetch(`/api/admin/pending-reports/${id}/notes`, {
       method: 'PATCH',
       headers: adminAuthHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ notes: reportNotes[id] || '' }),
     });
+    if (res.status === 401) invalidateAdminSession();
   };
 
   const sendReport = async (id) => {
@@ -125,6 +182,10 @@ const AdminDashboard = ({ onBack }) => {
         method: 'POST',
         headers: adminAuthHeaders(),
       });
+      if (res.status === 401) {
+        invalidateAdminSession();
+        return;
+      }
       const data = await res.json();
       if (data.success) {
         setSendResult(prev => ({ ...prev, [id]: `Sent to ${data.sent_to}` }));
@@ -148,6 +209,10 @@ const AdminDashboard = ({ onBack }) => {
         headers: adminAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ ids: selectedIds, custom_message: inviteMsg || undefined })
       });
+      if (res.status === 401) {
+        invalidateAdminSession();
+        return;
+      }
       const data = await res.json();
       setInviteResult(`✓ Sent ${data.sent} invite${data.sent !== 1 ? 's' : ''}`);
       setSelectedIds([]);
@@ -204,6 +269,14 @@ const AdminDashboard = ({ onBack }) => {
             Enter the same secret as <code style={{ color: '#e2e8f0' }}>ADMIN_PASSWORD</code> in your server environment.
             It is stored only in this browser as a Bearer token for admin endpoints.
           </p>
+          {error && (
+            <div style={{
+              marginBottom: 14, padding: '10px 12px', borderRadius: 8, background: '#451a1a',
+              border: '1px solid #7f1d1d', color: '#fecaca', fontSize: 13, lineHeight: 1.5,
+            }}>
+              {error}
+            </div>
+          )}
           <input
             type="password"
             autoComplete="off"
@@ -269,6 +342,7 @@ const AdminDashboard = ({ onBack }) => {
         <nav style={sh.sideNav}>
           <NavBtn icon={<Activity size={18}/>} label="Executive Overview" active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} />
           <NavBtn icon={<Users size={18}/>} label="Beta signups" active={activeTab === 'leads'} onClick={() => setActiveTab('leads')} />
+          <NavBtn icon={<Eye size={18}/>} label="Data observability" active={activeTab === 'observability'} onClick={() => setActiveTab('observability')} />
           <NavBtn icon={<MousePointer2 size={18}/>} label="Anonymous Events" active={activeTab === 'events'} onClick={() => setActiveTab('events')} />
           <NavBtn icon={<Cpu size={18}/>} label="Logic Library" active={activeTab === 'logic'} onClick={() => setActiveTab('logic')} />
           <NavBtn icon={<Wallet size={18}/>} label="Stripe Transactions" active={activeTab === 'stripe_logs'} onClick={() => setActiveTab('stripe_logs')} />
@@ -285,9 +359,10 @@ const AdminDashboard = ({ onBack }) => {
         <button
           type="button"
           onClick={() => {
-            window.localStorage.removeItem(ADMIN_API_KEY_STORAGE);
+            clearStoredAdminPassword();
             setAdminKey('');
             setStats(null);
+            setObservability(null);
             setError(null);
           }}
           style={{ ...sh.sidebarFooter, marginBottom: 8, border: '1px solid #334155', background: 'transparent' }}
@@ -311,9 +386,16 @@ const AdminDashboard = ({ onBack }) => {
               <div style={sh.pingAnimation} />
               <span style={{ fontSize: 12, fontWeight: 700, color: '#10B981' }}>STRIPE_LIVE_FEED</span>
             </div>
-            <button style={sh.refreshAction} onClick={fetchStats} disabled={loading}>
-              <RefreshCw size={14} style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }} />
-              {loading ? 'SYNCING...' : 'REFRESH'}
+            <button
+              style={sh.refreshAction}
+              onClick={() => {
+                fetchStats();
+                if (activeTab === 'observability' && adminKey) fetchObservability();
+              }}
+              disabled={loading || (activeTab === 'observability' && observabilityLoading)}
+            >
+              <RefreshCw size={14} style={{ animation: loading || observabilityLoading ? 'spin 1s linear infinite' : 'none' }} />
+              {loading || observabilityLoading ? 'SYNCING...' : 'REFRESH'}
             </button>
           </div>
         </header>
@@ -332,7 +414,9 @@ const AdminDashboard = ({ onBack }) => {
             margin: '0 0 12px', padding: '10px 14px', borderRadius: 8, background: '#0f172a',
             border: '1px solid #334155', color: '#cbd5e1', fontSize: 13, lineHeight: 1.55,
           }}>
-            <strong>Site visitors (distinct cookie UIDs, 7d):</strong> {traffic.unique_visitors_7d}
+            <strong>Unique visitors (today, page_view):</strong> {traffic.visitors_today ?? 0}
+            {' · '}<strong>Page views (today):</strong> {traffic.pageviews_today ?? 0}
+            {' · '}<strong>Site visitors (7d, distinct UIDs):</strong> {traffic.unique_visitors_7d}
             {' · '}<strong>All events (24h):</strong> {traffic.events_24h}
             {' · '}<strong>Page views (7d):</strong> {traffic.page_views_7d}
             {' · '}<strong>Audit engagement (30d):</strong> {traffic.audit_engagement_30d}
@@ -752,9 +836,126 @@ const AdminDashboard = ({ onBack }) => {
           </div>
         )}
 
+        {activeTab === 'observability' && adminKey && (
+          <div style={{ padding: '0 32px 32px' }}>
+            <div style={{ ...sh.card, marginBottom: 16 }}>
+              <div style={{ ...sh.cardHeader, flexWrap: 'wrap', gap: 12 }}>
+                <div>
+                  <h2 style={sh.cardTitle}>Server-truth vs client shadow</h2>
+                  <p style={{ margin: '6px 0 0', fontSize: 13, color: '#94a3b8', lineHeight: 1.5 }}>
+                    API-emitted events carry <code style={{ color: '#e2e8f0' }}>metadata.ingest = server_truth</code>.
+                    Compare to browser <code style={{ color: '#e2e8f0' }}>/api/track</code> counts (ad-blockers, duplicates).
+                  </p>
+                </div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#cbd5e1' }}>
+                  Window (days)
+                  <select
+                    value={observabilityDays}
+                    onChange={(e) => setObservabilityDays(Number(e.target.value))}
+                    style={{
+                      background: '#0f172a', color: '#f8fafc', border: '1px solid #334155',
+                      borderRadius: 6, padding: '6px 10px', fontSize: 13,
+                    }}
+                  >
+                    {[7, 14, 30, 90].map((d) => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            </div>
+
+            {observability?.error && (
+              <div style={{
+                margin: '0 0 16px', padding: '12px 14px', borderRadius: 8, background: '#451a1a',
+                border: '1px solid #7f1d1d', color: '#fecaca', fontSize: 13,
+              }}>
+                <strong>Observability:</strong> {observability.error}
+              </div>
+            )}
+
+            {!observability?.error && observability?.primary_funnel_hint && (
+              <div style={{
+                marginBottom: 16, padding: '14px 16px', borderRadius: 8, background: '#0f172a',
+                border: '1px solid #334155', color: '#f8fafc',
+              }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', marginBottom: 8 }}>Primary funnel (hint)</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, fontSize: 15 }}>
+                  <div>
+                    <strong style={{ color: '#10B981' }}>Server audit_success</strong>
+                    <div style={{ fontSize: 22, fontWeight: 800 }}>{observability.primary_funnel_hint.server_audit_success}</div>
+                  </div>
+                  <div>
+                    <strong style={{ color: '#fbbf24' }}>Client audit_submitted (shadow)</strong>
+                    <div style={{ fontSize: 22, fontWeight: 800 }}>{observability.primary_funnel_hint.client_audit_submitted_shadow}</div>
+                  </div>
+                </div>
+                <p style={{ margin: '12px 0 0', fontSize: 13, color: '#cbd5e1', lineHeight: 1.55 }}>
+                  {observability.primary_funnel_hint.note}
+                </p>
+              </div>
+            )}
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16 }}>
+              <div style={sh.card}>
+                <div style={sh.cardHeader}>
+                  <h3 style={{ ...sh.cardTitle, fontSize: 16 }}>Server truth by event</h3>
+                  <span style={{ fontSize: 12, color: '#64748b' }}>{observabilityDays}d</span>
+                </div>
+                {observabilityLoading && !observability?.server_truth_by_event ? (
+                  <p style={{ color: '#94a3b8', fontSize: 13 }}>Loading…</p>
+                ) : (
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                    <thead>
+                      <tr>
+                        <th style={{ ...sh.th, textAlign: 'left' }}>event_type</th>
+                        <th style={{ ...sh.th, textAlign: 'right' }}>count</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(observability?.server_truth_by_event || []).map((row) => (
+                        <tr key={row.event_type}>
+                          <td style={{ ...sh.td, color: '#e2e8f0' }}>{row.event_type}</td>
+                          <td style={{ ...sh.td, textAlign: 'right', fontWeight: 700 }}>{row.count}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+              <div style={sh.card}>
+                <div style={sh.cardHeader}>
+                  <h3 style={{ ...sh.cardTitle, fontSize: 16 }}>Top client / mixed events</h3>
+                  <span style={{ fontSize: 12, color: '#64748b' }}>not server_truth</span>
+                </div>
+                {observabilityLoading && !observability?.client_shadow_top_events ? (
+                  <p style={{ color: '#94a3b8', fontSize: 13 }}>Loading…</p>
+                ) : (
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                    <thead>
+                      <tr>
+                        <th style={{ ...sh.th, textAlign: 'left' }}>event_type</th>
+                        <th style={{ ...sh.th, textAlign: 'right' }}>count</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(observability?.client_shadow_top_events || []).map((row) => (
+                        <tr key={row.event_type}>
+                          <td style={{ ...sh.td, color: '#e2e8f0' }}>{row.event_type}</td>
+                          <td style={{ ...sh.td, textAlign: 'right', fontWeight: 700 }}>{row.count}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {activeTab === 'outbound' && adminKey && (
           <div style={{ padding: '0 32px 32px' }}>
-            <OutboundAbPanel />
+            <OutboundAbPanel onUnauthorized={invalidateAdminSession} />
           </div>
         )}
 

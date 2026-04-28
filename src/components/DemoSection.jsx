@@ -63,8 +63,10 @@ export default function DemoSection({ onTryDemo }) {
                   style={styles.video}
                   onError={() => setVideoError(true)}
                 >
-                  <source src="/assets/demo/aris-demo.mp4" type="video/mp4" />
+                  {/* Lightweight MP4 first; the larger /assets/demo/* file is actually a
+                      QuickTime container and is kept only as a legacy fallback. */}
                   <source src="/aris-demo.mp4" type="video/mp4" />
+                  <source src="/assets/demo/aris-demo.mp4" type="video/mp4" />
                 </video>
               )}
             </div>

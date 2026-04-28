@@ -40,7 +40,23 @@ import {
   stripe,
 } from "./services/stripe.js";
 import { createClerkClient } from "@clerk/backend";
-import { recordAnalyticsEvent, getAdminStats, getTrafficBrief, saveAudit, getAuditHistory, getAuditById, savePendingReport, getPendingReports, getPendingReportById, markReportSent, updateReportNotes, markAuditPaid, checkAuditPaid } from "./services/analytics.js";
+import {
+  recordAnalyticsEvent,
+  emitServerTruthEvent,
+  getAdminStats,
+  getObservabilityReport,
+  getTrafficBrief,
+  saveAudit,
+  getAuditHistory,
+  getAuditById,
+  savePendingReport,
+  getPendingReports,
+  getPendingReportById,
+  markReportSent,
+  updateReportNotes,
+  markAuditPaid,
+  checkAuditPaid,
+} from "./services/analytics.js";
 import { sendTrafficBriefNow, startTrafficBriefScheduler } from "./services/trafficBriefScheduler.js";
 import { getAbResultsSnapshot } from "./services/outboundAb.js";
 import { instantlyWebhookRouter } from "./routes/instantlyWebhook.js";
@@ -255,7 +271,7 @@ app.post(
         return res.status(500).send(ent.code);
       }
 
-      await recordAnalyticsEvent({
+      await emitServerTruthEvent({
         uid,
         eventType: "checkout_completed",
         value: amountCents / 100,
@@ -768,6 +784,14 @@ app.post("/api/audit/pdf", anonymousFreeAuditLimiter, upload.single("file"), asy
 
   const credit = await consumeFreeAuditCredit(req);
   if (!credit.ok) {
+    void emitServerTruthEvent({
+      uid: userId,
+      eventType: "audit_quota_blocked",
+      value: 1,
+      page: filename?.slice(0, 200) || "pdf",
+      path: "/api/audit/pdf",
+      metadata: { source: "pdf", code: credit.body?.code || credit.status, request_id: rid },
+    }).catch(() => {});
     return res.status(credit.status).json(credit.body);
   }
 
@@ -790,6 +814,20 @@ app.post("/api/audit/pdf", anonymousFreeAuditLimiter, upload.single("file"), asy
       total_ms: Date.now() - t0,
     }));
 
+    void emitServerTruthEvent({
+      uid: userId,
+      eventType: "audit_success",
+      value: (Date.now() - t0) / 1000,
+      page: filename?.slice(0, 200) || "pdf",
+      path: "/api/audit/pdf",
+      metadata: {
+        source: "pdf",
+        solicitation_id: result.solicitation_number || meta.id,
+        verdict: result.verdict?.recommendation,
+        request_id: rid,
+      },
+    }).catch(() => {});
+
     savePendingReport({
       uid: userId, user_email: userEmail,
       sam_url: null,
@@ -808,6 +846,14 @@ app.post("/api/audit/pdf", anonymousFreeAuditLimiter, upload.single("file"), asy
       error: err.message, stack: err.stack?.split("\n")[1],
       elapsed_ms: Date.now() - t2,
     }));
+    void emitServerTruthEvent({
+      uid: userId,
+      eventType: "audit_pipeline_failed",
+      value: 1,
+      page: filename?.slice(0, 200) || "pdf",
+      path: "/api/audit/pdf",
+      metadata: { source: "pdf", stage: "inference", request_id: rid },
+    }).catch(() => {});
     // Graceful fallback — never crash the UI
     return res.status(202).json({
       queued: true,
@@ -832,11 +878,27 @@ app.post("/api/audit/text", anonymousFreeAuditLimiter, apiLimiter, asyncHandler(
 
   const credit = await consumeFreeAuditCredit(req);
   if (!credit.ok) {
+    void emitServerTruthEvent({
+      uid: userId,
+      eventType: "audit_quota_blocked",
+      value: 1,
+      page: "/api/audit/text",
+      path: "/api/audit/text",
+      metadata: { source: "text", code: credit.body?.code || credit.status, request_id: req.id },
+    }).catch(() => {});
     return res.status(credit.status).json(credit.body);
   }
 
   const rawResult = await runAuditOrchestrated(text.trim(), { id: "TEXT_AUDIT", title: "Pasted Solicitation", agency: "Unknown", value: "0" });
   const result = toMvpAuditResult(rawResult);
+  void emitServerTruthEvent({
+    uid: userId,
+    eventType: "audit_success",
+    value: 1,
+    page: "/api/audit/text",
+    path: "/api/audit/text",
+    metadata: { source: "text", solicitation_id: result.solicitation_number, request_id: req.id },
+  }).catch(() => {});
   savePendingReport({
     uid: userId,
     user_email: userEmail,
@@ -1092,6 +1154,14 @@ app.get("/api/admin/ab-results", asyncHandler(async (req, res) => {
   res.json({ variants: snap.variants, summary: snap.summary });
 }));
 
+/** Data observability: server-truth funnel vs client /api/track shadow (query ?days=1–90, default 14). */
+app.get("/api/admin/observability", asyncHandler(async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  const days = Math.min(90, Math.max(1, parseInt(String(req.query.days || "14"), 10) || 14));
+  const report = await getObservabilityReport({ days });
+  res.json(report);
+}));
+
 app.post("/api/admin/traffic-brief/send-now", asyncHandler(async (req, res) => {
   if (!requireAdmin(req, res)) return;
   const result = await sendTrafficBriefNow("manual_endpoint");
@@ -1203,6 +1273,20 @@ app.post("/api/newsletter/subscribe", apiLimiter, asyncHandler(async (req, res) 
   try {
     const result = await subscribeNewsletter(raw, { source });
     logger.info("newsletter_subscribe", requestMeta(req, { email: raw.toLowerCase(), already: result.alreadySubscribed }));
+    const domain = raw.includes("@") ? raw.split("@")[1]?.toLowerCase().slice(0, 96) : null;
+    void emitServerTruthEvent({
+      uid: "anonymous",
+      eventType: "newsletter_subscribe",
+      value: 1,
+      page: "/newsletter",
+      path: "/api/newsletter/subscribe",
+      metadata: {
+        already_subscribed: result.alreadySubscribed,
+        source,
+        email_domain: domain,
+        request_id: req.id,
+      },
+    }).catch(() => {});
     res.json({
       success: true,
       alreadySubscribed: result.alreadySubscribed,
@@ -1359,6 +1443,19 @@ app.post("/api/audit/link", anonymousFreeAuditLimiter, apiLimiter, asyncHandler(
       url: normalized.slice(0, 120),
       solicitation_id: cachedResult.solicitation_number || cachedResult.id,
     }));
+    void emitServerTruthEvent({
+      uid: userId,
+      eventType: "audit_success",
+      value: 1,
+      page: normalized.slice(0, 400),
+      path: "/api/audit/link",
+      metadata: {
+        source: "link",
+        cache_hit: true,
+        solicitation_id: cachedResult.solicitation_number || cachedResult.id,
+        request_id: req.id,
+      },
+    }).catch(() => {});
     res.setHeader("x-bidsmith-cache", "HIT");
     return res.json({
       ...cachedResult,
@@ -1385,6 +1482,14 @@ app.post("/api/audit/link", anonymousFreeAuditLimiter, apiLimiter, asyncHandler(
         url: normalized.slice(0, 120), error: samErr.message,
       }));
       if (samErr.code === "EXTERNAL_DOCUMENTS") {
+        void emitServerTruthEvent({
+          uid: userId,
+          eventType: "audit_retrieval_failed",
+          value: 1,
+          page: normalized.slice(0, 400),
+          path: "/api/audit/link",
+          metadata: { source: "link", failure: "EXTERNAL_DOCUMENTS", request_id: req.id },
+        }).catch(() => {});
         return res.status(422).json({
           error: samErr.message,
           hint: samErr.hint,
@@ -1393,6 +1498,19 @@ app.post("/api/audit/link", anonymousFreeAuditLimiter, apiLimiter, asyncHandler(
           code: "EXTERNAL_DOCUMENTS",
         });
       }
+      void emitServerTruthEvent({
+        uid: userId,
+        eventType: "audit_retrieval_failed",
+        value: 1,
+        page: normalized.slice(0, 400),
+        path: "/api/audit/link",
+        metadata: {
+          source: "link",
+          failure: "sam_fetch",
+          rate_limited: samErr.message.includes("SAM_RATE_LIMIT"),
+          request_id: req.id,
+        },
+      }).catch(() => {});
       return res.status(422).json({
         error: samErr.message.includes("SAM_RATE_LIMIT")
           ? "SAM.gov rate limit hit — wait 60 seconds and try again."
@@ -1450,6 +1568,18 @@ app.post("/api/audit/link", anonymousFreeAuditLimiter, apiLimiter, asyncHandler(
 
   const credit = await consumeFreeAuditCredit(req);
   if (!credit.ok) {
+    void emitServerTruthEvent({
+      uid: userId,
+      eventType: "audit_quota_blocked",
+      value: 1,
+      page: normalized.slice(0, 400),
+      path: "/api/audit/link",
+      metadata: {
+        source: "link",
+        code: credit.body?.code || credit.status,
+        request_id: req.id,
+      },
+    }).catch(() => {});
     return res.status(credit.status).json(credit.body);
   }
 
@@ -1490,6 +1620,21 @@ app.post("/api/audit/link", anonymousFreeAuditLimiter, apiLimiter, asyncHandler(
       total_ms: Date.now() - t0,
     }));
 
+    void emitServerTruthEvent({
+      uid: userId,
+      eventType: "audit_success",
+      value: (Date.now() - t0) / 1000,
+      page: normalized.slice(0, 400),
+      path: "/api/audit/link",
+      metadata: {
+        source: "link",
+        cache_hit: false,
+        solicitation_id: result.solicitation_number || meta.id,
+        verdict: result.verdict?.recommendation,
+        request_id: req.id,
+      },
+    }).catch(() => {});
+
     savePendingReport({
       uid: userId, user_email: userEmail,
       sam_url: url,
@@ -1513,6 +1658,14 @@ app.post("/api/audit/link", anonymousFreeAuditLimiter, apiLimiter, asyncHandler(
       stack: err.stack?.split("\n")[1],
       elapsed_ms: Date.now() - t2,
     }));
+    void emitServerTruthEvent({
+      uid: userId,
+      eventType: "audit_pipeline_failed",
+      value: 1,
+      page: normalized.slice(0, 400),
+      path: "/api/audit/link",
+      metadata: { source: "link", stage: "inference", request_id: req.id },
+    }).catch(() => {});
     return res.status(500).json({
       error: "Inference pipeline failed. Please try again or contact support.",
       code: 500,
@@ -1525,6 +1678,18 @@ app.post("/api/create-dynamic-checkout-session", apiLimiter, asyncHandler(async 
   const { solicitationId, opportunityTitle, uid } = req.body;
   const origin = req.headers.origin || `https://${req.headers.host}` || "https://bidsmith.pro";
   const session = await createDynamicCheckoutSession({ solicitationId, opportunityTitle, uid, origin });
+  void emitServerTruthEvent({
+    uid: uid || req.headers["x-user-id"] || "anonymous",
+    eventType: "checkout_initiated",
+    value: 1,
+    page: origin,
+    path: "/api/create-dynamic-checkout-session",
+    metadata: {
+      solicitation_id: solicitationId,
+      session_id: session.id,
+      request_id: req.id,
+    },
+  }).catch(() => {});
   res.json({ url: session.url, sessionId: session.id });
 }));
 

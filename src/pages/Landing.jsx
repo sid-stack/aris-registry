@@ -318,8 +318,11 @@ export default function Landing({
                   style={{ width: "100%", display: "block", maxHeight: 460, objectFit: "cover" }}
                   onError={() => setHeroVideoError(true)}
                 >
-                  <source src="/assets/demo/aris-demo.mp4" type="video/mp4" />
+                  {/* Lightweight, conforming MP4 first; legacy fallback kept second
+                      because /assets/demo/aris-demo.mp4 ships as a QuickTime container
+                      that some browsers reject when declared as video/mp4. */}
                   <source src="/aris-demo.mp4" type="video/mp4" />
+                  <source src="/assets/demo/aris-demo.mp4" type="video/mp4" />
                 </video>
               )}
             </div>
@@ -341,7 +344,10 @@ export default function Landing({
       </section>
 
       {/* ── Live Demo Section ────────────────────────────────────────────────── */}
-      <DemoSection onTryDemo={() => onViewSample?.()} />
+      {/* "Start Your First Audit No-Cost" CTA must route to the audit engine,
+          not the /demo showcase. Was wired to onViewSample (→ /demo) which
+          created a dead-end loop from the demo video to another demo page. */}
+      <DemoSection onTryDemo={() => onEnterDashboard?.()} />
 
       {/* ── SAM.gov Quick-Audit Bar ───────────────────────────────────────────── */}
       <section style={{ background: C.navy, padding: "28px 24px" }}>
