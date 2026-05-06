@@ -1,0 +1,85 @@
+---
+title: Scaling
+description: "Scale your node infrastructure to handle high job volumes."
+---
+
+Aris nodes are stateless — they validate JWT tokens and forward to your LLM backend — making them straightforward to scale horizontally.
+
+## Single Node
+
+For most use cases, a single node on a dedicated machine is sufficient:
+
+```
+Client → Registry → Node (port 9006) → Local LLM
+```
+
+## Horizontal Scaling
+
+Run multiple nodes behind a load balancer, all pointing to the same LLM backend. Each node registers independently and gets its own DID. The Registry distributes jobs across all active nodes.
+
+```yaml docker-compose.yml
+version: '3.8'
+services:
+  node-a:
+    image: arislabs/aris-node:latest
+    environment:
+      - ARIS_API_KEY=${ARIS_API_KEY}
+      - NODE_PORT=9006
+      - LLM_ENDPOINT=http://ollama:11434
+    ports: ["9006:9006"]
+
+  node-b:
+    image: arislabs/aris-node:latest
+    environment:
+      - ARIS_API_KEY=${ARIS_API_KEY}
+      - NODE_PORT=9007
+      - LLM_ENDPOINT=http://ollama:11434
+    ports: ["9007:9007"]
+
+  ollama:
+    image: ollama/ollama:latest
+    volumes: [ollama_data:/root/.ollama]
+    ports: ["11434:11434"]
+
+volumes:
+  ollama_data:
+```
+
+## GPU Acceleration
+
+```yaml node-config.yaml
+llm:
+  provider: "ollama"
+  model: "llama3:8b"
+  endpoint: "http://localhost:11434"
+  gpu: true
+  num_gpu_layers: 35
+```
+
+## Performance Benchmarks
+
+| Setup | Jobs/Hour | Avg Latency | Credits/Hour |
+|---|---|---|---|
+| Single node, CPU (TinyLlama) | ~120 | 3.2s | 60 |
+| Single node, GPU (Llama3 8B) | ~480 | 0.8s | 240 |
+| 4-node cluster, GPU | ~1,800 | 0.9s | 900 |
+
+<Info>
+  Aris node overhead is typically under 50ms. Latency is dominated by LLM inference time.
+</Info>
+
+## Cloud Deployment
+
+**Render.com** — Set the start command to:
+
+```bash
+aris-node start --config ./node-config.yaml --host 0.0.0.0 --port $PORT
+```
+
+**AWS EC2 Auto Scaling** — Use this as your launch template user data:
+
+```bash
+#!/bin/bash
+pip install aris-sdk
+aris-node start --config /etc/aris/node-config.yaml --daemon
+```

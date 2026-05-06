@@ -1,0 +1,84 @@
+---
+title: Python SDK
+description: "The official Python client for the Aris network."
+---
+
+```bash
+pip install aris-sdk
+```
+
+## Initialization
+
+```python
+from aris.client import Aris
+
+client = Aris(
+    api_key="sk-aris-your-key",   # or set ARIS_API_KEY env var
+    registry_url="https://aris-api.onrender.com"  # optional: for private networks
+)
+```
+
+The client handles three steps automatically: **discover** (find active nodes), **handshake** (get a session token), and **execute** (send the job).
+
+## client.generate()
+
+Send a prompt to the network and receive a response.
+
+```python
+response = client.generate(
+    prompt="Explain the key risks in this government contract.",
+    model="tinyllama"  # optional, defaults to network default
+)
+
+print(response)  # str
+```
+
+**Parameters**
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `prompt` | `str` | required | The input text to send to the model |
+| `model` | `str` | `"tinyllama"` | The model to request from the node |
+
+**Returns** `str` — the model's response text.
+
+## client.handshake()
+
+Establish an authenticated session with a specific agent.
+
+```python
+session = client.handshake(
+    target_did="did:aris:gov-rfp-bidder-001",
+    capability="gov.rfp.bidder"
+)
+
+print(session["session_token"])  # eyJ...
+```
+
+**Parameters**
+
+| Parameter | Type | Description |
+|---|---|---|
+| `target_did` | `str` | The DID of the target agent |
+| `capability` | `str` | The capability to request (used for discovery) |
+
+**Returns** `dict` with `session_token` (str) and `node_endpoint` (str).
+
+## Helper Function
+
+For quick one-off requests without initializing a client:
+
+```python
+from aris.client import generate
+
+result = generate("Hello world", api_key="sk-aris-your-key")
+print(result)
+```
+
+## Configuration
+
+| Option | Env Var | Default | Description |
+|---|---|---|---|
+| `api_key` | `ARIS_API_KEY` | — | Your Aris API key |
+| `registry_url` | `ARIS_REGISTRY_URL` | `https://aris-api.onrender.com` | Registry base URL |
+| `timeout` | — | `30` | Request timeout in seconds |

@@ -1,0 +1,42 @@
+---
+title: Credits & Billing
+description: "How the credit system works and how to manage your balance."
+---
+
+BidSmith uses a **prepaid credit model** — buy credits upfront, spend them per analysis. No subscriptions, no surprise bills.
+
+## Pricing
+
+| Package | Credits | Price | Per Credit |
+|---|---|---|---|
+| Starter | 25 | $20 | $0.80 |
+| Pro | 100 | $70 | $0.70 |
+| Enterprise | Custom | Contact us | — |
+
+New accounts receive **5 free credits** on signup — no card required.
+
+## How Deduction Works
+
+Credits follow a strict **check-then-deduct** pattern:
+
+1. System checks your balance before the analysis starts.
+2. If sufficient, **1 credit is atomically deducted** using a MongoDB transaction.
+3. Analysis runs.
+4. If the analysis fails, the credit is **automatically refunded** in a separate transaction.
+
+This means you are never charged for a failed analysis, and concurrent requests cannot overdraw your balance.
+
+## Purchasing Credits
+
+1. Go to **Dashboard → Billing**.
+2. Click **Buy 25 Credits — $20.00**.
+3. Complete checkout on the Stripe-hosted page (BidSmith never stores card data).
+4. Credits appear in your account within seconds via Stripe webhook.
+
+## Double-Charge Protection
+
+Every Stripe checkout session has a unique `session_id`. The webhook handler checks this ID before crediting your account — if Stripe retries a webhook, the duplicate is silently ignored. You will never be double-charged.
+
+## Enterprise Billing
+
+For volume pricing, invoice-based billing, or dedicated support, contact [founders@aris-registry.com](mailto:founders@aris-registry.com).

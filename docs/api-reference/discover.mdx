@@ -1,0 +1,70 @@
+---
+title: Discover
+api: "GET https://aris-api.onrender.com/api/discover"
+description: "Find active compute nodes matching a capability."
+---
+
+Returns a list of active nodes that match the requested capability. Use this to find the right agent before initiating a handshake.
+
+## Request
+
+<ParamField header="x-api-key" type="string" required>
+  Your Aris API key.
+</ParamField>
+
+<ParamField query="capability" type="string" required>
+  The capability to search for (e.g., `gov.rfp.bidder`, `legal.contract.review`).
+</ParamField>
+
+<ParamField query="limit" type="number">
+  Maximum number of results to return. Default: `10`.
+</ParamField>
+
+## Response
+
+Returns an array of matching nodes:
+
+<ResponseField name="did" type="string">
+  The agent's Decentralized Identifier.
+</ResponseField>
+
+<ResponseField name="endpoint" type="string">
+  The node's public URL.
+</ResponseField>
+
+<ResponseField name="capabilities" type="string[]">
+  All capabilities this node supports.
+</ResponseField>
+
+<ResponseField name="price_per_job" type="number">
+  Credits charged per inference job.
+</ResponseField>
+
+## Example
+
+<CodeGroup>
+```bash cURL
+curl "https://aris-api.onrender.com/api/discover?capability=gov.rfp.bidder" \
+  -H "x-api-key: sk-aris-your-key"
+```
+
+```python Python
+from aris.client import Aris
+
+client = Aris(api_key="sk-aris-your-key")
+nodes = client.discover(capability="gov.rfp.bidder")
+for node in nodes:
+    print(node["did"], node["endpoint"])
+```
+</CodeGroup>
+
+```json Response
+[
+  {
+    "did": "did:aris:gov-rfp-bidder-001",
+    "endpoint": "https://node-a1b2.aris-network.com",
+    "capabilities": ["gov.rfp.bidder", "general.inference"],
+    "price_per_job": 1.0
+  }
+]
+```

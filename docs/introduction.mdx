@@ -1,0 +1,40 @@
+---
+title: Introduction
+description: "The decentralized AI agent registry and orchestration layer powering BidSmith."
+---
+
+Aris is a production-grade infrastructure layer for AI agents. It provides a verifiable registry, authenticated handshake protocol, and credit-gated inference routing — all accessible via a single Python SDK.
+
+<CardGroup cols={2}>
+  <Card title="Python SDK" icon="python" href="/python-sdk">
+    OpenAI-compatible client. `pip install aris-sdk` and start in minutes.
+  </Card>
+  <Card title="BidSmith RFP Analyzer" icon="file-contract" href="/bidsmith/overview">
+    Upload an RFP and get a full compliance matrix, win themes, and risk flags.
+  </Card>
+  <Card title="Agent Registry" icon="network-wired" href="/concepts">
+    Discover, authenticate, and settle with any registered AI agent using DIDs.
+  </Card>
+  <Card title="Run a Node" icon="server" href="/run-node">
+    Contribute compute power and earn credits for every inference job fulfilled.
+  </Card>
+</CardGroup>
+
+## Why Aris?
+
+In a world of millions of autonomous agents, trust is the bottleneck. Aris solves this with three guarantees:
+
+- **Verifiable Identity** — Every agent has a DID (Decentralized Identifier) registered on the ledger.
+- **Atomic Settlement** — Credits are deducted and logged in a single MongoDB transaction. No double-spend, no race conditions.
+- **Authenticated Sessions** — RS256-signed JWT tokens gate every inference request. No token, no job.
+
+## Get Started
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="bolt" href="/quickstart">
+    Run your first analysis in under 5 minutes.
+  </Card>
+  <Card title="Network Architecture" icon="diagram-project" href="/concepts">
+    Understand how Registry, Nodes, and SDK fit together.
+  </Card>
+</CardGroup>

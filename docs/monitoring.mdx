@@ -1,0 +1,82 @@
+---
+title: Monitoring
+description: "Track your node's health, job throughput, and credit earnings."
+---
+
+## Node Status
+
+Every node exposes a `/status` endpoint:
+
+```bash
+curl http://localhost:9006/status
+```
+
+```json
+{
+  "status": "active",
+  "did": "did:aris:node-a1b2c3d4",
+  "uptime_seconds": 3600,
+  "jobs_completed": 142,
+  "jobs_failed": 3,
+  "credits_earned": 71.0,
+  "last_job_at": "2026-02-18T14:30:00Z"
+}
+```
+
+## Orchestrator Status
+
+The Registry's lead orchestrator tracks all active nodes:
+
+```bash
+curl https://aris-api.onrender.com/api/orchestrator/status \
+  -H "x-api-key: sk-aris-your-key"
+```
+
+```json
+{
+  "status": "Active",
+  "agents_monitored": 11,
+  "llm_config": {
+    "primary": "gemini-1.5-pro",
+    "fallback": "gemini-1.5-flash"
+  }
+}
+```
+
+## Prometheus Metrics
+
+Add `--metrics` to expose a `/metrics` endpoint:
+
+```bash
+aris-node start --config ./node-config.yaml --metrics
+```
+
+```
+aris_jobs_total{status="success"} 142
+aris_jobs_total{status="failed"} 3
+aris_credits_earned_total 71.0
+aris_job_duration_seconds_bucket{le="1.0"} 98
+```
+
+## Alerting
+
+Configure webhook alerts in `node-config.yaml`:
+
+```yaml
+alerts:
+  webhook_url: "https://hooks.slack.com/services/..."
+  on_idle_minutes: 5
+  on_error_rate: 0.1
+```
+
+## Log Levels
+
+```bash
+aris-node start --config ./node-config.yaml --log-level DEBUG
+```
+
+| Level | Output |
+|---|---|
+| `ERROR` | Critical failures only |
+| `INFO` | Standard operational logs (default) |
+| `DEBUG` | Full request/response traces |

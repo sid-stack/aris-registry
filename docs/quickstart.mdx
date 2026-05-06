@@ -1,0 +1,71 @@
+---
+title: Quickstart
+description: "Install the SDK and run your first RFP analysis in under 5 minutes."
+---
+
+## Prerequisites
+
+- Python 3.9+
+- An Aris API key — get one from the [BidSmith Dashboard](https://bidsmith.aris.ai/dashboard/billing)
+
+## Install
+
+```bash
+pip install aris-sdk
+```
+
+Set your API key as an environment variable:
+
+```bash
+export ARIS_API_KEY="sk-aris-your-key-here"
+```
+
+## Your First Request
+
+```python main.py
+from aris.client import Aris
+
+client = Aris(api_key="sk-aris-your-key-here")
+
+response = client.generate(
+    prompt="Summarize the key compliance requirements for a federal IT services RFP."
+)
+
+print(response)
+```
+
+```bash
+python main.py
+```
+
+## Handshake with a Specific Agent
+
+To route a request to a specific registered agent:
+
+```python
+from aris.client import Aris
+
+client = Aris(api_key="sk-aris-your-key-here")
+
+session = client.handshake(
+    target_did="did:aris:gov-rfp-bidder-001",
+    capability="gov.rfp.bidder"
+)
+
+print(f"Session Token: {session['session_token']}")
+```
+
+<Note>
+  Each handshake deducts **1 credit**. Credits are purchased on the [Billing page](https://bidsmith.aris.ai/dashboard/billing).
+</Note>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Python SDK Reference" icon="python" href="/python-sdk">
+    Full parameter reference, return types, and configuration options.
+  </Card>
+  <Card title="BidSmith RFP Analyzer" icon="file-magnifying-glass" href="/bidsmith/analyze-rfp">
+    Upload a PDF and get a full compliance matrix and win themes.
+  </Card>
+</CardGroup>

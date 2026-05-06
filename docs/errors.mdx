@@ -1,0 +1,68 @@
+---
+title: Error Handling
+description: "Error codes, exception types, and how to handle them."
+---
+
+## Exception Types
+
+The SDK raises typed exceptions for all error conditions:
+
+```python
+from aris.client import Aris
+from aris.exceptions import (
+    AuthenticationError,
+    InsufficientCreditsError,
+    NodeUnavailableError,
+    RateLimitError,
+    ArisError,  # base class
+)
+
+client = Aris(api_key="sk-aris-your-key")
+
+try:
+    response = client.generate("Analyze this RFP...")
+except AuthenticationError:
+    print("Invalid API key. Check your ARIS_API_KEY.")
+except InsufficientCreditsError as e:
+    print(f"Out of credits. Balance: {e.balance}. Purchase more at /dashboard/billing.")
+except NodeUnavailableError:
+    print("No nodes available for this capability. Try again shortly.")
+except RateLimitError as e:
+    print(f"Rate limited. Retry after {e.retry_after}s.")
+except ArisError as e:
+    print(f"Unexpected error: {e}")
+```
+
+## HTTP Error Codes
+
+| Status | Exception | Cause |
+|---|---|---|
+| `401` | `AuthenticationError` | Invalid or missing API key |
+| `402` | `InsufficientCreditsError` | Credit balance too low |
+| `404` | `NodeUnavailableError` | No nodes match the requested capability |
+| `429` | `RateLimitError` | Too many requests |
+| `500` | `ArisError` | Internal server error |
+
+## REST API Errors
+
+When using the API directly, errors follow this schema:
+
+```json
+{
+  "detail": "Insufficient credits. Current balance: 0.0"
+}
+```
+
+## Failed Analysis Refunds
+
+If an analysis fails after credits are deducted, a refund is issued automatically:
+
+```json
+{
+  "status": "error",
+  "credits_refunded": 1.0,
+  "reason": "AI analysis timed out"
+}
+```
+
+You can verify refunds in your transaction history on the [Billing page](https://bidsmith.aris.ai/dashboard/billing).

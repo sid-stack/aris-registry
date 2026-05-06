@@ -1,0 +1,75 @@
+---
+title: Generate
+api: "POST https://aris-api.onrender.com/api/generate"
+description: "Send a prompt to a compute node and receive a response."
+---
+
+Sends an inference request to an active compute node. Requires a valid session token obtained from the [Handshake](/api-reference/handshake) endpoint.
+
+## Request
+
+<ParamField header="Authorization" type="string" required>
+  `Bearer <session_token>` — obtained from `/api/handshake`.
+</ParamField>
+
+<ParamField body="prompt" type="string" required>
+  The input text to send to the model.
+</ParamField>
+
+<ParamField body="model" type="string">
+  The model to use. Defaults to the node's configured model (e.g., `tinyllama`).
+</ParamField>
+
+<ParamField body="stream" type="boolean">
+  If `true`, returns a streaming response. Default: `false`.
+</ParamField>
+
+## Response
+
+<ResponseField name="result" type="string">
+  The model's response text.
+</ResponseField>
+
+<ResponseField name="model" type="string">
+  The model that processed the request.
+</ResponseField>
+
+<ResponseField name="latency_ms" type="number">
+  Inference latency in milliseconds.
+</ResponseField>
+
+## Example
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://aris-api.onrender.com/api/generate \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer eyJhbGci..." \
+  -d '{"prompt": "Summarize the evaluation criteria in Section M."}'
+```
+
+```python Python
+from aris.client import Aris
+
+client = Aris(api_key="sk-aris-your-key")
+response = client.generate("Summarize the evaluation criteria in Section M.")
+print(response)
+```
+</CodeGroup>
+
+```json Response
+{
+  "result": "The evaluation criteria in Section M prioritize...",
+  "model": "tinyllama",
+  "latency_ms": 820
+}
+```
+
+## Errors
+
+| Status | Cause |
+|---|---|
+| `401` | Invalid or expired session token |
+| `404` | Node is no longer available |
+| `429` | Rate limit exceeded |
+| `500` | Node inference error |

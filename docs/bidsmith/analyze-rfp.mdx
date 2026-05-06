@@ -1,0 +1,71 @@
+---
+title: Analyze an RFP
+description: "Upload an RFP document and receive a structured compliance report."
+---
+
+The RFP Analyzer uses **Gemini 1.5 Pro** to extract requirements, identify compliance gaps, and generate win themes from any government RFP.
+
+<Note>
+  Each analysis costs **1 credit**. Credits are refunded automatically if the analysis fails.
+</Note>
+
+## Upload via Dashboard
+
+1. Go to **Dashboard → Analyze RFP** (or `/dashboard/analyze`).
+2. Drag and drop your PDF, or click **Browse Files**.
+3. Optionally add constraints to focus the analysis:
+   ```
+   Focus on Section L and M. We are a small business under NAICS 541512.
+   ```
+4. Click **Analyze Document**. Results appear in 15–30 seconds.
+
+## Understanding the Report
+
+### Compliance Matrix
+
+Maps every RFP requirement to a compliance level:
+
+| Level | Meaning |
+|---|---|
+| `SHALL` | Mandatory. Non-compliance = disqualification. |
+| `SHOULD` | Strongly recommended. Omitting weakens your score. |
+| `MAY` | Optional. Addressing these differentiates your bid. |
+
+### Win Themes
+
+The 3–5 key narratives most likely to resonate with evaluators, based on Section M criteria.
+
+### Risk Flags
+
+Requirements that are ambiguous, unusually restrictive, or need clarification via the Q&A process.
+
+<Warning>
+  Always review risk flags before submitting. Some may require a formal amendment request.
+</Warning>
+
+## Upload via API
+
+```bash
+curl -X POST https://aris-api.onrender.com/api/analyze/ \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -F "file=@rfp.pdf" \
+  -F "constraints=Focus on Section L and M"
+```
+
+```json
+{
+  "status": "success",
+  "credits_deducted": 1.0,
+  "remaining_credits": 24.0,
+  "result": {
+    "filename": "rfp.pdf",
+    "compliance_report": {
+      "matrix": [...],
+      "win_themes": [...],
+      "risk_flags": [...]
+    }
+  }
+}
+```
+
+See the full [API Reference](/api-reference/analyze) for schemas.

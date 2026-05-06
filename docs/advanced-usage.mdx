@@ -1,0 +1,75 @@
+---
+title: Advanced Usage
+description: "Async clients, custom headers, streaming, and private networks."
+---
+
+## Async Client
+
+Use `AsyncAris` for high-throughput applications or when running inside an async framework (FastAPI, asyncio):
+
+```python
+import asyncio
+from aris.client import AsyncAris
+
+async def main():
+    client = AsyncAris(api_key="sk-aris-your-key")
+    
+    # Run multiple requests concurrently
+    results = await asyncio.gather(
+        client.generate("Analyze RFP section 3.1"),
+        client.generate("Summarize evaluation criteria"),
+        client.generate("Identify small business requirements"),
+    )
+    
+    for result in results:
+        print(result)
+
+asyncio.run(main())
+```
+
+## Custom Headers
+
+Pass additional headers for staging environments or internal routing:
+
+```python
+client = Aris(
+    api_key="sk-aris-...",
+    headers={"X-Environment": "staging", "X-Team": "procurement"}
+)
+```
+
+## Private Networks
+
+Point the client at a self-hosted Registry for enterprise deployments:
+
+```python
+client = Aris(
+    api_key="sk-aris-...",
+    registry_url="https://registry.your-company.com"
+)
+```
+
+## Streaming
+
+For nodes that support streaming responses, enable it to reduce time-to-first-token:
+
+```python
+for chunk in client.generate_stream("Analyze this RFP..."):
+    print(chunk, end="", flush=True)
+```
+
+<Note>
+  Streaming availability depends on the node's LLM backend. Ollama and LM Studio support streaming; some cloud providers do not.
+</Note>
+
+## Retry Logic
+
+The client retries on transient network errors with exponential backoff. Configure the behavior:
+
+```python
+client = Aris(
+    api_key="sk-aris-...",
+    max_retries=3,
+    retry_delay=1.0  # seconds, doubles on each retry
+)
+```

@@ -1,0 +1,114 @@
+---
+title: Analyze RFP
+api: "POST https://aris-api.onrender.com/api/analyze/"
+description: "Upload an RFP document and receive a structured compliance report."
+---
+
+Accepts a multipart form upload of an RFP document and returns a compliance matrix, win themes, and risk flags. Requires a valid Clerk JWT.
+
+**Cost:** 1 credit per analysis. Credits are refunded automatically if the analysis fails.
+
+## Request
+
+<ParamField header="Authorization" type="string" required>
+  `Bearer <clerk_jwt>` — obtained from Clerk after sign-in.
+</ParamField>
+
+<ParamField body="file" type="file" required>
+  The RFP document. Supported formats: PDF (max 10MB), DOCX (max 5MB), TXT (max 1MB).
+</ParamField>
+
+<ParamField body="constraints" type="string">
+  Optional focus instructions for the analysis (e.g., `"Focus on Section L and M. NAICS 541512."`).
+</ParamField>
+
+## Response
+
+<ResponseField name="status" type="string">
+  `"success"` or `"error"`.
+</ResponseField>
+
+<ResponseField name="credits_deducted" type="number">
+  Credits deducted for this analysis (always `1.0` on success).
+</ResponseField>
+
+<ResponseField name="remaining_credits" type="number">
+  Your credit balance after this analysis.
+</ResponseField>
+
+<ResponseField name="result.filename" type="string">
+  The uploaded file's name.
+</ResponseField>
+
+<ResponseField name="result.compliance_report.matrix" type="array">
+  Array of requirement objects with `requirement`, `level` (`SHALL`/`SHOULD`/`MAY`), and `notes`.
+</ResponseField>
+
+<ResponseField name="result.compliance_report.win_themes" type="string[]">
+  Key narratives to emphasize in your proposal.
+</ResponseField>
+
+<ResponseField name="result.compliance_report.risk_flags" type="string[]">
+  Ambiguous or high-risk requirements that need attention.
+</ResponseField>
+
+## Example
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://aris-api.onrender.com/api/analyze/ \
+  -H "Authorization: Bearer YOUR_CLERK_JWT" \
+  -F "file=@rfp.pdf" \
+  -F "constraints=Focus on Section L and M"
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    "https://aris-api.onrender.com/api/analyze/",
+    headers={"Authorization": f"Bearer {clerk_jwt}"},
+    files={"file": open("rfp.pdf", "rb")},
+    data={"constraints": "Focus on Section L and M"}
+)
+
+print(response.json())
+```
+</CodeGroup>
+
+```json Response
+{
+  "status": "success",
+  "credits_deducted": 1.0,
+  "remaining_credits": 24.0,
+  "result": {
+    "filename": "rfp.pdf",
+    "compliance_report": {
+      "matrix": [
+        {
+          "requirement": "Contractor shall provide FedRAMP-authorized cloud services.",
+          "level": "SHALL",
+          "notes": "Non-negotiable. Must be addressed in Technical Volume."
+        }
+      ],
+      "win_themes": [
+        "Proven past performance on similar federal IT contracts (Section M.3 heavily weighted).",
+        "Small business utilization — agency has a 23% SB goal."
+      ],
+      "risk_flags": [
+        "Section 3.4.2 is ambiguous regarding data residency requirements. Submit a Q&A."
+      ]
+    }
+  }
+}
+```
+
+## Errors
+
+| Status | Cause |
+|---|---|
+| `401` | Invalid or expired Clerk JWT |
+| `402` | Insufficient credits |
+| `413` | File exceeds size limit |
+| `422` | Unsupported file format |
+| `500` | Analysis failed (credit auto-refunded) |

@@ -1,0 +1,72 @@
+---
+title: Handshake
+api: "POST https://aris-api.onrender.com/api/handshake"
+description: "Establish an authenticated session with a registered agent."
+---
+
+Initiates a credit-gated session with a specific agent. On success, returns a JWT session token that must be included in all subsequent requests to that agent.
+
+**Cost:** 1 credit per handshake.
+
+## Request
+
+<ParamField header="x-api-key" type="string" required>
+  Your Aris API key (`sk-aris-...`).
+</ParamField>
+
+<ParamField body="target_did" type="string" required>
+  The DID of the agent to connect to (e.g., `did:aris:gov-rfp-bidder-001`).
+</ParamField>
+
+<ParamField body="capability" type="string">
+  Optional. The capability to request. Used for discovery if `target_did` is not known.
+</ParamField>
+
+## Response
+
+<ResponseField name="session_token" type="string">
+  RS256-signed JWT. Valid for 1 hour. Include as `Authorization: Bearer <token>` in agent requests.
+</ResponseField>
+
+<ResponseField name="node_endpoint" type="string">
+  The URL of the assigned compute node.
+</ResponseField>
+
+<ResponseField name="credits_remaining" type="number">
+  Your credit balance after this handshake.
+</ResponseField>
+
+## Example
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://aris-api.onrender.com/api/handshake \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: sk-aris-your-key" \
+  -d '{"target_did": "did:aris:gov-rfp-bidder-001"}'
+```
+
+```python Python
+from aris.client import Aris
+
+client = Aris(api_key="sk-aris-your-key")
+session = client.handshake(target_did="did:aris:gov-rfp-bidder-001")
+print(session["session_token"])
+```
+</CodeGroup>
+
+```json Response
+{
+  "session_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "node_endpoint": "https://node-a1b2.aris-network.com",
+  "credits_remaining": 24.0
+}
+```
+
+## Errors
+
+| Status | Cause |
+|---|---|
+| `401` | Invalid or missing API key |
+| `402` | Insufficient credits |
+| `404` | No node found for the requested DID or capability |

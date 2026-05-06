@@ -160,7 +160,7 @@ aris-core/
 
 ## Deployment
 
-Deployed on **Railway** (API + static). CI via `ci.yml`.
+Deployed on **Railway** (API + static). Primary CI is `.github/workflows/ci.yml`.
 
 ```bash
 # Build
@@ -173,3 +173,31 @@ npm run preview
 ---
 
 *Force Railway rebuild — see railway.json for config.*
+
+---
+
+## Aris registry & Python SDK (optional)
+
+This repository also ships the **`aris-sdk`** Python package: a small registry + worker-node stack for decentralized LLM sessions (`ai.generate`, `ai.chat`), balance/usage APIs, and JWT handshakes. It does not replace the Node API above; it lives alongside it for experimentation and PyPI distribution.
+
+### Install (library)
+
+```bash
+pip install aris-sdk
+```
+
+### Quick example
+
+```python
+from aris.client import Aris
+
+client = Aris(api_key="aris_live_...")
+print(client.generate("Why is the ocean salty?"))
+print(client.chat([{"role": "user", "content": "Capital of France?"}])["content"])
+```
+
+### Run registry + worker locally
+
+See `.env.example` (section **Aris registry / Python SDK**) and [CONTRIBUTING.md](CONTRIBUTING.md). Pytest targets **`aris/tests/`** and runs in **`.github/workflows/aris-python-ci.yml`** when Python paths change.
+
+Published package metadata still uses this README; keep both sections accurate.

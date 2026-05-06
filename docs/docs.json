@@ -1,0 +1,76 @@
+{
+  "name": "Aris Labs",
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg"
+  },
+  "favicon": "/favicon.svg",
+  "colors": {
+    "primary": "#3b82f6",
+    "light": "#60a5fa",
+    "dark": "#1d4ed8"
+  },
+  "darkCode": true,
+  "topbarLinks": [
+    {
+      "name": "BidSmith App",
+      "url": "https://bidsmith.aris.ai"
+    },
+    {
+      "name": "GitHub",
+      "url": "https://github.com/sid-stack/aris-registry"
+    }
+  ],
+  "topbarCtaButton": {
+    "name": "Get API Key",
+    "url": "https://bidsmith.aris.ai/dashboard/billing"
+  },
+  "theme": "mint",
+  "navigation": [
+    {
+      "group": "Introduction",
+      "pages": [
+        "introduction",
+        "quickstart",
+        "concepts"
+      ]
+    },
+    {
+      "group": "BidSmith",
+      "pages": [
+        "bidsmith/overview",
+        "bidsmith/analyze-rfp",
+        "bidsmith/credits"
+      ]
+    },
+    {
+      "group": "Node Management",
+      "pages": [
+        "run-node",
+        "monitoring",
+        "scaling"
+      ]
+    },
+    {
+      "group": "Python SDK",
+      "pages": [
+        "python-sdk",
+        "advanced-usage",
+        "errors"
+      ]
+    },
+    {
+      "group": "API Reference",
+      "pages": [
+        "api-reference/handshake",
+        "api-reference/generate",
+        "api-reference/discover",
+        "api-reference/analyze"
+      ]
+    }
+  ],
+  "footerSocials": {
+    "github": "https://github.com/sid-stack/aris-registry",
+    "twitter": "https://twitter.com/arislabs"
+  }
+}
