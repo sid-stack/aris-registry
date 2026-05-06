@@ -11,6 +11,11 @@ setup(
     description="Decentralized AI Network SDK and Node Infrastructure",
     long_description=README,
     long_description_content_type="text/markdown",
+    url="https://github.com/sid-stack/aris-registry",
+    project_urls={
+        "Source": "https://github.com/sid-stack/aris-registry",
+        "Bug Tracker": "https://github.com/sid-stack/aris-registry/issues",
+    },
     author="Sid",
     author_email="sid@aris.ai",
     license="MIT",
