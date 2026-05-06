@@ -224,7 +224,7 @@ export default function Landing({
           </h1>
 
           <p style={S.heroSub}>
-            Paste a SAM.gov URL or upload a PDF — get a structured compliance-oriented pass, risk flags, and a bid/no-bid recommendation with rationale in minutes. Built for teams that cannot afford to misread Section L/M. We do not guarantee awards; we compress the first-pass grind so you decide with eyes open.
+            Paste a SAM.gov URL or upload a PDF — get a structured compliance-oriented pass, risk flags, and a bid/no-bid recommendation with rationale in about 90 seconds for a typical solicitation (large or multi-attachment packages can take a few minutes). Built for teams that cannot afford to misread Section L/M. We do not guarantee awards; we compress the first-pass grind so you decide with eyes open.
           </p>
 
           <div style={S.heroCtas}>
@@ -232,6 +232,7 @@ export default function Landing({
               className="btn-land-primary"
               style={S.ctaPrimary}
               type="button"
+              aria-label="Start your free audit — typical run is about 90 seconds"
               onClick={() => onEnterDashboard?.()}
             >
               Start your free audit →
@@ -240,10 +241,11 @@ export default function Landing({
               className="btn-land-secondary"
               style={{ ...S.ctaSecondary, display: "inline-flex", alignItems: "center", gap: 8, borderColor: C.navyMid, color: C.navyMid }}
               type="button"
+              aria-label="Watch a recorded product demo (not a live audit)"
               onClick={() => onViewSample?.()}
             >
               <Play size={15} fill={C.navyMid} strokeWidth={0} aria-hidden />
-              Watch live demo
+              Watch demo video
             </button>
             <button
               className="btn-meeting"
@@ -400,7 +402,7 @@ export default function Landing({
               {
                 icon: <Zap size={24} color={C.navyMid} />,
                 title: "Bid/No-Bid Scoring",
-                desc: "Scores win probability against evaluation criteria, set-aside type, incumbency signals, and past performance requirements. Go/no-go in minutes.",
+                desc: "Scores win probability against evaluation criteria, set-aside type, incumbency signals, and past performance requirements. First structured go/no-go read in about 90 seconds.",
               },
               {
                 icon: <Link2 size={24} color={C.navyMid} />,
@@ -597,7 +599,7 @@ export default function Landing({
               {
                 id: "bd-lead",
                 badge: "BD",
-                quote: "We paste the SAM.gov URL on day one. The first structured pass—rows, risk tags, and a defendable bid/no-bid read—comes back in about a minute so we’re not burning a capture lead on a manual shred.",
+                quote: "We paste the SAM.gov URL on day one. The first structured pass—rows, risk tags, and a defendable bid/no-bid read—comes back in about 90 seconds so we’re not burning a capture lead on a manual shred.",
                 attribution: "BD lead · IT & professional services prime · ~150 employees",
                 metric: "~90s to first structured audit output",
               },
