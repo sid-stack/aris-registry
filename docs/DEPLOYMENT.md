@@ -38,7 +38,9 @@ ARIS uses a comprehensive CI/CD pipeline with automated testing, security scanni
 
 ### Production (`main` branch)
 - **Trigger**: Push to `main` branch
-- **URL**: `https://aris-bidsmith.vercel.app`
+- **URL (canonical)**: `https://www.bidsmith.pro` (apex `bidsmith.pro` redirects to `www` in `vercel.json`)
+- **API**: `https://api.bidsmith.pro`
+- **Note**: The project’s default `*.vercel.app` hostname may differ or be unused once the custom domain is attached; use the URLs above for docs and health checks.
 - **Features**: Full testing, security scans, performance checks
 
 ## Required Secrets
@@ -55,7 +57,7 @@ Configure these in GitHub repository settings:
 - `RAILWAY_SERVICE_ID`: Railway service ID
 
 ### Monitoring
-- `PROD_URL`: Production URL
+- `PROD_URL`: Production URL (e.g. `https://www.bidsmith.pro` for CI smoke checks)
 - `API_URL`: API URL
 - `SNYK_TOKEN`: Snyk security scanning token
 

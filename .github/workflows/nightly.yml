@@ -119,7 +119,7 @@ jobs:
           echo "🏥 Checking production health..."
           
           # Check main site
-          if curl -f -s "https://aris-bidsmith.vercel.app" > /dev/null; then
+          if curl -f -s "https://www.bidsmith.pro" > /dev/null; then
             echo "✅ Main site is healthy"
           else
             echo "❌ Main site is down"
@@ -134,7 +134,7 @@ jobs:
           fi
           
           # Check response times
-          RESPONSE_TIME=$(curl -o /dev/null -s -w '%{time_total}' "https://aris-bidsmith.vercel.app")
+          RESPONSE_TIME=$(curl -o /dev/null -s -w '%{time_total}' "https://www.bidsmith.pro")
           echo "Response time: ${RESPONSE_TIME}s"
           
           if (( $(echo "$RESPONSE_TIME > 5.0" | bc -l) )); then

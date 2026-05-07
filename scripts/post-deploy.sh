@@ -26,7 +26,7 @@ print_error() {
 }
 
 # Get deployment URL from arguments or use default
-DEPLOY_URL=${1:-"https://aris-bidsmith.vercel.app"}
+DEPLOY_URL=${1:-"https://www.bidsmith.pro"}
 API_URL=${2:-"https://api.bidsmith.pro"}
 
 echo "🌐 Deployment URL: $DEPLOY_URL"
