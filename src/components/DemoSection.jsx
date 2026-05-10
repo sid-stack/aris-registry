@@ -38,7 +38,7 @@ export default function DemoSection({ onTryDemo }) {
               </div>
             </div>
 
-            <div style={styles.videoFrame}>
+            <div style={styles.videoFrame} onClick={onTryDemo} role="button" tabIndex={0} aria-label="Open audit engine" onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onTryDemo?.()}>
               {videoError ? (
                 <div style={styles.videoFallback}>
                   <img

@@ -25,7 +25,7 @@ const C = {
 };
 
 // ─── Deep Dive tab data ───────────────────────────────────────────────────────
-const CALENDLY_URL = "https://calendly.com/bidsmith";
+const CALENDLY_URL = "https://calendly.com/bidsmith-pro/audit-walkthrough";
 
 const DEEP_DIVE_TABS = [
   {
@@ -171,7 +171,7 @@ export default function Landing({
       <header style={S.navbar}>
         <div style={S.navInner}>
           {/* Brand */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", flexShrink: 0 }} onClick={onGoHome}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", flexShrink: 0 }} onClick={onGoHome} role="button" tabIndex={0} aria-label="BidSmith home" onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onGoHome?.()}>
             <img src="/logo.jpg" alt="BidSmith" style={{ height: 28, borderRadius: 4 }} />
             <span style={S.navLogo}>BidSmith</span>
           </div>
