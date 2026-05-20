@@ -1,21 +1,27 @@
 import { useState, useEffect, useRef } from "react";
 import { Shield, Send, RotateCcw, Loader2, ExternalLink } from "lucide-react";
 import { ChatMarkdown } from "../chat/ChatMarkdown.jsx";
+import { BD } from "../../theme/bentoDarkTheme.js";
 
 /** Markdown colors for AI bubbles (dark slate background). */
 const AI_MARKDOWN_PALETTE = {
-  text: "#f1f5f9",
-  textMuted: "#94a3b8",
-  accent: "#93c5fd",
-  border: "#475569",
-  borderHi: "#64748b",
-  surfaceHi: "#334155",
+  text: BD.textBright,
+  textMuted: BD.textMuted,
+  accent: BD.link,
+  border: BD.borderHi,
+  borderHi: BD.borderHi,
+  surfaceHi: BD.bgPanelHi,
 };
+
+const USER_BUBBLE_BG = "#3730a3";
+const USER_BUBBLE_BORDER = "#312e81";
+const AI_BUBBLE_BG = BD.bgPanel;
+const AI_BUBBLE_BORDER = BD.borderHi;
 
 const cs = {
   shell: {
-    background: "#fff",
-    border: "1px solid #e2e8f0",
+    background: BD.bgCard,
+    border: `1px solid ${BD.border}`,
     borderRadius: 14,
     display: "flex",
     flexDirection: "column",
@@ -24,23 +30,22 @@ const cs = {
     flex: 1,
     boxSizing: "border-box",
     overflow: "hidden",
-    boxShadow:
-      "0 4px 24px rgba(15, 23, 42, 0.06), 0 0 0 1px rgba(255, 255, 255, 0.9) inset",
+    boxShadow: "0 4px 24px rgba(0, 0, 0, 0.35), inset 0 0 0 1px rgba(71, 85, 105, 0.2)",
   },
   header: {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
     padding: "14px 16px",
-    borderBottom: "1px solid #e2e8f0",
+    borderBottom: `1px solid ${BD.border}`,
     flexShrink: 0,
-    background: "linear-gradient(180deg, #fafbfc 0%, #ffffff 100%)",
+    background: `linear-gradient(180deg, ${BD.bgPanelHi} 0%, ${BD.bgCard} 100%)`,
   },
   headerLeft: { display: "flex", alignItems: "center", gap: 10 },
   headerTitle: {
     fontSize: 14,
     fontWeight: 700,
-    color: "#334155",
+    color: BD.textPrimary,
     letterSpacing: "-0.02em",
   },
   badge: {
@@ -57,7 +62,7 @@ const cs = {
     alignItems: "center",
     fontSize: 12,
     fontWeight: 500,
-    color: "#1a73e8",
+    color: BD.link,
     background: "transparent",
     border: "none",
     borderRadius: 4,
@@ -73,14 +78,15 @@ const cs = {
     flexDirection: "column",
     gap: 12,
     scrollbarWidth: "thin",
+    background: BD.bgInput,
   },
   aiAvatar: {
     width: 22,
     height: 22,
     borderRadius: "50%",
     flexShrink: 0,
-    background: "#334155",
-    border: "none",
+    background: BD.bgPanelHi,
+    border: `1px solid ${BD.border}`,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -90,7 +96,7 @@ const cs = {
     fontSize: 14,
     lineHeight: 1.55,
     padding: "10px 14px",
-    border: "1px solid #e8eaed",
+    border: `1px solid ${BD.border}`,
     wordBreak: "break-word",
     borderRadius: 8,
   },
@@ -99,9 +105,9 @@ const cs = {
     alignItems: "center",
     gap: 5,
     fontSize: 12,
-    color: "#1967d2",
-    background: "#e8f0fe",
-    border: "1px solid #d2e3fc",
+    color: BD.link,
+    background: BD.chipBg,
+    border: `1px solid ${BD.border}`,
     borderRadius: 4,
     padding: "4px 8px",
     textDecoration: "none",
@@ -115,9 +121,9 @@ const cs = {
     alignItems: "center",
     gap: 5,
     fontSize: 12,
-    color: "#bfdbfe",
-    background: "rgba(15, 23, 42, 0.45)",
-    border: "1px solid #475569",
+    color: BD.link,
+    background: "rgba(15, 23, 42, 0.55)",
+    border: `1px solid ${BD.borderHi}`,
     borderRadius: 4,
     padding: "4px 8px",
     textDecoration: "none",
@@ -131,17 +137,17 @@ const cs = {
     gap: 8,
     alignItems: "flex-end",
     padding: "10px 12px 12px",
-    borderTop: "1px solid #e8eaed",
+    borderTop: `1px solid ${BD.border}`,
     flexShrink: 0,
-    background: "#fff",
+    background: BD.bgCard,
   },
   textarea: {
     flex: 1,
-    background: "#f8fafc",
-    border: "1px solid #e2e8f0",
+    background: BD.bgInput,
+    border: `1px solid ${BD.border}`,
     borderRadius: 10,
     padding: "11px 14px",
-    color: "#0f172a",
+    color: BD.textPrimary,
     fontSize: 14,
     fontFamily: "inherit",
     outline: "none",
@@ -149,16 +155,16 @@ const cs = {
     lineHeight: 1.45,
     maxHeight: 100,
     overflowY: "auto",
-    boxShadow: "0 1px 2px rgba(15, 23, 42, 0.04) inset",
+    boxShadow: "inset 0 1px 2px rgba(0, 0, 0, 0.25)",
   },
   sendBtn: {
     width: 40,
     height: 40,
     borderRadius: 10,
     flexShrink: 0,
-    background: "linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%)",
+    background: `linear-gradient(180deg, ${BD.paywallCtaBg} 0%, #1d4ed8 100%)`,
     border: "none",
-    color: "#fff",
+    color: BD.textBright,
     cursor: "pointer",
     display: "flex",
     alignItems: "center",
@@ -252,15 +258,15 @@ export default function WorkspaceChat({
           >
             {msg.role === "ai" && (
               <div style={cs.aiAvatar}>
-                <Shield size={10} color="#93c5fd" />
+                <Shield size={10} color={BD.link} />
               </div>
             )}
             <div
               style={{
                 ...cs.bubble,
-                background: msg.role === "user" ? "#4338ca" : "#1e293b",
-                borderColor: msg.role === "user" ? "#3730a3" : "#334155",
-                color: msg.role === "user" ? "#ffffff" : "#f1f5f9",
+                background: msg.role === "user" ? USER_BUBBLE_BG : AI_BUBBLE_BG,
+                borderColor: msg.role === "user" ? USER_BUBBLE_BORDER : AI_BUBBLE_BORDER,
+                color: BD.textBright,
                 maxWidth: msg.role === "user" ? "82%" : "92%",
                 borderRadius: 8,
               }}
@@ -271,14 +277,14 @@ export default function WorkspaceChat({
                     marginBottom: 10,
                     padding: "8px 10px",
                     borderRadius: 8,
-                    background: "#334155",
-                    border: "1px solid #475569",
+                    background: BD.bgPanelHi,
+                    border: `1px solid ${BD.borderHi}`,
                   }}
                 >
                   {msg.plan.steps?.length > 0 && (
                     <>
-                      <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 500, color: "#93c5fd" }}>Plan</p>
-                      <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: "#e2e8f0", lineHeight: 1.45 }}>
+                      <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 500, color: BD.link }}>Plan</p>
+                      <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: BD.textSecondary, lineHeight: 1.45 }}>
                         {msg.plan.steps.map((s) => (
                           <li key={s.id} style={{ marginBottom: 2 }}>
                             <span style={{ marginRight: 4 }}>{s.status === "done" ? "✓" : "○"}</span>
@@ -293,7 +299,7 @@ export default function WorkspaceChat({
                       style={{
                         margin: msg.plan.steps?.length ? "6px 0 0" : 0,
                         fontSize: 13,
-                        color: "#93c5fd",
+                        color: BD.link,
                         fontWeight: 500,
                         lineHeight: 1.5,
                       }}
@@ -305,11 +311,11 @@ export default function WorkspaceChat({
                 </div>
               )}
               {msg.role === "ai" ? (
-                <div className="workspace-chat-md" style={{ fontSize: 14, lineHeight: 1.65, color: "#f1f5f9" }}>
+                <div className="workspace-chat-md" style={{ fontSize: 14, lineHeight: 1.65, color: BD.textBright }}>
                   <ChatMarkdown content={msg.text || ""} palette={AI_MARKDOWN_PALETTE} />
                 </div>
               ) : (
-                <span style={{ whiteSpace: "pre-wrap", color: "#ffffff" }}>{msg.text}</span>
+                <span style={{ whiteSpace: "pre-wrap", color: BD.textBright }}>{msg.text}</span>
               )}
               {msg.role === "ai" && msg.externalLinks?.length > 0 && (
                 <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 5 }}>
@@ -326,9 +332,9 @@ export default function WorkspaceChat({
         {loading && (
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <div style={cs.aiAvatar}>
-              <Shield size={10} color="#93c5fd" />
+              <Shield size={10} color={BD.link} />
             </div>
-            <div style={{ ...cs.bubble, background: "#1e293b", borderColor: "#334155", color: "#f1f5f9" }}>
+            <div style={{ ...cs.bubble, background: AI_BUBBLE_BG, borderColor: AI_BUBBLE_BORDER, color: BD.textBright }}>
               <span style={{ display: "flex", gap: 4 }}>
                 {[0, 1, 2].map((i) => (
                   <span
@@ -337,7 +343,7 @@ export default function WorkspaceChat({
                       width: 5,
                       height: 5,
                       borderRadius: "50%",
-                      background: "#94a3b8",
+                      background: BD.textMuted,
                       animation: `bounce 1.2s ${i * 0.2}s infinite`,
                       display: "inline-block",
                     }}

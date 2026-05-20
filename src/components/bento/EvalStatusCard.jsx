@@ -5,6 +5,7 @@
  */
 import { useEffect, useState, useCallback } from 'react';
 import { FlaskConical, RefreshCw, CheckCircle2, XCircle, AlertCircle, Clock } from 'lucide-react';
+import { BD } from '../../theme/bentoDarkTheme.js';
 
 const POLL_INTERVAL_MS = 30_000;
 
@@ -12,7 +13,7 @@ const DOT_CONFIG = {
   pass:    { color: '#22c55e', bg: 'rgba(34,197,94,0.12)',  shadow: '0 0 8px rgba(34,197,94,0.3)',  Icon: CheckCircle2 },
   fail:    { color: '#ef4444', bg: 'rgba(239,68,68,0.12)',  shadow: '0 0 8px rgba(239,68,68,0.3)',  Icon: XCircle      },
   error:   { color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', shadow: '0 0 8px rgba(245,158,11,0.3)', Icon: AlertCircle  },
-  pending: { color: '#5f6368', bg: '#f1f3f4',               shadow: 'none',                          Icon: Clock        },
+  pending: { color: BD.textMuted, bg: BD.chipBg,               shadow: 'none',                          Icon: Clock        },
 };
 
 function StatusDot({ eval: ev, index }) {
@@ -69,7 +70,7 @@ export default function EvalStatusCard() {
   const summary = data?.summary;
   const overall = summary?.overall || 'pending';
 
-  const overallColor = overall === 'pass' ? '#1e8e3e' : overall === 'warn' ? '#f9ab00' : overall === 'fail' ? '#d93025' : '#5f6368';
+  const overallColor = overall === 'pass' ? '#22c55e' : overall === 'warn' ? BD.warning : overall === 'fail' ? BD.danger : BD.textMuted;
   const overallLabel = overall === 'pass' ? 'All Passing' : overall === 'warn' ? 'Warning' : overall === 'fail' ? 'Regressions Detected' : 'Not Run';
 
   const timeStr = lastFetch
@@ -78,11 +79,12 @@ export default function EvalStatusCard() {
 
   return (
     <div style={s.card}>
+      <style>{`@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}`}</style>
       {/* Header */}
       <div style={s.header}>
         <div style={s.headerLeft}>
           <div style={s.iconWrap}>
-            <FlaskConical size={14} color="#1a73e8" />
+            <FlaskConical size={14} color={BD.link} />
           </div>
           <div>
             <p style={s.title}>Eval Status</p>
@@ -90,7 +92,7 @@ export default function EvalStatusCard() {
           </div>
         </div>
         <button style={s.refreshBtn} onClick={() => fetchStatus(true)} title="Refresh">
-          <RefreshCw size={12} color="#5f6368" style={loading ? { animation: 'spin 1s linear infinite' } : {}} />
+          <RefreshCw size={12} color={BD.textMuted} style={loading ? { animation: 'spin 1s linear infinite' } : {}} />
         </button>
       </div>
 
@@ -130,8 +132,8 @@ export default function EvalStatusCard() {
 // ── Styles ──────────────────────────────────────────────────────────────────
 const s = {
   card: {
-    background: '#fff',
-    border: '1px solid #dadce0',
+    background: BD.bgCard,
+    border: `1px solid ${BD.border}`,
     borderRadius: 8,
     padding: '20px 20px 16px',
     display: 'flex',
@@ -139,7 +141,7 @@ const s = {
     gap: 14,
     height: '100%',
     boxSizing: 'border-box',
-    boxShadow: '0 1px 2px rgba(60,64,67,0.06)',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
   },
   header: {
     display: 'flex',
@@ -155,7 +157,8 @@ const s = {
     width: 30,
     height: 30,
     borderRadius: 8,
-    background: '#e8f0fe',
+    background: BD.chipBg,
+    border: `1px solid ${BD.border}`,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -165,21 +168,21 @@ const s = {
     margin: 0,
     fontSize: 15,
     fontWeight: 400,
-    color: '#202124',
+    color: BD.textBright,
     letterSpacing: '-0.01em',
   },
   subtitle: {
     margin: 0,
     fontSize: 12,
-    color: '#5f6368',
+    color: BD.textMuted,
     marginTop: 1,
   },
   refreshBtn: {
     width: 28,
     height: 28,
     borderRadius: 8,
-    background: '#fff',
-    border: '1px solid #dadce0',
+    background: BD.bgPanel,
+    border: `1px solid ${BD.border}`,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -207,7 +210,7 @@ const s = {
   },
   overallCount: {
     fontSize: 12,
-    color: '#5f6368',
+    color: BD.textMuted,
     fontVariantNumeric: 'tabular-nums',
   },
   dotList: {
@@ -222,8 +225,8 @@ const s = {
     gap: 10,
     padding: '6px 10px',
     borderRadius: 8,
-    background: '#f8f9fa',
-    border: '1px solid #e8eaed',
+    background: BD.bgPanelHi,
+    border: `1px solid ${BD.border}`,
     cursor: 'default',
   },
   dotWrap: {
@@ -245,7 +248,7 @@ const s = {
   dotLabel: {
     fontSize: 12,
     fontWeight: 400,
-    color: '#202124',
+    color: BD.textPrimary,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
@@ -265,19 +268,19 @@ const s = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    borderTop: '1px solid #e8eaed',
+    borderTop: `1px solid ${BD.border}`,
     paddingTop: 10,
   },
   footerMeta: {
     fontSize: 12,
-    color: '#5f6368',
+    color: BD.textMuted,
   },
   footerError: {
     fontSize: 12,
-    color: '#d93025',
+    color: BD.danger,
   },
   footerHint: {
     fontSize: 12,
-    color: '#80868b',
+    color: BD.textDim,
   },
 };

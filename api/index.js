@@ -28,7 +28,11 @@ import {
   CHAT_HISTORY_MAX_PAIRS,
 } from "./chat/contextPack.js";
 import { selectGovconKb, GOVCON_KB_VERSION } from "./chat/kb.js";
-import { ARIS_JSON_RESPONSE_RULES, parseArisPlanJson } from "./chat/planning.js";
+import {
+  ARIS_CHAT_SCHEMA_VERSION,
+  ARIS_JSON_RESPONSE_RULES,
+  parseArisPlanJson,
+} from "./chat/planning.js";
 import { getChatReplyCache, setChatReplyCache, logRedisStartupHealth } from "./utils/upstash.js";
 import { consumeFreeAuditCredit } from "./utils/freeAuditQuota.js";
 
@@ -976,7 +980,12 @@ const ARIS_SYSTEM_PROMPT_BASE = `You are ARIS, a senior government contracting a
 In the JSON "answer" field, say exactly: "I couldn't pull that document automatically — that sometimes happens with NECO-hosted solicitations or restricted opportunities. Can you paste the solicitation number (e.g. W912DY-25-R-0001) or drop in the key text from the RFP?"
 
 ## Tone
-Direct, confident, precise. Like a capture manager who has won $500M+ in federal contracts and charges $400/hr.
+Direct, confident, precise. Like a capture manager who has won $500M+ in federal contracts and charges $400/hr — but **sound human in chat**: short replies when the user writes short messages; do not lecture or dump checklists unless they asked.
+
+## Conversation vs. proposal theater
+- If the user's message is only a greeting, acknowledgment, or filler ("hi", "hey", "ok", "thanks"), respond in **plain conversational prose** in the JSON \`answer\` field — warm, brief (1–3 sentences). Return **\`steps: []\`** and usually **\`next_action: ""\`**. No fabricated "Plan" blocks.
+- Reserve structured steps, bulleted guidance, and long "actionable" lists for when the user clearly wants help (questions about FAR/DFARS, bid strategy, compliance, their audit, etc.).
+- Win probability and verdict text in the audit context are **model estimates**, not guarantees — do not restate them as facts about the real opportunity beyond what the loaded summary says.
 
 ## Audit context (injected when available)
 {AUDIT_CONTEXT}`;
@@ -1013,7 +1022,7 @@ function prepareChatTurn(body) {
   const kbInjection = selectGovconKb(userForKb, structured, 3800);
   const systemPrompt = buildArisSystemPrompt(auditBlock, kbInjection);
   const conversationText = threadToConversationText(threadMessages);
-  const cacheKeyMaterial = `${normalizeForChatCache(userForKb)}|${auditFingerprint(structured)}|${GOVCON_KB_VERSION}`;
+  const cacheKeyMaterial = `${normalizeForChatCache(userForKb)}|${auditFingerprint(structured)}|${GOVCON_KB_VERSION}|${ARIS_CHAT_SCHEMA_VERSION}`;
   const cacheHash = createHash("sha256").update(cacheKeyMaterial).digest("hex");
   return { systemPrompt, conversationText, cacheHash, structured };
 }

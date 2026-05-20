@@ -230,7 +230,7 @@
   align-items: center;
   margin-bottom: 0.75rem;
   font-size: 0.68rem;
-  color: #94a3b8;
+  color: #cbd5e1;
   letter-spacing: 0.07em;
   text-transform: uppercase;
 }
@@ -276,7 +276,7 @@
 }
 
 .landing-report-meta-row span {
-  color: #94a3b8;
+  color: #cbd5e1;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -391,7 +391,7 @@
 .landing-trust-item span {
   margin-top: 0.32rem;
   display: block;
-  color: #94a3b8;
+  color: #cbd5e1;
   font-size: 0.8rem;
   line-height: 1.35;
 }

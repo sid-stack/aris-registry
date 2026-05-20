@@ -42,6 +42,7 @@ const OG_IMAGE_URL = `${BASE_URL}/og-image.png`;
 /** Logged-out /dashboard (and traffic-brief) — context before Clerk so cold-email clicks convert. */
 function DashboardSignInShell({ onBackHome }) {
   const signupStartOnce = useRef(false);
+  const [queuedLanding, setQueuedLanding] = useState(null);
   const onSignInInteract = () => {
     if (signupStartOnce.current) return;
     signupStartOnce.current = true;
@@ -50,6 +51,20 @@ function DashboardSignInShell({ onBackHome }) {
 
   useEffect(() => {
     track("signin_view", {});
+  }, []);
+
+  useEffect(() => {
+    try {
+      const p = new URLSearchParams(window.location.search);
+      const u = p.get("url")?.trim();
+      if (u && /^https?:\/\//i.test(u)) {
+        setQueuedLanding("url");
+        return;
+      }
+      if (p.get("intent") === "upload") setQueuedLanding("upload");
+    } catch {
+      setQueuedLanding(null);
+    }
   }, []);
 
   const backBtn = {
@@ -125,6 +140,16 @@ function DashboardSignInShell({ onBackHome }) {
         <p style={{ margin: "0 0 20px", fontSize: 13, color: "#cbd5e1", lineHeight: 1.55 }}>
           Free plan: <strong style={{ color: "#e2e8f0" }}>3 full audits per calendar month</strong> · No credit card required. Upgrade anytime for unlimited runs.
         </p>
+        {queuedLanding === "url" && (
+          <p style={{ margin: "0 0 16px", fontSize: 13, color: "#e2e8f0", lineHeight: 1.55, padding: "12px 14px", borderRadius: 10, background: "rgba(148, 163, 184, 0.12)", border: "1px solid rgba(148, 163, 184, 0.25)" }}>
+            Your SAM.gov link from the home page is queued — the audit starts automatically right after you sign in.
+          </p>
+        )}
+        {queuedLanding === "upload" && (
+          <p style={{ margin: "0 0 16px", fontSize: 13, color: "#e2e8f0", lineHeight: 1.55, padding: "12px 14px", borderRadius: 10, background: "rgba(148, 163, 184, 0.12)", border: "1px solid rgba(148, 163, 184, 0.25)" }}>
+            After sign-in, open <strong style={{ color: "#fff" }}>Files</strong> in the left panel and drop the PDF you chose on the marketing site.
+          </p>
+        )}
         <div
           style={{
             borderRadius: 12,
@@ -455,13 +480,26 @@ export default function App() {
   };
 
   const handleAnalyze = (url) => {
-    trackEvent("landing_quick_audit_started", { entry: "url_bar", url: url?.slice?.(0, 120) });
-    goWorkspace();
+    const trimmed = String(url || "").trim();
+    if (!trimmed) return;
+    trackEvent("landing_quick_audit_started", { entry: "url_bar", url: trimmed.slice(0, 120) });
+    try {
+      sessionStorage.setItem("bidsmith_queued_audit_url", trimmed);
+    } catch {
+      /* ignore quota / private mode */
+    }
+    const qs = new URLSearchParams();
+    qs.set("url", trimmed);
+    window.history.pushState({ view: "dashboard" }, "", `${WORKSPACE_PATH}?${qs.toString()}`);
+    setView("dashboard");
   };
 
   const handleAnalyzeFile = (_file) => {
     trackEvent("landing_quick_audit_started", { entry: "pdf_upload" });
-    goWorkspace();
+    const qs = new URLSearchParams();
+    qs.set("intent", "upload");
+    window.history.pushState({ view: "dashboard" }, "", `${WORKSPACE_PATH}?${qs.toString()}`);
+    setView("dashboard");
   };
 
   const handleEnterApp = (entry = "generic") => {

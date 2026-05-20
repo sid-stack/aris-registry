@@ -5,6 +5,10 @@
  *   loading      — bool, shows skeleton shimmer while inference is in progress
  */
 import { Brain, ExternalLink, TrendingUp } from 'lucide-react';
+import { BD } from '../../theme/bentoDarkTheme.js';
+
+const SHIMMER =
+  'linear-gradient(90deg, #1a2434 22%, #243044 50%, #1a2434 78%)';
 
 const CONFIDENCE_TIERS = [
   { max: 40,  label: 'Low',    color: '#ef4444' },
@@ -21,7 +25,7 @@ function Bone({ w = '100%', h = 12, radius = 6, style = {} }) {
   return (
     <div style={{
       width: w, height: h, borderRadius: radius,
-      background: 'linear-gradient(90deg,#f1f3f4 25%,#e8eaed 50%,#f1f3f4 75%)',
+      background: SHIMMER,
       backgroundSize: '200% 100%',
       animation: 'shimmer 1.6s infinite',
       flexShrink: 0,
@@ -45,7 +49,7 @@ function SkeletonBody() {
         ))}
       </div>
       {/* summary block skeleton */}
-      <div style={{ background: '#f8f9fa', borderRadius: 8, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 7, border: '1px solid #e8eaed' }}>
+      <div style={{ background: BD.bgPanel, borderRadius: 8, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 7, border: `1px solid ${BD.border}` }}>
         <Bone w="95%" />
         <Bone w="80%" />
         <Bone w="65%" />
@@ -122,13 +126,13 @@ export default function LiveAnalysisCard({ auditResult, loading = false, inquiry
   return (
     <div style={s.card}>
       {/* shimmer keyframes injected once */}
-      <style>{`@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
+      <style>{`@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.45}}`}</style>
 
       {/* ── Header ── */}
       <div style={s.header}>
         <div style={s.headerLeft}>
           <div style={{ ...s.iconWrap, opacity: loading ? 0.4 : 1 }}>
-            <Brain size={14} color="#1a73e8" />
+            <Brain size={14} color={BD.link} />
           </div>
           <span style={s.title}>Live Analysis</span>
           {loading && (
@@ -237,7 +241,7 @@ export default function LiveAnalysisCard({ auditResult, loading = false, inquiry
 
           {verdict.rationale && (
             <div style={s.rationale}>
-              <TrendingUp size={12} color="#6b7280" style={{ flexShrink: 0, marginTop: 1 }} />
+              <TrendingUp size={12} color={BD.textMuted} style={{ flexShrink: 0, marginTop: 1 }} />
               <p style={s.rationaleText}>
                 {verdict.rationale.slice(0, 180)}
                 {verdict.rationale.length > 180 ? '…' : ''}
@@ -253,8 +257,8 @@ export default function LiveAnalysisCard({ auditResult, loading = false, inquiry
 // ── Styles ────────────────────────────────────────────────────────────────────
 const s = {
   card: {
-    background: '#fff',
-    border: '1px solid #dadce0',
+    background: BD.bgCard,
+    border: `1px solid ${BD.border}`,
     borderRadius: 8,
     padding: '20px 20px 16px',
     display: 'flex',
@@ -262,7 +266,7 @@ const s = {
     gap: 16,
     height: '100%',
     boxSizing: 'border-box',
-    boxShadow: '0 1px 2px rgba(60,64,67,0.06)',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
   },
   header: {
     display: 'flex',
@@ -272,23 +276,24 @@ const s = {
   headerLeft: { display: 'flex', alignItems: 'center', gap: 8 },
   iconWrap: {
     width: 28, height: 28, borderRadius: 8,
-    background: '#e8f0fe',
+    background: BD.chipBg,
+    border: `1px solid ${BD.border}`,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     transition: 'opacity 0.3s',
     WebkitTransition: 'opacity 0.3s',
   },
-  title: { fontSize: 15, fontWeight: 400, color: '#202124', letterSpacing: '-0.01em' },
+  title: { fontSize: 15, fontWeight: 400, color: BD.textBright, letterSpacing: '-0.01em' },
   inferringBadge: {
     display: 'flex', alignItems: 'center', gap: 5,
     fontSize: 12, fontWeight: 500,
-    color: '#1967d2',
-    background: '#e8f0fe',
-    border: '1px solid #d2e3fc',
+    color: BD.link,
+    background: 'rgba(37, 99, 235, 0.15)',
+    border: `1px solid ${BD.borderHi}`,
     borderRadius: 16, padding: '2px 10px',
   },
   inferringDot: {
     width: 5, height: 5, borderRadius: '50%',
-    background: '#1a73e8',
+    background: BD.paywallCtaBg,
     animation: 'pulse 1.2s ease-in-out infinite',
   },
   badge: {
@@ -304,23 +309,24 @@ const s = {
   },
   emptyDot: {
     width: 32, height: 32, borderRadius: '50%',
-    background: '#f1f3f4', marginBottom: 4,
+    background: BD.trackBar, marginBottom: 4,
+    border: `1px solid ${BD.border}`,
   },
-  emptyTitle: { margin: 0, fontSize: 15, fontWeight: 400, color: '#5f6368' },
+  emptyTitle: { margin: 0, fontSize: 15, fontWeight: 400, color: BD.textSecondary },
   emptySub: {
-    margin: 0, fontSize: 13, color: '#80868b',
+    margin: 0, fontSize: 13, color: BD.textMuted,
     textAlign: 'center', maxWidth: 280, lineHeight: 1.5,
   },
   section: { display: 'flex', flexDirection: 'column', gap: 8 },
   sectionLabel: {
     margin: 0, fontSize: 12, fontWeight: 500,
-    letterSpacing: '0', textTransform: 'none', color: '#5f6368',
+    letterSpacing: '0', textTransform: 'none', color: BD.textMuted,
   },
   bars: { display: 'flex', flexDirection: 'column', gap: 8 },
   barRow: { display: 'flex', alignItems: 'center', gap: 10 },
-  barLabel: { fontSize: 13, color: '#5f6368', width: 140, flexShrink: 0 },
+  barLabel: { fontSize: 13, color: BD.textSecondary, width: 140, flexShrink: 0 },
   barTrack: {
-    flex: 1, height: 4, background: '#e8eaed',
+    flex: 1, height: 4, background: BD.trackBar,
     borderRadius: 2, overflow: 'hidden',
   },
   barFill: {
@@ -329,24 +335,24 @@ const s = {
     WebkitTransition: 'width 0.6s cubic-bezier(0.4,0,0.2,1)',
   },
   barScore: { fontSize: 11, fontWeight: 600, width: 34, textAlign: 'right', flexShrink: 0 },
-  summary: { background: '#f8f9fa', borderRadius: 8, padding: '10px 12px', border: '1px solid #e8eaed' },
-  summaryText: { margin: 0, fontSize: 14, color: '#202124', lineHeight: 1.55 },
+  summary: { background: BD.bgPanel, borderRadius: 8, padding: '10px 12px', border: `1px solid ${BD.border}` },
+  summaryText: { margin: 0, fontSize: 14, color: BD.textPrimary, lineHeight: 1.55 },
   chips: { display: 'flex', flexWrap: 'wrap', gap: 6 },
   chip: {
     display: 'inline-flex', alignItems: 'center', gap: 5,
-    background: '#f8f9fa', border: '1px solid #dadce0',
+    background: BD.bgPanelHi, border: `1px solid ${BD.border}`,
     borderRadius: 4, padding: '4px 8px',
     textDecoration: 'none', transition: 'border-color 0.15s', maxWidth: '100%',
     WebkitTransition: 'border-color 0.15s',
   },
-  chipIndex: { fontSize: 11, fontWeight: 500, color: '#1a73e8', flexShrink: 0 },
+  chipIndex: { fontSize: 11, fontWeight: 500, color: BD.link, flexShrink: 0 },
   chipText: {
-    fontSize: 12, color: '#202124',
+    fontSize: 12, color: BD.textPrimary,
     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
   },
   rationale: {
     display: 'flex', gap: 8, alignItems: 'flex-start',
-    borderTop: '1px solid #e8eaed', paddingTop: 12,
+    borderTop: `1px solid ${BD.border}`, paddingTop: 12,
   },
-  rationaleText: { margin: 0, fontSize: 13, color: '#5f6368', lineHeight: 1.55 },
+  rationaleText: { margin: 0, fontSize: 13, color: BD.textMuted, lineHeight: 1.55 },
 };

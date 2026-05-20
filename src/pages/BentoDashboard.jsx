@@ -20,6 +20,7 @@ import WorkspaceChat from '../components/bento/WorkspaceChat.jsx';
 import { downloadComplianceMatrixXlsx, complianceMatrixXlsxBuffer } from '../utils/complianceMatrixXlsx';
 import { track, trackEvent } from '../utils/analytics';
 import { BENTO_WORKSPACE_WELCOME_MARKDOWN } from '../content/bentoWorkspaceWelcome.js';
+import { BD } from '../theme/bentoDarkTheme.js';
 import '../styles/bento-dashboard.css';
 
 // ── Error code → intelligent AI opening message ───────────────────────────────
@@ -84,9 +85,9 @@ const rail = {
     width: open ? RAIL_W : 0,
     minWidth: open ? RAIL_W : 0,
     flexShrink: 0,
-    borderRight: '1px solid #e2e8f0',
-    background: 'linear-gradient(180deg, #fafbfc 0%, #ffffff 12%)',
-    boxShadow: open ? '4px 0 24px rgba(15, 23, 42, 0.04)' : 'none',
+    borderRight: `1px solid ${BD.border}`,
+    background: BD.bgRail,
+    boxShadow: open ? '4px 0 24px rgba(0, 0, 0, 0.35)' : 'none',
     display: 'flex',
     flexDirection: 'column',
     minHeight: 0,
@@ -97,9 +98,9 @@ const rail = {
     width: open ? RAIL_W : 0,
     minWidth: open ? RAIL_W : 0,
     flexShrink: 0,
-    borderLeft: '1px solid #e2e8f0',
-    background: 'linear-gradient(180deg, #fafbfc 0%, #ffffff 12%)',
-    boxShadow: open ? '-4px 0 24px rgba(15, 23, 42, 0.04)' : 'none',
+    borderLeft: `1px solid ${BD.border}`,
+    background: BD.bgRail,
+    boxShadow: open ? '-4px 0 24px rgba(0, 0, 0, 0.35)' : 'none',
     display: 'flex',
     flexDirection: 'column',
     minHeight: 0,
@@ -119,23 +120,23 @@ const rail = {
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: '12px 14px',
-    borderBottom: '1px solid #e2e8f0',
+    borderBottom: `1px solid ${BD.border}`,
     flexShrink: 0,
-    background: '#fff',
+    background: BD.bgRailHead,
   },
-  headTitle: { fontSize: 13, fontWeight: 700, color: '#0f172a', letterSpacing: '-0.02em' },
+  headTitle: { fontSize: 13, fontWeight: 700, color: BD.textBright, letterSpacing: '-0.02em' },
   iconBtn: {
     width: 34,
     height: 34,
     borderRadius: 10,
-    border: '1px solid #e2e8f0',
-    background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
+    border: `1px solid ${BD.border}`,
+    background: BD.bgPanelHi,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     cursor: 'pointer',
-    color: '#475569',
-    boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
+    color: BD.textSecondary,
+    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.2)',
   },
   tabs: {
     display: 'flex',
@@ -143,7 +144,7 @@ const rail = {
     borderBottom: 'none',
     flexShrink: 0,
     padding: '8px 10px',
-    background: '#f1f5f9',
+    background: BD.bgRailTabs,
     margin: '0 8px 8px',
     borderRadius: 12,
   },
@@ -155,11 +156,11 @@ const rail = {
     fontWeight: on ? 700 : 600,
     letterSpacing: '0.04em',
     textTransform: 'uppercase',
-    color: on ? '#fff' : '#64748b',
-    background: on ? 'linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%)' : 'transparent',
+    color: on ? BD.tabActiveFg : BD.textMuted,
+    background: on ? BD.paywallCtaBg : 'transparent',
     border: 'none',
     borderRadius: 8,
-    boxShadow: on ? '0 2px 6px rgba(37, 99, 235, 0.25)' : 'none',
+    boxShadow: on ? '0 2px 6px rgba(37, 99, 235, 0.35)' : 'none',
     cursor: 'pointer',
     marginBottom: 0,
     transition: 'color 0.15s, background 0.15s, box-shadow 0.15s',
@@ -173,23 +174,23 @@ const rail = {
   },
   sourceRow: {
     padding: '10px 0',
-    borderBottom: '1px solid #e8eaed',
+    borderBottom: `1px solid ${BD.borderSoft}`,
     fontSize: 12,
-    color: '#202124',
+    color: BD.textPrimary,
     lineHeight: 1.45,
   },
-  sourceMeta: { fontSize: 10, color: '#80868b', marginBottom: 4, fontWeight: 500 },
+  sourceMeta: { fontSize: 10, color: BD.textDim, marginBottom: 4, fontWeight: 500 },
   agentRow: {
     padding: '8px 0',
     fontSize: 12,
-    color: '#5f6368',
-    borderBottom: '1px solid #f1f3f4',
+    color: BD.textSecondary,
+    borderBottom: `1px solid ${BD.borderSoft}`,
     display: 'flex',
     gap: 8,
     alignItems: 'flex-start',
   },
-  detailLabel: { fontSize: 11, color: '#80868b', marginBottom: 2 },
-  detailVal: { fontSize: 13, color: '#202124', marginBottom: 10, lineHeight: 1.4 },
+  detailLabel: { fontSize: 11, color: BD.textDim, marginBottom: 2 },
+  detailVal: { fontSize: 13, color: BD.textPrimary, marginBottom: 10, lineHeight: 1.4 },
   edgeToggle: (side) => ({
     position: 'absolute',
     top: '50%',
@@ -198,16 +199,15 @@ const rail = {
     zIndex: 20,
     width: 26,
     height: 52,
-    border: '1px solid #e2e8f0',
-    background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
+    border: `1px solid ${BD.border}`,
+    background: BD.bgPanelHi,
     borderRadius: side === 'left' ? '0 10px 10px 0' : '10px 0 0 10px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     cursor: 'pointer',
-    color: '#475569',
-    boxShadow:
-      '0 2px 8px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(255, 255, 255, 0.8) inset',
+    color: BD.textSecondary,
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.25)',
   }),
 };
 
@@ -231,7 +231,7 @@ function LeftWorkspaceRail({
 }) {
   const { signOut } = useClerk();
   const verdictColor = (v) =>
-    v === 'BID' ? '#1e8e3e' : v === 'NO-BID' ? '#d93025' : '#f9ab00';
+    v === 'BID' ? BD.success : v === 'NO-BID' ? BD.danger : BD.warning;
 
   return (
     <div style={rail.outer(open)}>
@@ -266,7 +266,7 @@ function LeftWorkspaceRail({
           {tab === 'details' && (
             <div>
               {!auditResult ? (
-                <p style={{ margin: 0, fontSize: 13, color: '#80868b', lineHeight: 1.5 }}>
+                <p style={{ margin: 0, fontSize: 13, color: BD.textMuted, lineHeight: 1.5 }}>
                   Run an audit or pick one from History. Extracted solicitation fields and summary appear here.
                 </p>
               ) : (
@@ -284,11 +284,11 @@ function LeftWorkspaceRail({
                   <p style={rail.detailLabel}>Contract type</p>
                   <p style={rail.detailVal}>{auditResult.contract_type || '—'}</p>
                   <p style={rail.detailLabel}>Executive summary</p>
-                  <p style={{ ...rail.detailVal, fontSize: 12, color: '#5f6368' }}>
+                  <p style={{ ...rail.detailVal, fontSize: 12, color: BD.textSecondary }}>
                     {(auditResult.executiveSummary || '').slice(0, 520)}{(auditResult.executiveSummary || '').length > 520 ? '…' : ''}
                   </p>
                   {auditResult.sam_url && (
-                    <a href={auditResult.sam_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: '#1967d2' }}>
+                    <a href={auditResult.sam_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: BD.link }}>
                       Open SAM.gov →
                     </a>
                   )}
@@ -313,7 +313,7 @@ function LeftWorkspaceRail({
                       onClick={() => onSelectAudit(a)}
                       style={{
                         ...sb.historyItem,
-                        background: isActive ? '#e8f0fe' : 'transparent',
+                        background: isActive ? BD.accentSoft : 'transparent',
                         borderColor: 'transparent',
                       }}
                     >
@@ -333,7 +333,7 @@ function LeftWorkspaceRail({
             </div>
           )}
         </div>
-        <div style={{ ...sb.footer, marginTop: 'auto', borderTop: '1px solid #e8eaed' }}>
+        <div style={{ ...sb.footer, marginTop: 'auto', borderTop: `1px solid ${BD.border}` }}>
           <div style={sb.footerMeta}>
             {user?.email && (
               <div style={sb.userRow}>
@@ -380,17 +380,17 @@ function RightWorkspaceRail({
         <div style={rail.body}>
           {tab === 'agents' && (
             <div>
-              <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 500, color: '#80868b' }}>Pipeline</p>
+              <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 500, color: BD.textDim }}>Pipeline</p>
               {ANALYSIS_STEPS.map((step, i) => (
                 <div key={step.id} style={rail.agentRow}>
-                  <Cpu size={14} color={i <= analysisStep ? '#1a73e8' : '#dadce0'} style={{ flexShrink: 0, marginTop: 2 }} />
+                  <Cpu size={14} color={i <= analysisStep ? BD.accent : BD.borderHi} style={{ flexShrink: 0, marginTop: 2 }} />
                   <div>
-                    <div style={{ fontWeight: i === analysisStep && analyzing ? 600 : 400, color: '#202124' }}>{step.label}</div>
-                    <div style={{ fontSize: 11, color: '#80868b', marginTop: 2 }}>{step.detail}</div>
+                    <div style={{ fontWeight: i === analysisStep && analyzing ? 600 : 400, color: BD.textPrimary }}>{step.label}</div>
+                    <div style={{ fontSize: 11, color: BD.textMuted, marginTop: 2 }}>{step.detail}</div>
                   </div>
                 </div>
               ))}
-              <div style={{ marginTop: 16, borderTop: '1px solid #e8eaed', paddingTop: 12 }}>
+              <div style={{ marginTop: 16, borderTop: `1px solid ${BD.border}`, paddingTop: 12 }}>
                 <LiveAnalysisCard
                   auditResult={auditResult}
                   loading={analyzing}
@@ -403,7 +403,7 @@ function RightWorkspaceRail({
           {tab === 'sources' && (
             <div>
               {!reqs.length ? (
-                <p style={{ margin: 0, fontSize: 13, color: '#80868b' }}>Requirement citations and excerpts appear after an audit.</p>
+                <p style={{ margin: 0, fontSize: 13, color: BD.textMuted }}>Requirement citations and excerpts appear after an audit.</p>
               ) : (
                 reqs.map((r, i) => (
                   <div key={r.id || i} style={rail.sourceRow}>
@@ -414,7 +414,7 @@ function RightWorkspaceRail({
                     </div>
                     <div>{r.requirement || r.text || '—'}</div>
                     {(r.source_excerpt || r.sourceExcerpt) && (
-                      <div style={{ marginTop: 6, fontSize: 11, color: '#5f6368', fontStyle: 'italic', lineHeight: 1.4 }}>
+                      <div style={{ marginTop: 6, fontSize: 11, color: BD.textSecondary, fontStyle: 'italic', lineHeight: 1.4 }}>
                         “{String(r.source_excerpt || r.sourceExcerpt).slice(0, 280)}{String(r.source_excerpt || r.sourceExcerpt).length > 280 ? '…' : ''}”
                       </div>
                     )}
@@ -586,13 +586,13 @@ const fs = {
     fontSize: 11,
     fontWeight: 700,
     letterSpacing: '0.06em',
-    color: '#475569',
+    color: BD.textMuted,
     textTransform: 'uppercase',
   },
   dockSub: {
     fontSize: 12,
     fontWeight: 500,
-    color: '#64748b',
+    color: BD.textDim,
   },
   scrollDock: {
     display: 'flex',
@@ -609,14 +609,14 @@ const fs = {
     fontSize: 11,
     fontWeight: 600,
     letterSpacing: '0.04em',
-    color: '#475569',
+    color: BD.textMuted,
     textTransform: 'uppercase',
     fontFamily: FS_UI_FONT,
   },
   sub: {
     fontSize: 13,
     fontWeight: 500,
-    color: '#64748b',
+    color: BD.textDim,
     fontFamily: FS_UI_FONT,
   },
   scroll: {
@@ -627,14 +627,14 @@ const fs = {
   card: {
     flexShrink: 0,
     width: 200,
-    background: '#fff',
-    border: '1px solid #e2e8f0',
+    background: BD.bgCard,
+    border: `1px solid ${BD.border}`,
     borderRadius: 12,
     padding: '12px 14px',
     cursor: 'pointer',
     textAlign: 'left',
     display: 'flex', flexDirection: 'column', gap: 6,
-    boxShadow: '0 1px 3px rgba(15, 23, 42, 0.05)',
+    boxShadow: '0 4px 14px rgba(0, 0, 0, 0.25)',
     fontFamily: FS_UI_FONT,
   },
   cardTop: {
@@ -647,7 +647,7 @@ const fs = {
   },
   naics: {
     fontSize: 10,
-    color: '#334155',
+    color: BD.textSecondary,
     fontFamily: 'ui-monospace, "Cascadia Code", "Segoe UI Mono", monospace',
     fontWeight: 600,
     letterSpacing: '0.02em',
@@ -655,8 +655,8 @@ const fs = {
   cardDock: {
     flexShrink: 0,
     width: 168,
-    background: '#fff',
-    border: '1px solid #e2e8f0',
+    background: BD.bgCard,
+    border: `1px solid ${BD.border}`,
     borderRadius: 12,
     padding: '10px 12px',
     cursor: 'pointer',
@@ -664,14 +664,14 @@ const fs = {
     display: 'flex',
     flexDirection: 'column',
     gap: 4,
-    boxShadow: '0 1px 3px rgba(15, 23, 42, 0.05)',
+    boxShadow: '0 4px 14px rgba(0, 0, 0, 0.25)',
     fontFamily: FS_UI_FONT,
   },
   title: {
     margin: 0,
     fontSize: 13,
     fontWeight: 500,
-    color: '#202124',
+    color: BD.textPrimary,
     lineHeight: 1.35,
     display: '-webkit-box', WebkitLineClamp: 2,
     WebkitBoxOrient: 'vertical', overflow: 'hidden',
@@ -680,7 +680,7 @@ const fs = {
     margin: 0,
     fontSize: 12,
     fontWeight: 600,
-    color: '#202124',
+    color: BD.textPrimary,
     lineHeight: 1.35,
     display: '-webkit-box',
     WebkitLineClamp: 2,
@@ -690,13 +690,13 @@ const fs = {
   agency: {
     margin: 0,
     fontSize: 12,
-    color: '#475569',
+    color: BD.textSecondary,
     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
   },
   agencyDock: {
     margin: 0,
     fontSize: 11,
-    color: '#64748b',
+    color: BD.textMuted,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
@@ -707,15 +707,15 @@ const fs = {
   value: {
     fontSize: 13,
     fontWeight: 600,
-    color: '#137333',
+    color: BD.success,
     letterSpacing: '-0.02em',
   },
   setAside: {
     fontSize: 11,
     fontWeight: 600,
-    color: '#475569',
-    background: '#f1f3f4',
-    border: 'none',
+    color: BD.textSecondary,
+    background: BD.bgPanelHi,
+    border: `1px solid ${BD.border}`,
     borderRadius: 4,
     padding: '2px 8px',
   },
@@ -738,7 +738,7 @@ function SubmissionChecklist({ auditResult, loading = false }) {
           <span style={cl.title}>Submission Checklist</span>
         </div>
         {[1,2,3].map(i => (
-          <div key={i} style={{ height: 18, background: '#1a1a1a', borderRadius: 4, marginBottom: 10, opacity: 0.5, animation: 'pulse 1.4s ease-in-out infinite' }} />
+          <div key={i} style={{ height: 18, background: BD.bgPanelHi, borderRadius: 4, marginBottom: 10, opacity: 0.5, animation: 'pulse 1.4s ease-in-out infinite' }} />
         ))}
       </div>
     );
@@ -752,7 +752,7 @@ function SubmissionChecklist({ auditResult, loading = false }) {
           <span style={cl.title}>Submission Checklist</span>
           <span style={cl.badge}>GUIDE</span>
         </div>
-        <p style={{ fontSize: 11, color: '#4b5563', margin: 0, lineHeight: 1.6 }}>
+        <p style={{ fontSize: 11, color: BD.textMuted, margin: 0, lineHeight: 1.6 }}>
           Run an audit to generate a complete list of every document and form you must submit.
           The engine detects page limits, required volumes, signed certifications, and hidden deliverables.
         </p>
@@ -773,7 +773,7 @@ function SubmissionChecklist({ auditResult, loading = false }) {
       </div>
 
       {/* Progress bar */}
-      <div style={{ height: 3, background: '#1a1a1a', borderRadius: 99, marginBottom: 14, overflow: 'hidden' }}>
+      <div style={{ height: 3, background: BD.trackBar, borderRadius: 99, marginBottom: 14, overflow: 'hidden' }}>
         <div style={{
           height: '100%', borderRadius: 99,
           width: `${progress}%`,
@@ -795,15 +795,15 @@ function SubmissionChecklist({ auditResult, loading = false }) {
           >
             <span style={{
               flexShrink: 0, width: 14, height: 14, borderRadius: 3,
-              border: `1.5px solid ${checked[i] ? '#16a34a' : '#374151'}`,
-              background: checked[i] ? '#16a34a' : 'transparent',
+              border: `1.5px solid ${checked[i] ? BD.success : BD.borderHi}`,
+              background: checked[i] ? BD.success : 'transparent',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               marginTop: 1, transition: 'all 0.15s',
             }}>
-              {checked[i] && <span style={{ color: '#fff', fontSize: 9, fontWeight: 900, lineHeight: 1 }}>✓</span>}
+              {checked[i] && <span style={{ color: BD.textBright, fontSize: 9, fontWeight: 900, lineHeight: 1 }}>✓</span>}
             </span>
             <span style={{
-              fontSize: 11, color: checked[i] ? '#4b5563' : '#d1d5db',
+              fontSize: 11, color: checked[i] ? BD.textDim : BD.textMuted,
               lineHeight: 1.5,
               textDecoration: checked[i] ? 'line-through' : 'none',
             }}>
@@ -832,8 +832,8 @@ function SubmissionChecklist({ auditResult, loading = false }) {
 
 const cl = {
   card: {
-    background: '#fff',
-    border: '1px solid #dadce0',
+    background: BD.bgCard,
+    border: `1px solid ${BD.border}`,
     borderRadius: 8,
     padding: '18px 20px',
     flex: 1,
@@ -849,22 +849,22 @@ const cl = {
     width: 8,
     height: 8,
     borderRadius: '50%',
-    background: '#1e8e3e',
+    background: BD.success,
     flexShrink: 0,
   },
   title: {
     fontSize: 12,
     fontWeight: 500,
-    color: '#5f6368',
+    color: BD.textSecondary,
     letterSpacing: '0',
     textTransform: 'none',
   },
   badge: {
     fontSize: 11,
     fontWeight: 500,
-    color: '#5f6368',
-    background: '#f1f3f4',
-    border: 'none',
+    color: BD.textMuted,
+    background: BD.bgPanelHi,
+    border: `1px solid ${BD.border}`,
     borderRadius: 4,
     padding: '2px 8px',
     letterSpacing: '0',
@@ -995,7 +995,7 @@ function PaywallGate({
               'Export to CSV / copy bid brief',
             ].map(f => (
               <div key={f} style={pw.featureRow}>
-                <span style={{ color: '#1e8e3e', fontSize: 12 }}>✓</span>
+                <span style={{ color: BD.success, fontSize: 12 }}>✓</span>
                 <span style={pw.featureText}>{f}</span>
               </div>
             ))}
@@ -1026,24 +1026,25 @@ const pw = {
     textTransform: 'none',
     borderRadius: 4,
     padding: '4px 10px',
-    border: '1px solid #dadce0',
+    border: `1px solid ${BD.border}`,
     width: 'fit-content',
-    background: '#fff',
+    background: BD.bgPanel,
+    color: BD.textSecondary,
   },
   statusUnlocked: {
-    color: '#137333',
-    background: '#e6f4ea',
-    borderColor: '#ceead6',
+    color: BD.success,
+    background: BD.bgToastSuccess,
+    borderColor: BD.border,
   },
   statusLocked: {
-    color: '#b06000',
-    background: '#fef7e0',
-    borderColor: '#fdd663',
+    color: BD.warning,
+    background: '#2a2318',
+    borderColor: '#5c4d2e',
   },
   statusChecking: {
-    color: '#1967d2',
-    background: '#e8f0fe',
-    borderColor: '#d2e3fc',
+    color: BD.accent,
+    background: BD.accentSoft,
+    borderColor: BD.accentBorder,
   },
   preview: {
     maxHeight: 240,
@@ -1061,8 +1062,8 @@ const pw = {
   lockCard: {
     width: '100%',
     maxWidth: 420,
-    background: '#fff',
-    border: '1px solid #dadce0',
+    background: BD.bgCard,
+    border: `1px solid ${BD.border}`,
     borderRadius: 8,
     padding: '24px 22px',
     display: 'flex',
@@ -1070,20 +1071,20 @@ const pw = {
     alignItems: 'stretch',
     gap: 12,
     textAlign: 'left',
-    boxShadow: '0 1px 2px rgba(60,64,67,0.08)',
+    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
   },
   lockIcon: { fontSize: 28 },
   lockTitle: {
     margin: 0,
     fontSize: 18,
     fontWeight: 400,
-    color: '#202124',
+    color: BD.textBright,
     letterSpacing: '-0.02em',
   },
   lockSub: {
     margin: 0,
     fontSize: 14,
-    color: '#5f6368',
+    color: BD.textSecondary,
     lineHeight: 1.5,
     maxWidth: 'none',
   },
@@ -1100,13 +1101,13 @@ const pw = {
     gap: 10,
     textAlign: 'left',
   },
-  featureText: { fontSize: 14, color: '#202124' },
+  featureText: { fontSize: 14, color: BD.textPrimary },
   cta: {
     padding: '10px 24px',
-    background: '#1a73e8',
+    background: BD.paywallCtaBg,
     border: 'none',
     borderRadius: 4,
-    color: '#fff',
+    color: BD.textBright,
     fontSize: 14,
     fontWeight: 500,
     cursor: 'pointer',
@@ -1118,7 +1119,7 @@ const pw = {
   ctaSub: {
     margin: 0,
     fontSize: 12,
-    color: '#80868b',
+    color: BD.textMuted,
   },
 };
 
@@ -1143,26 +1144,26 @@ function AnalysisProgress({ activeStep }) {
             <div style={{
               width: 18, height: 18, borderRadius: '50%', flexShrink: 0, marginTop: 1,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: done ? '#e6f4ea' : active ? '#e8f0fe' : '#f1f3f4',
-              border: `1.5px solid ${done ? '#ceead6' : active ? '#d2e3fc' : '#dadce0'}`,
+              background: done ? BD.successSoft : active ? BD.accentSoft : BD.bgPanelHi,
+              border: `1.5px solid ${done ? BD.success : active ? BD.accentBorder : BD.border}`,
             }}>
               {done ? (
-                <span style={{ fontSize: 9, color: '#137333', fontWeight: 700 }}>✓</span>
+                <span style={{ fontSize: 9, color: BD.success, fontWeight: 700 }}>✓</span>
               ) : active ? (
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#1a73e8', animation: 'pulse 1.2s ease-in-out infinite', display: 'block' }} />
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: BD.accent, animation: 'pulse 1.2s ease-in-out infinite', display: 'block' }} />
               ) : (
-                <span style={{ width: 4, height: 4, borderRadius: '50%', background: '#dadce0', display: 'block' }} />
+                <span style={{ width: 4, height: 4, borderRadius: '50%', background: BD.borderHi, display: 'block' }} />
               )}
             </div>
             {/* Label */}
             <div style={{ minWidth: 0 }}>
               <p style={{
                 margin: 0, fontSize: 12, fontWeight: active ? 600 : 500,
-                color: done ? '#80868b' : active ? '#202124' : '#5f6368',
+                color: done ? BD.textDim : active ? BD.textBright : BD.textMuted,
                 letterSpacing: '-0.01em',
               }}>{step.label}</p>
               {active && (
-                <p style={{ margin: '2px 0 0', fontSize: 12, color: '#80868b', letterSpacing: '-0.01em' }}>
+                <p style={{ margin: '2px 0 0', fontSize: 12, color: BD.textMuted, letterSpacing: '-0.01em' }}>
                   {step.detail}
                 </p>
               )}
@@ -1182,18 +1183,18 @@ const sb = {
     justifyContent: 'center',
     gap: 8,
     padding: '11px 14px',
-    background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
-    border: '1px solid #c7d2fe',
+    background: BD.bgPanelHi,
+    border: `1px solid ${BD.accentBorder}`,
     borderRadius: 12,
-    color: '#1e3a8a',
+    color: BD.link,
     fontSize: 13,
     fontWeight: 600,
     cursor: 'pointer',
     letterSpacing: '-0.01em',
-    boxShadow: '0 1px 3px rgba(30, 58, 138, 0.08), 0 0 0 1px rgba(255, 255, 255, 0.9) inset',
+    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.15)',
   },
   historyList: { flex: 1, overflowY: 'auto', padding: '0 8px', scrollbarWidth: 'thin' },
-  historyEmpty: { fontSize: 13, color: '#80868b', padding: '12px 8px', textAlign: 'center' },
+  historyEmpty: { fontSize: 13, color: BD.textMuted, padding: '12px 8px', textAlign: 'center' },
   historyItem: {
     width: '100%',
     textAlign: 'left',
@@ -1210,25 +1211,25 @@ const sb = {
   },
   historyTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   historyVerdict: { fontSize: 10, fontWeight: 600, letterSpacing: '0.04em' },
-  historyDate: { fontSize: 11, color: '#80868b' },
+  historyDate: { fontSize: 11, color: BD.textDim },
   historyTitle: {
     fontSize: 13,
     fontWeight: 400,
-    color: '#202124',
+    color: BD.textPrimary,
     lineHeight: 1.35,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   },
   footer: {
-    borderTop: '1px solid #dadce0',
+    borderTop: `1px solid ${BD.border}`,
     padding: '12px 12px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 8,
     marginTop: 'auto',
-    background: '#fff',
+    background: BD.bgRailHead,
   },
   footerMeta: {
     display: 'flex',
@@ -1242,27 +1243,27 @@ const sb = {
     height: 28,
     borderRadius: '50%',
     flexShrink: 0,
-    background: '#e8f0fe',
-    border: 'none',
+    background: BD.chipBg,
+    border: `1px solid ${BD.border}`,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     fontSize: 12,
     fontWeight: 500,
-    color: '#1a73e8',
+    color: BD.accent,
   },
   userEmail: {
     fontSize: 13,
-    color: '#5f6368',
+    color: BD.textSecondary,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   },
   billingPill: {
     fontSize: 11,
-    color: '#137333',
-    background: '#e6f4ea',
-    border: 'none',
+    color: BD.billingFg,
+    background: BD.billingBg,
+    border: `1px solid ${BD.border}`,
     borderRadius: 999,
     padding: '4px 10px',
     width: 'fit-content',
@@ -1276,8 +1277,8 @@ const sb = {
     height: 36,
     borderRadius: 8,
     background: 'transparent',
-    border: '1px solid #dadce0',
-    color: '#5f6368',
+    border: `1px solid ${BD.border}`,
+    color: BD.textSecondary,
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
@@ -1324,7 +1325,7 @@ export default function BentoDashboard({ user = null, onBack }) {
   const [workspaceLoading, setWorkspaceLoading] = useState(false);
   const [sessionApiContext, setSessionApiContext] = useState(null);
   const [chatHeaderBadge, setChatHeaderBadge]     = useState('ARIS');
-  const [chatHeaderBadgeColor, setChatHeaderBadgeColor] = useState('#1a73e8');
+  const [chatHeaderBadgeColor, setChatHeaderBadgeColor] = useState(BD.accent);
   const [chatPlaceholder, setChatPlaceholder] = useState(
     'Paste a SAM.gov URL, ask a question, or use Files to upload a PDF…'
   );
@@ -1347,7 +1348,7 @@ export default function BentoDashboard({ user = null, onBack }) {
     setWorkspaceMessages([{ role: 'ai', text: BENTO_WORKSPACE_WELCOME_MARKDOWN, id: Date.now() }]);
     setSessionApiContext(null);
     setChatHeaderBadge('ARIS');
-    setChatHeaderBadgeColor('#1a73e8');
+    setChatHeaderBadgeColor(BD.accent);
     setChatPlaceholder('Paste a SAM.gov URL, ask a question, or use Files to upload a PDF…');
   }, []);
   const clerkSubscribed = clerkUser?.publicMetadata?.isSubscribed === true;
@@ -1520,6 +1521,46 @@ export default function BentoDashboard({ user = null, onBack }) {
     setTimeout(() => setToast(null), 4500);
   };
 
+  // Marketing site → workspace: run queued SAM.gov URL or focus Files for PDF upload
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('checkout')) return;
+
+    let u = params.get('url')?.trim();
+    if (!u) {
+      try {
+        const stored = sessionStorage.getItem('bidsmith_queued_audit_url')?.trim();
+        if (stored) {
+          u = stored;
+          sessionStorage.removeItem('bidsmith_queued_audit_url');
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+
+    if (u && /^https?:\/\//i.test(u)) {
+      try {
+        sessionStorage.removeItem('bidsmith_queued_audit_url');
+      } catch {
+        /* ignore */
+      }
+      setLeftRailTab('files');
+      setFeaturedUrl(null);
+      setTimeout(() => setFeaturedUrl(u), 10);
+      window.history.replaceState(window.history.state || {}, '', window.location.pathname);
+      return;
+    }
+
+    if (params.get('intent') === 'upload') {
+      setLeftRailTab('files');
+      showToast('Drop your PDF under Files (left panel) to run an audit.', 'info');
+      window.history.replaceState(window.history.state || {}, '', window.location.pathname);
+    }
+  // Mount only — consumes one-shot deep links from the marketing site
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // ── Checkout redirect param detection (active reconciliation, not happy-path only) ──
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -1691,7 +1732,7 @@ export default function BentoDashboard({ user = null, onBack }) {
       }]);
       setSessionApiContext(null);
       setChatHeaderBadge('ARIS');
-      setChatHeaderBadgeColor('#1a73e8');
+      setChatHeaderBadgeColor(BD.accent);
       setChatPlaceholder('Ask about requirements, risks, or bid strategy…');
       showToast(`Loaded: ${result.title?.slice(0, 40) || 'Audit'}`, 'info');
     }
@@ -1746,7 +1787,7 @@ export default function BentoDashboard({ user = null, onBack }) {
     setIsPaid(isSubscribed); // subscribers remain unlocked on all audits
     setSessionApiContext(null);
     setChatHeaderBadge('ARIS');
-    setChatHeaderBadgeColor('#1a73e8');
+    setChatHeaderBadgeColor(BD.accent);
     setChatPlaceholder('Ask about requirements, risks, or bid strategy…');
     setWorkspaceMessages(m => [...m, {
       role: 'ai',
@@ -1954,7 +1995,7 @@ export default function BentoDashboard({ user = null, onBack }) {
       <div style={s.page}>
       <header style={s.topBar}>
         <div style={s.topBarLeft}>
-          <LayoutDashboard size={18} color="#0f172a" strokeWidth={2} />
+          <LayoutDashboard size={18} color={BD.accent} strokeWidth={2} />
           <span style={s.logoBrand}>BidSmith</span>
           {auditResult && (
             <>
@@ -1968,17 +2009,17 @@ export default function BentoDashboard({ user = null, onBack }) {
 
         <div style={s.topBarRight}>
           {isSubscribed && (
-            <div style={{ ...s.healthPill, background: '#e6f4ea', borderColor: '#ceead6' }}>
-              <span style={{ ...s.healthDot, background: '#1e8e3e' }} />
-              <span style={{ ...s.healthLabel, color: '#137333' }}>
+            <div style={{ ...s.healthPill, background: BD.billingBg, borderColor: BD.border }}>
+              <span style={{ ...s.healthDot, background: BD.billingFg }} />
+              <span style={{ ...s.healthLabel, color: BD.billingFg }}>
                 {(activePlan || 'active')}
               </span>
             </div>
           )}
           {syncingSubscription && (
-            <div style={{ ...s.healthPill, background: '#e8f0fe', borderColor: '#d2e3fc' }}>
-              <span style={{ ...s.healthDot, background: '#1a73e8' }} />
-              <span style={{ ...s.healthLabel, color: '#1967d2' }}>Syncing…</span>
+            <div style={{ ...s.healthPill, background: BD.accentSoft, borderColor: BD.accentBorder }}>
+              <span style={{ ...s.healthDot, background: BD.accent }} />
+              <span style={{ ...s.healthLabel, color: BD.accent }}>Syncing…</span>
             </div>
           )}
           {health && (
@@ -1995,9 +2036,9 @@ export default function BentoDashboard({ user = null, onBack }) {
             </div>
           )}
           {auditResult?.meta?.cache_hit && (
-            <div style={{ ...s.healthPill, background: '#e6f4ea', borderColor: '#ceead6' }}>
-              <span style={{ ...s.healthDot, background: '#1e8e3e' }} />
-              <span style={{ ...s.healthLabel, color: '#137333' }}>Cached</span>
+            <div style={{ ...s.healthPill, background: BD.billingBg, borderColor: BD.border }}>
+              <span style={{ ...s.healthDot, background: BD.billingFg }} />
+              <span style={{ ...s.healthLabel, color: BD.billingFg }}>Cached</span>
             </div>
           )}
         </div>
@@ -2008,8 +2049,8 @@ export default function BentoDashboard({ user = null, onBack }) {
           style={{
             margin: '0 24px 12px',
             padding: '12px 16px',
-            background: '#e8f0fe',
-            border: '1px solid #dadce0',
+            background: BD.accentSoft,
+            border: `1px solid ${BD.border}`,
             borderRadius: 8,
             display: 'flex',
             alignItems: 'center',
@@ -2018,7 +2059,7 @@ export default function BentoDashboard({ user = null, onBack }) {
             flexWrap: 'wrap',
           }}
         >
-          <span style={{ fontSize: 13, color: '#1967d2', lineHeight: 1.5 }}>
+          <span style={{ fontSize: 13, color: BD.accent, lineHeight: 1.5 }}>
             Payment received — finishing account link. Sync or refresh.
           </span>
           <button
@@ -2030,8 +2071,8 @@ export default function BentoDashboard({ user = null, onBack }) {
               padding: '8px 16px',
               borderRadius: 4,
               border: 'none',
-              background: '#1a73e8',
-              color: '#fff',
+              background: BD.paywallCtaBg,
+              color: BD.textBright,
               fontSize: 13,
               fontWeight: 500,
               cursor: syncPaymentBusy ? 'wait' : 'pointer',
@@ -2104,16 +2145,16 @@ export default function BentoDashboard({ user = null, onBack }) {
               uid={billingUid || 'anonymous'}
             >
               <div style={{ padding: 0 }}>
-                <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, padding: '18px 20px', boxShadow: '0 4px 20px rgba(15, 23, 42, 0.05)' }}>
-                  <p style={{ margin: '0 0 12px', fontSize: 12, fontWeight: 700, color: '#334155', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Compliance matrix</p>
+                <div style={{ background: BD.bgCard, border: `1px solid ${BD.border}`, borderRadius: 14, padding: '18px 20px', boxShadow: '0 8px 28px rgba(0, 0, 0, 0.35)' }}>
+                  <p style={{ margin: '0 0 12px', fontSize: 12, fontWeight: 700, color: BD.textSecondary, letterSpacing: '0.04em', textTransform: 'uppercase' }}>Compliance matrix</p>
                   {(accessUnlocked ? (auditResult?.requirements || []) : (auditResult?.requirements || []).slice(0, 3)).map((req, i) => (
-                    <div key={i} style={{ padding: '10px 0', borderBottom: '1px solid #e8eaed', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                      <span style={{ fontSize: 11, fontWeight: 600, color: req.risk === 'HIGH' ? '#d93025' : req.risk === 'LOW' ? '#1e8e3e' : '#f9ab00', width: 40, flexShrink: 0, paddingTop: 2 }}>{req.risk}</span>
-                      <p style={{ margin: 0, fontSize: 13, color: '#202124', lineHeight: 1.45 }}>{req.requirement}</p>
+                    <div key={i} style={{ padding: '10px 0', borderBottom: `1px solid ${BD.matrixRowBorder}`, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: req.risk === 'HIGH' ? BD.danger : req.risk === 'LOW' ? BD.success : BD.warning, width: 40, flexShrink: 0, paddingTop: 2 }}>{req.risk}</span>
+                      <p style={{ margin: 0, fontSize: 13, color: BD.textPrimary, lineHeight: 1.45 }}>{req.requirement}</p>
                     </div>
                   ))}
                   {accessUnlocked && (
-                    <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #e8eaed' }}>
+                    <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${BD.matrixRowBorder}` }}>
                       <button
                         type="button"
                         onClick={handleExportComplianceMatrixXlsx}
@@ -2125,7 +2166,7 @@ export default function BentoDashboard({ user = null, onBack }) {
                           padding: 0,
                           border: 'none',
                           background: 'transparent',
-                          color: '#1a73e8',
+                          color: BD.link,
                           fontSize: 13,
                           fontWeight: 600,
                           cursor: exportMatrixXlsxLoading ? 'wait' : 'pointer',
@@ -2141,6 +2182,7 @@ export default function BentoDashboard({ user = null, onBack }) {
               </div>
             </PaywallGate>
             <HumanWalkthroughCTA
+              variant="bento"
               visible={!!(auditResult && !analyzing && auditResult.verdict)}
               solicitationId={auditResult?.solicitation_number || auditResult?.id || auditResult?.opportunity_id || null}
             />
@@ -2173,12 +2215,12 @@ export default function BentoDashboard({ user = null, onBack }) {
       {toast && (
         <div style={{
           ...s.toast,
-          background: toast.type === 'error' ? '#fce8e6' : toast.type === 'success' ? '#e6f4ea' : '#fff',
-          borderColor: toast.type === 'error' ? '#f9ab00' : toast.type === 'success' ? '#ceead6' : '#dadce0',
+          background: toast.type === 'error' ? BD.bgToastError : toast.type === 'success' ? BD.bgToastSuccess : BD.bgToastNeutral,
+          borderColor: toast.type === 'error' ? BD.danger : toast.type === 'success' ? BD.success : BD.border,
         }}>
           <span style={{
             ...s.toastDot,
-            background: toast.type === 'error' ? '#d93025' : toast.type === 'success' ? '#1e8e3e' : '#80868b',
+            background: toast.type === 'error' ? BD.danger : toast.type === 'success' ? BD.success : BD.textMuted,
           }} />
           <span style={s.toastMsg}>{toast.msg}</span>
         </div>
@@ -2190,8 +2232,8 @@ export default function BentoDashboard({ user = null, onBack }) {
         @keyframes pulse   { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
         @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
         * { box-sizing: border-box; }
-        ::placeholder { color: #80868b; }
-        textarea:focus, input:focus { border-color: #1a73e8 !important; outline: none; }
+        ::placeholder { color: ${BD.textDim}; }
+        textarea:focus, input:focus { border-color: ${BD.accent} !important; outline: none; }
         a { transition: opacity 0.15s; }
         a:hover { opacity: 0.75; }
         .mini-thread::-webkit-scrollbar { display: none; }
@@ -2213,10 +2255,10 @@ const s = {
     flexDirection: 'column',
     minHeight: '100vh',
     width: '100%',
-    background: 'linear-gradient(165deg, #eef2f7 0%, #f8fafc 38%, #f1f5f9 100%)',
+    background: BD.bgShell,
     fontFamily:
       'Inter, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-    color: '#0f172a',
+    color: BD.textPrimary,
     WebkitFontSmoothing: 'antialiased',
     MozOsxFontSmoothing: 'grayscale',
   },
@@ -2260,12 +2302,11 @@ const s = {
     paddingTop: 4,
   },
   featuredPanel: {
-    background: 'rgba(255, 255, 255, 0.72)',
-    border: '1px solid rgba(226, 232, 240, 0.95)',
+    background: BD.bgFeatured,
+    border: `1px solid ${BD.border}`,
     borderRadius: 16,
     padding: '14px 14px 12px',
-    boxShadow:
-      '0 4px 24px rgba(15, 23, 42, 0.06), 0 0 0 1px rgba(255, 255, 255, 0.8) inset',
+    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.35)',
     backdropFilter: 'blur(8px)',
     WebkitBackdropFilter: 'blur(8px)',
   },
@@ -2276,11 +2317,11 @@ const s = {
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: '14px 22px',
-    borderBottom: '1px solid #e2e8f0',
+    borderBottom: `1px solid ${BD.border}`,
     position: 'sticky',
     top: 0,
-    background: 'linear-gradient(180deg, #ffffff 0%, #fafbfc 100%)',
-    boxShadow: '0 4px 24px rgba(15, 23, 42, 0.05), 0 1px 0 rgba(255, 255, 255, 0.9) inset',
+    background: `linear-gradient(180deg, ${BD.bgRailHead} 0%, ${BD.bgPanel} 100%)`,
+    boxShadow: '0 4px 24px rgba(0, 0, 0, 0.25)',
     zIndex: 50,
   },
   topBarLeft: {
@@ -2292,7 +2333,7 @@ const s = {
     width: 28,
     height: 28,
     borderRadius: 8,
-    background: 'rgba(59,130,246,0.1)',
+    background: BD.accentSoft,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -2300,29 +2341,29 @@ const s = {
   logoText: {
     fontSize: 14,
     fontWeight: 700,
-    color: '#f9fafb',
+    color: BD.textBright,
     letterSpacing: '-0.02em',
   },
   logoSep: {
-    color: '#cbd5e1',
+    color: BD.textMuted,
     fontSize: 14,
     padding: '0 2px',
     fontWeight: 300,
   },
   logoSub: {
     fontSize: 14,
-    color: '#5f6368',
+    color: BD.textSecondary,
     fontWeight: 400,
   },
   logoBrand: {
     fontSize: 15,
     fontWeight: 800,
-    color: '#0f172a',
+    color: BD.textBright,
     letterSpacing: '-0.03em',
   },
   logoCrumb: {
     fontSize: 13,
-    color: '#64748b',
+    color: BD.textMuted,
     fontWeight: 500,
     maxWidth: 320,
     overflow: 'hidden',
@@ -2338,23 +2379,23 @@ const s = {
     display: 'flex',
     alignItems: 'center',
     gap: 6,
-    background: '#f8fafc',
-    border: '1px solid #e2e8f0',
+    background: BD.bgPanelHi,
+    border: `1px solid ${BD.border}`,
     borderRadius: 999,
     padding: '6px 14px',
-    boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
+    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.2)',
   },
   healthDot: {
     width: 7,
     height: 7,
     borderRadius: '50%',
-    background: '#16a34a',
-    boxShadow: '0 0 0 2px rgba(22, 163, 74, 0.2)',
+    background: BD.success,
+    boxShadow: '0 0 0 2px rgba(74, 222, 128, 0.25)',
   },
   healthLabel: {
     fontSize: 12,
     fontWeight: 600,
-    color: '#475569',
+    color: BD.textSecondary,
     letterSpacing: '0.01em',
   },
   openApp: {
@@ -2362,10 +2403,10 @@ const s = {
     alignItems: 'center',
     fontSize: 12,
     fontWeight: 500,
-    color: '#9ca3af',
+    color: BD.textMuted,
     textDecoration: 'none',
-    background: '#0d0d0d',
-    border: '1px solid #1a1a1a',
+    background: BD.bgInput,
+    border: `1px solid ${BD.border}`,
     borderRadius: 8,
     padding: '5px 12px',
   },
@@ -2379,14 +2420,14 @@ const s = {
     margin: 0,
     fontSize: 22,
     fontWeight: 400,
-    color: '#202124',
+    color: BD.textBright,
     letterSpacing: '-0.02em',
     lineHeight: 1.3,
   },
   pageSubtitle: {
     margin: '8px 0 0',
     fontSize: 14,
-    color: '#5f6368',
+    color: BD.textSecondary,
     fontWeight: 400,
     lineHeight: 1.5,
   },
@@ -2424,8 +2465,8 @@ const s = {
 
   // ── Stat card ──
   statCard: {
-    background: '#fff',
-    border: '1px solid #dadce0',
+    background: BD.bgCard,
+    border: `1px solid ${BD.border}`,
     borderRadius: 8,
     padding: '16px',
     display: 'flex',
@@ -2452,20 +2493,20 @@ const s = {
     margin: 0,
     fontSize: 24,
     fontWeight: 400,
-    color: '#202124',
+    color: BD.textBright,
     letterSpacing: '-0.02em',
     fontVariantNumeric: 'tabular-nums',
   },
   statLabel: {
     margin: 0,
     fontSize: 12,
-    color: '#5f6368',
+    color: BD.textSecondary,
     fontWeight: 500,
   },
   statSub: {
     margin: '2px 0 0',
     fontSize: 12,
-    color: '#80868b',
+    color: BD.textMuted,
   },
   trend: {
     fontSize: 11,
@@ -2484,9 +2525,9 @@ const s = {
     gap: 10,
     padding: '12px 20px',
     borderRadius: 4,
-    border: '1px solid #dadce0',
-    background: '#fff',
-    boxShadow: '0 1px 3px rgba(60,64,67,0.15)',
+    border: `1px solid ${BD.border}`,
+    background: BD.bgToastNeutral,
+    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
     zIndex: 100,
     minWidth: 200,
   },
@@ -2498,7 +2539,7 @@ const s = {
   },
   toastMsg: {
     fontSize: 13,
-    color: '#202124',
+    color: BD.textPrimary,
     fontWeight: 400,
   },
 };

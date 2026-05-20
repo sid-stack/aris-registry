@@ -1,5 +1,5 @@
 import {
-  Check, AlertTriangle, Zap, Loader2, Shield,
+  Check, AlertTriangle, Zap, Shield,
   Search, Star, Link2, Play
 } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
@@ -13,8 +13,8 @@ const C = {
   mintCream:   "#f0f7ee",
   paleSky:     "#c4d7f2",
   frostedBlue: "#afdedc",
-  ashGrey:     "#91a8a4",
-  dimGrey:     "#776871",
+  ashGrey:     "#4b5563",
+  dimGrey:     "#5f6368",
   navy:        "#002244",
   navyMid:     "#0B3D91",
   white:       "#ffffff",
@@ -122,8 +122,6 @@ export default function Landing({
   const [isMobile, setIsMobile] = useState(typeof window !== "undefined" && window.innerWidth < 768);
   const [heroVideoError, setHeroVideoError] = useState(false);
   const [inputUrl, setInputUrl] = useState("");
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [logs, setLogs] = useState([]);
   const [activeTab, setActiveTab] = useState("matrix");
   const [expandedStory, setExpandedStory] = useState(null);
   const fileInputRef = useRef();
@@ -135,29 +133,15 @@ export default function Landing({
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const processWithLogs = (callback) => {
-    setIsProcessing(true);
-    setLogs(["[BIDSMITH] Initializing...", "[MERCURY2] Connecting to ingestion pipeline..."]);
-    const mockLogs = [
-      { ms: 1200, msg: "[BIDSMITH] Scanning document structure..." },
-      { ms: 2800, msg: "[SHREDDER] Extracting 'shall/must' requirements..." },
-      { ms: 4500, msg: "[RISK] Analyzing Section L compliance triggers..." },
-      { ms: 6000, msg: "[BIDSMITH] Building requirements matrix..." },
-      { ms: 7500, msg: "[OK] Analysis complete. Rendering workspace..." },
-    ];
-    mockLogs.forEach((log) => { setTimeout(() => setLogs((prev) => [...prev, log.msg]), log.ms); });
-    setTimeout(() => { callback(); }, 8500);
-  };
-
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file || !onAnalyzeFile) return;
-    processWithLogs(() => onAnalyzeFile(file));
+    onAnalyzeFile(file);
   };
 
   const handleStartAnalysis = () => {
-    if (!inputUrl.trim() || isProcessing || !onAnalyze) return;
-    processWithLogs(() => onAnalyze(inputUrl.trim()));
+    if (!inputUrl.trim() || !onAnalyze) return;
+    onAnalyze(inputUrl.trim());
   };
 
   const tab = DEEP_DIVE_TABS.find(t => t.id === activeTab);
@@ -180,6 +164,7 @@ export default function Landing({
           {!isMobile && (
             <nav style={{ display: "flex", gap: 4, alignItems: "center" }}>
               <a href="/pricing" style={S.navLink} className="landing-nav-link-item">Pricing</a>
+              <a href="/about" style={S.navLink} className="landing-nav-link-item">About</a>
               <button style={S.navLink} className="landing-nav-link-item" onClick={() => onViewSample?.()}>Demo</button>
               {isAppOwner && (
                 <a href="/resources" style={S.navLink} className="landing-nav-link-item">Resources</a>
@@ -247,20 +232,23 @@ export default function Landing({
               <Play size={15} fill={C.navyMid} strokeWidth={0} aria-hidden />
               Watch demo video
             </button>
-            <button
-              className="btn-meeting"
-              type="button"
-              style={{ ...S.ctaPrimary, padding: "14px 28px" }}
-              onClick={() => window.open(CALENDLY_URL, "_blank", "noopener")}
-            >
-              Book a meeting
-            </button>
             {isAuthenticated && (
               <button className="btn-land-secondary" type="button" style={S.ctaSecondary} onClick={() => onEnterApp?.("hero_run_audit")}>
                 Run new audit
               </button>
             )}
           </div>
+
+          <p style={{ margin: "0 0 28px", fontSize: 14, fontWeight: 600 }}>
+            <a
+              href={CALENDLY_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: C.navyMid, textDecoration: "underline", textUnderlineOffset: 3 }}
+            >
+              Prefer a live walkthrough? Book 15 minutes →
+            </a>
+          </p>
 
           <div style={S.trustBar}>
             {["No credit card required", "Fair-use limits (guest by IP)", "3/mo when signed in", "Audit history when signed in"].map(t => (
@@ -329,19 +317,6 @@ export default function Landing({
               )}
             </div>
           </div>
-
-          {/* Processing terminal */}
-          {isProcessing && (
-            <div style={S.terminal}>
-              <div style={S.termHead}>BIDSMITH SECURE SESSION</div>
-              <div style={{ padding: 20, minHeight: 140 }}>
-                {logs.map((l, i) => <div key={i} style={{ fontSize: 12, color: C.navyMid, marginBottom: 6, fontFamily: "monospace" }}>{l}</div>)}
-                <div style={{ fontSize: 12, color: C.ashGrey, fontFamily: "monospace" }}>
-                  <Loader2 size={11} style={{ display: "inline", marginRight: 6 }} /> Working...
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </section>
 
@@ -782,25 +757,35 @@ export default function Landing({
           <h2 style={{ fontSize: "clamp(2rem, 5vw, 3.5rem)", fontWeight: 900, color: "#fff", marginBottom: 20, lineHeight: 1.15 }}>
             Join federal prime contractors who trust<br />BidSmith to audit every solicitation in 90 seconds.
           </h2>
-          <p style={{ fontSize: 16, color: C.ashGrey, marginBottom: 44 }}>
+          <p style={{ fontSize: 16, color: "#cbd5e1", marginBottom: 44 }}>
             Start free — no credit card required.
           </p>
-          <div style={{ display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap", alignItems: "center" }}>
+            <button
+              className="btn-land-primary"
+              type="button"
+              onClick={() => onEnterDashboard?.()}
+              style={{
+                background: C.frostedBlue,
+                color: C.navy,
+                padding: "18px 40px",
+                borderRadius: 10,
+                border: "none",
+                fontWeight: 800,
+                fontSize: "1.05rem",
+                cursor: "pointer",
+                boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
+              }}
+            >
+              Start your free audit →
+            </button>
             <button
               className="btn-meeting"
               type="button"
               onClick={() => window.open(CALENDLY_URL, "_blank", "noopener")}
-              style={{ ...S.ctaPrimary, fontSize: "1.1rem", padding: "18px 52px", letterSpacing: "0.01em" }}
+              style={{ ...S.ctaPrimary, fontSize: "1.05rem", padding: "16px 40px", letterSpacing: "0.01em" }}
             >
-              Book a Meeting
-            </button>
-            <button
-              className="btn-land-secondary"
-              type="button"
-              onClick={() => onEnterDashboard?.()}
-              style={{ ...S.ctaSecondary, borderColor: C.paleSky, color: C.paleSky, background: "transparent" }}
-            >
-              Start your free audit →
+              Book a walkthrough
             </button>
           </div>
         </div>
@@ -831,7 +816,7 @@ export default function Landing({
             </div>
             <div>
               <p style={{ fontSize: 11, fontWeight: 800, color: "#e2e8f0", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 12 }}>Company</p>
-              {[["About", "/about"], ["Contact", "/contact"]].map(([label, href]) => (
+              {[["About", "/about"], ["Security", "/soc"], ["Contact", "/contact"]].map(([label, href]) => (
                 <a key={label} href={href} style={{ display: "block", fontSize: 13, color: "#e2e8f0", marginBottom: 8, textDecoration: "none" }}>{label}</a>
               ))}
             </div>
@@ -873,8 +858,6 @@ const S = {
   videoWrap: { maxWidth: 860, margin: "0 auto" },
   videoChrome: { borderRadius: 14, overflow: "hidden", border: `1px solid ${C.paleSky}`, boxShadow: "0 32px 80px -12px rgba(0,34,68,0.12)" },
   videoBar: { height: 36, background: C.mintCream, borderBottom: `1px solid ${C.paleSky}`, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 16px" },
-  terminal: { maxWidth: 560, margin: "32px auto 0", background: C.white, borderRadius: 12, border: `1px solid ${C.paleSky}`, overflow: "hidden", textAlign: "left" },
-  termHead: { background: C.mintCream, padding: "10px 16px", fontSize: 11, fontWeight: 800, color: C.ashGrey, borderBottom: `1px solid ${C.paleSky}` },
 
   eyebrow: { fontSize: 11, fontWeight: 800, color: C.ashGrey, letterSpacing: "0.15em", textTransform: "uppercase", textAlign: "center", marginBottom: 16 },
   h2: { fontSize: "clamp(1.8rem, 4vw, 2.8rem)", fontWeight: 900, color: C.navy, textAlign: "center", marginBottom: 16, lineHeight: 1.2 },

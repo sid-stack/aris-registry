@@ -6,6 +6,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Upload, Link2, FileText, X, Loader2, CheckCircle2, Send } from 'lucide-react';
 import { track } from '../../utils/analytics';
+import { BD } from '../../theme/bentoDarkTheme.js';
 
 const ACCEPTED_MIME = ['application/pdf'];
 
@@ -173,6 +174,7 @@ export default function RfpUploadZone({
   if (variant === 'chatBar') {
     return (
       <div style={cb.wrap}>
+        <style>{`@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}`}</style>
         <div style={cb.inner}>
           <input ref={inputRef} type="file" accept=".pdf" style={{ display: 'none' }} onChange={onFileChange} />
           <button
@@ -181,7 +183,7 @@ export default function RfpUploadZone({
             title="Attach PDF"
             onClick={() => inputRef.current?.click()}
           >
-            <Upload size={18} color="#9ca3af" />
+            <Upload size={18} color={BD.textMuted} />
           </button>
           <div style={cb.modeToggle}>
             <button
@@ -224,7 +226,7 @@ export default function RfpUploadZone({
                 <span style={cb.dropHint}>Drop PDF or click to attach</span>
               ) : (
                 <span style={cb.fileChip}>
-                  <FileText size={14} color="#4ade80" />
+                  <FileText size={14} color={BD.success} />
                   <span style={cb.fileChipName}>{file.name}</span>
                   <button
                     type="button"
@@ -256,6 +258,7 @@ export default function RfpUploadZone({
 
   return (
     <div style={s.card}>
+      <style>{`@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}`}</style>
       {/* Header */}
       <div style={s.header}>
         <span style={s.label}>RFP Intake</span>
@@ -283,7 +286,7 @@ export default function RfpUploadZone({
           {!file ? (
             <>
               <div style={s.uploadIcon}>
-                <Upload size={22} color="#6b7280" />
+                <Upload size={22} color={BD.textMuted} />
               </div>
               <p style={s.dropTitle}>Drop your RFP here</p>
               <p style={s.dropSub}>PDF · Max 25 MB</p>
@@ -335,8 +338,8 @@ export default function RfpUploadZone({
 // ── Styles ──────────────────────────────────────────────────────────────────
 const s = {
   card: {
-    background: '#fff',
-    border: '1px solid #dadce0',
+    background: BD.bgCard,
+    border: `1px solid ${BD.border}`,
     borderRadius: 8,
     padding: '20px 20px 16px',
     display: 'flex',
@@ -344,6 +347,7 @@ const s = {
     gap: 14,
     height: '100%',
     boxSizing: 'border-box',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
   },
   header: {
     display: 'flex',
@@ -355,7 +359,7 @@ const s = {
     fontWeight: 500,
     letterSpacing: '0',
     textTransform: 'none',
-    color: '#5f6368',
+    color: BD.textMuted,
   },
   tabRow: {
     display: 'flex',
@@ -366,9 +370,9 @@ const s = {
     alignItems: 'center',
     fontSize: 12,
     fontWeight: 500,
-    color: '#5f6368',
-    background: 'transparent',
-    border: '1px solid #dadce0',
+    color: BD.textMuted,
+    background: BD.bgPanelHi,
+    border: `1px solid ${BD.border}`,
     borderRadius: 4,
     padding: '6px 12px',
     cursor: 'pointer',
@@ -379,9 +383,9 @@ const s = {
     alignItems: 'center',
     fontSize: 12,
     fontWeight: 500,
-    color: '#1967d2',
-    background: '#e8f0fe',
-    border: '1px solid #d2e3fc',
+    color: BD.link,
+    background: 'rgba(37, 99, 235, 0.12)',
+    border: `1px solid ${BD.borderHi}`,
     borderRadius: 4,
     padding: '6px 12px',
     cursor: 'pointer',
@@ -393,28 +397,28 @@ const s = {
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    border: '1.5px dashed #dadce0',
+    border: `1.5px dashed ${BD.borderHi}`,
     borderRadius: 8,
     cursor: 'pointer',
     transition: 'border-color 0.15s, background 0.15s',
     gap: 6,
-    background: '#f8f9fa',
+    background: BD.bgPanel,
   },
   dropZoneDragging: {
-    borderColor: '#1a73e8',
-    background: '#e8f0fe',
+    borderColor: BD.paywallCtaBg,
+    background: 'rgba(37, 99, 235, 0.1)',
   },
   dropZoneFilled: {
-    border: '1.5px solid #ceead6',
-    background: '#e6f4ea',
+    border: `1.5px solid ${BD.success}`,
+    background: BD.billingBg,
     cursor: 'default',
   },
   uploadIcon: {
     width: 40,
     height: 40,
     borderRadius: 10,
-    background: '#fff',
-    border: '1px solid #e8eaed',
+    background: BD.bgPanelHi,
+    border: `1px solid ${BD.border}`,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -424,12 +428,12 @@ const s = {
     margin: 0,
     fontSize: 14,
     fontWeight: 400,
-    color: '#202124',
+    color: BD.textBright,
   },
   dropSub: {
     margin: 0,
     fontSize: 13,
-    color: '#5f6368',
+    color: BD.textMuted,
   },
   fileRow: {
     display: 'flex',
@@ -440,7 +444,7 @@ const s = {
   fileName: {
     flex: 1,
     fontSize: 13,
-    color: '#137333',
+    color: BD.success,
     fontWeight: 500,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
@@ -450,7 +454,7 @@ const s = {
     background: 'none',
     border: 'none',
     cursor: 'pointer',
-    color: '#6b7280',
+    color: BD.textMuted,
     display: 'flex',
     alignItems: 'center',
     padding: 2,
@@ -461,12 +465,12 @@ const s = {
   urlInput: {
     width: '100%',
     boxSizing: 'border-box',
-    background: '#f8f9fa',
-    border: '1px solid #dadce0',
+    background: BD.bgInput,
+    border: `1px solid ${BD.border}`,
     borderRadius: 8,
     padding: '12px 14px',
     fontSize: 14,
-    color: '#202124',
+    color: BD.textPrimary,
     fontFamily: 'inherit',
     outline: 'none',
   },
@@ -475,8 +479,8 @@ const s = {
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    background: '#1a73e8',
-    color: '#fff',
+    background: BD.paywallCtaBg,
+    color: BD.textBright,
     border: 'none',
     borderRadius: 4,
     padding: '10px 0',
@@ -508,13 +512,13 @@ const cb = {
     display: 'flex',
     alignItems: 'center',
     gap: 8,
-    background: '#fff',
-    border: '1px solid #dadce0',
+    background: BD.bgCard,
+    border: `1px solid ${BD.border}`,
     borderRadius: 24,
     padding: '6px 8px 6px 12px',
     minHeight: 52,
     boxSizing: 'border-box',
-    boxShadow: '0 1px 2px rgba(60,64,67,0.08)',
+    boxShadow: '0 2px 12px rgba(0,0,0,0.35)',
   },
   iconBtn: {
     flexShrink: 0,
@@ -533,7 +537,7 @@ const cb = {
     gap: 2,
     padding: 2,
     borderRadius: 8,
-    background: '#f1f3f4',
+    background: BD.trackBar,
     flexShrink: 0,
   },
   modeOn: {
@@ -544,10 +548,10 @@ const cb = {
     height: 30,
     borderRadius: 6,
     border: 'none',
-    background: '#fff',
-    color: '#1967d2',
+    background: BD.bgPanelHi,
+    color: BD.link,
     cursor: 'pointer',
-    boxShadow: '0 1px 1px rgba(60,64,67,0.12)',
+    boxShadow: '0 1px 4px rgba(0,0,0,0.35)',
   },
   modeOff: {
     display: 'flex',
@@ -558,7 +562,7 @@ const cb = {
     borderRadius: 6,
     border: 'none',
     background: 'transparent',
-    color: '#5f6368',
+    color: BD.textMuted,
     cursor: 'pointer',
   },
   textField: {
@@ -568,7 +572,7 @@ const cb = {
     background: 'transparent',
     fontSize: 16,
     lineHeight: 1.45,
-    color: '#202124',
+    color: BD.textPrimary,
     fontFamily: 'inherit',
     outline: 'none',
     padding: '8px 4px',
@@ -581,22 +585,22 @@ const cb = {
     alignItems: 'center',
     padding: '0 8px',
     borderRadius: 12,
-    border: '1px dashed #dadce0',
+    border: `1px dashed ${BD.borderHi}`,
     cursor: 'pointer',
-    background: '#f8f9fa',
+    background: BD.bgInput,
   },
   dropMiniActive: {
-    borderColor: '#1a73e8',
-    background: '#e8f0fe',
+    borderColor: BD.paywallCtaBg,
+    background: 'rgba(37, 99, 235, 0.1)',
   },
   dropMiniFile: {
     borderStyle: 'solid',
-    borderColor: '#ceead6',
-    background: '#e6f4ea',
+    borderColor: BD.success,
+    background: BD.billingBg,
   },
   dropHint: {
     fontSize: 14,
-    color: '#80868b',
+    color: BD.textMuted,
   },
   fileChip: {
     display: 'flex',
@@ -608,7 +612,7 @@ const cb = {
   fileChipName: {
     flex: 1,
     fontSize: 14,
-    color: '#202124',
+    color: BD.textPrimary,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
@@ -616,7 +620,7 @@ const cb = {
   clearMini: {
     border: 'none',
     background: 'transparent',
-    color: '#5f6368',
+    color: BD.textMuted,
     cursor: 'pointer',
     padding: 4,
     display: 'flex',
@@ -627,8 +631,8 @@ const cb = {
     height: 40,
     borderRadius: '50%',
     border: 'none',
-    background: '#1a73e8',
-    color: '#fff',
+    background: BD.paywallCtaBg,
+    color: BD.textBright,
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',

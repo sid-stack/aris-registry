@@ -322,7 +322,7 @@ const styles = {
   },
   ctaFootnote: {
     fontSize: '12px',
-    color: '#94a3b8',
+    color: '#475569',
     marginTop: '16px',
     fontWeight: 600,
   }

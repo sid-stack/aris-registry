@@ -94,7 +94,7 @@ function FaqItem({ question, answer, open, onToggle }) {
         </span>
         <span
           style={{
-            color: "#94a3b8",
+            color: "#475569",
             fontSize: "1.2rem",
             transform: open ? "rotate(180deg)" : "rotate(0deg)",
             transition: "transform 0.3s ease",

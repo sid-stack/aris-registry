@@ -7,6 +7,10 @@
  */
 import { useState } from 'react';
 import { ClipboardCopy, Check, FileOutput, Database, Cpu, Clock } from 'lucide-react';
+import { BD } from '../../theme/bentoDarkTheme.js';
+
+const BONE_SHIMMER =
+  'linear-gradient(90deg, #1a2434 22%, #243044 50%, #1a2434 78%)';
 
 // ── Format audit as markdown for clipboard ────────────────────────────────────
 function formatForClipboard(audit) {
@@ -57,7 +61,7 @@ function Bone({ w = '100%', h = 11, radius = 5, style = {} }) {
   return (
     <div style={{
       width: w, height: h, borderRadius: radius,
-      background: 'linear-gradient(90deg,#f1f3f4 25%,#e8eaed 50%,#f1f3f4 75%)',
+      background: BONE_SHIMMER,
       backgroundSize: '200% 100%',
       animation: 'shimmer 1.6s infinite',
       ...style,
@@ -115,11 +119,12 @@ export default function BidOutputCard({ auditResult, loading = false }) {
 
   return (
     <div style={s.card}>
+      <style>{`@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
       {/* Header */}
       <div style={s.header}>
         <div style={s.headerLeft}>
           <div style={s.iconWrap}>
-            <FileOutput size={14} color="#1a73e8" />
+            <FileOutput size={14} color={BD.link} />
           </div>
           <span style={s.title}>Bid Brief</span>
         </div>
@@ -147,13 +152,13 @@ export default function BidOutputCard({ auditResult, loading = false }) {
         <SkeletonBody />
       ) : isInsufficient ? (
         <div style={s.empty}>
-          <p style={{ ...s.emptyText, color: '#b06000' }}>
+          <p style={{ ...s.emptyText, color: BD.warning }}>
             {auditResult?.queued
               ? 'Queued for manual review — check back shortly.'
               : 'Upload a government solicitation PDF or SAM.gov link to generate a brief.'}
           </p>
           {!auditResult?.queued && (
-            <p style={{ ...s.emptyText, marginTop: 4, fontSize: 12, color: '#80868b' }}>
+            <p style={{ ...s.emptyText, marginTop: 4, fontSize: 12, color: BD.textMuted }}>
               If this keeps happening, verify OPENROUTER_API_KEY / GEMINI_API_KEY in your .env
             </p>
           )}
@@ -232,29 +237,29 @@ function AuditMeta({ audit }) {
       <div style={m.grid}>
         {oppId && (
           <div style={m.row}>
-            <Database size={9} color="#5f6368" style={{ flexShrink: 0 }} />
+            <Database size={9} color={BD.textMuted} style={{ flexShrink: 0 }} />
             <span style={m.key}>Opportunity</span>
             <span style={m.val}>{oppId}</span>
           </div>
         )}
         {genFormatted && (
           <div style={m.row}>
-            <Clock size={9} color="#5f6368" style={{ flexShrink: 0 }} />
+            <Clock size={9} color={BD.textMuted} style={{ flexShrink: 0 }} />
             <span style={m.key}>Generated</span>
             <span style={m.val}>{genFormatted}</span>
           </div>
         )}
         <div style={m.row}>
-          <Cpu size={9} color="#5f6368" style={{ flexShrink: 0 }} />
+          <Cpu size={9} color={BD.textMuted} style={{ flexShrink: 0 }} />
           <span style={m.key}>Logic Gate</span>
-          <span style={{ ...m.val, fontFamily: 'monospace', color: '#1967d2' }}>{version}</span>
+          <span style={{ ...m.val, fontFamily: 'monospace', color: BD.link }}>{version}</span>
         </div>
         <div style={m.row}>
           <span style={{ width: 9, flexShrink: 0 }} />
           <span style={m.key}>Source</span>
           <span style={{
             ...m.val,
-            color: cacheHit ? '#1e8e3e' : '#5f6368',
+            color: cacheHit ? BD.success : BD.textMuted,
             fontWeight: 700,
           }}>
             {cacheHit ? `CACHE HIT${servedAt ? ` · ${servedAt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}` : ''}` : 'LIVE INFERENCE'}
@@ -267,7 +272,7 @@ function AuditMeta({ audit }) {
 
 const m = {
   wrap: {
-    borderTop: '1px solid #e8eaed',
+    borderTop: `1px solid ${BD.border}`,
     paddingTop: 12,
     marginTop: 4,
     display: 'flex',
@@ -276,16 +281,16 @@ const m = {
   },
   label: {
     margin: 0, fontSize: 11, fontWeight: 500,
-    letterSpacing: '0', color: '#5f6368', textTransform: 'none',
+    letterSpacing: '0', color: BD.textMuted, textTransform: 'none',
   },
   grid: { display: 'flex', flexDirection: 'column', gap: 5 },
   row: { display: 'flex', alignItems: 'center', gap: 6 },
   key: {
-    fontSize: 12, color: '#5f6368', width: 72, flexShrink: 0,
+    fontSize: 12, color: BD.textMuted, width: 72, flexShrink: 0,
     letterSpacing: '-0.01em',
   },
   val: {
-    fontSize: 12, color: '#202124', letterSpacing: '-0.01em',
+    fontSize: 12, color: BD.textPrimary, letterSpacing: '-0.01em',
     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
   },
 };
@@ -293,8 +298,8 @@ const m = {
 // ── Styles ────────────────────────────────────────────────────────────────────
 const s = {
   card: {
-    background: '#fff',
-    border: '1px solid #dadce0',
+    background: BD.bgCard,
+    border: `1px solid ${BD.border}`,
     borderRadius: 8,
     padding: '20px 20px 16px',
     display: 'flex',
@@ -302,7 +307,7 @@ const s = {
     gap: 14,
     height: '100%',
     boxSizing: 'border-box',
-    boxShadow: '0 1px 2px rgba(60,64,67,0.06)',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
   },
   header: {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -310,18 +315,19 @@ const s = {
   headerLeft: { display: 'flex', alignItems: 'center', gap: 8 },
   iconWrap: {
     width: 28, height: 28, borderRadius: 8,
-    background: '#e8f0fe',
+    background: BD.chipBg,
+    border: `1px solid ${BD.border}`,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
   },
   title: {
-    fontSize: 15, fontWeight: 400, color: '#202124', letterSpacing: '-0.01em',
+    fontSize: 15, fontWeight: 400, color: BD.textBright, letterSpacing: '-0.01em',
   },
   copyBtn: {
     display: 'inline-flex', alignItems: 'center',
     fontSize: 13, fontWeight: 500,
-    color: '#1a73e8',
-    background: '#fff',
-    border: '1px solid #dadce0',
+    color: BD.link,
+    background: BD.bgPanel,
+    border: `1px solid ${BD.border}`,
     borderRadius: 4,
     padding: '6px 14px',
     cursor: 'pointer',
@@ -330,9 +336,9 @@ const s = {
     whiteSpace: 'nowrap',
   },
   copyBtnSuccess: {
-    background: '#e6f4ea',
-    borderColor: '#ceead6',
-    color: '#1e8e3e',
+    background: BD.billingBg,
+    borderColor: BD.borderHi,
+    color: BD.billingFg,
   },
   copyBtnDisabled: {
     opacity: 0.3,
@@ -343,24 +349,24 @@ const s = {
     padding: '20px 0',
   },
   emptyText: {
-    margin: 0, fontSize: 14, color: '#5f6368', textAlign: 'center',
+    margin: 0, fontSize: 14, color: BD.textSecondary, textAlign: 'center',
   },
   probBadge: {
-    fontSize: 12, fontWeight: 500, color: '#5f6368',
-    background: '#f1f3f4', border: '1px solid #dadce0',
+    fontSize: 12, fontWeight: 500, color: BD.textMuted,
+    background: BD.bgPanelHi, border: `1px solid ${BD.border}`,
     borderRadius: 16, padding: '2px 10px',
   },
   summaryText: {
-    margin: 0, fontSize: 14, color: '#202124', lineHeight: 1.6,
+    margin: 0, fontSize: 14, color: BD.textPrimary, lineHeight: 1.6,
   },
   metaRow: { display: 'flex', flexWrap: 'wrap', gap: 5 },
   metaChip: {
-    fontSize: 12, fontWeight: 500, color: '#202124',
-    background: '#f8f9fa', border: '1px solid #dadce0',
+    fontSize: 12, fontWeight: 500, color: BD.textPrimary,
+    background: BD.bgPanelHi, border: `1px solid ${BD.border}`,
     borderRadius: 4, padding: '3px 8px',
   },
   rationaleText: {
-    margin: 0, fontSize: 13, color: '#5f6368', lineHeight: 1.55,
-    borderTop: '1px solid #e8eaed', paddingTop: 10,
+    margin: 0, fontSize: 13, color: BD.textMuted, lineHeight: 1.55,
+    borderTop: `1px solid ${BD.border}`, paddingTop: 10,
   },
 };
