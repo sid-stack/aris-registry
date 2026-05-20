@@ -25,6 +25,19 @@ function normalizeClerkPublishableKey(raw) {
   return s;
 }
 
+/**
+ * `.env.development.local.example` uses `pk_test_xxxxxxxx...` placeholders — treat as unset so we
+ * fall back to a helpful mismatch warning instead of sending a bogus key to Clerk.
+ */
+function normalizeClerkDevOverrideKey(raw) {
+  const s = normalizeClerkPublishableKey(raw);
+  if (!s.startsWith("pk_test_")) return "";
+  const suffix = s.slice("pk_test_".length);
+  if (suffix.length < 8) return "";
+  if (/^[xX]+$/.test(suffix)) return "";
+  return s;
+}
+
 function ClerkPublishableKeyMissing() {
   return (
     <div
@@ -60,12 +73,12 @@ function ClerkPublishableKeyMissing() {
           {" "}or legacy{" "}
           <code style={{ background: "#f4f4f5", padding: "2px 7px", borderRadius: 6, fontSize: 13 }}>NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY</code>
           {import.meta.env.DEV
-            ? " to `.env.development.local` (see `.env.example`), then restart Vite."
+            ? " to `.env.development.local` (copy from `.env.development.local.example`), then restart Vite."
             : " for Production on Vercel and/or Railway (`/app-config.js`), then redeploy."}
         </p>
         <p style={{ fontSize: 13, lineHeight: 1.55, color: "#71717a", margin: "0 0 18px" }}>
           {import.meta.env.DEV
-            ? "Without a `pk_test_` key, Clerk cannot initialize locally."
+            ? "Without a `pk_test_` key, Clerk cannot initialize locally. See `.env.development.local.example`."
             : "Vercel: Project → Settings → Environment Variables → Production. See `.env.example` in the repo."}
         </p>
         <a
@@ -89,32 +102,57 @@ async function bootstrap() {
   registerConsentListener();
   initServiceWorkerAfterConsent();
 
-  const clerkPubKey = normalizeClerkPublishableKey(
-    import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
-      || import.meta.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
-      || window.__APP_CONFIG__?.VITE_CLERK_PUBLISHABLE_KEY
-      || window.__APP_CONFIG__?.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
-  );
-
-  const clerkConfigured = Boolean(clerkPubKey);
-
   const IS_DEV = import.meta.env.DEV;
+
   const IS_LOCAL_WEB_HOST =
     typeof window !== "undefined"
     && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
 
+  /** Dev / local preview: override when root `.env` keeps `pk_live_` for deploy tooling. */
+  const useClerkDevPublishableOverride =
+    IS_DEV || (import.meta.env.PROD && IS_LOCAL_WEB_HOST);
+
+  const clerkPubKeyDev = useClerkDevPublishableOverride
+    ? normalizeClerkDevOverrideKey(import.meta.env.VITE_CLERK_PUBLISHABLE_KEY_DEV)
+    : "";
+
+  const clerkPubKey = clerkPubKeyDev
+    || normalizeClerkPublishableKey(
+      import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
+        || import.meta.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+        || window.__APP_CONFIG__?.VITE_CLERK_PUBLISHABLE_KEY
+        || window.__APP_CONFIG__?.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+    );
+
+  const clerkConfigured = Boolean(clerkPubKey);
+
+  /**
+   * Dev-only strip: `pk_live` on real localhost. Do not key off `import.meta.env.DEV` — some hosting
+   * configs can ship a bundle where DEV is still true, which incorrectly showed this banner on www.
+   */
   const CLERK_KEY_MISMATCH =
     clerkPubKey.startsWith("pk_live_")
-    && (IS_DEV || (import.meta.env.PROD && IS_LOCAL_WEB_HOST));
+    && IS_LOCAL_WEB_HOST;
+
+  /** Session-only hide for the top bar (auth can still 400 until real pk_test_ keys are set). */
+  let clerkBannerDismissed = false;
+  try {
+    clerkBannerDismissed =
+      typeof sessionStorage !== "undefined"
+      && sessionStorage.getItem("bidsmith_clerk_pk_live_banner_dismissed") === "1";
+  } catch {
+    clerkBannerDismissed = false;
+  }
 
   if (CLERK_KEY_MISMATCH) {
     devWarn(
-      "[BidSmith Dev] Clerk production key detected on localhost.\n"
-      + "Auth will return 400 errors until you add a pk_test_ key or allowlist this origin in Clerk.\n"
-      + "Fix: create .env.development.local with:\n"
-      + "  VITE_CLERK_PUBLISHABLE_KEY=pk_test_<your-dev-key>\n"
-      + "  CLERK_SECRET_KEY=sk_test_<your-dev-secret>\n"
-      + "Get keys from: https://dashboard.clerk.com → Development environment → API Keys",
+      "[BidSmith] Clerk production key detected on localhost.\n"
+      + "Auth may return 400 until you add real Development keys or allowlist this origin.\n"
+      + "Fix: Clerk Dashboard → Development → API Keys → paste into `.env.development.local`:\n"
+      + "  VITE_CLERK_PUBLISHABLE_KEY_DEV=pk_test_<...>\n"
+      + "  CLERK_SECRET_KEY=sk_test_<...>\n"
+      + "Then restart Vite. For `vite preview`, also add the same line to `.env.local` and rebuild.\n"
+      + "Run: node scripts/open-clerk-dev-keys.mjs",
     );
   }
 
@@ -127,7 +165,7 @@ async function bootstrap() {
 
   root.render(
     <React.StrictMode>
-      {CLERK_KEY_MISMATCH && (
+      {CLERK_KEY_MISMATCH && !clerkBannerDismissed && (
         <div
           style={{
             position: "fixed",
@@ -150,17 +188,47 @@ async function bootstrap() {
         >
           <span>⚠</span>
           <span>
-            Clerk production key on localhost — auth 400s expected.
-            Add <code style={{ background: "rgba(0,0,0,0.25)", padding: "1px 5px", borderRadius: 3 }}>pk_test_</code> key to
-            <code style={{ background: "rgba(0,0,0,0.25)", padding: "1px 5px", borderRadius: 3 }}>.env.development.local</code> to fix.
+            Clerk production key on localhost — auth 400s expected. Paste real Development
+            <code style={{ background: "rgba(0,0,0,0.25)", padding: "1px 5px", borderRadius: 3 }}> pk_test_</code>
+            {" + "}
+            <code style={{ background: "rgba(0,0,0,0.25)", padding: "1px 5px", borderRadius: 3 }}>sk_test_</code>
+            {" "}into{" "}
+            <code style={{ background: "rgba(0,0,0,0.25)", padding: "1px 5px", borderRadius: 3 }}>.env.development.local</code>
+            {" "}(replace the placeholder x’s).{" "}
+            <code style={{ background: "rgba(0,0,0,0.25)", padding: "1px 5px", borderRadius: 3 }}>node scripts/open-clerk-dev-keys.mjs</code>
           </span>
+          <button
+            type="button"
+            aria-label="Dismiss Clerk key warning for this browser session"
+            onClick={() => {
+              try {
+                sessionStorage.setItem("bidsmith_clerk_pk_live_banner_dismissed", "1");
+              } catch {
+                /* ignore */
+              }
+              window.location.reload();
+            }}
+            style={{
+              color: "#fde68a",
+              background: "transparent",
+              border: "1px solid rgba(253, 230, 138, 0.45)",
+              borderRadius: 4,
+              padding: "3px 8px",
+              fontSize: 11,
+              fontFamily: "inherit",
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+            }}
+          >
+            Dismiss
+          </button>
           <a
             href="https://dashboard.clerk.com"
             target="_blank"
             rel="noopener noreferrer"
             style={{ color: "#fde68a", marginLeft: "auto", textDecoration: "underline", whiteSpace: "nowrap" }}
           >
-            Get dev keys →
+            Clerk Dashboard →
           </a>
         </div>
       )}
